@@ -218,9 +218,21 @@ function UserMenu() {
   const { logout, loginAs, users, resetDemo, toast } = useStore()
   const [open, setOpen] = useState(false)
   const nav = useNavigate()
+  const loc = useLocation()
+  const ref = useRef<HTMLDivElement>(null)
+  // close on any click / tap outside the menu, on Esc, and when the page changes
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey) }
+  }, [open])
+  useEffect(() => { setOpen(false) }, [loc.pathname])
   return (
-    <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-2 h-9 pl-1 pr-1.5 rounded-lg hover:bg-[#f9fafb] transition-colors">
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex items-center gap-2 h-9 pl-1 pr-1.5 rounded-lg hover:bg-[#f9fafb] transition-colors">
         <Avatar name={me.name} color={me.avatarColor} size={28} />
         <span className="hidden lg:block text-left leading-tight">
           <span className="block text-[12.5px] font-semibold text-ink max-w-[140px] truncate">{me.name}</span>
@@ -231,9 +243,12 @@ function UserMenu() {
       <AnimatePresence>
         {open && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 top-11 z-50 w-[320px] card shadow-2xl p-2">
-              <div className="flex items-center gap-3 p-2">
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-24px)] card shadow-2xl p-2">
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" title="Close"
+                className="absolute right-2 top-2 h-7 w-7 rounded-full grid place-items-center text-muted hover:text-ink hover:bg-slate-100 transition-colors">
+                <Icon name="X" size={15} />
+              </button>
+              <div className="flex items-center gap-3 p-2 pr-9">
                 <Avatar name={me.name} color={me.avatarColor} size={40} />
                 <div className="min-w-0">
                   <div className="font-bold text-[13.5px] truncate">{me.name}</div>
@@ -244,7 +259,7 @@ function UserMenu() {
               <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="#2f5bc6">{ROLE_LABEL[r]}</Badge>)}</div>
               <div className="border-t border-line my-1" />
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
-              <div className="max-h-60 overflow-y-auto">
+              <div>
                 {DEMO_LOGINS.map((d) => {
                   const u = users.find((x) => x.id === d.userId)!
                   return (
@@ -258,7 +273,7 @@ function UserMenu() {
               </div>
               <div className="border-t border-line my-1" />
               <button onClick={() => { if (confirm('Reset all demo data to the original seed? Local changes will be lost.')) { resetDemo(); toast('Demo data reset', 'info') } setOpen(false) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="RotateCcw" size={15} />Reset demo data</button>
-              <button onClick={() => { logout(); nav('/login') }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] text-red-600 hover:bg-red-50"><Icon name="LogOut" size={15} />Sign out</button>
+              <button onClick={() => { setOpen(false); logout(); nav('/login') }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] text-red-600 hover:bg-red-50"><Icon name="LogOut" size={15} />Sign out</button>
             </motion.div>
           </>
         )}
