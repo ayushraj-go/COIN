@@ -190,7 +190,8 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const feasibilityOnBehalf = false
   const feasibility = false
   void feasStage; void responded; void supCode
-  const techeval = pipeline && evalStage && can(me, 'techeval') && (!idea.techEval?.evaluatorDept || idea.techEval.evaluatorDept.includes(me.department))
+  // the Sourcing Head can record R&D approval too, so the whole flow runs from one login
+  const techeval = pipeline && evalStage && ((can(me, 'techeval') && (!idea.techEval?.evaluatorDept || idea.techEval.evaluatorDept.includes(me.department))) || hasRole(me, 'head'))
   const approve = pipeline && stage === STAGE.approval && can(me, 'approve') && !!pending &&
     (hasRole(me, 'head') || pending.approverId === me.id || (pending.level === 'Commodity Lead' && hasRole(me, 'lead') && scope))
   const actor = validate || techeval || approve || (pipeline && validator)
