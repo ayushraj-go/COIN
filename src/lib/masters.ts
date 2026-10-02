@@ -167,12 +167,12 @@ export const USERS_DEFAULT: User[] = [
 export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [
   { userId: 'u-head', role: 'Sourcing Head', blurb: 'All data · approves above limit · MIS' },
   { userId: 'u-lead1', role: 'Commodity Lead', blurb: 'Metals · approvals · workshops' },
-  { userId: 'u-buyer1', role: 'Commodity Buyer', blurb: 'Fasteners & Steel · validation · execution' },
-  { userId: 'u-eval1', role: 'Technical Evaluator', blurb: 'R&D go / no-go · validation plan' },
+  { userId: 'u-buyer1', role: 'Commodity Buyer', blurb: 'Fasteners & Steel · team feasibility · execution' },
+  { userId: 'u-eval1', role: 'Technical Evaluator', blurb: 'R&D approval · validation plan' },
   { userId: 'u-fin', role: 'Finance Controller', blurb: 'Validates realised savings' },
   { userId: 'u-mgmt', role: 'Management', blurb: 'Dashboards & monthly report' },
   { userId: 'u-sub1', role: 'Submitter', blurb: 'R&D employee · own ideas' },
-  { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · feasibility & workshops' },
+  { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · ideas & workshops' },
   { userId: 'u-admin', role: 'Admin', blurb: 'Masters · users · approval matrix' },
 ]
 

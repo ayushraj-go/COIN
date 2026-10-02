@@ -250,9 +250,10 @@ function buildIdea(opts: {
         const exit = addDays(cursor, dur)
         idea.stageHistory[idea.stageHistory.length - 1].exitedAt = dt(exit, 16)
         idea.stageHistory[idea.stageHistory.length - 1].by = userById(who).name
-        const act = stage === STAGE.approval ? 'Approved' : stage === STAGE.rnd ? 'R&D approved' : stage === STAGE.feasibility ? 'Feasibility confirmed' : 'Completed'
+        const act = stage === STAGE.approval ? 'Approved' : stage === STAGE.rnd ? 'R&D approved' : stage === STAGE.feasibility ? 'Feasibility confirmed' : stage === STAGE.execution ? 'Marked Done' : 'Completed'
         idea.stageHistory[idea.stageHistory.length - 1].action = act
-        log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Team feasibility check completed — baseline confirmed' : act, { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
+        // the Execution started → Implemented step is logged as "Marked Done" with the effective date below
+        if (stage !== STAGE.execution) log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Team feasibility check completed — baseline confirmed' : act, { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
         if (stage === STAGE.approval) idea.approvedAt = dt(exit, 16)
         cursor = exit
       }
@@ -305,6 +306,12 @@ function buildIdea(opts: {
       if (effectiveDate > '2026-08-20') effectiveDate = addDays('2026-05-01', ri(0, 80))
       if (effectiveDate < approvedDay) effectiveDate = addDays(approvedDay, 5)
       ms.forEach((m) => (m.doneDate = m.dueDate < effectiveDate! ? m.dueDate : effectiveDate))
+      // Execution started closes on the effective date, when the idea becomes Implemented
+      const exH = idea.stageHistory.find((h) => h.stage === STAGE.execution)
+      if (exH) exH.exitedAt = dt(effectiveDate, 15)
+      const imH = idea.stageHistory.find((h) => h.stage === 'Implemented')
+      if (imH) imH.enteredAt = dt(effectiveDate, 15)
+      idea.activity.forEach((a) => { if (a.oldValue === STAGE.execution && a.newValue === 'Implemented') a.at = dt(effectiveDate!, 15) })
     } else {
       ms.forEach((m) => { if (m.dueDate < TODAY && chance(0.75)) m.doneDate = addDays(m.dueDate, ri(-3, 4)) })
     }
