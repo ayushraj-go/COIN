@@ -176,6 +176,9 @@ export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [
   { userId: 'u-admin', role: 'Admin', blurb: 'Masters · users · approval matrix' },
 ]
 
+/** Quick demo access: only Sourcing Head and Admin are offered, and both sign in as the Sourcing Head */
+export const QUICK_LOGINS = DEMO_LOGINS.filter((d) => d.userId === 'u-head' || d.userId === 'u-admin').map((d) => ({ ...d, signInAs: 'u-head' }))
+
 export const SUPPLIERS_DEFAULT: Supplier[] = [
   { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd', commodities: ['CUT'], contactEmail: 'sales@kirancopper.in', contactName: 'Mahesh Kiran', city: 'Silvassa', spend: 1480 * CR },
   { code: 'V10002', name: 'Northstar Metal Mills', commodities: ['CUT', 'ALU'], contactEmail: 'kam@northstarmetal.in', contactName: 'Ravi Northey', city: 'Bhiwadi', spend: 965 * CR },

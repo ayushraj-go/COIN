@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import confetti from 'canvas-confetti'
 import { useStore, useMe } from '../store/useStore'
 import { navForSpace, spaceForPath, ROLE_LABEL, primaryRole } from '../lib/nav'
-import { DEMO_LOGINS } from '../lib/masters'
+import { QUICK_LOGINS } from '../lib/masters'
 import { Avatar, Icon, IconButton, cn, Badge } from './ui'
 import { timeAgo, inrShort } from '../lib/format'
 import { ideaAnnualised } from '../lib/calc'
@@ -260,10 +260,11 @@ function UserMenu() {
               <div className="border-t border-line my-1" />
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
               <div>
-                {DEMO_LOGINS.map((d) => {
+                {QUICK_LOGINS.map((d) => {
                   const u = users.find((x) => x.id === d.userId)!
+                  const head = users.find((x) => x.id === d.signInAs)!
                   return (
-                    <button key={d.userId} onClick={() => { loginAs(d.userId); setOpen(false); nav('/'); toast(`Switched to ${u.name} · ${d.role}`, 'info') }} className={cn('w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-slate-50', d.userId === me.id && 'bg-brand-50')}>
+                    <button key={d.userId} onClick={() => { loginAs(d.signInAs); setOpen(false); nav('/'); toast(`Switched to ${head.name} · Sourcing Head`, 'info') }} className={cn('w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-slate-50', d.userId === me.id && 'bg-brand-50')}>
                       <Avatar name={u.name} color={u.avatarColor} size={26} />
                       <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-semibold truncate">{d.role}</span><span className="block text-[11px] text-muted truncate">{u.name}</span></span>
                       {d.userId === me.id && <Icon name="Check" size={14} className="text-brand-600" />}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useStore } from '../store/useStore'
-import { DEMO_LOGINS } from '../lib/masters'
+import { QUICK_LOGINS } from '../lib/masters'
 import { Avatar, Icon, Modal, Button, cn } from '../components/ui'
 import { AmberWordmark } from '../components/Logo'
 
@@ -265,11 +265,12 @@ export default function Login() {
               </form>
 
               <div className="flex items-center gap-3 my-[clamp(10px,2vh,18px)] text-[10px] font-semibold uppercase tracking-[.2em] text-muted"><span className="h-px flex-1 bg-black/[.07]" />Quick demo access<span className="h-px flex-1 bg-black/[.07]" /></div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 auto-rows-fr gap-1.5">
-                {DEMO_LOGINS.map((d) => {
+              <div className="grid grid-cols-2 auto-rows-fr gap-1.5">
+                {QUICK_LOGINS.map((d) => {
                   const u = users.find((x) => x.id === d.userId)!
+                  const head = users.find((x) => x.id === d.signInAs)!
                   return (
-                    <button key={d.userId} title={`${u.name} — ${d.blurb}`} onClick={() => { loginAs(d.userId); toast(`Signed in as ${u.name} · ${d.role}`); go() }}
+                    <button key={d.userId} title={`${d.role} — signs in as ${head.name} (Sourcing Head)`} onClick={() => { loginAs(d.signInAs); toast(`Signed in as ${head.name} · Sourcing Head`); go() }}
                       className="group flex items-center gap-[7px] rounded-xl bg-[#f6f6f3] border border-transparent px-2 py-[clamp(5px,0.8vh,7px)] text-left hover:bg-white hover:border-black/[.08] hover:shadow-[0_6px_16px_-10px_rgb(15_27_51/.35)] transition-all min-w-0">
                       <Avatar name={u.name} color={u.avatarColor} size={22} />
                       <span className="min-w-0"><span className="block text-[10.5px] font-semibold text-ink line-clamp-2 leading-[1.15] tracking-[-0.005em]">{d.role}</span><span className="block text-[10px] text-muted truncate leading-tight mt-px">{u.name}</span></span>
