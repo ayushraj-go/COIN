@@ -1,6 +1,6 @@
 // Section 4 — savings methodology. One rule for every buyer.
 import type { Bucket, Commodity, Filters, Health, Idea, IdeaPart, LedgerEntry, Lever, RouteKey, SlaRule, User } from './types'
-import { ROUTE_STAGES, STAGE_SLA_KEY, EVALUATION_STAGES, FEASIBILITY_STAGES, LAKH } from './masters'
+import { ROUTE_STAGES, STAGE, STAGE_SLA_KEY, EVALUATION_STAGES, FEASIBILITY_STAGES, LAKH } from './masters'
 import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, sum, today, todayIso, workingDaysBetween, ymOf, iso } from './format'
 
 /** Saving per unit = P(baseline) − P(new) */
@@ -67,8 +67,8 @@ export function bucketFor(route: RouteKey, stage: string): Bucket {
   if (stage === 'Draft') return 'Draft'
   if (stage === 'Dropped' || stage === 'Rejected') return 'Dropped'
   if (stage === 'Implemented') return 'Implemented'
-  const stages = ROUTE_STAGES[route]
-  const ai = stages.indexOf('Approval')
+  const stages = ROUTE_STAGES[route] ?? ROUTE_STAGES.Commercial
+  const ai = stages.indexOf(STAGE.approval)
   const si = stages.indexOf(stage)
   return si > ai ? 'In Execution' : 'Pipeline'
 }

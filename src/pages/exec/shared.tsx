@@ -3,7 +3,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../../store/useStore'
 import type { Execution, Idea, RouteKey, User } from '../../lib/types'
-import { ROUTE_STAGES, STAGE_SHORT } from '../../lib/masters'
+import { STAGE_SHORT, TRACKER_STAGES } from '../../lib/masters'
 import { goLiveOf, ideaAnnualised, ideaApprovedAnnualised } from '../../lib/calc'
 import { addDays, fyMonths, parse, todayIso } from '../../lib/format'
 import { Avatar, Button, Field, Icon, Modal, cn } from '../../components/ui'
@@ -39,9 +39,10 @@ export function snapshot(ideaIds: string[] = [], ledgerIds: string[] = []) {
 }
 export const toast = (msg: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', undo?: () => void) => useStore.getState().toast(msg, type, undo)
 
-// ─── Route strip (Buyer → Supplier → R&D → Approval → NPD → PAP → Implemented) ─
+// ─── Stage strip (Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented) ─
 export function RouteStrip({ route, stage, compact }: { route: RouteKey; stage: string; compact?: boolean }) {
-  const stages = ROUTE_STAGES[route] ?? ROUTE_STAGES.Commercial
+  const stages = TRACKER_STAGES
+  void route
   const cur = stages.indexOf(stage)
   const terminal = stage === 'Dropped' || stage === 'Rejected'
   return (

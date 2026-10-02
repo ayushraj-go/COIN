@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import type { Bucket, Filters, Idea, SlaRule } from '../../lib/types'
-import { ROUTE_STAGES } from '../../lib/masters'
+import { TRACKER_STAGES } from '../../lib/masters'
 import { BUCKET_STYLE, bucketFor, ideaAnnualised } from '../../lib/calc'
 import { fmtDate, fyOf, inrShort, quarterOf, QUARTER_MONTHS, sum, todayIso, workingDaysBetween } from '../../lib/format'
 import { ROLE_LABEL, primaryRole } from '../../lib/nav'
@@ -131,11 +131,11 @@ export function ViewPills({ value, onChange }: { value: 'dashboard' | 'advanced'
   )
 }
 
-// ─── Mini stage tracker (route steps as segments) ─────────────────────────────
+// ─── Mini stage tracker (the six workflow stages as segments) ────────────────
 export function StageTrackerMini({ idea, className }: { idea: Idea; className?: string }) {
-  const stages = ROUTE_STAGES[idea.route] ?? ROUTE_STAGES.Commercial
+  const stages = TRACKER_STAGES
   const dropped = idea.bucket === 'Dropped'
-  const ref = dropped ? idea.dropStage ?? stages[0] : idea.stage
+  const ref = dropped ? idea.dropStage ?? stages[1] : idea.stage
   const cur = idea.stage === 'Draft' ? -1 : stages.indexOf(ref)
   const label = idea.stage === 'Draft' ? 'Draft — not yet submitted' : dropped ? `${idea.stage} at ${ref}` : `${idea.stage} · step ${cur + 1} of ${stages.length}`
   return (

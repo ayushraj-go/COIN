@@ -1,4 +1,4 @@
-// M6 — Supplier Workspace home (one screen at xl): KPIs + submit banner, then my ideas · workshop invites · feasibility requests
+// M6 — Supplier Workspace home (one screen at xl): KPIs + submit banner, then my ideas · workshop invites · my ideas by stage
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
@@ -6,6 +6,7 @@ import type { Campaign } from '../../lib/types'
 import { BUCKET_STYLE, ideaAnnualised, slaStatus } from '../../lib/calc'
 import { daysBetween, fmtDate, inrPrice, inrShort, pct, sum, timeAgo, todayIso } from '../../lib/format'
 import { OUT_OF_SCOPE } from '../../lib/scope'
+import { STAGE, TRACKER_STAGES } from '../../lib/masters'
 import { Badge, BucketBadge, Button, Card, EmptyState, Icon, InfoTip, LeverChip, SlaPill, useWarmup } from '../../components/ui'
 import { HomeHeader, HomeSkeleton, MiniStat, Reveal, RevealGrid, StageTrackerMini } from './shared'
 import { SubmitCta } from './SubmitterHome'
@@ -25,11 +26,8 @@ export default function SupplierHome() {
   const { ideas, campaigns, suppliers, commodities, slaRules, setAttendance, toast, openIdea } = useStore()
   const nav = useNavigate()
   const [fitRef, fitH] = useFitHeight()
-  const [feasRef, feasRows] = useRowsFit(46, 4)
   const sup = suppliers.find((s) => s.code === code)
   const invites = useMemo(() => campaigns.filter((c) => c.suppliers.includes(code) && c.status !== 'Draft').sort((a, b) => (b.workshopDate ?? b.startDate).localeCompare(a.workshopDate ?? a.startDate)), [campaigns, code])
-  const pendingFeas = ideas.filter((i) => i.feasibility?.supplierCode === code && !i.feasibility.respondedAt && i.bucket === 'Pipeline')
-  const answered = ideas.filter((i) => i.feasibility?.supplierCode === code && i.feasibility.respondedAt).sort((a, b) => (b.feasibility!.respondedAt ?? '').localeCompare(a.feasibility!.respondedAt ?? ''))
   const own = useMemo(() => ideas.filter((i) => (i.isSupplierSubmission && i.supplierCode === code) || i.submitterId === me.id).sort((a, b) => (b.submittedAt ?? b.createdAt).localeCompare(a.submittedAt ?? a.createdAt)), [ideas, code, me.id])
   const [ideasRef, ideaRows] = useRowsFit(76, 4, 1, own.length)
   const [invRef, invRows] = useRowsFit(150, 2, 1, invites.length)
@@ -43,9 +41,13 @@ export default function SupplierHome() {
   const nextDays = nextWs ? daysBetween(todayIso(), nextWs.workshopDate!) : null
   const accepted = invites.filter((c) => c.attendance[code] === 'Accepted').length
   const attended = invites.filter((c) => c.attendance[code] === 'Attended').length
-  // feasibility: pending first, then the most recently answered, in one fitted list
-  const feasPending = pendingFeas.slice(0, feasRows)
-  const feasAnswered = answered.slice(0, Math.max(0, feasRows - feasPending.length - (pendingFeas.length ? 0 : 1) - 1))
+  // my submitted ideas across the six workflow stages
+  const underReview = ownSubmitted.filter((i) => i.bucket === 'Pipeline')
+  const byStage = TRACKER_STAGES.map((st) => {
+    const l = st === STAGE.submitted ? ownSubmitted : ownSubmitted.filter((i) => i.stage === st)
+    return { st, n: l.length, value: sum(l.map((x) => ideaAnnualised(x))) }
+  })
+  const dropped = ownSubmitted.filter((i) => i.bucket === 'Dropped')
 
   const respond = (c: Campaign, status: 'Accepted' | 'Declined') => {
     const prev = c.attendance[code] ?? 'Invited'
@@ -63,16 +65,16 @@ export default function SupplierHome() {
           <Reveal className="col-span-12 xl:col-span-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 h-full [&>*]:h-full">
               <MiniStat label="Workshop invites" icon="Presentation" color="#7c3aed" value={invites.length} sub={awaitingReply.length ? `${awaitingReply.length} awaiting your reply` : 'All invitations answered'} onClick={() => nav('/workshops')} />
-              <MiniStat label="Feasibility requests" icon="ClipboardCheck" color={pendingFeas.length ? '#e0364f' : '#0f9f6e'} value={pendingFeas.length} sub={pendingFeas.length ? 'Pending — price, lead time, MOQ' : `None pending · ${answered.length} answered`} onClick={() => nav('/feasibility')} />
+              <MiniStat label="Under review" icon="ClipboardCheck" color="#ec8a1c" value={underReview.length} sub={underReview.length ? 'Feasibility, R&D or sourcing approval' : 'Nothing awaiting review'} onClick={() => nav('/my-ideas')} />
               <MiniStat label="My ideas" icon="Lightbulb" color="#4470d6" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
               <MiniStat label="Gain-share offered" icon="Handshake" color="#0d9488" value={gs.length ? `${gsAvg.toFixed(1)}%` : '—'} sub={gs.length ? `avg on ${gs.length} ideas · ≈ ${inrShort(gsValue)} / yr` : 'Offer gain-share when you submit'} tip={<InfoTip title="Gain-share offered to Amber">{payoutNote}</InfoTip>} />
             </div>
           </Reveal>
           <Reveal className="col-span-12 xl:col-span-4">
-            <SubmitCta title="Bring your next idea to Amber" desc="Submit with a gain-share offer and its validity, then track it from buyer validation to PAP price revision and first MRN." campaignHint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} />
+            <SubmitCta title="Bring your next idea to Amber" desc="Submit with a gain-share offer and its validity, then track it through Team feasibility check, R&D approval and Sourcing approval to PAP price revision and first MRN." campaignHint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} />
           </Reveal>
 
-          {/* Row 2 — three equal columns: my ideas · workshop invites · feasibility */}
+          {/* Row 2 — three equal columns: my ideas · workshop invites · my ideas by stage */}
           <Reveal className="col-span-12 md:col-span-6 xl:col-span-4 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Lightbulb"
               title={<span className="flex items-center gap-1.5">My ideas & status<InfoTip title="Gain-share">{payoutNote}</InfoTip></span>}
@@ -155,35 +157,24 @@ export default function SupplierHome() {
           </Reveal>
 
           <Reveal className="col-span-12 xl:col-span-4 min-h-0">
-            <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="ClipboardCheck"
-              title={<span className="flex items-center gap-1.5">Feasibility requests<InfoTip title="Feasibility requests">Amber asks you to confirm feasibility and your offered price, lead time and MOQ via a time-bound secure link. SLA: 7 working days, reminder on day 5.</InfoTip></span>}
-              subtitle={`${pendingFeas.length} pending · ${answered.length} answered`}
-              actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/feasibility')}>Respond</Button>}>
-              <div ref={feasRef} className="flex-1 min-h-0 overflow-hidden">
-                {!pendingFeas.length && (
-                  <div className="h-[46px] flex items-center"><div className="w-full rounded-lg bg-accent-50 border border-accent-100 px-3 py-2 text-[12px] text-accent-700 flex items-center gap-2"><Icon name="CheckCheck" size={14} />No pending requests — you're up to date.</div></div>
-                )}
-                {feasPending.map((i) => {
-                  const sla = slaStatus(i, slaRules)
+            <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Workflow"
+              title={<span className="flex items-center gap-1.5">My ideas by stage<InfoTip title="Six-stage workflow">Every idea moves through the same six stages: Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented. A dropped idea stays dropped; to try again, submit a new idea.</InfoTip></span>}
+              subtitle={`${ownSubmitted.length} submitted · ${dropped.length} dropped`}
+              actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>My Ideas</Button>}>
+              <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-1">
+                {byStage.map((r, k) => {
+                  const tone = r.st === 'Implemented' ? BUCKET_STYLE.Implemented : r.st === STAGE.execution ? BUCKET_STYLE['In Execution'] : BUCKET_STYLE.Pipeline
                   return (
-                    <button key={i.id} onClick={() => nav('/feasibility')} className="w-full h-[46px] flex items-center gap-2.5 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
-                      <span className="h-7 w-7 rounded-lg grid place-items-center bg-red-50 text-red-600 shrink-0"><Icon name="ClipboardCheck" size={14} /></span>
-                      <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-semibold text-ink truncate">{i.title}</span><span className="block text-[11px] text-muted truncate">{i.id} · requested {timeAgo(i.feasibility!.requestedAt)} · {i.parts[0]?.description ?? i.commodity}</span></span>
-                      <SlaPill state={sla.state} left={sla.left} working={sla.working} />
+                    <button key={r.st} onClick={() => nav('/my-ideas')} className="w-full h-[40px] flex items-center gap-2.5 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
+                      <span className="h-6 w-6 rounded-full grid place-items-center text-[10.5px] font-bold text-white shrink-0" style={{ background: tone.color }}>{k + 1}</span>
+                      <span className="min-w-0 flex-1 text-[12.5px] font-semibold text-ink truncate">{r.st}</span>
+                      <span className="text-[11px] text-muted num shrink-0">{inrShort(r.value)}</span>
+                      <span className="w-7 text-right text-[14px] font-bold text-ink num shrink-0">{r.n}</span>
                     </button>
                   )
                 })}
-                {feasAnswered.length > 0 && <div className="h-[22px] flex items-end text-[10.5px] font-semibold uppercase tracking-wide text-muted">Recently answered</div>}
-                {feasAnswered.map((i) => (
-                  <button key={i.id} onClick={() => openIdea(i.id)} className="w-full h-[46px] flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
-                    <span className="min-w-0"><span className="block text-[12.5px] font-semibold text-ink truncate">{i.title}</span><span className="block text-[11px] text-muted truncate">{i.id} · {fmtDate(i.feasibility!.respondedAt!.slice(0, 10))}</span></span>
-                    <span className="flex items-center gap-1.5 shrink-0">
-                      {i.feasibility!.offeredPrice != null && <span className="text-[11.5px] font-semibold text-ink num">{inrPrice(i.feasibility!.offeredPrice)}</span>}
-                      <Badge color={i.feasibility!.feasible ? '#0f9f6e' : '#e0364f'} icon={i.feasibility!.feasible ? 'Check' : 'X'}>{i.feasibility!.feasible ? 'Feasible' : 'Not feasible'}</Badge>
-                    </span>
-                  </button>
-                ))}
               </div>
+              {dropped.length > 0 && <div className="shrink-0 mt-2 pt-2 border-t border-line text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Ban" size={13} />{dropped.length} dropped — closed for good; a fresh attempt is a new idea</div>}
             </Card>
           </Reveal>
         </RevealGrid>

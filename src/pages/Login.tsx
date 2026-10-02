@@ -106,8 +106,8 @@ function Chip({ icon, label, className, delay = 0 }: { icon: string; label: stri
 
 const STEPS = [
   { icon: 'Lightbulb', label: 'Capture &\nvalue' },
-  { icon: 'ShieldCheck', label: 'Validate &\nevaluate' },
-  { icon: 'BadgeCheck', label: 'Approve by\nvalue slab' },
+  { icon: 'ShieldCheck', label: 'Feasibility\n& R&D' },
+  { icon: 'BadgeCheck', label: 'Sourcing\napproval' },
   { icon: 'Rocket', label: 'Execute &\ntrack' },
   { icon: 'BadgeIndianRupee', label: 'Realise &\nprove' },
 ]

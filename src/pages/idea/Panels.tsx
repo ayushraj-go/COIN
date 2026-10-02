@@ -5,7 +5,7 @@ import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Badge, Button, Card, HealthBadge, Icon, InfoTip, KV, LeverChip, ProgressBar, SavingsTypeBadge, SourceTag, UserChip, cn } from '../../components/ui'
 import { approvalLevels, healthOf, ideaAnnualised } from '../../lib/calc'
-import { FEASIBILITY_STAGES, EVALUATION_STAGES, LEVER_GROUP_STYLE } from '../../lib/masters'
+import { EVALUATION_STAGES, LEVER_GROUP_STYLE, STAGE } from '../../lib/masters'
 import { fmtDate, inr, inrPrice, inrShort, num, todayIso } from '../../lib/format'
 import { ROUTE_ICON, ideaPerms, stagesOf, supplierName, useCtx } from './model'
 
@@ -82,32 +82,25 @@ function PanelShell({ title, icon, status, children, tone = '#64748b' }: { title
 }
 const NA = ({ children }: { children: ReactNode }) => <div className="text-[12px] text-muted leading-relaxed">{children}</div>
 
-// ─── Feasibility ──────────────────────────────────────────────────────────────
+// ─── Team feasibility check (stage 2 — run by the commodity team, no supplier step) ─────
 export function FeasibilityPanel({ idea }: { idea: Idea }) {
   const ctx = useCtx()
   const stages = stagesOf(idea)
-  const fStage = stages.find((s) => FEASIBILITY_STAGES.includes(s))
-  const f = idea.feasibility
-  if (!fStage) return <PanelShell title="Feasibility" icon="ClipboardCheck"><NA>Not applicable — the {idea.route} route has no supplier feasibility stage.</NA></PanelShell>
-  if (!f) return <PanelShell title="Feasibility" icon="ClipboardCheck" status={<Badge color="#94a3b8">Not requested</Badge>}><NA>Requested automatically from the supplier (secure link, valid 7 days) when the idea reaches {fStage}.</NA></PanelShell>
-  const responded = !!f.respondedAt
-  const tone = !responded ? '#ec8a1c' : f.feasible ? '#0f9f6e' : '#e0364f'
+  const fi = stages.indexOf(STAGE.feasibility)
+  const h = [...idea.stageHistory].reverse().find((x) => x.stage === STAGE.feasibility)
+  const cur = idea.stage === STAGE.feasibility
+  const reachedIdx = idea.bucket === 'Dropped' ? stages.indexOf(idea.dropStage ?? '') : stages.indexOf(idea.stage)
+  const done = idea.bucket === 'Implemented' || reachedIdx > fi
+  const tone = done ? '#0f9f6e' : cur ? '#ec8a1c' : idea.bucket === 'Dropped' ? '#e0364f' : '#94a3b8'
   return (
-    <PanelShell title="Feasibility" icon="ClipboardCheck" tone={tone} status={<Badge color={tone}>{!responded ? 'Awaiting response' : f.feasible ? 'Feasible' : 'Not feasible'}</Badge>}>
-      <KV k="Supplier" v={<span className="truncate">{supplierName(ctx, f.supplierCode)} <span className="text-muted">· {f.supplierCode}</span></span>} />
-      <KV k="Requested" v={fmtDate(f.requestedAt?.slice(0, 10))} />
-      {responded ? (
-        <>
-          <KV k="Offered price" v={f.offeredPrice != null ? <span className="num">{inrPrice(f.offeredPrice)}{idea.parts[0] ? <span className="text-muted"> / {idea.parts[0].uom}</span> : null}</span> : '—'} />
-          <KV k="Lead time" v={f.leadTimeDays != null ? `${f.leadTimeDays} days` : '—'} />
-          <KV k="MOQ" v={f.moq != null ? num(f.moq) : '—'} />
-          <KV k="Responded" v={<span>{fmtDate(f.respondedAt?.slice(0, 10))}{f.onBehalf && <SourceTag color="#ec8a1c">on behalf</SourceTag>}</span>} />
-          {f.respondedBy && <KV k="By" v={f.respondedBy} />}
-          {f.remarks && <div className="text-[11.5px] text-muted italic mt-1.5">“{f.remarks}”</div>}
-        </>
-      ) : (
-        <NA>Supplier to confirm feasibility with offered price, lead time and MOQ. The buyer can respond on behalf.</NA>
-      )}
+    <PanelShell title={STAGE.feasibility} icon="UsersRound" tone={tone}
+      status={<Badge color={tone}>{done ? 'Feasible' : cur ? 'In check' : idea.bucket === 'Dropped' ? 'Stopped' : idea.stage === 'Draft' ? 'Not started' : 'Pending'}</Badge>}>
+      <KV k="Team" v={<UserChip userId={idea.buyerId} size={18} />} />
+      <KV k="Started" v={h?.enteredAt ? fmtDate(h.enteredAt.slice(0, 10)) : '—'} />
+      {done && <KV k="Confirmed" v={h?.exitedAt ? fmtDate(h.exitedAt.slice(0, 10)) : '—'} />}
+      {done && h?.by && <KV k="By" v={h.by} />}
+      {h?.remarks && <div className="text-[11.5px] text-muted italic mt-1.5">“{h.remarks}”</div>}
+      {!done && <NA>{cur ? `The team confirms the idea is feasible and verifies baseline (LBP) and volume (MRN FY26), then sends it for ${STAGE.rnd}.` : 'Starts as soon as the idea is submitted.'}</NA>}
     </PanelShell>
   )
 }
@@ -117,22 +110,21 @@ export function TechEvalPanel({ idea }: { idea: Idea }) {
   const stages = stagesOf(idea)
   const eStage = stages.find((s) => EVALUATION_STAGES.includes(s))
   const te = idea.techEval
-  if (!eStage) return <PanelShell title="Technical evaluation" icon="FlaskConical"><NA>Not applicable — {idea.route} ideas skip R&D evaluation and sampling.</NA></PanelShell>
+  if (!eStage) return <PanelShell title={STAGE.rnd} icon="FlaskConical"><NA>Not applicable.</NA></PanelShell>
   const reached = stages.indexOf(idea.stage) >= stages.indexOf(eStage) || idea.bucket === 'Implemented' || (!!idea.dropStage && stages.indexOf(idea.dropStage) >= stages.indexOf(eStage))
   if (!te?.decision) {
     const waiting = idea.stage === eStage
     return (
-      <PanelShell title="Technical evaluation" icon="FlaskConical" tone={waiting ? '#ec8a1c' : '#64748b'} status={<Badge color={waiting ? '#ec8a1c' : '#94a3b8'}>{waiting ? 'In evaluation' : reached ? 'No decision' : 'Not started'}</Badge>}>
-        <KV k="Evaluator" v={te?.evaluatorDept ?? '—'} />
-        <KV k="Stage" v={eStage} />
-        <NA>{waiting ? 'Go / no-go with a validation plan is awaited from the evaluator.' : `Starts when the idea reaches ${eStage}.`}</NA>
+      <PanelShell title={STAGE.rnd} icon="FlaskConical" tone={waiting ? '#ec8a1c' : '#64748b'} status={<Badge color={waiting ? '#ec8a1c' : '#94a3b8'}>{waiting ? 'Awaiting R&D' : reached ? 'No decision' : 'Not started'}</Badge>}>
+        <KV k="Approver" v={te?.evaluatorDept ?? 'R&D'} />
+        <NA>{waiting ? 'R&D approves (with a validation plan) or rejects the idea.' : `Starts after the ${STAGE.feasibility}.`}</NA>
       </PanelShell>
     )
   }
   const go = te.decision === 'Go'
   return (
-    <PanelShell title="Technical evaluation" icon="FlaskConical" tone={go ? '#0f9f6e' : '#e0364f'} status={<Badge color={go ? '#0f9f6e' : '#e0364f'} icon={go ? 'CircleCheck' : 'CircleX'}>{te.decision}</Badge>}>
-      <KV k="Evaluator" v={te.evaluatorDept} />
+    <PanelShell title={STAGE.rnd} icon="FlaskConical" tone={go ? '#0f9f6e' : '#e0364f'} status={<Badge color={go ? '#0f9f6e' : '#e0364f'} icon={go ? 'CircleCheck' : 'CircleX'}>{go ? 'Approved' : 'Rejected'}</Badge>}>
+      <KV k="Approver" v={te.evaluatorDept} />
       <KV k="Decided by" v={te.by ?? '—'} />
       <KV k="On" v={fmtDate(te.at?.slice(0, 10))} />
       {te.validationPlan && (
@@ -157,10 +149,10 @@ export function ApprovalsPanel({ idea }: { idea: Idea }) {
   const done = idea.approvals.length > 0 && idea.approvals.every((a) => a.decision === 'Approved')
   const rejected = idea.approvals.some((a) => a.decision === 'Rejected')
   const why = annual > settings.xThresholdLakh * 1e5 ? `Annualised ${inrShort(annual)} above ₹ ${settings.xThresholdLakh} lakh` : idea.oneTimeInvestment > settings.yThresholdLakh * 1e5 ? `Investment above ₹ ${settings.yThresholdLakh} lakh` : `Up to ₹ ${settings.xThresholdLakh} lakh`
-  const tone = rejected ? '#e0364f' : done ? '#0f9f6e' : idea.stage === 'Approval' ? '#ec8a1c' : '#64748b'
+  const tone = rejected ? '#e0364f' : done ? '#0f9f6e' : idea.stage === STAGE.approval ? '#ec8a1c' : '#64748b'
   return (
-    <PanelShell title="Approvals" icon="Stamp" tone={tone}
-      status={<span className="flex items-center gap-1"><Badge color={tone}>{rejected ? 'Rejected' : done ? 'Approved' : idea.stage === 'Approval' ? 'Pending' : planned ? 'Planned' : 'Pending'}</Badge><InfoTip title="Approval matrix" formula={`≤ ₹ ${settings.xThresholdLakh} L: Commodity Lead · > ₹ ${settings.xThresholdLakh} L: Lead → Sourcing Head · investment > ₹ ${settings.yThresholdLakh} L: + Sourcing Head`}>{why}.</InfoTip></span>}>
+    <PanelShell title={STAGE.approval} icon="Stamp" tone={tone}
+      status={<span className="flex items-center gap-1"><Badge color={tone}>{rejected ? 'Rejected' : done ? 'Approved' : idea.stage === STAGE.approval ? 'Pending' : planned ? 'Planned' : 'Pending'}</Badge><InfoTip title="Approval matrix" formula={`≤ ₹ ${settings.xThresholdLakh} L: Commodity Lead · > ₹ ${settings.xThresholdLakh} L: Lead → Sourcing Head · investment > ₹ ${settings.yThresholdLakh} L: + Sourcing Head`}>{why}.</InfoTip></span>}>
       <div className="space-y-1.5">
         {levels.map((a, k) => {
           const c = a.decision === 'Approved' ? '#0f9f6e' : a.decision === 'Rejected' ? '#e0364f' : '#94a3b8'

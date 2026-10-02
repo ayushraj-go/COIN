@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react'
 import { Card, Badge, LeverChip, UserChip, Avatar, Icon, Button, Toggle, Stat, cn } from '../../components/ui'
 import { useStore } from '../../store/useStore'
-import { ROUTE_STAGES, STAGE_SHORT, STAGE_SLA_KEY, MILESTONE_TEMPLATES, LEVER_GROUP_STYLE } from '../../lib/masters'
+import { ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY, MILESTONE_TEMPLATES, LEVER_GROUP_STYLE, TRACKER_STAGES, rndDeptFor } from '../../lib/masters'
 import { LEVER_INTRO, LEVER_FOOTNOTE, LEVER_SPLIT_NOTE, ROUTES_TABLE, ROLES } from '../../lib/scope'
 import { ROLE_LABEL } from '../../lib/nav'
 import { inrPrice, num } from '../../lib/format'
@@ -87,13 +87,13 @@ export function CommodityAdmin() {
 
 // ─── Lever ────────────────────────────────────────────────────────────────────
 function RouteStrip({ route }: { route: RouteKey }) {
-  const stages = (ROUTE_STAGES[route] ?? []).filter((s) => s !== 'Buyer validation' || true)
+  const stages = [STAGE.submitted, ...(ROUTE_STAGES[route] ?? [])]
   return (
     <div className="flex flex-wrap items-center gap-1">
       {stages.map((s, k) => (
         <React.Fragment key={s}>
           {k > 0 && <Icon name="ChevronRight" size={12} className="text-slate-300" />}
-          <span className={cn('h-6 px-2 rounded-md text-[11px] font-semibold inline-flex items-center', s === 'Approval' ? 'bg-gold-50 text-gold-700 border border-gold-200' : s === 'Implemented' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-white text-ink-2 border border-line')} title={s}>{STAGE_SHORT[s] ?? s}</span>
+          <span className={cn('h-6 px-2 rounded-md text-[11px] font-semibold inline-flex items-center', s === STAGE.approval ? 'bg-gold-50 text-gold-700 border border-gold-200' : s === 'Implemented' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-white text-ink-2 border border-line')} title={s}>{STAGE_SHORT[s] ?? s}</span>
         </React.Fragment>
       ))}
     </div>
@@ -133,26 +133,31 @@ export function LeverAdmin() {
           const ls = levers.filter((l) => l.group === g)
           return (
             <div key={g} className="rounded-xl border px-3 py-2 bg-white" style={{ borderColor: `${st.color}33` }}>
-              <div className="flex items-center gap-2"><span className="h-7 w-7 rounded-lg grid place-items-center" style={{ background: st.soft, color: st.color }}><Icon name={st.icon} size={14} /></span><span className="text-[12.5px] font-semibold text-ink">{g}</span></div>
+              <div className="flex items-center gap-2">
+                <span className="h-7 w-7 rounded-lg grid place-items-center" style={{ background: st.soft, color: st.color }}><Icon name={st.icon} size={14} /></span>
+                <span className="text-[12.5px] font-semibold text-ink">{g}</span>
+              </div>
               <div className="text-[11px] text-muted mt-1">{ls.filter((l) => l.active).length} active · {ls.length} levers</div>
             </div>
           )
         })}
       </div>
-      <CrudSection<Lever> title="Idea category master" subtitle="Section 5 · group, default savings type, route, evaluator, NPD sample, icon" icon="SlidersHorizontal" entity="Lever" storeKey="levers" rows={levers}
+      <CrudSection<Lever> title="Idea category master" subtitle="Section 5 · group, default savings type, route, evaluator, NPD sample, icon" icon="SlidersHorizontal" entity="Lever" storeKey="levers"
+        rows={levers}
         makeNew={() => ({ id: nextId(), group: 'Engineering', name: '', savingsType: 'Hard', defaultSavingsType: 'Hard', route: 'Technical', evaluator: 'R&D', npdSample: 'Yes', icon: 'Lightbulb', active: true })}
-        fields={fields} searchKeys={(l) => `${l.id} ${l.name} ${l.group} ${l.route}`}
-        blockDelete={(l) => (ideas.some((i) => i.leverId === l.id) ? `${ideas.filter((i) => i.leverId === l.id).length} ideas use this lever — deactivate it instead` : null)}
-        preview={(d) => (
+        fields={fields}
+        searchKeys={(l) => `${l.id} ${l.name} ${l.group} ${l.route}`}
+        blockDelete={(l) => (ideas.some((i) => i.leverId === l.id) ? `${ideas.filter((i) => i.leverId === l.id).length} ideas use this lever · deactivate it instead` : null)}
+        preview={(l) => (
           <div className="rounded-xl border border-line bg-slate-50/60 p-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="h-7 w-7 rounded-lg grid place-items-center text-white" style={{ background: LEVER_GROUP_STYLE[d.group as LeverGroup]?.color }}><Icon name={d.icon} size={14} /></span>
-              <span className="text-[12.5px] font-semibold text-ink">{d.name || 'New lever'}</span>
-              <Badge color={LEVER_GROUP_STYLE[d.group as LeverGroup]?.color}>{d.group}</Badge>
-              <span className="text-[11px] text-muted ml-auto">Route strip shown to the submitter</span>
+              <span className="h-7 w-7 rounded-lg grid place-items-center text-white" style={{ background: LEVER_GROUP_STYLE[l.group]?.color }}><Icon name={l.icon} size={14} /></span>
+              <span className="text-[12.5px] font-semibold text-ink">{l.name || 'New lever'}</span>
+              <Badge color={LEVER_GROUP_STYLE[l.group]?.color}>{l.group}</Badge>
+              <span className="text-[11px] text-muted ml-auto">Stage strip shown to the submitter</span>
             </div>
-            <RouteStrip route={d.route} />
-            <div className="text-[11px] text-muted mt-2">Evaluator: <b className="text-ink-2">{d.evaluator}</b> · NPD sample: <b className="text-ink-2">{d.npdSample}</b> · Default savings type: <b className="text-ink-2">{d.defaultSavingsType}</b></div>
+            <RouteStrip route={l.route} />
+            <div className="text-[11px] text-muted mt-2">R&D approval by: <b className="text-ink-2">{rndDeptFor(l.evaluator)}</b> · NPD sample: <b className="text-ink-2">{l.npdSample}</b> · Default savings type: <b className="text-ink-2">{l.defaultSavingsType}</b></div>
           </div>
         )}
         columns={[
@@ -164,7 +169,7 @@ export function LeverAdmin() {
           { key: 'evaluator', label: 'Evaluator', value: (l) => l.evaluator },
           { key: 'npdSample', label: 'NPD sample', value: (l) => l.npdSample },
           { key: 'ideas', label: 'Ideas', align: 'right', value: (l) => ideas.filter((i) => i.leverId === l.id).length },
-          { key: 'active', label: 'Active', value: (l) => (l.active ? 'Active' : 'Inactive'), render: (l) => <span onClick={(e) => { e.stopPropagation(); toggle(l) }}><Toggle checked={l.active} onChange={() => undefined} disabled={ro} /></span> },
+          { key: 'active', label: 'Active', value: (l) => (l.active ? 'Active' : 'Inactive'), render: (l) => <span onClick={(e) => { e.stopPropagation(); toggle(l) }}><Toggle checked={l.active} onChange={() => {}} disabled={ro} /></span> },
         ]} />
       <SectionIntro icon="Split">{LEVER_SPLIT_NOTE}</SectionIntro>
     </div>
@@ -178,36 +183,41 @@ export function RouteAdmin() {
   const ideas = useStore((s) => s.ideas)
   return (
     <div className="grid gap-3">
-      <SectionIntro icon="Route">{LEVER_INTRO} Routes are the workflow's stage sequences; a lever chooses its route in the lever master, so no route is edited in code.</SectionIntro>
+      <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same six-stage workflow; the route only decides who joins R&D at the R&D approval stage and which milestones Execution started carries.</SectionIntro>
+      <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — six stages for every idea" subtitle="Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented"
+        actions={<span className="text-[11.5px] text-muted">{ideas.filter((i) => i.bucket === 'Pipeline' || i.bucket === 'In Execution').length} open ideas</span>}>
+        <div className="overflow-x-auto pb-1">
+          <div className="flex items-stretch min-w-max">
+            {TRACKER_STAGES.map((st, k) => {
+              const sla = slaRules.find((x) => x.stage === STAGE_SLA_KEY[st])
+              const cnt = st === STAGE.submitted ? ideas.filter((i) => i.stage !== 'Draft').length : ideas.filter((i) => i.stage === st).length
+              const note = sla ? `SLA ${sla.slaDays} working days` : st === STAGE.submitted ? 'Entry — ID issued' : st === STAGE.execution ? 'Execution Hub owner, dates & milestones' : 'Terminal stage'
+              return (
+                <React.Fragment key={st}>
+                  {k > 0 && <div className="flex items-center px-1"><div className="w-5 h-px bg-slate-300" /><Icon name="ChevronRight" size={13} className="text-slate-400 -ml-1" /></div>}
+                  <div className={cn('w-[158px] rounded-xl border px-2.5 py-2', st === STAGE.approval ? 'border-gold-200 bg-gold-50/60' : st === 'Implemented' ? 'border-emerald-200 bg-emerald-50/60' : 'border-line bg-white')}>
+                    <div className="flex items-center gap-1.5"><span className="h-5 w-5 rounded-full bg-brand-grad text-white text-[10px] font-bold grid place-items-center">{k + 1}</span><span className="text-[11.5px] font-semibold text-ink leading-tight">{st}</span></div>
+                    <div className="text-[10.5px] text-muted mt-1">{note}</div>
+                    <div className="text-[10.5px] text-muted">{cnt} idea{cnt === 1 ? '' : 's'} {st === STAGE.submitted ? 'submitted' : 'here'}</div>
+                  </div>
+                </React.Fragment>
+              )
+            })}
+          </div>
+        </div>
+      </Card>
       {(Object.keys(ROUTE_STAGES) as RouteKey[]).map((r) => {
-        const stages = ROUTE_STAGES[r]
         const ls = levers.filter((l) => l.route === r)
         const doc = ROUTES_TABLE.find((x) => x.route === r)
         const open = ideas.filter((i) => i.route === r && (i.bucket === 'Pipeline' || i.bucket === 'In Execution')).length
+        const approvers = [...new Set(ls.map((l) => rndDeptFor(l.evaluator)))]
         return (
-          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="#bf8f3f">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ?? 'Route to be defined by Sourcing; uses the commercial sequence meanwhile'} icon="Route"
+          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="#bf8f3f">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ? `Scope document: ${doc.stages}` : 'Route to be defined by Sourcing'} icon="Route"
             actions={<span className="text-[11.5px] text-muted">{ls.length} levers · {open} open ideas</span>}>
-            <div className="overflow-x-auto pb-1">
-              <div className="flex items-stretch min-w-max">
-                {stages.map((s, k) => {
-                  const sla = slaRules.find((x) => x.stage === STAGE_SLA_KEY[s])
-                  const cnt = ideas.filter((i) => i.route === r && i.stage === s).length
-                  return (
-                    <React.Fragment key={s}>
-                      {k > 0 && <div className="flex items-center px-1"><div className="w-5 h-px bg-slate-300" /><Icon name="ChevronRight" size={13} className="text-slate-400 -ml-1" /></div>}
-                      <div className={cn('w-[150px] rounded-xl border px-2.5 py-2', s === 'Approval' ? 'border-gold-200 bg-gold-50/60' : s === 'Implemented' ? 'border-emerald-200 bg-emerald-50/60' : 'border-line bg-white')}>
-                        <div className="flex items-center gap-1.5"><span className="h-5 w-5 rounded-full bg-brand-grad text-white text-[10px] font-bold grid place-items-center">{k + 1}</span><span className="text-[11.5px] font-semibold text-ink leading-tight">{s}</span></div>
-                        <div className="text-[10.5px] text-muted mt-1">{sla ? `SLA ${sla.slaDays} working days` : s === 'Implemented' ? 'Terminal stage' : 'Execution Hub owner & dates'}</div>
-                        <div className="text-[10.5px] text-muted">{cnt} idea{cnt === 1 ? '' : 's'} here</div>
-                      </div>
-                    </React.Fragment>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Categories on this route</div><div className="flex flex-wrap gap-1.5">{ls.length ? ls.map((l) => <LeverChip key={l.id} leverId={l.id} />) : <span className="text-[12px] text-muted">No category mapped</span>}</div></div>
-              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Execution milestones generated from the route</div><div className="flex flex-wrap gap-1">{MILESTONE_TEMPLATES[r].map((m, k) => <span key={m} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-slate-50 border border-slate-200 text-ink-2"><span className="text-muted mr-1">{k + 1}.</span>{m}</span>)}</div></div>
+              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">R&D approval by</div><div className="flex flex-wrap gap-1">{(approvers.length ? approvers : ['R&D']).map((d) => <span key={d} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">{d}</span>)}</div></div>
+              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Execution started — milestones</div><div className="flex flex-wrap gap-1">{MILESTONE_TEMPLATES[r].map((m, k) => <span key={m} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-slate-50 border border-slate-200 text-ink-2"><span className="text-muted mr-1">{k + 1}.</span>{m}</span>)}</div></div>
             </div>
           </Card>
         )

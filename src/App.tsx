@@ -34,7 +34,7 @@ export default function App() {
           <Route path="/my-ideas" element={<IdeaRegister mode="mine" />} />
           <Route path="/ideas/:id" element={<Idea360 />} />
           <Route path="/submit" element={<SubmitIdea />} />
-          <Route path="/feasibility" element={<Feasibility />} />
+          <Route path="/feasibility" element={<Navigate to="/my-ideas" replace />} />
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/campaigns/:id" element={<CampaignPage />} />

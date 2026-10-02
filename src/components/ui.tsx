@@ -20,10 +20,11 @@ export function Icon({ name, size = 16, className, style, strokeWidth = 2 }: { n
 }
 
 // ─── Layout primitives ────────────────────────────────────────────────────────
-export function PageHeader({ title, subtitle, actions, icon, badge }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; icon?: string; badge?: React.ReactNode }) {
+/** fit: the title block shrinks (subtitle truncates) so the actions stay on the title row instead of wrapping below it */
+export function PageHeader({ title, subtitle, actions, icon, badge, fit }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; icon?: string; badge?: React.ReactNode; fit?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-      <div className="flex items-center gap-3 min-w-0">
+    <div className={cn('flex flex-wrap items-center justify-between gap-3', fit ? 'mb-4' : 'mb-5')}>
+      <div className={cn('flex items-center gap-3 min-w-0', fit && 'flex-[1_1_340px]')}>
         {icon && (
           <div className="h-10 w-10 rounded-xl bg-white border border-line text-brand-600 grid place-items-center shadow-[0_4px_12px_-6px_rgb(15_27_51/.25)] shrink-0">
             <Icon name={icon} size={18} strokeWidth={2} />
@@ -34,10 +35,10 @@ export function PageHeader({ title, subtitle, actions, icon, badge }: { title: R
             <h1 className="text-[20px] leading-tight font-bold tracking-[-0.02em] text-ink truncate">{title}</h1>
             {badge}
           </div>
-          {subtitle && <p className="text-[12.5px] text-muted mt-0.5 line-clamp-1">{subtitle}</p>}
+          {subtitle && <p className={cn('text-[12.5px] text-muted mt-0.5', fit ? 'truncate' : 'line-clamp-1')} title={fit && typeof subtitle === 'string' ? subtitle : undefined}>{subtitle}</p>}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className={cn('flex flex-wrap items-center', fit ? 'gap-1.5 shrink-0' : 'gap-2')}>{actions}</div>}
     </div>
   )
 }

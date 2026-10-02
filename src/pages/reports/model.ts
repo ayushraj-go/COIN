@@ -7,7 +7,7 @@ import {
   summarise, ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, healthOf, slaStatus, stageAgeDays, monthlyTrend, STRUCTURAL_LEVERS,
   phaseByQuarter, goLiveOf, type Summary,
 } from '../../lib/calc'
-import { FEASIBILITY_STAGES, EVALUATION_STAGES, ROUTE_STAGES } from '../../lib/masters'
+import { FEASIBILITY_STAGES, EVALUATION_STAGES, ROUTE_STAGES, STAGE, WORKFLOW_STAGES } from '../../lib/masters'
 import { daysBetween, fyMonths, fyEnd, monthLabel, parse, sum, todayIso, ymOf, workingDaysBetween, nextFy, quarterOf } from '../../lib/format'
 import type {
   Campaign, Category, Commodity, Filters, Health, Idea, LedgerEntry, Lever, Plant, Settings, SlaRule, Supplier, User,
@@ -165,16 +165,12 @@ export function quarterPhasing(ctx: Ctx, i: Idea) {
 /** Who owns the idea's current stage (for ageing by owner) */
 export function stageOwner(ctx: Ctx, i: Idea): { key: string; label: string } {
   const st = i.stage
-  if (st === 'Buyer validation') return { key: i.buyerId, label: nameOf(ctx, i.buyerId) }
-  if (FEASIBILITY_STAGES.includes(st)) {
-    const code = i.feasibility?.supplierCode ?? i.proposedSupplier?.code ?? i.supplierCode
-    return { key: `sup:${code}`, label: `${supplierName(ctx, code)} (supplier)` }
-  }
+  if (FEASIBILITY_STAGES.includes(st)) return { key: i.buyerId, label: `${nameOf(ctx, i.buyerId)} (team feasibility)` }
   if (EVALUATION_STAGES.includes(st)) {
     const d = i.techEval?.evaluatorDept ?? 'R&D'
-    return { key: `dept:${d}`, label: `${d} (evaluator)` }
+    return { key: `dept:${d}`, label: `${d} (R&D approval)` }
   }
-  if (st === 'Approval') {
+  if (st === STAGE.approval) {
     const a = i.approvals.find((x) => !x.decision)
     return { key: a?.approverId ?? 'approver', label: a?.approverId ? `${nameOf(ctx, a.approverId)} (${a.level})` : a?.level ?? 'Approver' }
   }
@@ -189,13 +185,16 @@ export function reachedIdx(i: Idea) {
 }
 export function funnelSteps(ideas: Idea[]) {
   const sub = ideas.filter(nonDraft)
+  // six-stage flow: reachedIdx 1 = past Team feasibility check, 2 = past R&D approval
   const validated = sub.filter((i) => reachedIdx(i) >= 1)
+  const rnd = sub.filter((i) => reachedIdx(i) >= 2)
   const approved = sub.filter((i) => !!i.approvedAt || i.bucket === 'In Execution' || i.bucket === 'Implemented')
   const impl = sub.filter((i) => i.bucket === 'Implemented')
   return [
-    { step: 'Submitted', ideas: sub, n: sub.length },
-    { step: 'Validated', ideas: validated, n: validated.length },
-    { step: 'Approved', ideas: approved, n: approved.length },
+    { step: 'Idea submitted', ideas: sub, n: sub.length },
+    { step: 'Feasibility cleared', ideas: validated, n: validated.length },
+    { step: 'R&D approved', ideas: rnd, n: rnd.length },
+    { step: 'Execution started', ideas: approved, n: approved.length },
     { step: 'Implemented', ideas: impl, n: impl.length },
   ]
 }
@@ -483,7 +482,7 @@ export function mailerNumbers(ideasAll: Idea[], ledger: LedgerEntry[], commoditi
   return { realised: sm.realisedCounting, committed: sm.remainingCommitted, pipeline: sm.pipeline, monthRealised, sum: sm, ideas }
 }
 
-export const ALL_STAGES_ORDER = ['Buyer validation', 'Supplier confirmation', 'Supplier feasibility', 'New supplier feasibility', 'DQA qualification', 'R&D evaluation (+DQA/Quality)', 'Owning department evaluation', 'Approval', 'NPD sample', 'NPD ECN up to sample approval', 'Execution', 'Price revision in PAP', 'Price / source change in PAP', 'Implemented', 'Dropped', 'Rejected']
+export const ALL_STAGES_ORDER = [...WORKFLOW_STAGES, 'Dropped', 'Rejected']
 
 /** Avg days per stage from stage history (C3) */
 export function stageDurations(ctx: Ctx, ideas: Idea[]) {

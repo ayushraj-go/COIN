@@ -140,7 +140,7 @@ export const REPORT_EXPORT: Record<string, (ctx: Ctx, space: Space) => ReportExp
       tables: [t('Supplier innovation scorecard', rows, [
         { h: 'Code', v: (r) => r.code }, { h: 'Supplier', v: (r) => r.name }, { h: 'Commodities', v: (r) => r.commodities.join(', ') }, { h: 'Ideas', v: (r) => r.ideas, f: 'int' },
         { h: 'Supplier-submitted', v: (r) => r.supplierSubmitted, f: 'int' }, { h: 'Value', v: (r) => r.value, f: 'inr' }, { h: 'Implemented', v: (r) => r.implemented, f: 'int' },
-        { h: 'Conversion', v: (r) => r.conversion, f: 'pct' }, { h: 'Gain-share', v: (r) => r.gainShare, f: 'pct' }, { h: 'Feasibility answered', v: (r) => `${r.feasResponded}/${r.feasRequests}` },
+        { h: 'Conversion', v: (r) => r.conversion, f: 'pct' }, { h: 'Gain-share', v: (r) => r.gainShare, f: 'pct' },
       ])],
     }
   },

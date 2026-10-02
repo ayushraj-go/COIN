@@ -1,7 +1,7 @@
 // Campaign workspace — pure helpers: campaign naming, reply linking and the sent → replied funnel per outreach batch.
 import type { Commodity, Idea, OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse } from '../../lib/types'
 import { commodityShort } from '../../store/useStore'
-import { OUTREACH_KINDS, ROUTE_STAGES } from '../../lib/masters'
+import { OUTREACH_KINDS, ROUTE_STAGES, STAGE } from '../../lib/masters'
 import { addDays } from '../../lib/format'
 
 /** Theme colours for charts (match Tailwind brand / accent tokens) */
@@ -95,8 +95,11 @@ export function npdProgress(i: Idea) {
   if (i.stage === 'Draft' || i.bucket === 'Dropped') return { approved: false, inNpd: false, pastSample: false }
   const stages = ROUTE_STAGES[i.route] ?? []
   const si = i.stage === 'Implemented' ? stages.length - 1 : stages.indexOf(i.stage)
-  const ai = stages.indexOf('Approval')
-  const ni = stages.findIndex((s) => /NPD/.test(s))
+  const ai = stages.indexOf(STAGE.approval)
   const approved = !!i.approvedAt || (ai >= 0 && si > ai)
-  return { approved, inNpd: ni >= 0 && si === ni, pastSample: ni >= 0 && si > ni }
+  // NPD sample is a milestone inside Execution started
+  const npdMs = i.execution?.milestones.find((m) => m.name.includes('NPD sample'))
+  const inNpd = approved && i.stage === STAGE.execution && !!npdMs && !npdMs.doneDate
+  const pastSample = approved && !!npdMs && (!!npdMs.doneDate || i.stage === 'Implemented')
+  return { approved, inNpd, pastSample }
 }

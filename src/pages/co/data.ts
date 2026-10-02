@@ -5,15 +5,24 @@ import type { Health, Idea } from '../../lib/types'
 import { healthOf, ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, isHard } from '../../lib/calc'
 import { fyMonths, quarterOf, sum, todayIso } from '../../lib/format'
 import { monthlyCommitted } from '../exec/shared'
+import { STAGE } from '../../lib/masters'
 import { useHomeData, type HomeData } from '../home/data'
 
-/** Post-approval stages, grouped as the Sourcing Head reads them */
-export interface CoStage { key: string; label: string; short: string; stages: string[]; icon: string; hint: string }
+/** Which step of "Execution started" an idea is on — its first open milestone (NPD sample → PAP price → go-live) */
+export function execStep(i: Idea): 'npd' | 'pap' | 'exec' {
+  const open = i.execution?.milestones.find((m) => !m.doneDate)?.name ?? ''
+  if (open.includes('NPD')) return 'npd'
+  if (open.includes('PAP')) return 'pap'
+  return 'exec'
+}
+
+/** Post-approval view, grouped as the Sourcing Head reads it: the steps inside Execution started, then Implemented */
+export interface CoStage { key: string; label: string; short: string; stages: string[]; icon: string; hint: string; match: (i: Idea) => boolean }
 export const CO_STAGES: CoStage[] = [
-  { key: 'npd', label: 'NPD sample', short: 'NPD sample', stages: ['NPD sample', 'NPD ECN up to sample approval'], icon: 'TestTubes', hint: 'ECN raised, sample under trial / approval' },
-  { key: 'pap', label: 'PAP price / source', short: 'PAP', stages: ['Price revision in PAP', 'Price / source change in PAP'], icon: 'FileBadge', hint: 'Price or source revision awaiting PAP release' },
-  { key: 'exec', label: 'Internal execution', short: 'Execution', stages: ['Execution'], icon: 'Wrench', hint: 'Internal change being executed by the owning department' },
-  { key: 'impl', label: 'Implemented', short: 'Implemented', stages: ['Implemented'], icon: 'CircleCheckBig', hint: 'Effective date set; realisation flows from actual MRN' },
+  { key: 'npd', label: 'NPD sample', short: 'NPD sample', stages: [STAGE.execution], icon: 'TestTubes', hint: 'Execution started · ECN raised, sample under trial / approval', match: (i) => i.stage === STAGE.execution && execStep(i) === 'npd' },
+  { key: 'pap', label: 'PAP price / source', short: 'PAP', stages: [STAGE.execution], icon: 'FileBadge', hint: 'Execution started · price or source revision awaiting PAP release', match: (i) => i.stage === STAGE.execution && execStep(i) === 'pap' },
+  { key: 'exec', label: 'Go-live / internal', short: 'Go-live', stages: [STAGE.execution], icon: 'Wrench', hint: 'Execution started · first MRN at the new price, or an internal change on the line', match: (i) => i.stage === STAGE.execution && execStep(i) === 'exec' },
+  { key: 'impl', label: 'Implemented', short: 'Implemented', stages: ['Implemented'], icon: 'CircleCheckBig', hint: 'Effective date set; realisation flows from actual MRN', match: (i) => i.stage === 'Implemented' },
 ]
 
 export const HEALTHS: Health[] = ['On track', 'At risk', 'Delayed']
@@ -48,8 +57,8 @@ function buildCo(d: HomeData, users: { id: string; name: string; avatarColor: st
 
   // pipeline by post-approval stage
   const stages = CO_STAGES.map((st) => {
-    const ideas = post.filter((i) => st.stages.includes(i.stage))
-    return { st, ideas, count: ideas.length, value: sum(ideas.map(coValue)), present: st.stages.filter((x) => ideas.some((i) => i.stage === x)) }
+    const ideas = post.filter(st.match)
+    return { st, ideas, count: ideas.length, value: sum(ideas.map(coValue)), present: [] as string[] }
   })
 
   // realised FY to date (hard savings, ledger)

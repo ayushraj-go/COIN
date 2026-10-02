@@ -15,7 +15,7 @@ export default function EvaluatorHome() {
   const { ideas, slaRules, levers, openIdea } = useStore()
   const nav = useNavigate()
   const drill = useDrill()
-  const rule = slaRules.find((r) => r.stage === 'Technical evaluation')
+  const rule = slaRules.find((r) => r.stage === 'R&D approval')
   const [fitRef, fitH] = useFitHeight()
 
   const awaiting = useMemo(() => ideas
@@ -56,7 +56,7 @@ export default function EvaluatorHome() {
           {/* Awaiting evaluation — the main queue */}
           <Reveal className="col-span-12 xl:col-span-5 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Inbox"
-              title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting evaluation<InfoTip title="Technical evaluation">Technical go / no-go and validation plan. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
+              title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting R&D approval<InfoTip title="R&D approval">Approve with a validation plan, reject, or send back to the Team feasibility check. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
               subtitle="Sorted by SLA urgency · click to review in the side panel"
               actions={awaiting.length ? <Badge color={breached ? '#e0364f' : '#4470d6'} dot>{awaiting.length}</Badge> : undefined}>
               <div ref={awRef} className="flex-1 min-h-0 overflow-hidden">

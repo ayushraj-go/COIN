@@ -520,7 +520,8 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
   const drill = useDrill()
   const list = useIdeaList()
   const top = rows.slice(0, 12)
-  const feas = [...rows].filter((r) => r.feasRequests > 0).sort((a, b) => b.feasRequests - a.feasRequests)
+  // no supplier step in the workflow — show how far each supplier's ideas get instead
+  const conv = [...rows].filter((r) => r.ideas > 0).sort((a, b) => b.implemented - a.implemented || b.ideas - a.ideas).slice(0, 8)
   const own = rows.reduce((a, r) => a + r.supplierSubmitted, 0)
   const gs = rows.filter((r) => !isNaN(r.gainShare))
   const cols: Column<(typeof rows)[number]>[] = [
@@ -532,8 +533,6 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
     { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented },
     { key: 'conversion', label: 'Conversion', align: 'right', value: (r) => r.conversion, render: (r) => <span className="num">{pct(r.conversion, 0)}</span> },
     { key: 'gainShare', label: 'Gain-share %', align: 'right', value: (r) => r.gainShare, render: (r) => <span className="num">{isNaN(r.gainShare) ? '—' : pct(r.gainShare, 0)}</span> },
-    { key: 'feas', label: 'Feasibility answered', align: 'right', value: (r) => r.feasResponded, render: (r) => <span className="num">{r.feasRequests ? `${r.feasResponded}/${r.feasRequests}` : '—'}</span> },
-    { key: 'feasDays', label: 'Avg response (days)', align: 'right', value: (r) => r.feasDays, render: (r) => <span className="num">{isNaN(r.feasDays) ? '—' : num(r.feasDays, 1)}</span> },
   ]
   return (
     <div className="grid gap-3">
@@ -558,15 +557,15 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
             </BarChart>
           </ChartBox>
         </Card>
-        <Card className="lg:col-span-4" title="Feasibility response" icon="MessageSquareReply" subtitle="Feasibility requests answered per supplier">
-          {feas.length ? (
+        <Card className="lg:col-span-4" title="Idea conversion" icon="CircleCheckBig" subtitle="Ideas implemented of all ideas per supplier">
+          {conv.length ? (
             <div className="space-y-1.5">
-              {feas.map((r) => <MeterRow key={r.code} label={`${r.name}`} sub={isNaN(r.feasDays) ? 'no response yet' : `avg ${num(r.feasDays, 1)} days to respond`} value={r.feasResponded} max={Math.max(1, r.feasRequests)} color="#0d9488" display={`${r.feasResponded}/${r.feasRequests}`} onClick={() => drill({ supplier: r.code })} />)}
+              {conv.map((r) => <MeterRow key={r.code} label={`${r.name}`} sub={`${r.ideas} idea${r.ideas === 1 ? '' : 's'} · ${pct(r.conversion, 0)} implemented`} value={r.implemented} max={Math.max(1, r.ideas)} color="#0d9488" display={`${r.implemented}/${r.ideas}`} onClick={() => drill({ supplier: r.code })} />)}
             </div>
-          ) : <SectionNote icon="Info">No feasibility requests in the active scope.</SectionNote>}
+          ) : <SectionNote icon="Info">No supplier ideas in the active scope.</SectionNote>}
         </Card>
       </div>
-      <Card title="Supplier innovation scorecard" icon="Table2" subtitle="Ideas, value, conversion, gain-share and feasibility response per supplier">
+      <Card title="Supplier innovation scorecard" icon="Table2" subtitle="Ideas, value, conversion and gain-share per supplier">
         <DataTable rows={rows} rowKey={(r) => r.code} columns={cols} exportName="COIN_Supplier_scorecard" onRowClick={(r) => drill({ supplier: r.code })} />
       </Card>
       {list.el}

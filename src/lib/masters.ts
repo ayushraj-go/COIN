@@ -35,51 +35,49 @@ export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string
   Operational: { color: '#db2777', soft: '#fdf2f8', text: '#be185d', icon: 'Settings2' },
 }
 
-// Section 6: the four routes (stage sequence after submission)
+// COIN workflow — every idea, on every route, runs the same six stages:
+// Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented.
+// The route (Section 6) still decides who evaluates inside R&D approval and which milestones Execution started carries.
+export const STAGE = {
+  submitted: 'Idea submitted',
+  feasibility: 'Team feasibility check',
+  rnd: 'R&D approval',
+  approval: 'Sourcing approval',
+  execution: 'Execution started',
+  implemented: 'Implemented',
+} as const
+/** Stages an idea moves through after submission (the tracker adds "Idea submitted" in front) */
+export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.rnd, STAGE.approval, STAGE.execution, STAGE.implemented]
+export const TRACKER_STAGES: string[] = [STAGE.submitted, ...WORKFLOW_STAGES]
 export const ROUTE_STAGES: Record<RouteKey, string[]> = {
-  Commercial: ['Buyer validation', 'Supplier confirmation', 'Approval', 'Price revision in PAP', 'Implemented'],
-  'Supplier change': ['Buyer validation', 'New supplier feasibility', 'DQA qualification', 'Approval', 'NPD sample', 'Price / source change in PAP', 'Implemented'],
-  Technical: ['Buyer validation', 'Supplier feasibility', 'R&D evaluation (+DQA/Quality)', 'Approval', 'NPD ECN up to sample approval', 'Price revision in PAP', 'Implemented'],
-  Internal: ['Buyer validation', 'Owning department evaluation', 'Approval', 'Execution', 'Implemented'],
-  'To be confirmed': ['Buyer validation', 'Supplier confirmation', 'Approval', 'Price revision in PAP', 'Implemented'],
+  Commercial: WORKFLOW_STAGES,
+  'Supplier change': WORKFLOW_STAGES,
+  Technical: WORKFLOW_STAGES,
+  Internal: WORKFLOW_STAGES,
+  'To be confirmed': WORKFLOW_STAGES,
 }
 
-// Short labels for the route strip on the submission form
-export const STAGE_SHORT: Record<string, string> = {
-  'Buyer validation': 'Buyer',
-  'Supplier confirmation': 'Supplier',
-  'New supplier feasibility': 'New supplier',
-  'Supplier feasibility': 'Supplier',
-  'DQA qualification': 'DQA',
-  'R&D evaluation (+DQA/Quality)': 'R&D',
-  'Owning department evaluation': 'Dept eval',
-  Approval: 'Approval',
-  'NPD sample': 'NPD sample',
-  'NPD ECN up to sample approval': 'NPD sample',
-  'Price revision in PAP': 'PAP',
-  'Price / source change in PAP': 'PAP',
-  Execution: 'Execution',
-  Implemented: 'Implemented',
-}
+// Labels for stage chips (the six names are already short)
+export const STAGE_SHORT: Record<string, string> = Object.fromEntries(TRACKER_STAGES.map((s) => [s, s]))
 
-// Stages that map to each SLA rule (Section 12)
+// Stages that carry an SLA rule (Section 12)
 export const STAGE_SLA_KEY: Record<string, string> = {
-  'Buyer validation': 'Buyer validation',
-  'Supplier confirmation': 'Supplier feasibility',
-  'Supplier feasibility': 'Supplier feasibility',
-  'New supplier feasibility': 'Supplier feasibility',
-  'R&D evaluation (+DQA/Quality)': 'Technical evaluation',
-  'DQA qualification': 'Technical evaluation',
-  'Owning department evaluation': 'Technical evaluation',
-  Approval: 'Approval',
+  [STAGE.feasibility]: STAGE.feasibility,
+  [STAGE.rnd]: STAGE.rnd,
+  [STAGE.approval]: STAGE.approval,
 }
 
-export const FEASIBILITY_STAGES = ['Supplier confirmation', 'Supplier feasibility', 'New supplier feasibility']
-export const EVALUATION_STAGES = ['R&D evaluation (+DQA/Quality)', 'DQA qualification', 'Owning department evaluation']
+export const FEASIBILITY_STAGES: string[] = [STAGE.feasibility]
+export const EVALUATION_STAGES: string[] = [STAGE.rnd]
 
+/** R&D approves every idea; the lever's other evaluators (DQA, Quality, Process, Production) join R&D at this stage */
+export const rndDeptFor = (evaluator?: string) =>
+  !evaluator || evaluator === '—' || evaluator === 'To be confirmed' ? 'R&D' : evaluator.includes('R&D') ? evaluator : `R&D + ${evaluator}`
+
+/** Checklist carried by "Execution started" — NPD sample and PAP price revision live here */
 export const MILESTONE_TEMPLATES: Record<RouteKey, string[]> = {
-  Technical: ['Supplier sample', 'NPD ECN raised', 'Sample approved', 'PAP price approved', 'First MRN at new price'],
-  'Supplier change': ['DQA qualification closed', 'NPD sample', 'Sample approved', 'Source change approved in PAP', 'First MRN at new price'],
+  Technical: ['NPD ECN raised', 'NPD sample approved', 'PAP price approved', 'First MRN at new price'],
+  'Supplier change': ['NPD sample approved', 'Source change approved in PAP', 'First MRN at new price'],
   Commercial: ['PAP revision request raised', 'PAP price approved', 'First MRN at new price'],
   Internal: ['Execution plan signed off', 'Trial run', 'Implemented on line', 'First month saving verified'],
   'To be confirmed': ['PAP revision request raised', 'PAP price approved', 'First MRN at new price'],
@@ -139,7 +137,7 @@ export const USERS_DEFAULT: User[] = [
   u('u-buyer1', 'Arjun Mehta', 'AEL-11873', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Fasteners & Steel', ['FAS', 'STL'], 'RJP'),
   u('u-eval1', 'Dr. Priya Nair', 'AEL-09331', ['techeval', 'submitter'], 'R&D', 'Chief Engineer, R&D', [], 'RJP'),
   u('u-lead1', 'Sanjay Kapoor', 'AEL-07215', ['lead', 'submitter'], 'Sourcing', 'Commodity Lead — Metals', ['CUT', 'ALU', 'STL', 'FAS'], 'RJP'),
-  u('u-head', 'Vikram Singh', 'AEL-03108', ['head', 'submitter'], 'Sourcing', 'Head of Sourcing', [], 'NDA'),
+  u('u-head', 'Girish Saluja', 'AEL-03108', ['head', 'submitter'], 'Sourcing', 'Head of Sourcing', [], 'NDA'),
   u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — Costing', [], 'NDA'),
   u('u-mgmt', 'Rajesh Khanna', 'AEL-00112', ['mgmt'], 'Management', 'Chief Operating Officer', [], 'NDA'),
   u('u-admin', 'Nikhil Agarwal', 'AEL-12440', ['admin'], 'Sourcing Excellence', 'Manager, Sourcing Excellence', [], 'NDA'),
@@ -296,11 +294,17 @@ export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
   { id: 'AR3', condition: 'Any idea with one-time investment above ₹ Y lakh', approver: '+ Sourcing Head', thresholdLakh: 25, kind: 'investment' },
 ]
 
-export const SLA_RULES_DEFAULT: SlaRule[] = SLA_DEFAULTS.map((s) => ({ ...s }))
+// SLA per workflow stage (Section 12 values, mapped onto the six-stage flow)
+export const SLA_RULES_DEFAULT: SlaRule[] = [
+  { stage: STAGE.feasibility, slaDays: 5, reminderDay: 4, escalateTo: 'Commodity Lead', escalateDay: 6 },
+  { stage: STAGE.rnd, slaDays: 10, reminderDay: 8, escalateTo: 'R&D Head + Commodity Lead', escalateDay: 11 },
+  { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Sourcing Head', escalateDay: 4 },
+  ...SLA_DEFAULTS.filter((r) => r.stage === 'Finance validation').map((r) => ({ ...r })),
+]
 export const DROP_REASONS = DROP_REASONS_DEFAULT
 
 export const EMAIL_TEMPLATES_DEFAULT: EmailTemplate[] = [
-  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated annualised impact of {{impact}}.\n\nPlease validate it within 5 working days.\n\n— COIN · Cost Innovation Hub' },
+  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated annualised impact of {{impact}}.\n\nPlease complete the team feasibility check within 5 working days.\n\n— COIN · Cost Innovation Hub' },
   { id: 'T02', name: 'Feasibility request', subject: 'COIN · Feasibility requested for {{ideaId}}', body: 'Dear {{recipient}},\n\nAmber Sourcing requests your feasibility and offered price for idea "{{title}}". Use the secure link below (valid 7 days).\n\n{{secureLink}}\n\n— COIN · Cost Innovation Hub' },
   { id: 'T03', name: 'Pending approval', subject: 'COIN · Approval pending: {{ideaId}}', body: 'Dear {{recipient}},\n\nIdea "{{title}}" ({{impact}}) is awaiting your approval. SLA: 3 working days.\n\n— COIN' },
   { id: 'T04', name: 'Workshop invitation', subject: 'COIN · Invitation: {{campaign}}', body: 'Dear {{recipient}},\n\nYou are invited to the supplier improvement workshop "{{campaign}}" on {{date}} at {{venue}}. Please bring cost-reduction ideas for {{commodity}}.\n\n— Amber Sourcing' },

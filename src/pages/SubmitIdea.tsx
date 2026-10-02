@@ -402,10 +402,6 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     if ([4, 7, 23].includes(n)) return 'auto'
     return hasValue[n] ? 'typed' : 'empty'
   }
-  const statuses = FIELDS.map((f) => ({ ...f, status: statusOf(f.n) }))
-  const typedCount = statuses.filter((s) => s.status === 'typed').length
-  const autoCount = statuses.filter((s) => s.status === 'auto').length
-
   const quarterOptions = [currentFy, nextFy(currentFy)].flatMap((fy) => (['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => {
     const y = q === 'Q4' ? fyStartYear(fy) + 1 : fyStartYear(fy)
     return { value: `${q} ${fy}`, label: `${q} ${fy} · ${QUARTER_MONTHS[q]} ${y}`, past: quarterEnd(q, fy) < todayIso() }
@@ -442,34 +438,11 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     <div className="pb-24 lg:pb-0">
       <PageHeader2
         draftId={draftId} draftStatus={draftStatus}
-        onCancel={cancel} onSave={saveNow}
+        onCancel={cancel} onSave={saveNow} allOpen={allOpen} onToggleAll={toggleAll}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-start">
         <div className="flex flex-col gap-3 min-w-0">
-          {/* typed-vs-auto indicator: one cell per field */}
-          <div className="card px-4 py-2.5 flex flex-wrap items-center gap-x-5 gap-y-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="h-7 w-7 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><Icon name="Keyboard" size={14} /></span>
-              <span className="text-[13px] text-ink-2">You typed <b className="text-ink num">{typedCount}</b> of {FIELDS.length} fields — the rest are auto-filled</span>
-              <InfoTip title="Section 7">The form has {FIELDS.length} fields, but a submitter types only about 8 of them: the rest are auto-filled from login, part master, LBP and MRN, or shown only when relevant.</InfoTip>
-            </div>
-            <div className="flex items-center gap-[3px] flex-1 min-w-[240px]">
-              {statuses.map((s) => (
-                <Tooltip key={s.n} content={<><div className="font-semibold">{s.n}. {s.field}</div><div className="text-slate-300">{s.card} · {s.status === 'typed' ? 'Typed by you' : s.status === 'auto' ? `Auto — ${s.source}` : s.status === 'hidden' ? 'Not applicable to this idea' : s.req === 'Yes' ? 'Required — not filled yet' : 'Optional — not filled'}</div></>} className="flex-1">
-                  <span className={cn('block h-2 w-full rounded-[3px] transition-colors duration-300',
-                    s.status === 'typed' ? 'bg-brand-600' : s.status === 'auto' ? 'bg-gold-400' : s.status === 'hidden' ? 'bg-slate-100' : 'bg-white border border-slate-300')} />
-                </Tooltip>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted">
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-brand-600" />Typed {typedCount}</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-gold-400" />Auto {autoCount}</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-slate-100 border border-slate-200" />Not applicable</span>
-            </div>
-            <Button size="xs" variant="ghost" icon={allOpen ? 'ChevronsDownUp' : 'ChevronsUpDown'} onClick={toggleAll}>{allOpen ? 'Collapse all' : 'Expand all'}</Button>
-          </div>
-
           {init.fromCampaign && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 flex flex-wrap items-center gap-3">
               <span className="h-8 w-8 rounded-lg bg-amber-100 text-amber-700 grid place-items-center"><Icon name={init.fromCampaign.type === 'Workshop' ? 'Presentation' : 'Megaphone'} size={16} /></span>
@@ -902,15 +875,16 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   )
 }
 
-function PageHeader2({ draftId, draftStatus, onCancel, onSave }: { draftId: string | null; draftStatus: React.ReactNode; onCancel: () => void; onSave: () => void }) {
+function PageHeader2({ draftId, draftStatus, onCancel, onSave, allOpen, onToggleAll }: { draftId: string | null; draftStatus: React.ReactNode; onCancel: () => void; onSave: () => void; allOpen: boolean; onToggleAll: () => void }) {
   return (
-    <PageHeader icon="CirclePlus" title="Submit Idea"
+    <PageHeader icon="CirclePlus" title="Submit Idea" fit
       badge={draftId ? <Badge color="#64748b" icon="FileClock">{draftId}</Badge> : <Badge color="#4470d6" dot>New idea</Badge>}
       subtitle="Fill the steps in order — each one folds away when complete — while the savings summary on the right recalculates as you type"
       actions={<>
         <span className="hidden sm:inline-flex mr-1">{draftStatus}</span>
-        <Button variant="ghost" icon="X" onClick={onCancel}>Cancel</Button>
-        <Tooltip content="Ctrl + S"><Button icon="Save" onClick={onSave}>Save draft</Button></Tooltip>
+        <Button size="sm" variant="ghost" icon={allOpen ? 'ChevronsDownUp' : 'ChevronsUpDown'} onClick={onToggleAll}>{allOpen ? 'Collapse all' : 'Expand all'}</Button>
+        <Button size="sm" variant="ghost" icon="X" onClick={onCancel}>Cancel</Button>
+        <Tooltip content="Ctrl + S"><Button size="sm" icon="Save" onClick={onSave}>Save draft</Button></Tooltip>
       </>} />
   )
 }

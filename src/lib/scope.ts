@@ -182,7 +182,6 @@ export const FORM_FIELDS: { n: number; card: string; field: string; type: string
 
 export const FORM_BEHAVIOUR = [
   'Steps fold: only A is open at first; when the open step\'s required fields are complete it closes and the next one opens. A click on a step header toggles it, and "Expand all" opens every step. A closed step shows a one-line summary and its missing-field count.',
-  'A strip above the steps shows "You typed N of 26 fields", with auto-filled and not-applicable fields marked separately.',
   'Selecting a category shows the route strip (e.g. Buyer → R&D → Approval → NPD sample → PAP) with the evaluator and NPD sample rule.',
   'Selecting a part code fills description, UoM, supplier, baseline and volume in place, with a "from LBP" / "from MRN FY26" tag.',
   'Similar existing ideas appear inline as the idea name is typed, with a match % and a "view" link.',

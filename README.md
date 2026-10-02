@@ -2,7 +2,7 @@
 
 **In-app name: Cost Innovation Hub.** This is a front-end-only demo for Amber Enterprises India Ltd., built from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
 
-- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v4`).
+- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v5`).
 - **Port 8742.** Uses `--strictPort`, so it won't quietly move to 5173 or another common port.
 
 ## Run
@@ -20,7 +20,7 @@ Every persona uses the password **`coin@2026`**. The login page also has one-cli
 
 | Role | User | Email |
 |---|---|---|
-| Sourcing Head | Vikram Singh | vikram.singh@ambergroupindia.com |
+| Sourcing Head | Girish Saluja | girish.saluja@ambergroupindia.com |
 | Commodity Lead (Metals) | Sanjay Kapoor | sanjay.kapoor@ambergroupindia.com |
 | Commodity Buyer (Fasteners & Steel) | Arjun Mehta | arjun.mehta@ambergroupindia.com |
 | Technical Evaluator (R&D) | Dr. Priya Nair | dr.priya.nair@ambergroupindia.com |

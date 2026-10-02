@@ -27,12 +27,11 @@ export const NAV: NavItem[] = [
   { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'myideas', label: 'My Ideas', path: '/my-ideas', icon: 'Lightbulb', roles: ['submitter', 'supplier', 'techeval'], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'submit', label: 'Submit Idea', path: '/submit', icon: 'CirclePlus', roles: ['submitter', 'supplier', 'buyer', 'techeval', 'lead', 'head'], module: 'M3', section: 'Ideas', spaces: ['IN'] },
-  { key: 'feasibility', label: 'Feasibility Requests', path: '/feasibility', icon: 'ClipboardCheck', roles: ['supplier'], module: 'M6', section: 'Supplier', spaces: ['IN'] },
   { key: 'workshops', label: 'Workshops', path: '/workshops', icon: 'Presentation', roles: ['supplier'], module: 'M6', section: 'Supplier', spaces: ['IN'] },
   { key: 'campaigns', label: 'Campaigns', path: '/campaigns', icon: 'Megaphone', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M7', section: 'Network', spaces: ['IN'] },
   { key: 'admin', label: 'Admin & Masters', path: '/admin', icon: 'Settings2', roles: ['admin'], module: 'M12', section: 'System', spaces: ['IN'] },
   // CO — Cost Optimisation: implementation after approval
-  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M8', section: 'Implementation', spaces: ['CO'] },
+  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M8', section: 'Implementation', spaces: ['IN'] },
   { key: 'implemented', label: 'Implemented ideas', path: '/ideas?bucket=Implemented', icon: 'CircleCheckBig', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin'], section: 'Implementation', spaces: ['CO'] },
   // NPD development master (read-only, synced from VMS) — both workspaces
   { key: 'npd', label: 'NPD master', path: '/npd', icon: 'FlaskConical', roles: ['buyer', 'lead', 'head', 'techeval', 'finance', 'mgmt', 'admin'], section: 'Masters' },
@@ -49,7 +48,6 @@ export const navForSpace = (u: User | null, space: Space | null) => {
 /** Which workspace a deep link belongs to (used when a page is opened before a workspace is chosen) */
 export const spaceForPath = (path: string): Space | null => {
   if (path === '/' || path.startsWith('/scope') || path.startsWith('/reports')) return null
-  if (path.startsWith('/execution')) return 'CO'
   if (path.startsWith('/npd')) return null
   return 'IN'
 }

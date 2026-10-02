@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { useStore, hasRole } from '../../store/useStore'
 import type { Bucket, Campaign, Category, Commodity, Health, Idea, IdeaPart, Lever, LeverGroup, Plant, RouteKey, SlaRule, Supplier, User } from '../../lib/types'
-import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE_SHORT, STAGE_SLA_KEY } from '../../lib/masters'
+import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY } from '../../lib/masters'
 import { can } from '../../lib/nav'
 import { healthOf, ideaAnnualised, leverGroupOf, partAnnualised, savingPct, savingPerUnit, slaStatus, stageAgeDays } from '../../lib/calc'
 import { fmtDate, inrShort, nowIso, uid } from '../../lib/format'
@@ -10,14 +10,12 @@ import { exportExcel } from '../../lib/export'
 
 // ─── Stage groups (Kanban columns) ────────────────────────────────────────────
 export interface StageGroup { key: string; label: string; short: string; stages: string[]; bucket: Bucket; icon: string }
+// One column per workflow stage — the same six stages for every idea (Idea submitted is the entry event)
 export const STAGE_GROUPS: StageGroup[] = [
-  { key: 'validation', label: 'Buyer validation', short: 'Buyer validation', stages: ['Buyer validation'], bucket: 'Pipeline', icon: 'UserCheck' },
-  { key: 'supplier', label: 'Supplier (feasibility/confirmation)', short: 'Supplier', stages: FEASIBILITY_STAGES, bucket: 'Pipeline', icon: 'Factory' },
-  { key: 'evaluation', label: 'Technical / DQA / Dept evaluation', short: 'Evaluation', stages: EVALUATION_STAGES, bucket: 'Pipeline', icon: 'FlaskConical' },
-  { key: 'approval', label: 'Approval', short: 'Approval', stages: ['Approval'], bucket: 'Pipeline', icon: 'Stamp' },
-  { key: 'npd', label: 'NPD sample', short: 'NPD sample', stages: ['NPD sample', 'NPD ECN up to sample approval'], bucket: 'In Execution', icon: 'TestTubeDiagonal' },
-  { key: 'pap', label: 'PAP price revision', short: 'PAP', stages: ['Price revision in PAP', 'Price / source change in PAP'], bucket: 'In Execution', icon: 'BadgeIndianRupee' },
-  { key: 'execution', label: 'Execution', short: 'Execution', stages: ['Execution'], bucket: 'In Execution', icon: 'Rocket' },
+  { key: 'feasibility', label: STAGE.feasibility, short: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
+  { key: 'rnd', label: STAGE.rnd, short: STAGE.rnd, stages: [STAGE.rnd], bucket: 'Pipeline', icon: 'FlaskConical' },
+  { key: 'approval', label: STAGE.approval, short: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
+  { key: 'execution', label: STAGE.execution, short: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
   { key: 'implemented', label: 'Implemented', short: 'Implemented', stages: ['Implemented'], bucket: 'Implemented', icon: 'CircleCheckBig' },
   { key: 'dropped', label: 'Dropped', short: 'Dropped', stages: ['Dropped', 'Rejected'], bucket: 'Dropped', icon: 'CircleX' },
 ]
@@ -187,11 +185,13 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const supCode = idea.feasibility?.supplierCode ?? idea.proposedSupplier?.code ?? idea.supplierCode
   const evalStage = EVALUATION_STAGES.includes(stage)
   const pending = idea.approvals.find((a) => !a.decision)
-  const validate = pipeline && stage === 'Buyer validation' && validator
-  const feasibilityOnBehalf = pipeline && feasStage && !responded && can(me, 'feasibility') && hasRole(me, 'buyer') && scope
-  const feasibility = pipeline && feasStage && !responded && hasRole(me, 'supplier') && !!me.supplierCode && me.supplierCode === supCode
+  const validate = pipeline && stage === STAGE.feasibility && validator
+  // no supplier step in the workflow: the team runs the feasibility check itself
+  const feasibilityOnBehalf = false
+  const feasibility = false
+  void feasStage; void responded; void supCode
   const techeval = pipeline && evalStage && can(me, 'techeval') && (!idea.techEval?.evaluatorDept || idea.techEval.evaluatorDept.includes(me.department))
-  const approve = pipeline && stage === 'Approval' && can(me, 'approve') && !!pending &&
+  const approve = pipeline && stage === STAGE.approval && can(me, 'approve') && !!pending &&
     (hasRole(me, 'head') || pending.approverId === me.id || (pending.level === 'Commodity Lead' && hasRole(me, 'lead') && scope))
   const actor = validate || techeval || approve || (pipeline && validator)
   const stages = stagesOf(idea)
@@ -220,14 +220,13 @@ export function waitingOn(idea: Idea, ctx: Ctx): string {
   if (s === 'Draft') return 'Draft — not yet submitted for validation'
   if (s === 'Implemented') return `Implemented${idea.execution?.effectiveDate ? ` · effective ${fmtDate(idea.execution.effectiveDate)}` : ''}`
   if (s === 'Dropped' || s === 'Rejected') return `${s} at ${idea.dropStage ?? '—'} · ${idea.dropReason ?? ''}`
-  if (s === 'Buyer validation') return `Awaiting validation by ${userNameOf(ctx, idea.buyerId)}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
-  if (FEASIBILITY_STAGES.includes(s)) return idea.feasibility?.respondedAt ? 'Feasibility received' : `Awaiting feasibility from ${supplierName(ctx, idea.feasibility?.supplierCode ?? idea.proposedSupplier?.code ?? idea.supplierCode)}`
-  if (EVALUATION_STAGES.includes(s)) return `Awaiting ${idea.techEval?.evaluatorDept ?? 'technical'} evaluation (go / no-go)`
-  if (s === 'Approval') {
+  if (FEASIBILITY_STAGES.includes(s)) return `Awaiting team feasibility check · ${userNameOf(ctx, idea.buyerId)}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
+  if (EVALUATION_STAGES.includes(s)) return `Awaiting R&D approval${idea.techEval?.evaluatorDept && idea.techEval.evaluatorDept !== 'R&D' ? ` (${idea.techEval.evaluatorDept})` : ''}`
+  if (s === STAGE.approval) {
     const p = idea.approvals.find((a) => !a.decision)
-    return p ? `Awaiting ${p.level} approval · ${userNameOf(ctx, p.approverId)}` : 'Awaiting approval'
+    return p ? `Awaiting sourcing approval — ${p.level} · ${userNameOf(ctx, p.approverId)}` : 'Awaiting sourcing approval'
   }
-  return `In execution with ${userNameOf(ctx, idea.ownerId ?? idea.buyerId)} · ${s}`
+  return `Execution started · owner ${userNameOf(ctx, idea.ownerId ?? idea.buyerId)}`
 }
 
 // ─── Kanban move rules (permission-checked) ──────────────────────────────────
@@ -253,13 +252,13 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   }
   const stages = stagesOf(idea)
   const stage = stages.find((s) => target.stages.includes(s))
-  if (!stage) return { ok: false, reason: `The ${idea.route} route has no “${target.label}” stage` }
-  const ai = stages.indexOf('Approval'), ci = stages.indexOf(idea.stage), ti = stages.indexOf(stage)
+  if (!stage) return { ok: false, reason: `There is no “${target.label}” stage` }
+  const ai = stages.indexOf(STAGE.approval), ci = stages.indexOf(idea.stage), ti = stages.indexOf(stage)
   if (ci > ai && ti <= ai) return { ok: false, reason: 'Approved values are locked — an idea in execution cannot return to the pipeline' }
   if (ti > ai && ci <= ai) {
-    if (!can(me, 'approve')) return { ok: false, reason: 'Moving past Approval needs Commodity Lead or Sourcing Head approval rights' }
+    if (!can(me, 'approve')) return { ok: false, reason: 'Moving past Sourcing approval needs Commodity Lead or Sourcing Head approval rights' }
   } else if (ti <= ai) {
-    if (!can(me, 'validate')) return { ok: false, reason: 'Pipeline moves need validation rights (Buyer, Commodity Lead, Sourcing Head)' }
+    if (!can(me, 'validate')) return { ok: false, reason: 'Pipeline moves need team feasibility rights (Commodity Lead, Sourcing Head or the commodity team)' }
   } else if (!can(me, 'execute')) return { ok: false, reason: 'Execution moves need Buyer, Commodity Lead or Sourcing Head rights' }
   return { ok: true, kind: 'move', stage, backward: ti < ci }
 }
@@ -269,6 +268,8 @@ export function restoreIdea(snap: Idea, label: string) {
   const s = useStore.getState()
   const me = s.users.find((u) => u.id === s.userId)
   const cur = s.ideas.find((i) => i.id === snap.id)
+  // a dropped or rejected idea stays dropped — nothing brings it back; start a new idea instead
+  if (cur && (cur.stage === 'Dropped' || cur.stage === 'Rejected')) { s.toast(`${snap.id} is ${cur.stage.toLowerCase()} and cannot be restored — submit a new idea instead`, 'warning'); return }
   const entry = {
     id: uid('a'), at: nowIso(), userId: me?.id ?? 'system', userName: me?.name ?? 'System', action: `Undone: ${label}`,
     ...(cur && cur.stage !== snap.stage ? { field: 'stage', oldValue: cur.stage, newValue: snap.stage } : {}),

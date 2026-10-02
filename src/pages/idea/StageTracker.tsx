@@ -1,11 +1,11 @@
-// Live stage tracker — stepper from ROUTE_STAGES[idea.route] with dates, who acted and remarks (Section 14).
+// Live stage tracker — the six workflow stages (Idea submitted → … → Implemented) with dates, who acted and remarks (Section 14).
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import type { Idea } from '../../lib/types'
 import { useStore } from '../../store/useStore'
 import { AgeBadge, Icon, SlaPill, Tooltip, cn } from '../../components/ui'
 import { BUCKET_STYLE, bucketFor, slaStatus, stageAgeDays } from '../../lib/calc'
-import { STAGE_SHORT } from '../../lib/masters'
+import { STAGE, STAGE_SHORT } from '../../lib/masters'
 import { daysBetween, fmtDate, todayIso } from '../../lib/format'
 import { stagesOf } from './model'
 
@@ -20,8 +20,8 @@ function buildNodes(idea: Idea): TNode[] {
   const ci = draft ? -1 : stages.indexOf(cur)
   const hist = (s: string) => [...idea.stageHistory].reverse().find((h) => h.stage === s)
   const nodes: TNode[] = [{
-    key: '__submitted', label: draft ? 'Draft' : 'Submitted', short: draft ? 'Draft' : 'Submitted', state: draft ? 'current' : 'done',
-    enteredAt: draft ? idea.createdAt : idea.submittedAt ?? idea.createdAt, by: idea.submitterName, action: draft ? 'Draft saved' : 'Submitted for validation',
+    key: '__submitted', label: draft ? 'Draft' : STAGE.submitted, short: draft ? 'Draft' : STAGE.submitted, state: draft ? 'current' : 'done',
+    enteredAt: draft ? idea.createdAt : idea.submittedAt ?? idea.createdAt, by: idea.submitterName, action: draft ? 'Draft saved' : 'Idea submitted',
     color: draft ? BUCKET_STYLE.Draft.color : BUCKET_STYLE.Pipeline.color,
   }]
   stages.forEach((s, k) => {

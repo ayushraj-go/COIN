@@ -28,7 +28,7 @@ export function ApprovalAdmin() {
   const [edit, setEdit] = useState<ApprovalRule | null>(null)
   const dirty = x !== settings.xThresholdLakh || y !== settings.yThresholdLakh || re !== settings.reapprovalPct
   const valid = x > 0 && y > 0 && re >= 0 && re <= 100
-  const atApproval = ideas.filter((i) => i.stage === 'Approval')
+  const atApproval = ideas.filter((i) => i.stage === 'Sourcing approval')
   const needHead = (xx: number, yy: number) => atApproval.filter((i) => approvalLevels(ideaAnnualised(i), i.oneTimeInvestment, xx, yy).includes('Sourcing Head')).length
   const save = () => {
     const prevS = { ...useStore.getState().settings }, prevR = useStore.getState().approvalRules

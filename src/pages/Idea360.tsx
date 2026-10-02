@@ -154,7 +154,7 @@ export default function Idea360() {
           <span className="h-9 w-9 rounded-xl grid place-items-center bg-white text-gold-600 border border-gold-200"><Icon name="PencilLine" size={17} /></span>
           <div className="min-w-0 flex-1">
             <div className="text-[13.5px] font-semibold text-ink">This idea is a draft</div>
-            <div className="text-[12px] text-muted">Saved {fmtDate(idea.createdAt.slice(0, 10))} · not yet visible to the buyer. Complete it and submit for validation to get an idea ID.</div>
+            <div className="text-[12px] text-muted">Saved {fmtDate(idea.createdAt.slice(0, 10))} · not yet visible to the team. Complete it and submit it to get an idea ID.</div>
           </div>
           {idea.submitterId === me.id && <Button variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>}
         </div>

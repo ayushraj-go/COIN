@@ -14,7 +14,7 @@ import {
   WORKED_EXAMPLE, WORKSPACE_NOTE, WORKSPACES, NPD_CONTENTS, NPD_INTRO, NPD_USE, type DocSpace,
 } from '../lib/scope'
 import { NPD_COMMODITIES } from '../lib/npd'
-import { LEVER_GROUP_STYLE, ROUTE_STAGES, LAKH } from '../lib/masters'
+import { LEVER_GROUP_STYLE, LAKH, STAGE, TRACKER_STAGES } from '../lib/masters'
 import { BUCKET_STYLE, bucketFor, carryOver, committedInFy, fyMonthsFrom, phaseByQuarter } from '../lib/calc'
 import { addMonthsYm, fmtDate, fyLabel, inr, inrPrice, inrShort, lakhLabel, num, pct, thirdWorkingDay } from '../lib/format'
 import { primaryRole, ROLE_LABEL } from '../lib/nav'
@@ -500,6 +500,26 @@ export default function Scope() {
 
           {/* 6 */}
           <Section id="s6">
+            {/* the workflow COIN runs: the same six stages for every idea */}
+            <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2"><Icon name="Workflow" size={15} className="text-brand-600" /><span className="text-[14px] font-bold text-ink">COIN workflow — applies to every idea</span><span className="text-[11.5px] text-muted">{TRACKER_STAGES.length} stages</span></div>
+                <span className="text-[11.5px] text-muted">Route decides who joins R&D approval and the Execution started milestones</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                {TRACKER_STAGES.map((st, k) => {
+                  const b = BUCKET_STYLE[st === 'Implemented' ? 'Implemented' : st === STAGE.execution ? 'In Execution' : 'Pipeline']
+                  return (
+                    <React.Fragment key={st}>
+                      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `${b.color}33` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{st}</span>
+                      {k < TRACKER_STAGES.length - 1 && <Icon name="ArrowRight" size={13} className="text-slate-300" />}
+                    </React.Fragment>
+                  )
+                })}
+              </div>
+              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check covers the feasibility and new-source checks; DQA / Quality join R&D at R&D approval; NPD sample and PAP price revision are milestones inside Execution started. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
+            </div>
+            <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mt-1">Routes as written in the scope document</div>
             <div className="grid gap-2.5">
               {ROUTES_TABLE.map((r) => {
                 const stages = r.stages.split(' → ')
@@ -512,7 +532,8 @@ export default function Scope() {
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                       {stages.map((s, k) => {
-                        const b = BUCKET_STYLE[bucketFor(r.route as RouteKey, ROUTE_STAGES[r.route as RouteKey]?.[k] ?? s)]
+                        const ai = stages.findIndex((x) => /^Approval/i.test(x))
+                        const b = BUCKET_STYLE[/Implemented/i.test(s) ? 'Implemented' : ai >= 0 && k > ai ? 'In Execution' : 'Pipeline']
                         return (
                           <React.Fragment key={s}>
                             <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `${b.color}33` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{s}</span>

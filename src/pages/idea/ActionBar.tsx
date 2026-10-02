@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Button, Icon, RemarksModal, cn } from '../../components/ui'
-import { STAGE_SHORT } from '../../lib/masters'
+import { STAGE, STAGE_SHORT } from '../../lib/masters'
 import { ideaPerms, stagesOf, useCtx, waitingOn, withUndo } from './model'
 import { DropModal, FeasibilityModal, MarkDoneModal, ReassignModal, TechEvalModal } from './Modals'
 
@@ -27,21 +27,22 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   const stages = stagesOf(idea)
   const idx = stages.indexOf(idea.stage)
   const next = idx >= 0 ? stages[idx + 1] : undefined
-  const prev = idx > 0 ? stages[idx - 1] : null
+  // R&D approval and Sourcing approval send an idea back to the Team feasibility check
+  const prev = idx > 0 ? STAGE.feasibility : null
   const pending = idea.approvals.filter((a) => !a.decision)
 
   const primary: ReactNode[] = []
   const secondary: ReactNode[] = []
   if (p.continueDraft) primary.push(<Button key="draft" size={size} variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>)
-  if (p.validate) primary.push(<Button key="val" size={size} variant="primary" icon="BadgeCheck" onClick={() => setModal('validate')}>Validate</Button>)
+  if (p.validate) primary.push(<Button key="val" size={size} variant="primary" icon="BadgeCheck" onClick={() => setModal('validate')}>Confirm feasibility</Button>)
   if (p.feasibility) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feasibility')}>Respond to feasibility</Button>)
   if (p.feasibilityOnBehalf) primary.push(<Button key="feasb" size={size} variant="outline" icon="ClipboardCheck" onClick={() => setModal('feasibilityBehalf')}>Respond feasibility on behalf</Button>)
   if (p.techeval) {
-    primary.push(<Button key="go" size={size} variant="success" icon="CircleCheck" onClick={() => setModal('go')}>Technical Go</Button>)
-    primary.push(<Button key="nogo" size={size} variant="danger" icon="CircleX" onClick={() => setModal('nogo')}>No-go</Button>)
+    primary.push(<Button key="go" size={size} variant="success" icon="CircleCheck" onClick={() => setModal('go')}>R&D approve</Button>)
+    primary.push(<Button key="nogo" size={size} variant="danger" icon="CircleX" onClick={() => setModal('nogo')}>R&D reject</Button>)
   }
   if (p.approve) {
-    primary.push(<Button key="appr" size={size} variant="success" icon="Stamp" onClick={() => setModal('approve')}>Approve{pending.length > 1 ? ` (${pending[0].level})` : ''}</Button>)
+    primary.push(<Button key="appr" size={size} variant="success" icon="Stamp" onClick={() => setModal('approve')}>Sourcing approve{pending.length > 1 ? ` (${pending[0].level})` : ''}</Button>)
     primary.push(<Button key="rej" size={size} variant="danger" icon="CircleX" onClick={() => setModal('reject')}>Reject</Button>)
   }
   if (p.advance) primary.push(<Button key="adv" size={size} variant="primary" icon="ArrowRight" onClick={() => setModal('advance')}>Move to {STAGE_SHORT[p.advance] ?? p.advance}</Button>)
@@ -72,13 +73,13 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
       )}
 
       {/* ── dialogs ── */}
-      <RemarksModal open={modal === 'validate'} onClose={close} required={false} icon="BadgeCheck" confirmLabel="Validate"
-        title="Validate idea" subtitle={`Confirms baseline (LBP) and volume (MRN FY26), then moves ${idea.id} to ${next ?? 'the next stage'}.`} placeholder="Optional remarks for the submitter"
-        onConfirm={(r) => withUndo(idea.id, () => advance(idea.id, 'Validated by buyer — baseline confirmed', r || undefined), `${idea.id} validated — moved to ${next}`)} />
+      <RemarksModal open={modal === 'validate'} onClose={close} required={false} icon="BadgeCheck" confirmLabel="Confirm feasibility"
+        title="Team feasibility check" subtitle={`Confirms the idea is feasible with baseline (LBP) and volume (MRN FY26), then sends ${idea.id} for ${next ?? 'the next stage'}.`} placeholder="Optional remarks for the submitter"
+        onConfirm={(r) => withUndo(idea.id, () => advance(idea.id, 'Team feasibility check completed — baseline confirmed', r || undefined), `${idea.id} cleared team feasibility — sent for ${next}`)} />
       <RemarksModal open={modal === 'approve'} onClose={close} required={false} icon="Stamp" variant="success" confirmLabel="Approve"
-        title={`Approve — ${pending[0]?.level ?? 'Approver'}`} subtitle={pending.length > 1 ? `After your approval the idea goes to ${pending[1].level} (approval matrix).` : 'Final approval — the idea enters the Execution Hub with an owner and a 31 March due date.'}
-        onConfirm={(r) => withUndo(idea.id, () => approve(idea.id, r || undefined), pending.length > 1 ? `Approved at ${pending[0].level} level — pending ${pending[1].level}` : `${idea.id} approved — entered the Execution Hub`)} />
-      <RemarksModal open={modal === 'reject'} onClose={close} variant="danger" icon="CircleX" confirmLabel="Reject" title="Reject idea" subtitle="Remarks are mandatory on negative actions and are shared with the submitter and buyer."
+        title={`Sourcing approval — ${pending[0]?.level ?? 'Approver'}`} subtitle={pending.length > 1 ? `After your approval the idea goes to ${pending[1].level} (approval matrix).` : 'Final sourcing approval — execution starts with an owner and a 31 March due date.'}
+        onConfirm={(r) => withUndo(idea.id, () => approve(idea.id, r || undefined), pending.length > 1 ? `Approved at ${pending[0].level} level — pending ${pending[1].level}` : `${idea.id} approved — execution started`)} />
+      <RemarksModal open={modal === 'reject'} onClose={close} variant="danger" icon="CircleX" confirmLabel="Reject" title="Reject idea" subtitle="Remarks are mandatory and shared with the submitter and the team. A rejected idea is dropped for good — it can never be reopened; a fresh attempt needs a new idea."
         onConfirm={(r) => { reject(idea.id, r); toast(`${idea.id} rejected`, 'warning') }} />
       <RemarksModal open={modal === 'sendBack'} onClose={close} variant="danger" icon="Undo2" confirmLabel="Send back" title="Send back"
         subtitle={prev ? `Returns ${idea.id} to ${prev}.` : `Returns ${idea.id} to the submitter for rework.`}

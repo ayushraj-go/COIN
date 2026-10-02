@@ -109,8 +109,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
   const totalValue = sum(c.stages.map((r) => r.value))
   const click = (r: CoData['stages'][number]) => {
     if (r.st.key === 'impl') return drill({ bucket: 'Implemented' })
-    if (r.present.length > 1) return setOpen(r.st)
-    drill({ stage: r.present[0] ?? r.st.stages[0] })
+    setOpen(r.st)
   }
   const openRow = c.stages.find((r) => r.st.key === open?.key)
   const months = c.d.trend.map((t) => ({ label: t.label, month: t.month, validated: t.validated, pendingPart: t.realised == null ? null : Math.max(0, t.realised - (t.validated ?? 0)) }))
@@ -119,7 +118,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
 
   return (
     <Card className={cn('h-full', className)} icon="Workflow" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Implementation pipeline<InfoTip title="Implementation pipeline">Every approved idea moves through NPD sample (if a new part / source needs trial), PAP price or source revision, or internal execution, until it is Implemented. ₹ = annualised impact (approved price once implemented). Click a stage for its ideas.</InfoTip></span>}
+      title={<span className="flex items-center gap-1.5">Implementation pipeline<InfoTip title="Implementation pipeline">After Sourcing approval every idea is in Execution started, where its checklist runs NPD sample (if a new part / source needs trial), PAP price or source revision, then go-live, until it is Implemented. ₹ = annualised impact (approved price once implemented). Click a stage for its ideas.</InfoTip></span>}
       subtitle={`${totalCount} ideas after approval · ${inrShort(totalValue)} annualised`}
       actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => drill({}, '/execution')}>Execution Hub</Button>}>
       <div className="grid grid-cols-4 gap-2.5">
@@ -177,7 +176,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
       </div>
 
       <DrillModal open={!!open} onClose={() => setOpen(null)} title={open ? `${open.label} — stage drill-down` : ''} ideas={openRow?.ideas ?? []} valueFn={coValue}
-        links={openRow?.present.map((p) => ({ label: p, url: drillUrl({ stage: p }, filters) }))} />
+        links={[{ label: 'Open in the Execution Hub', url: drillUrl({}, filters, '/execution') }]} />
     </Card>
   )
 }

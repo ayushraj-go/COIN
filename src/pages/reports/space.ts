@@ -70,4 +70,4 @@ export const LIB_INTRO_BY_SPACE: Record<Space, string> = {
 }
 
 /** Stages that belong to CO for the C3 stage-bottleneck cut */
-export const CO_STAGES = ['NPD sample', 'NPD ECN up to sample approval', 'Execution', 'Price revision in PAP', 'Price / source change in PAP']
+export const CO_STAGES = ['Execution started']

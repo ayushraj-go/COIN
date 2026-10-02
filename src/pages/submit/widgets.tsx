@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { Attachment, Lever, LeverGroup, Part, RouteKey, Supplier, User } from '../../lib/types'
-import { LEVER_GROUP_STYLE, ROUTE_STAGES, STAGE_SHORT } from '../../lib/masters'
+import { LEVER_GROUP_STYLE, STAGE, STAGE_SHORT, TRACKER_STAGES } from '../../lib/masters'
 import { Badge, Icon, SourceTag, Tooltip, cn } from '../../components/ui'
 import { useStore } from '../../store/useStore'
 import { inrPrice, num, nowIso, uid } from '../../lib/format'
@@ -82,13 +82,14 @@ export function LeverSelect({ levers, value, onChange, error, placeholder = 'Cho
   )
 }
 
-/** "Buyer → R&D → Approval → NPD sample → PAP" — so the submitter knows what happens next */
+/** The six workflow stages — the same for every idea — so the submitter knows what happens next */
 export function RouteStrip({ route, compact }: { route: RouteKey; compact?: boolean }) {
-  const stages = ROUTE_STAGES[route].filter((s) => s !== 'Implemented')
+  void route
+  const stages = TRACKER_STAGES
   return (
     <div className="flex flex-wrap items-center gap-1">
       {stages.map((s, i) => {
-        const tone = s === 'Approval' ? 'bg-brand-50 text-brand-700 border-brand-200' : s.includes('NPD') ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : s.includes('PAP') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
+        const tone = s === STAGE.approval ? 'bg-brand-50 text-brand-700 border-brand-200' : s === STAGE.rnd ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : s === STAGE.execution || s === STAGE.implemented ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
         return (
           <React.Fragment key={s}>
             <Tooltip content={<><div className="font-semibold">Step {i + 1}</div>{s}</>}>

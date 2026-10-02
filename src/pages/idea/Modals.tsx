@@ -33,7 +33,7 @@ export function DropModal({ idea, open, onClose }: { idea: Idea; open: boolean; 
             {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
-        <Field label="Remarks" required hint="Mandatory on every drop — feeds the Drop analysis report.">
+        <Field label="Remarks" required hint="Mandatory on every drop — feeds the Drop analysis report. A dropped idea can never be reopened; a fresh attempt needs a new idea.">
           <textarea className="input" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Why is this idea being dropped?" />
         </Field>
         <div className={cn('rounded-lg border p-2.5 text-[12px] flex gap-2', committed > 0 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-slate-50 border-line text-muted')}>
@@ -177,19 +177,19 @@ export function TechEvalModal({ idea, open, onClose, initial }: { idea: Idea; op
   const stages = stagesOf(idea)
   const next = stages[stages.indexOf(idea.stage) + 1]
   const submit = () => {
-    if (go) withUndo(idea.id, () => techEvaluate(idea.id, 'Go', plan.trim(), remarks.trim() || undefined), `Technical go recorded — ${idea.id} moved to ${next}`)
-    else { techEvaluate(idea.id, 'No-go', plan.trim(), remarks.trim()); t()(`${idea.id} rejected — technical no-go`, 'warning') }
+    if (go) withUndo(idea.id, () => techEvaluate(idea.id, 'Go', plan.trim(), remarks.trim() || undefined), `R&D approved — ${idea.id} sent for ${next}`)
+    else { techEvaluate(idea.id, 'No-go', plan.trim(), remarks.trim()); t()(`${idea.id} rejected at R&D approval — dropped`, 'warning') }
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Technical evaluation" subtitle={`${idea.id} · ${idea.techEval?.evaluatorDept ?? 'R&D'} · ${idea.stage}`} icon="FlaskConical" size="md"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={go ? 'success' : 'danger'} icon={go ? 'CircleCheck' : 'CircleX'} disabled={!valid} onClick={submit}>{go ? 'Record Go' : 'Record No-go'}</Button></>}>
+    <Modal open={open} onClose={onClose} title="R&D approval" subtitle={`${idea.id} · ${idea.techEval?.evaluatorDept ?? 'R&D'} · ${idea.stage}`} icon="FlaskConical" size="md"
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={go ? 'success' : 'danger'} icon={go ? 'CircleCheck' : 'CircleX'} disabled={!valid} onClick={submit}>{go ? 'Approve' : 'Reject'}</Button></>}>
       <div className="space-y-3">
-        <Segmented value={decision} onChange={setDecision} options={[{ key: 'Go', label: 'Go', icon: 'CircleCheck' }, { key: 'No-go', label: 'No-go', icon: 'CircleX' }]} />
-        <Field label="Validation plan" required={go} hint="Lab tests, pilot build, field audit — carried into NPD sampling.">
+        <Segmented value={decision} onChange={setDecision} options={[{ key: 'Go', label: 'Approve', icon: 'CircleCheck' }, { key: 'No-go', label: 'Reject', icon: 'CircleX' }]} />
+        <Field label="Validation plan" required={go} hint="Lab tests, pilot build, field audit — carried into the NPD sample milestone of Execution started.">
           <textarea className="input" rows={3} value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. Salt spray 240 h + thermal cycling; 200-unit pilot build; field audit after 30 days" />
         </Field>
-        <Field label="Remarks" required={!go} hint={go ? undefined : 'Mandatory on a no-go — the idea is rejected.'}>
+        <Field label="Remarks" required={!go} hint={go ? undefined : 'Mandatory on a rejection — the idea is dropped for good (use Send back for rework instead).'}>
           <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={go ? 'Optional remarks' : 'Why is the change not acceptable?'} />
         </Field>
       </div>

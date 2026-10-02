@@ -38,8 +38,8 @@ export function useScopeLabel() {
 // ─── Bucket cards (count + ₹) — click filters the page below ──────────────────
 const BUCKET_ICON: Record<string, string> = { Pipeline: 'Filter', 'In Execution': 'Rocket', Implemented: 'CircleCheckBig', Dropped: 'CircleSlash' }
 const BUCKET_TIP: Record<string, string> = {
-  Pipeline: 'Submitted and moving through buyer validation, feasibility, technical evaluation or approval. Value = Σ annualised impact.',
-  'In Execution': 'Approved ideas in the Execution Hub — NPD sample, PAP price revision or execution — until marked Done or Dropped.',
+  Pipeline: 'Submitted and moving through Team feasibility check, R&D approval or Sourcing approval. Value = Σ annualised impact.',
+  'In Execution': 'Execution started — NPD sample, PAP price revision and go-live milestones in the Execution Hub — until marked Done (Implemented) or Dropped.',
   Implemented: 'Marked Done with an effective date and approved price; realisation now flows from actual MRN.',
   Dropped: 'Dropped or rejected with a mandatory reason code; its value no longer counts as committed.',
 }

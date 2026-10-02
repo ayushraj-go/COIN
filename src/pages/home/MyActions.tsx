@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import type { Idea, User } from '../../lib/types'
-import { EVALUATION_STAGES, FEASIBILITY_STAGES } from '../../lib/masters'
+import { EVALUATION_STAGES, STAGE } from '../../lib/masters'
 import { ideaAnnualised, slaStatus } from '../../lib/calc'
 import { daysBetween, fmtDate, inrShort, monthLabel, sum, todayIso } from '../../lib/format'
 import { navFor } from '../../lib/nav'
@@ -16,10 +16,10 @@ const stagesOf = (key: string) => Object.keys(STAGE_SLA_KEY).filter((s) => STAGE
 
 export type ActionKind = 'validate' | 'feasibility' | 'evaluate' | 'approve' | 'savings' | 'overdue' | 'info' | 'draft' | 'sla'
 export const ACTION_META: Record<ActionKind, { label: string; icon: string; color: string }> = {
-  validate: { label: 'To validate', icon: 'ClipboardCheck', color: '#4470d6' },
+  validate: { label: 'Feasibility check', icon: 'UsersRound', color: '#4470d6' },
   feasibility: { label: 'Feasibility', icon: 'Factory', color: '#0d9488' },
-  evaluate: { label: 'To evaluate', icon: 'FlaskConical', color: '#4f46e5' },
-  approve: { label: 'To approve', icon: 'Stamp', color: '#2f5bc6' },
+  evaluate: { label: 'R&D approval', icon: 'FlaskConical', color: '#4f46e5' },
+  approve: { label: 'Sourcing approval', icon: 'Stamp', color: '#2f5bc6' },
   savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: '#0f9f6e' },
   overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: '#e0364f' },
   info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: '#ec8a1c' },
@@ -57,14 +57,10 @@ export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useSt
       if (i.submitterId === me.id) out.push({ key: `draft-${i.id}`, kind: 'draft', ideaId: i.id, title: i.title || 'Untitled draft', sub: `${i.id} · saved ${daysBetween(i.createdAt.slice(0, 10), t)}d ago`, value: ideaAnnualised(i), urgency: 0.5 })
       continue
     }
-    if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the buyer's query`, { urgency: 3.5 })
-    if (i.stage === 'Buyer validation' && ((isBuyer && (i.buyerId === me.id || me.commodities.includes(i.commodity))) || (isLead && me.commodities.includes(i.commodity)))) push('validate', i, `${i.id} · ${i.submitterName} · confirm baseline`)
-    if (isBuyer && FEASIBILITY_STAGES.includes(i.stage) && i.feasibility && !i.feasibility.respondedAt && (i.buyerId === me.id || me.commodities.includes(i.commodity))) {
-      const sup = s.suppliers.find((x) => x.code === i.feasibility!.supplierCode)
-      push('feasibility', i, `${i.id} · awaiting ${sup?.name ?? i.feasibility.supplierCode} · respond on behalf if needed`)
-    }
-    if (r.includes('techeval') && EVALUATION_STAGES.includes(i.stage) && i.techEval && !i.techEval.decision && i.techEval.evaluatorDept.includes(me.department)) push('evaluate', i, `${i.id} · ${i.techEval.evaluatorDept} · go / no-go + validation plan`)
-    if ((isLead || isHead) && i.stage === 'Approval' && firstPending(i)?.approverId === me.id) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
+    if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the team's query`, { urgency: 3.5 })
+    if (i.stage === STAGE.feasibility && ((isBuyer && (i.buyerId === me.id || me.commodities.includes(i.commodity))) || (isLead && me.commodities.includes(i.commodity)))) push('validate', i, `${i.id} · ${i.submitterName} · team feasibility check`)
+    if (r.includes('techeval') && EVALUATION_STAGES.includes(i.stage) && i.techEval && !i.techEval.decision && i.techEval.evaluatorDept.includes(me.department)) push('evaluate', i, `${i.id} · R&D approval · approve or reject + validation plan`)
+    if ((isLead || isHead) && i.stage === STAGE.approval && firstPending(i)?.approverId === me.id) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
     if ((isBuyer || isLead || isHead) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
       const mineExec = isHead || (isLead && me.commodities.includes(i.commodity)) || (i.ownerId ?? i.buyerId) === me.id
       if (mineExec) {

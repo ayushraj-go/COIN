@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bar, BarChart, Cell, ComposedChart, CartesianGrid, Line, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
 import { useStore } from '../../store/useStore'
 import type { Bucket, Idea, LeverGroup } from '../../lib/types'
-import { EVALUATION_STAGES, FEASIBILITY_STAGES, LEVER_GROUP_STYLE } from '../../lib/masters'
+import { STAGE, LEVER_GROUP_STYLE } from '../../lib/masters'
 import { BUCKET_STYLE, STRUCTURAL_LEVERS, ideaAnnualised, leverGroupOf, summarise } from '../../lib/calc'
 import { STRUCTURAL_NOTE, KPIS } from '../../lib/scope'
 import { fyMonths, inrShort, monthLong, monthShort, pct, sum } from '../../lib/format'
@@ -76,13 +76,10 @@ export function TrendCard({ d, className, height = 262 }: { d: HomeData; classNa
 // ─── Funnel by stage (count + ₹) ──────────────────────────────────────────────
 interface Step { key: string; label: string; stages: string[]; bucket: Exclude<Bucket, 'Draft'>; icon: string }
 const STEPS: Step[] = [
-  { key: 'validation', label: 'Buyer validation', stages: ['Buyer validation'], bucket: 'Pipeline', icon: 'ClipboardCheck' },
-  { key: 'feasibility', label: 'Supplier feasibility', stages: FEASIBILITY_STAGES, bucket: 'Pipeline', icon: 'Factory' },
-  { key: 'evaluation', label: 'Technical evaluation', stages: EVALUATION_STAGES, bucket: 'Pipeline', icon: 'FlaskConical' },
-  { key: 'approval', label: 'Approval', stages: ['Approval'], bucket: 'Pipeline', icon: 'Stamp' },
-  { key: 'npd', label: 'NPD sample', stages: ['NPD sample', 'NPD ECN up to sample approval'], bucket: 'In Execution', icon: 'TestTubes' },
-  { key: 'pap', label: 'PAP price / source', stages: ['Price revision in PAP', 'Price / source change in PAP'], bucket: 'In Execution', icon: 'FileBadge' },
-  { key: 'execution', label: 'Execution (internal)', stages: ['Execution'], bucket: 'In Execution', icon: 'Wrench' },
+  { key: 'feasibility', label: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
+  { key: 'rnd', label: STAGE.rnd, stages: [STAGE.rnd], bucket: 'Pipeline', icon: 'FlaskConical' },
+  { key: 'approval', label: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
+  { key: 'execution', label: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
   { key: 'implemented', label: 'Implemented', stages: ['Implemented'], bucket: 'Implemented', icon: 'CircleCheckBig' },
   { key: 'dropped', label: 'Dropped / rejected', stages: ['Dropped', 'Rejected'], bucket: 'Dropped', icon: 'CircleSlash' },
 ]

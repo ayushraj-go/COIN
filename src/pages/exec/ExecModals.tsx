@@ -179,7 +179,7 @@ export function DropModal({ idea, open, onClose, fy }: { idea: Idea | null; open
       <div className="grid gap-3">
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] text-amber-900 flex gap-2">
           <Icon name="TriangleAlert" size={16} className="shrink-0 mt-px" />
-          <span>Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month. This idea removes <b className="num">{inrShort(committed)}</b> from {fy} committed savings and is counted in <b>{monthLong(ymOf(todayIso()))}</b>.</span>
+          <span>A dropped idea stays dropped — it can never be reopened (a fresh attempt needs a new idea). Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month. This idea removes <b className="num">{inrShort(committed)}</b> from {fy} committed savings and is counted in <b>{monthLong(ymOf(todayIso()))}</b>.</span>
         </div>
         <Field label="Reason code" required>
           <select className="input" value={reason} onChange={(e) => setReason(e.target.value)}>
