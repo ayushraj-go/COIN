@@ -38,7 +38,8 @@ export function portfolioPlan(ideas: Idea[], ledger: LedgerEntry[], lastActualMo
     return { month: m, plan, planCum, actual, actualCum: known ? actualCum : null }
   })
   const actualToDate = sum(per.map((p) => p.actualToDate)), planToDate = sum(per.map((p) => p.planToDate))
-  return { rows, target: sum(per.map((p) => p.target)), actualToDate, planToDate, projected: sum(per.map((p) => p.projected)), onTrack: actualToDate >= planToDate * 0.95, ideas: locked.length }
+  // ideas whose savings period has not started yet are assumed on plan
+  return { rows, target: sum(per.map((p) => p.target)), actualToDate, planToDate, projected: sum(per.map((p) => (p.elapsed ? p.projected : p.target))), onTrack: actualToDate >= planToDate * 0.95, ideas: locked.length }
 }
 
 type Row = { month: string; plan: number; planCum: number; actual: number | null; actualCum: number | null }
