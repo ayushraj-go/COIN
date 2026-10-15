@@ -1,5 +1,5 @@
 // M1 — Dashboard for Buyer, Commodity Lead, Sourcing Head, Admin, Finance and Management
-// Two views: the one-screen Dashboard (four status cards, portfolio chart, SLA watch) and Advanced analytics.
+// Two views: the Dashboard (CO-style KPI tiles + internal vs external ideas) and Advanced analytics (idea portfolio, SLA watch and more).
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
@@ -7,9 +7,11 @@ import type { Bucket } from '../../lib/types'
 import { Button, useWarmup } from '../../components/ui'
 import { useHomeData } from './data'
 import { HomeHeader, HomeSkeleton, Reveal, RevealGrid, ViewPills, useDrill } from './shared'
-import { BucketCards, RealisationCard, SavingsToValidateCard, TopIdeasCard } from './cards'
+import { RealisationCard, SavingsToValidateCard, TopIdeasCard } from './cards'
 import { CommodityHeatCard, FunnelCard, LeverMixCard, PortfolioCard, TrendCard } from './charts'
 import { SlaWatchCard } from './MyActions'
+import { InKpis } from './Kpis'
+import { SourcesCard } from './Sources'
 import { Leaderboard } from './Leaderboard'
 
 export type SourcingVariant = 'sourcing' | 'finance' | 'mgmt'
@@ -41,16 +43,14 @@ export default function SourcingHome({ variant }: { variant: SourcingVariant }) 
 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
-          <Reveal className="col-span-12"><BucketCards d={d} sel={null} onSel={(b) => b && drill({ bucket: b })} layout="row" /></Reveal>
-          <Reveal className="col-span-12 xl:col-span-7"><PortfolioCard d={d} className="flex-1" /></Reveal>
-          <Reveal className="col-span-12 xl:col-span-5">
-            {variant === 'finance' ? <SavingsToValidateCard d={d} className="flex-1" />
-              : variant === 'mgmt' ? <SlaWatchCard className="flex-1" />
-                : <SlaWatchCard className="flex-1" />}
-          </Reveal>
+          <Reveal className="col-span-12"><InKpis d={d} /></Reveal>
+          <Reveal className="col-span-12"><SourcesCard ideas={d.active.filter((i) => i.bucket !== 'Dropped')} mode="IN" fy={d.fy} /></Reveal>
         </RevealGrid>
       ) : (
         <RevealGrid className="grid grid-cols-12 gap-4">
+          {/* row 0 — moved from the dashboard: idea portfolio + SLA watch */}
+          <Reveal className="col-span-12 xl:col-span-7"><PortfolioCard d={d} className="flex-1" /></Reveal>
+          <Reveal className="col-span-12 xl:col-span-5">{variant === 'finance' ? <SavingsToValidateCard d={d} className="flex-1" /> : <SlaWatchCard className="flex-1" />}</Reveal>
           {/* row 1 — trend + funnel */}
           <Reveal className="col-span-12 xl:col-span-8"><TrendCard d={d} height={262} className="flex-1" /></Reveal>
           <Reveal className="col-span-12 xl:col-span-4"><FunnelCard d={d} sel={sel} onClear={clear} className="flex-1" /></Reveal>

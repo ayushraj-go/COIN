@@ -10,31 +10,13 @@ import { daysBetween, fmtDate, inrShort, monthLong, pct, sum } from '../../lib/f
 import { Avatar, Badge, Button, Card, Count, EmptyState, HealthBadge, Icon, InfoTip, Money, cn } from '../../components/ui'
 import { AXIS_TICK, ChartTip, DrillModal, GRID_STROKE, drillUrl, useDrill } from '../home/shared'
 import { HEALTHS, coValue, type CoData, type CoStage } from './data'
+import { KpiTile } from '../../components/KpiTile'
 
 const EXEC = BUCKET_STYLE['In Execution']
 const IMPL = BUCKET_STYLE.Implemented
 const RISK = '#e0364f'
 
-// ─── KPI tiles ────────────────────────────────────────────────────────────────
-function Tile({ label, icon, color, tip, onClick, hero, children }: { label: string; icon: string; color: string; tip: React.ReactNode; onClick: () => void; hero?: boolean; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick}
-      className={cn('group relative overflow-hidden text-left rounded-xl p-4 h-full w-full transition-all duration-200 focus-ring',
-        hero ? 'bg-hero text-white shadow-[0_14px_32px_-18px_rgb(36_89_224/.8)] hover:shadow-[0_18px_36px_-16px_rgb(36_89_224/.85)]' : 'card hover:border-brand-200 hover:shadow-[0_10px_26px_-18px_rgb(15_27_51/.35)]')}>
-      {hero && <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/10" />}
-      <div className="relative flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 min-w-0">
-          <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={hero ? { background: 'rgb(255 255 255 / .16)', color: '#fff' } : { background: `${color}14`, color }}><Icon name={icon} size={14} /></span>
-          <span className={cn('text-[12.5px] font-semibold truncate', hero ? 'text-white/90' : 'text-ink-2')}>{label}</span>
-          <span onClick={(e) => e.stopPropagation()} className={hero ? '[&_svg]:text-white/70' : undefined}><InfoTip title={label}>{tip}</InfoTip></span>
-        </span>
-        <Icon name="ArrowUpRight" size={14} className={cn('shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5', hero ? 'text-white/70' : 'text-muted')} />
-      </div>
-      <div className="relative mt-2.5">{children}</div>
-    </button>
-  )
-}
-
+// ─── KPI tiles (shared CO-style tile) ─────────────────────────────────────────
 export function CoKpis({ c }: { c: CoData }) {
   const drill = useDrill()
   const nav = useNavigate()
@@ -44,25 +26,25 @@ export function CoKpis({ c }: { c: CoData }) {
   const vShare = k.realised ? (k.validated / k.realised) * 100 : 0
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-      <Tile label="In Execution" icon="Rocket" color={EXEC.color} onClick={() => drill({ bucket: 'In Execution' })}
+      <KpiTile label="In Execution" icon="Rocket" color={EXEC.color} onClick={() => drill({ bucket: 'In Execution' })}
         tip="Approved ideas being implemented — NPD sample, PAP price / source revision or internal execution. ₹ = FY-phased committed hard savings.">
         <div className="flex items-baseline gap-2">
           <span className="text-[24px] leading-none font-bold tracking-tight text-ink"><Money value={k.execCommitted} /></span>
           <span className="text-[11.5px] text-muted">committed</span>
         </div>
         <div className="text-[11.5px] text-muted mt-1.5 truncate"><b className="text-ink-2 num"><Count value={k.execCount} /></b> ideas · {inrShort(k.execAnnualised)} annualised</div>
-      </Tile>
+      </KpiTile>
 
-      <Tile label="Implemented" icon="CircleCheckBig" color={IMPL.color} onClick={() => drill({ bucket: 'Implemented' })}
+      <KpiTile label="Implemented" icon="CircleCheckBig" color={IMPL.color} onClick={() => drill({ bucket: 'Implemented' })}
         tip="Marked Done with an effective date and approved price. ₹ = annualised impact at approved price; realisation flows from actual MRN.">
         <div className="flex items-baseline gap-2">
           <span className="text-[24px] leading-none font-bold tracking-tight text-ink"><Money value={k.implAnnualised} /></span>
           <span className="text-[11.5px] text-muted">annualised</span>
         </div>
         <div className="text-[11.5px] text-muted mt-1.5 truncate"><b className="text-ink-2 num"><Count value={k.implCount} /></b> ideas · {inrShort(k.implCommitted)} live in {c.fy}</div>
-      </Tile>
+      </KpiTile>
 
-      <Tile hero label={`Realised savings · ${c.fy} to date`} icon="BadgeIndianRupee" color="#fff" onClick={() => nav('/reports/leakage')}
+      <KpiTile hero label={`Realised savings · ${c.fy} to date`} icon="BadgeIndianRupee" color="#fff" onClick={() => nav('/reports/leakage')}
         tip="MRN-based realised hard savings = (baseline − approved price) × MRN quantity after the effective date. Validated = accepted by Finance.">
         <div className="text-[24px] leading-none font-bold tracking-tight"><Money value={k.realised} /></div>
         <div className="mt-2 flex h-1.5 rounded-full overflow-hidden bg-white/20">
@@ -72,9 +54,9 @@ export function CoKpis({ c }: { c: CoData }) {
           <span className="truncate"><b className="text-white num">{inrShort(k.validated)}</b> validated</span>
           <span className="truncate"><b className="text-white num">{inrShort(k.pending)}</b> pending</span>
         </div>
-      </Tile>
+      </KpiTile>
 
-      <Tile label="Overdue / at risk" icon="Siren" color={RISK} onClick={() => setWatchOpen(true)}
+      <KpiTile label="Overdue / at risk" icon="Siren" color={RISK} onClick={() => setWatchOpen(true)}
         tip="Live executions past their due date (Delayed) or with an overdue milestone (At risk). ₹ = committed hard savings exposed.">
         <div className="flex items-baseline gap-2">
           <span className="text-[24px] leading-none font-bold tracking-tight num" style={{ color: k.watchCount ? RISK : undefined }}><Count value={k.watchCount} /></span>
@@ -84,7 +66,7 @@ export function CoKpis({ c }: { c: CoData }) {
           <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: HEALTH_STYLE.Delayed.color, background: HEALTH_STYLE.Delayed.soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE.Delayed.color }} />{c.overdue.length} overdue</span>
           <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: '#b35f0c', background: HEALTH_STYLE['At risk'].soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE['At risk'].color }} />{c.atRisk.length} at risk</span>
         </div>
-      </Tile>
+      </KpiTile>
 
       <DrillModal open={watchOpen} onClose={() => setWatchOpen(false)} title="Overdue and at-risk executions" ideas={c.watch}
         valueFn={(i) => ideaCommitted(i, c.fy)} valueLabel="Committed"
