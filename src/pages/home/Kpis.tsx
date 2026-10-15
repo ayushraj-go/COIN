@@ -56,7 +56,7 @@ export function HomeKpis({ d }: { d: HomeData }) {
       <KpiTile label="Implemented" icon="CircleCheckBig" color={BUCKET_STYLE.Implemented.color} onClick={() => { setSpace('CO'); drill({ bucket: 'Implemented' }) }} tip="Stage 6 — handed for verification, then verified against the locked target.">
         <TileValue value={<Money value={v.Implemented} />} unit="annualised" sub={<><b className="text-ink-2 num"><Count value={c.Implemented} /></b> ideas · {d.active.filter((i) => i.verification?.verifiedAt).length} verified</>} />
       </KpiTile>
-      <KpiTile hero label={`Realised savings · ${d.fy} (MRN)`} icon="BadgeIndianRupee" color="#fff" onClick={() => { setSpace('CO'); nav('/proof') }} tip="(baseline − approved price) × MRN quantity from the first MRN at the new price. Validated = accepted by Finance.">
+      <KpiTile hero label={`Realised · ${d.fy} (MRN)`} icon="BadgeIndianRupee" color="#fff" onClick={() => { setSpace('CO'); nav('/proof') }} tip="(baseline − approved price) × MRN quantity from the first MRN at the new price. Validated = accepted by Finance.">
         <div className="text-[24px] leading-none font-bold tracking-tight"><Money value={sm.realised} /></div>
         <div className="mt-2 flex h-1.5 rounded-full overflow-hidden bg-white/20"><motion.div initial={{ width: 0 }} animate={{ width: `${vShare}%` }} transition={{ duration: 0.9 }} className="bg-white" /></div>
         <div className="flex items-center justify-between gap-2 mt-1.5 text-[11.5px] text-white/85"><span className="truncate"><b className="text-white num">{inrShort(sm.realisedValidated)}</b> validated</span><span className="truncate"><b className="text-white num">{inrShort(Math.max(0, sm.realised - sm.realisedValidated))}</b> pending</span></div>
