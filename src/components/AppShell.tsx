@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react'
 import confetti from 'canvas-confetti'
 import { useStore, useMe } from '../store/useStore'
 import { navForSpace, spaceForPath, ROLE_LABEL, primaryRole } from '../lib/nav'
-import { QUICK_LOGINS } from '../lib/masters'
 import { Avatar, Icon, IconButton, cn, Badge } from './ui'
 import { timeAgo, inrShort } from '../lib/format'
 import { ideaAnnualised } from '../lib/calc'
@@ -13,6 +12,7 @@ import { useVisibleIdeas } from '../lib/hooks'
 import IdeaDrawer from '../pages/IdeaDrawer'
 import { AmberMark, AmberWordmark } from './Logo'
 import { ThemePicker } from './ThemePicker'
+import { PersonaPicker } from './PersonaPicker'
 import { useMyQueue } from '../pages/queue/useQueue'
 import { paletteByKey, usePalette } from '../lib/theme'
 
@@ -246,7 +246,7 @@ function UserMenu() {
       <AnimatePresence>
         {open && (
           <>
-            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 top-11 z-50 w-[320px] max-w-[calc(100vw-24px)] card shadow-2xl p-2">
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-0 top-11 z-50 w-[400px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] overflow-y-auto card shadow-2xl p-2">
               <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" title="Close"
                 className="absolute right-2 top-2 h-7 w-7 rounded-full grid place-items-center text-muted hover:text-ink hover:bg-slate-100 transition-colors">
                 <Icon name="X" size={15} />
@@ -262,19 +262,7 @@ function UserMenu() {
               <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="var(--color-brand-600)">{ROLE_LABEL[r]}</Badge>)}</div>
               <div className="border-t border-line my-1" />
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
-              <div>
-                {QUICK_LOGINS.map((d) => {
-                  const u = users.find((x) => x.id === d.userId)!
-                  const head = users.find((x) => x.id === d.signInAs)!
-                  return (
-                    <button key={d.userId} onClick={() => { loginAs(d.signInAs); setOpen(false); nav('/'); toast(`Switched to ${head.name} · Sourcing Head`, 'info') }} className={cn('w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-slate-50', d.userId === me.id && 'bg-brand-50')}>
-                      <Avatar name={u.name} color={u.avatarColor} size={26} />
-                      <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-semibold truncate">{d.role}</span><span className="block text-[11px] text-muted truncate">{u.name}</span></span>
-                      {d.userId === me.id && <Icon name="Check" size={14} className="text-brand-600" />}
-                    </button>
-                  )
-                })}
-              </div>
+              <div className="px-2 pb-2"><PersonaPicker compact currentUserId={me.id} onPick={(id, label) => { loginAs(id); setOpen(false); nav('/'); toast(`Switched to ${label}`, 'info') }} /></div>
               <div className="border-t border-line my-1" />
               <button onClick={() => { if (confirm('Reset all demo data to the original seed? Local changes will be lost.')) { resetDemo(); toast('Demo data reset', 'info') } setOpen(false) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="RotateCcw" size={15} />Reset demo data</button>
               <button onClick={() => { setOpen(false); logout(); nav('/login') }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] text-red-600 hover:bg-red-50"><Icon name="LogOut" size={15} />Sign out</button>

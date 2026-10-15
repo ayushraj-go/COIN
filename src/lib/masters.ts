@@ -233,21 +233,6 @@ export const CROSS_LOGINS: { userId: string; role: string; blurb: string }[] = [
   { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · ideas and workshops' },
 ]
 
-// Demo login tiles — one per role (hard-coded, password coin@2026)
-export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [
-  { userId: 'u-head', role: 'Sourcing Head', blurb: 'All data · approves above limit · MIS' },
-  { userId: 'u-lead1', role: 'Commodity Lead', blurb: 'Metals · approvals · workshops' },
-  { userId: 'u-buyer1', role: 'Commodity Buyer', blurb: 'Fasteners & Steel · team feasibility · execution' },
-  { userId: 'u-eval1', role: 'Technical Evaluator', blurb: 'Department evaluation · cost-benefit, risk' },
-  { userId: 'u-fin', role: 'Finance Controller', blurb: 'Validates realised savings' },
-  { userId: 'u-mgmt', role: 'Management', blurb: 'Dashboards & monthly report' },
-  { userId: 'u-sub1', role: 'Submitter', blurb: 'R&D employee · own ideas' },
-  { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · ideas & workshops' },
-  { userId: 'u-admin', role: 'Admin', blurb: 'Masters · users · approval matrix' },
-]
-
-/** Quick demo access: only Sourcing Head and Admin are offered, and both sign in as the Sourcing Head */
-export const QUICK_LOGINS = DEMO_LOGINS.filter((d) => d.userId === 'u-head' || d.userId === 'u-admin').map((d) => ({ ...d, signInAs: 'u-head' }))
 
 export const SUPPLIERS_DEFAULT: Supplier[] = [
   { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd', commodities: ['CUT'], contactEmail: 'sales@kirancopper.in', contactName: 'Mahesh Kiran', city: 'Silvassa', spend: 1480 * CR },

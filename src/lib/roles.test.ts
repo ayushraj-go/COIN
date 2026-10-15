@@ -90,3 +90,15 @@ describe('who may act', () => {
     expect(stageLabel(at(STAGE.evaluation, { evaluation: { dept: 'HR' } }), STAGE.evaluation)).toBe('HR evaluation')
   })
 })
+
+import { personaFor } from './workflow'
+describe('demo personas by department', () => {
+  it('gives one account per ladder role for every department', () => {
+    expect(personaFor('R&D', 'submitter', USERS_DEFAULT)).toBe('u-sub1')
+    expect(personaFor('Sourcing', 'submitter', USERS_DEFAULT)).toBe('u-so-emp')
+    expect(personaFor('Sourcing', 'teamlead', USERS_DEFAULT)).toBe('u-lead1')
+    expect(personaFor('HR', 'depthead', USERS_DEFAULT)).toBe('u-hr-head')
+    expect(personaFor('Finance', 'execowner', USERS_DEFAULT)).toBe('u-fi-exec')
+    for (const d of DEPARTMENTS) for (const r of ['submitter', 'teamlead', 'deptlead', 'depthead', 'execowner'] as const) expect(personaFor(d, r, USERS_DEFAULT), `${d} ${r}`).toBeTruthy()
+  })
+})

@@ -234,3 +234,10 @@ export function milestoneSchedule(execStart: string, savingsStart: string, end: 
     return iso(s0 + Math.round(((s1 - s0) * r) / (route.length + 1) / 86400000) * 86400000)
   })
 }
+
+/** The demo account for a ladder role in a department (login picker and persona switcher) */
+export function personaFor(dept: string, role: 'submitter' | 'teamlead' | 'deptlead' | 'depthead' | 'execowner', users: User[]): string | undefined {
+  if (role === 'submitter') return users.find((u) => u.active !== false && u.department === dept && u.roles.length === 1 && u.roles[0] === 'submitter')?.id
+  const l = ladderOf(dept, '', users)
+  return { teamlead: l.teamLead, deptlead: l.deptLead, depthead: l.deptHead, execowner: l.execOwner }[role]
+}
