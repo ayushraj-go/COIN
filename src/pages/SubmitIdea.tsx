@@ -1,4 +1,5 @@
 // M3 — Submit Idea (Section 7): collapsible form steps + sticky live savings panel; draft saves automatically.
+import { approvalRoute, evalDeptOf } from '../lib/workflow'
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -150,6 +151,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const lead = users.find((u) => u.id === commodity?.leadId)
   const buyer = users.find((u) => u.id === commodity?.buyerId)
   const head = users.find((u) => u.id === 'u-head') ?? users.find((u) => u.roles.includes('head'))
+  // stages 2–4 for this submitter's department (supplier ideas go to Sourcing)
+  const route = useMemo(() => approvalRoute(evalDeptOf(me?.department), commodity?.code ?? '', users, me?.id).map((r) => ({ label: r.label, name: users.find((u) => u.id === r.userId)?.name })), [me, commodity, users])
   const myCommodities = isSupplier && me.commodities.length ? commodities.filter((c) => me.commodities.includes(c.code)) : commodities
   // every commodity, grouped by its commodity category — groups matching the buying type first
   const commodityGroups = categories
@@ -329,7 +332,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     doneRef.current = true
     const payload = toPayload(form, me, lever, commodity?.buyerId)
     const id = useStore.getState().submitIdea(payload, draftRef.current ?? undefined)
-    toast(`${id} submitted for validation — sent to ${buyer?.name ?? 'the Commodity Buyer'}`, 'success')
+    toast(`${id} submitted — sent to ${route[0]?.name ?? 'your team lead'} for the team feasibility check`, 'success')
     nav(`/ideas/${id}`)
   }
   const cancel = () => {
@@ -430,8 +433,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   )
 
   const panelBody = (
-    <SavingsPanelBody c={calc} lever={lever} currentFy={currentFy} nextFyLabel={nextFy(currentFy)} leadName={lead?.name} headName={head?.name}
-      xLakh={settings.xThresholdLakh} hasCommodity={!!commodity} />
+    <SavingsPanelBody c={calc} lever={lever} currentFy={currentFy} nextFyLabel={nextFy(currentFy)} route={route} />
   )
 
   return (
@@ -819,7 +821,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
               <Button variant="primary" size="lg" icon="Send" className="w-full" onClick={submit}>Submit for validation</Button>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
                 <span className="font-mono">{idPreview ?? 'COIN-FY27-···-····'}</span>
-                <span className="truncate">{buyer ? `Goes to ${buyer.name}` : 'Goes to the Commodity Buyer'}</span>
+                <span className="truncate">{route[0]?.name ? `Goes to ${route[0].name} · team lead` : 'Goes to your team lead'}</span>
               </div>
             </div>
           </div>

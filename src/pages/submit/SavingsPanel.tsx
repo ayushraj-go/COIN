@@ -37,13 +37,11 @@ export function PctBadge({ pct, dark }: { pct: number | null; dark?: boolean }) 
 
 const MAX_ROWS = 3 // keeps the sticky panel short enough to never need its own scrollbar
 
-export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, leadName, headName, xLakh, hasCommodity }: {
-  c: SavingsCalc; lever?: Lever; currentFy: string; nextFyLabel: string; leadName?: string; headName?: string; xLakh: number; hasCommodity: boolean
+export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
+  c: SavingsCalc; lever?: Lever; currentFy: string; nextFyLabel: string; route: { label: string; name?: string }[]
 }) {
   const cPct = c.annual ? Math.max(0, Math.min(100, (c.committed / c.annual) * 100)) : 0
   const [q, fy] = c.quarter.split(' ')
-  const needsHead = c.levels.includes('Sourcing Head')
-  const headReason = `Annualised impact above ₹ X = ${xLakh} lakh`
   const shown = c.rows.slice(0, MAX_ROWS)
   const more = c.rows.length - shown.length
   return (
@@ -104,26 +102,23 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, leadName, h
         </div>
       </div>
 
-      {/* approval route preview (approval matrix, ₹ X / ₹ Y) */}
+      {/* workflow route preview — the department ladder of the submitter's department */}
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Approval route
-            <InfoTip title="Approval matrix (configurable)">Up to ₹ X lakh: Commodity Lead. Above ₹ X lakh: Commodity Lead → Sourcing Head. Currently X = {xLakh}.</InfoTip>
+          <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Your idea goes to
+            <InfoTip title="Department ladder">Your department's team lead checks feasibility, the department lead evaluates and the department head approves and signs the budget + timeline lock. Execution is owned by your department; Finance verifies.</InfoTip>
           </span>
-          <span className="text-[11px] text-muted">X = ₹ {xLakh} L</span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md bg-slate-50 border border-line text-[12px]"><Icon name="UserCheck" size={13} className="text-brand-600" /><b className="font-semibold">Commodity Lead</b>{leadName && <span className="text-muted">· {leadName}</span>}</span>
-          <AnimatePresence>
-            {needsHead && (
-              <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }} className="inline-flex items-center gap-1.5">
-                <Icon name="ArrowRight" size={12} className="text-slate-400" />
-                <span className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md bg-brand-50 border border-brand-200 text-[12px] text-brand-800"><Icon name="ShieldCheck" size={13} /><b className="font-semibold">Sourcing Head</b>{headName && <span className="opacity-70">· {headName}</span>}</span>
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {route.map((r, k) => (
+            <span key={r.label} className="inline-flex items-center gap-1.5">
+              {k > 0 && <Icon name="ArrowRight" size={12} className="text-slate-400" />}
+              <span className={cn('inline-flex items-center gap-1.5 h-7 px-2 rounded-md border text-[12px]', k === route.length - 1 ? 'bg-brand-50 border-brand-200 text-brand-800' : 'bg-slate-50 border-line')}>
+                <Icon name={k === 0 ? 'UsersRound' : k === 1 ? 'FlaskConical' : 'Signature'} size={13} className="text-brand-600" /><b className="font-semibold">{r.name ?? '—'}</b><span className="text-muted">{r.label}</span>
+              </span>
+            </span>
+          ))}
         </div>
-        <div className="text-[11px] text-muted mt-1.5">{needsHead ? headReason : hasCommodity ? `Within ₹ ${xLakh} lakh — Commodity Lead approves` : 'Choose a commodity to see the approver'}</div>
       </div>
 
       {/* route strip from the lever (shown as "Category" on the form) — dropped on short screens so the panel always fits */}

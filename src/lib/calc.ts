@@ -145,7 +145,7 @@ export function slaStatus(idea: Idea, rules: SlaRule[]) {
 export function canSeeIdea(user: User, idea: Idea): boolean {
   const r = user.roles
   if (r.some((x) => x === 'head' || x === 'finance' || x === 'mgmt' || x === 'admin')) return true
-  if (idea.submitterId === user.id) return true
+  if (idea.submitterId === user.id || idea.ownerId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
   // department ladder (team lead, department lead, department head, execution owner): every idea of their department

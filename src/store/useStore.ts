@@ -493,7 +493,7 @@ export const useStore = create<Store>()(
             if (pending.approverId) push({ userId: pending.approverId, title: `Pending ${stageLabel(i, STAGE.approval)}`, body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
           } else {
             get().advance(id, `${stageLabel(i, STAGE.approval)} — approved`, remarks)
-            ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+            ;[...new Set([i.submitterId, getIdea(id).ownerId ?? i.buyerId])].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           }
           return true
         },
@@ -520,11 +520,12 @@ export const useStore = create<Store>()(
         reassign: (id, userId, remarks) => {
           const i = getIdea(id)
           const to = get().users.find((u) => u.id === userId)
+          // pipeline: only the commodity buyer changes — the ladder still decides who checks, evaluates and approves;
+          // execution: the execution owner changes
+          const pipeline = i.bucket === 'Pipeline'
           patchIdea(id, (x) => ({
-            ...x, buyerId: x.bucket === 'Pipeline' ? userId : x.buyerId, ownerId: userId,
-            execution: x.execution ? { ...x.execution, ownerId: userId } : x.execution,
-            approvals: x.stage === STAGE.approval ? x.approvals.map((a) => (!a.decision ? { ...a, approverId: userId } : a)) : x.approvals,
-            activity: [...x.activity, logEntry('Reassigned', { field: 'owner', oldValue: get().users.find((u) => u.id === (i.ownerId ?? i.buyerId))?.name, newValue: to?.name, remarks })],
+            ...x, ...(pipeline ? { buyerId: userId } : { ownerId: userId, execution: x.execution ? { ...x.execution, ownerId: userId } : x.execution }),
+            activity: [...x.activity, logEntry('Reassigned', { field: pipeline ? 'commodity buyer' : 'execution owner', oldValue: get().users.find((u) => u.id === (pipeline ? i.buyerId : i.ownerId ?? i.buyerId))?.name, newValue: to?.name, remarks })],
           }))
           push({ userId, title: 'Idea reassigned to you', body: `${id} · ${i.title}`, trigger: 'Reassigned', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
         },

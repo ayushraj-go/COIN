@@ -204,8 +204,10 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
     feasibilityCheck, evaluate, approve,
     sendBack: pipeline && actor,
     requestInfo: pipeline && actor,
-    reassign: (pipeline && (validator || head)) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
-    drop: (pipeline || exec) && executor,
+    // pipeline stages are assigned by the ladder — only override users re-point the commodity buyer;
+    // in execution the department head (or override) hands the execution to another owner
+    reassign: (pipeline && head) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
+    drop: (pipeline && (actor || head)) || (exec && executor),
     handOver: exec && executor && idea.execution?.status === 'In Execution',
     // stage 6 — Finance verifies the locked target
     verify: stage === STAGE.verification && !idea.verification?.verifiedAt && (head || hasRole(me, 'finance')),
@@ -250,12 +252,15 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   if (from.key === targetKey) return { ok: false, reason: '', same: true }
   if (!me) return { ok: false, reason: 'Sign in to move ideas' }
   if (idea.bucket === 'Implemented' || idea.bucket === 'Dropped') return { ok: false, reason: `${idea.id} is ${idea.stage === 'Dropped' || idea.stage === 'Rejected' ? 'dropped for good' : 'in verification'} — it cannot be moved on the board` }
-  if (!inScope(me, idea)) return { ok: false, reason: `${idea.id} is outside your commodity mapping` }
+  // every move is decided by the department ladder: the role for the stage being left, or Sourcing Head / Admin
+  const p = ideaPerms(me, idea)
+  const who = `the ${stageLabel(idea, idea.stage)} role of ${ideaDept(idea)} (or the Sourcing Head / Admin)`
   if (targetKey === 'dropped') {
-    if (!can(me, 'execute') && !hasRole(me, 'head')) return { ok: false, reason: 'Dropping an idea needs Buyer, Commodity Lead or Sourcing Head rights' }
+    if (!p.drop) return { ok: false, reason: `Dropping ${idea.id} needs ${who}` }
     return { ok: true, kind: 'drop', stage: 'Dropped', backward: false }
   }
   if (targetKey === 'verification') {
+    if (!p.handOver) return { ok: false, reason: `Handing ${idea.id} over for verification needs the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
     if (idea.bucket !== 'In Execution') return { ok: false, reason: 'Only ideas in Execution started can be handed for verification' }
     if (!idea.execution?.effectiveDate) return { ok: false, reason: 'Record the first MRN at the new price in the Execution Hub before handing over for verification' }
     return { ok: true, kind: 'done', stage: STAGE.verification, backward: false }
@@ -274,9 +279,22 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   if (ti > ai && ci <= ai) {
     if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: `Moving past ${stageLabel(idea, STAGE.approval)} needs the department head (or the Sourcing Head / Admin)` }
   } else if (ti <= ai) {
-    if (!can(me, 'validate') && !can(me, 'feasibility')) return { ok: false, reason: 'IN moves need feasibility team rights (Commodity Lead, Sourcing Head or the feasibility team)' }
-  } else if (!can(me, 'execute')) return { ok: false, reason: 'Execution moves need Buyer, Commodity Lead or Sourcing Head rights' }
+    if (!(p.feasibilityCheck || p.evaluate || p.approve)) return { ok: false, reason: `Moving ${idea.id} needs ${who}` }
+  } else if (!p.handOver) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
   return { ok: true, kind: 'move', stage, backward: ti < ci }
+}
+
+/** Execution Hub rights for one execution — straight from the ladder */
+export function execRights(me: User | null | undefined, idea: Idea) {
+  const p = ideaPerms(me, idea)
+  return { editable: p.handOver, canReassign: p.reassign && idea.bucket === 'In Execution' }
+}
+/** Who an execution can be handed to: the idea's department execution owners (Sourcing: the commodity buyers) */
+export function ownerCandidates(idea: Idea, users: User[]): User[] {
+  const dept = ideaDept(idea)
+  const list = users.filter((u) => u.active !== false && u.department === dept && u.roles.includes('execowner'))
+  const cur = users.find((u) => u.id === idea.ownerId)
+  return cur && !list.includes(cur) ? [cur, ...list] : list
 }
 
 // ─── Undo (5 s) on non-final actions ──────────────────────────────────────────

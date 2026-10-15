@@ -20,7 +20,7 @@ import { ExecTimeline, TimelineLegend } from './exec/Timeline'
 import { STAGE } from '../lib/masters'
 import { PlanVsActualBlock, useIdeaPlan } from './idea/PlanVsActual'
 import { VerificationModal } from './idea/StageForms'
-import { ideaPerms } from './idea/model'
+import { ideaPerms, execRights, ownerCandidates } from './idea/model'
 
 type Kpi = 'all' | 'due' | 'overdue' | 'risk' | 'done' | 'dropped'
 type ModalState = { kind: 'progress' | 'note' | 'done' | 'drop' | 'reassign' | 'target' | 'verify'; id: string; date?: string; to?: string; milestoneId?: string } | null
@@ -84,7 +84,8 @@ export default function ExecutionHub() {
   const cm = (list: Idea[]) => sum(list.map((i) => ideaCommitted(i, fy)))
   const committedHard = sum(active.filter(isHard).map((i) => ideaCommitted(i, fy)))
 
-  const ownerOptions = useMemo(() => users.filter((u) => u.active && (u.roles.includes('buyer') || u.roles.includes('lead'))), [users])
+  // owner filter: everyone who owns an execution here (department execution owners, Sourcing buyers, reassigned owners)
+  const ownerOptions = useMemo(() => { const ids = new Set(hub.map((i) => i.execution?.ownerId).filter(Boolean)); return users.filter((u) => ids.has(u.id)).sort((a, b) => a.name.localeCompare(b.name)) }, [users, hub])
   const awaiting = useMemo(() => hub.filter((i) => i.stage === STAGE.verification && !i.verification?.verifiedAt), [hub])
   const verified = useMemo(() => hub.filter((i) => !!i.verification?.verifiedAt), [hub])
   const list = useMemo(() => {
@@ -104,8 +105,9 @@ export default function ExecutionHub() {
   }, [ledger, hubIds, fy])
 
   const canExec = can(me, 'execute')
-  const canReassign = hasRole(me, 'lead', 'head')
-  const editable = (i: Idea) => canExec && i.execution?.status === 'In Execution' && (hasRole(me, 'lead', 'head') || !!me?.commodities.includes(i.commodity) || i.execution?.ownerId === me?.id)
+  // rights come from the department ladder: the execution owner edits, the department head reassigns, Sourcing Head / Admin override
+  const canReassignIdea = (i: Idea) => execRights(me, i).canReassign
+  const editable = (i: Idea) => i.execution?.status === 'In Execution' && execRights(me, i).editable
   const byId = (id?: string) => ideas.find((i) => i.id === id) ?? null
   const mIdea = byId(modal?.id)
   const pIdea = byId(pop?.id)
@@ -260,9 +262,9 @@ export default function ExecutionHub() {
                             </td>
                             <td className="max-[1700px]:hidden"><Tooltip content={commodity?.name ?? i.commodity}><span className="inline-flex items-center h-[22px] px-2 rounded-md bg-slate-100 text-[11.5px] font-bold text-ink-2">{i.commodity}</span></Tooltip></td>
                             <td>
-                              {canReassign && ed ? (
+                              {canReassignIdea(i) && ed ? (
                                 <select className="h-8 max-w-[170px] rounded-lg border border-line bg-white px-2 text-[12.5px] font-medium hover:border-slate-300 focus:outline-none focus:border-brand-400" value={ex.ownerId} onChange={(e) => setModal({ kind: 'reassign', id: i.id, to: e.target.value })}>
-                                  {ownerOptions.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                  {ownerCandidates(i, users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                                 </select>
                               ) : <UserChip userId={ex.ownerId} />}
                             </td>
@@ -370,7 +372,7 @@ export default function ExecutionHub() {
             <MenuItem icon="StickyNote" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'note', id: pIdea.id }) }}>Add milestone note</MenuItem>
             <MenuItem icon="PackageCheck" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'done', id: pIdea.id }) }}>Hand over for verification</MenuItem>
             {ideaPerms(me, pIdea).verify && <MenuItem icon="ShieldCheck" onClick={() => { setPop(null); setModal({ kind: 'verify', id: pIdea.id }) }}>Verify savings</MenuItem>}
-            <MenuItem icon="UserRoundCog" disabled={!editable(pIdea) || !canReassign} hint={!canReassign ? 'Reassignable by Commodity Lead' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassign && <span className="text-[10.5px] text-muted ml-1">(Lead)</span>}</MenuItem>
+            <MenuItem icon="UserRoundCog" disabled={!canReassignIdea(pIdea)} hint={!canReassignIdea(pIdea) ? 'Reassignable by the department head' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassignIdea(pIdea) && <span className="text-[10.5px] text-muted ml-1">(Dept head)</span>}</MenuItem>
             <div className="h-px bg-line my-1" />
             <MenuItem icon="Ban" danger disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'drop', id: pIdea.id }) }}>Drop</MenuItem>
             <div className="h-px bg-line my-1" />
@@ -387,7 +389,7 @@ export default function ExecutionHub() {
       {mIdea && <VerificationModal idea={mIdea} open={modal?.kind === 'verify'} onClose={() => setModal(null)} />}
       <TargetDateModal idea={mIdea} newDate={modal?.date ?? ''} open={modal?.kind === 'target'} fy={fy} onClose={() => setModal(null)} />
       <ReassignModal open={modal?.kind === 'reassign'} onClose={() => setModal(null)} title={`Reassign ${mIdea?.id ?? ''}`} subtitle="Idea owner — Commodity Buyer by default; reassignable by Commodity Lead"
-        candidates={ownerOptions} currentId={mIdea?.execution?.ownerId} defaultTo={modal?.to}
+        candidates={mIdea ? ownerCandidates(mIdea, users) : []} currentId={mIdea?.execution?.ownerId} defaultTo={modal?.to}
         onConfirm={(uid, r) => { if (!mIdea) return; const undo = snapshot([mIdea.id]); useStore.getState().reassign(mIdea.id, uid, r); toast(`${mIdea.id} reassigned to ${users.find((u) => u.id === uid)?.name}`, 'info', undo) }} />
     </div>
   )

@@ -5,7 +5,7 @@ import { useStore } from '../../store/useStore'
 import { Button, Field, Icon, Modal, Money, Segmented, SourceTag, Avatar, cn } from '../../components/ui'
 import { ideaAnnualised, ideaCommitted, partAnnualised } from '../../lib/calc'
 import { inrPrice, inrShort, monthLong, num, sum, todayIso } from '../../lib/format'
-import { withUndo, BASELINE_TAG, VOLUME_TAG } from './model'
+import { withUndo, BASELINE_TAG, VOLUME_TAG, ownerCandidates } from './model'
 
 const t = () => useStore.getState().toast
 
@@ -120,8 +120,10 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
 export function ReassignModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const users = useStore((s) => s.users)
   const reassign = useStore((s) => s.reassign)
-  const current = idea.ownerId ?? idea.buyerId
-  const candidates = useMemo(() => users.filter((u) => u.active && u.id !== current && ((u.roles.some((r) => r === 'buyer' || r === 'lead') && u.commodities.includes(idea.commodity)) || u.roles.includes('head'))), [users, current, idea.commodity])
+  const current = idea.bucket === 'Pipeline' ? idea.buyerId : idea.ownerId ?? idea.buyerId
+  const candidates = useMemo(() => (idea.bucket === 'Pipeline'
+    ? users.filter((u) => u.active && u.roles.includes('buyer') && u.commodities.includes(idea.commodity))
+    : ownerCandidates(idea, users)).filter((u) => u.id !== current), [users, idea, current])
   const [to, setTo] = useState('')
   const [remarks, setRemarks] = useState('')
   useEffect(() => { if (open) { setTo(''); setRemarks('') } }, [open])

@@ -235,6 +235,16 @@ export function milestoneSchedule(execStart: string, savingsStart: string, end: 
   })
 }
 
+/** Stages 2–4 for an idea from `dept`, with the person at each — shown on Submit Idea */
+export function approvalRoute(dept: string, commodity: string, users: User[], submitterId?: string): { label: string; userId?: string }[] {
+  const l = ladderOf(dept, commodity, users)
+  return [
+    { label: 'Team feasibility check', userId: l.teamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead },
+    { label: `${dept} evaluation`, userId: l.deptLead },
+    { label: `${dept} approval`, userId: l.deptHead },
+  ]
+}
+
 /** The demo account for a ladder role in a department (login picker and persona switcher) */
 export function personaFor(dept: string, role: 'submitter' | 'teamlead' | 'deptlead' | 'depthead' | 'execowner', users: User[]): string | undefined {
   if (role === 'submitter') return users.find((u) => u.active !== false && u.department === dept && u.roles.length === 1 && u.roles[0] === 'submitter')?.id

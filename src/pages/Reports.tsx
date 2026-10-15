@@ -1,5 +1,6 @@
 // MIS by workspace: in CO the report library, KPI library, monthly mailer and scheduled emails cover execution and realisation;
 // in IN they cover ideas, the pipeline and the network. With no workspace chosen MIS shows both (CO first). /reports/:key renders a report.
+import { canOpenReports } from '../lib/nav'
 import React, { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { PageHeader, Tabs, Button, Badge, EmptyState, SkeletonGrid, useWarmup, Icon, cn } from '../components/ui'
@@ -22,7 +23,6 @@ const VIEWS: Record<string, React.ComponentType<any>> = {
   home: HomeReport, bridge: BridgeReport, commodity: CommodityReport, buyer: BuyerReport, supplier: SupplierReport, lever: LeverReport,
   execution: ExecutionReport, drops: DropsReport, ageing: AgeingReport, campaign: CampaignReport, leakage: LeakageReport, closure: ClosureReport,
 }
-const REPORT_ROLES = ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin'] as const
 
 function useFilterText() {
   const filters = useStore((s) => s.filters)
@@ -44,7 +44,7 @@ export function SpaceChip({ space, className }: { space: Space; className?: stri
 export default function Reports() {
   const { key } = useParams()
   const me = useMe()
-  if (!hasRole(me, ...REPORT_ROLES)) {
+  if (!canOpenReports(me)) {
     return <div className="card rounded-2xl"><EmptyState icon="Lock" title="MIS is not part of your role" desc="MIS is available to Buyers, Commodity Leads, the Sourcing Head, Finance, Management and Admin. Your home page shows your own ideas." /></div>
   }
   return key ? <ReportDetail rkey={key} /> : <ReportsHome />

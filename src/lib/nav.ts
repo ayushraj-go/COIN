@@ -42,6 +42,8 @@ export const NAV: NavItem[] = [
   // pinned at the bottom in every workspace (Scope & Methodology sits at the top under Overview)
   { key: 'reports', label: 'MIS', path: '/reports', icon: 'ChartColumnBig', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', 'deptlead', 'depthead'], module: 'M10', section: 'Pinned', pinned: true },
 ]
+/** MIS opens for exactly the roles the sidebar shows it to */
+export const canOpenReports = (u: User | null | undefined) => !!u && (NAV.find((n) => n.key === 'reports')?.roles ?? []).some((r) => u.roles.includes(r))
 export const navFor = (u: User | null) => (u ? NAV.filter((n) => n.roles.some((r) => u.roles.includes(r))) : [])
 /** Items for a workspace. Before a workspace is chosen only Home (the CO / IN chooser) plus the pinned items are offered */
 export const navForSpace = (u: User | null, space: Space | null) => {
