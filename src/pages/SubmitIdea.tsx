@@ -29,8 +29,8 @@ function L({ n, children }: { n: number; children: React.ReactNode }) {
     </span>
   )
 }
-const Auto = ({ children = 'Auto' }: { children?: React.ReactNode }) => <SourceTag color="#0284c7">{children}</SourceTag>
-const Calc = () => <SourceTag color="#7c3aed">Calculated · live</SourceTag>
+const Auto = ({ children = 'Auto' }: { children?: React.ReactNode }) => <SourceTag color="var(--color-sky-600)">{children}</SourceTag>
+const Calc = () => <SourceTag color="var(--color-violet-600)">Calculated · live</SourceTag>
 
 /** Field wrapper that marks itself for "scroll to first error" */
 function FX(props: React.ComponentProps<typeof Field>) {
@@ -450,7 +450,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                 <div className="text-[13px] font-semibold text-ink truncate">Submitting for {init.fromCampaign.name}</div>
                 <div className="text-[11.5px] text-muted">{init.fromCampaign.type} · {init.fromCampaign.id} · campaign and commodity were set from the campaign link</div>
               </div>
-              <span className="hidden sm:inline-flex"><Badge color="#ec8a1c" icon="Link2">Campaign pre-fill</Badge></span>
+              <span className="hidden sm:inline-flex"><Badge color="var(--color-orange-400)" icon="Link2">Campaign pre-fill</Badge></span>
             </motion.div>
           )}
 
@@ -531,7 +531,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
               <AnimatePresence initial={false}>
                 {lever && leverStyle && (
                   <motion.div key="route" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="col-span-12 overflow-hidden">
-                    <div className="rounded-lg border px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2" style={{ background: leverStyle.soft, borderColor: `${leverStyle.color}33` }}>
+                    <div className="rounded-lg border px-3 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2" style={{ background: leverStyle.soft, borderColor: `color-mix(in srgb, ${leverStyle.color} 20%, transparent)` }}>
                       <span className="flex items-center gap-2 text-[12px] font-semibold shrink-0" style={{ color: leverStyle.text }}>
                         <Icon name="Route" size={14} />Route the idea will take
                       </span>
@@ -601,7 +601,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           {/* ─── C. Parts ───────────────────────────────────────────────────── */}
           <FormSection letter="C" title="Parts" subtitle="Fields 14–17 · part master fills description, UoM and supplier in place" icon="Boxes"
             open={openSet.has('C')} onToggle={() => toggleSection('C')} summary={summaries.C} state={sectionStates.C}
-            extra={!isOpen ? <span className="text-[11.5px] text-muted num">{form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span> : <Badge color="#64748b">Open idea</Badge>}>
+            extra={!isOpen ? <span className="text-[11.5px] text-muted num">{form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span> : <Badge color="var(--color-slate-500)">Open idea</Badge>}>
             {isOpen ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-3 flex flex-wrap items-center gap-3">
                 <Icon name="Info" size={16} className="text-sky-600" />
@@ -618,7 +618,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                       : <span>Supplier idea — choose the supplier in step A. Part codes are optional.</span>}
                   </div>
                 )}
-                <FX label={<L n={14}>Part code(s)</L>} required={form.scope === 'Part-specific'} error={err('parts')} tag={<SourceTag color="#64748b">{isSupplierScope ? 'Optional · multi-select search' : 'Multi-select search'}</SourceTag>}>
+                <FX label={<L n={14}>Part code(s)</L>} required={form.scope === 'Part-specific'} error={err('parts')} tag={<SourceTag color="var(--color-slate-500)">{isSupplierScope ? 'Optional · multi-select search' : 'Multi-select search'}</SourceTag>}>
                   <PartSearch parts={partPool} commodity={form.commodity} selected={form.parts.map((p) => p.partCode)} onPick={addPart}
                     restrictNote={isSupplier ? 'Showing parts you supply to Amber' : scopeSupplier ? `Showing parts supplied by ${scopeSupplier.name}` : undefined} />
                 </FX>
@@ -636,8 +636,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                           className="grid grid-cols-[1fr_32px] md:grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-x-3 gap-y-1 px-3 py-2 items-center border-b border-slate-100 last:border-0">
                           <span className="flex items-center gap-1.5 min-w-0">
                             <span className="font-mono text-[12.5px] font-semibold text-ink">{p.partCode}</span>
-                            {form.commodity && p.commodity !== form.commodity && <Tooltip content="This part belongs to a different commodity than the one selected"><SourceTag color="#ec8a1c">{p.commodity}</SourceTag></Tooltip>}
-                            {scopeSupplier && p.supplierCode !== scopeSupplier.code && <Tooltip content="This part is bought from a different supplier than the one this idea is for"><SourceTag color="#ec8a1c">Other supplier</SourceTag></Tooltip>}
+                            {form.commodity && p.commodity !== form.commodity && <Tooltip content="This part belongs to a different commodity than the one selected"><SourceTag color="var(--color-orange-400)">{p.commodity}</SourceTag></Tooltip>}
+                            {scopeSupplier && p.supplierCode !== scopeSupplier.code && <Tooltip content="This part is bought from a different supplier than the one this idea is for"><SourceTag color="var(--color-orange-400)">Other supplier</SourceTag></Tooltip>}
                           </span>
                           <button type="button" onClick={() => removePart(p.partCode)} className="md:hidden justify-self-end h-7 w-7 rounded-md grid place-items-center text-slate-400 hover:text-red-600 hover:bg-red-50"><Icon name="X" size={14} /></button>
                           <span className="min-w-0 col-span-2 md:col-span-1">
@@ -699,7 +699,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                               {bo && <button type="button" title="Restore auto-filled baseline" onClick={() => setPart(p.partCode, { baselinePrice: String(p.autoBaseline), baselineOverrideReason: '' })} className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded text-amber-600 hover:bg-amber-100"><Icon name="RotateCcw" size={12} /></button>}
                             </div>
                             <div className="mt-1 flex items-center gap-1.5">
-                              {bo ? <SourceTag color="#ec8a1c">Override · auto {inrPrice(p.autoBaseline)}</SourceTag> : <SourceTag>{p.autoBaselineSource === 'LBP' ? 'from LBP' : 'from PO price'}</SourceTag>}
+                              {bo ? <SourceTag color="var(--color-orange-400)">Override · auto {inrPrice(p.autoBaseline)}</SourceTag> : <SourceTag>{p.autoBaselineSource === 'LBP' ? 'from LBP' : 'from PO price'}</SourceTag>}
                             </div>
                             {err(`base:${p.partCode}`) && <div className="text-[11.5px] text-red-600 mt-1">{err(`base:${p.partCode}`)}</div>}
                           </div>
@@ -718,7 +718,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-muted">{p.uom}</span>
                             </div>
                             <div className="mt-1 flex items-center gap-1.5">
-                              {vo ? <SourceTag color="#ec8a1c">Override · MRN {num(p.autoVolume)}</SourceTag> : p.autoVolume > 0 ? <SourceTag>from MRN {lastFy}</SourceTag> : <SourceTag color="#ec8a1c">Forecast · flagged</SourceTag>}
+                              {vo ? <SourceTag color="var(--color-orange-400)">Override · MRN {num(p.autoVolume)}</SourceTag> : p.autoVolume > 0 ? <SourceTag>from MRN {lastFy}</SourceTag> : <SourceTag color="var(--color-orange-400)">Forecast · flagged</SourceTag>}
                               {vo && <button type="button" onClick={() => setPart(p.partCode, { annualVolume: String(p.autoVolume), volumeOverrideReason: '' })} className="text-[11px] font-semibold text-amber-700 hover:underline">Restore</button>}
                             </div>
                             {err(`vol:${p.partCode}`) && <div className="text-[11.5px] text-red-600 mt-1">{err(`vol:${p.partCode}`)}</div>}
@@ -772,7 +772,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
             )}
             <div className="grid grid-cols-12 gap-3">
               {estimate && (
-                <FX className="col-span-12 md:col-span-6" label={<L n={24}>{isOpen ? 'Estimate for open ideas' : 'Estimate for this supplier idea'}</L>} required error={err('openEstimate')} tag={<SourceTag color="#ec8a1c">Estimate</SourceTag>}
+                <FX className="col-span-12 md:col-span-6" label={<L n={24}>{isOpen ? 'Estimate for open ideas' : 'Estimate for this supplier idea'}</L>} required error={err('openEstimate')} tag={<SourceTag color="var(--color-orange-400)">Estimate</SourceTag>}
                   hint={hasText(form.openEstimateLakh) ? `Rough annual impact ${inrShort(toNum(form.openEstimateLakh) * LAKH)}` : 'Rough annual impact in ₹ lakh'}>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted">₹</span>
@@ -815,7 +815,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           <div className="card overflow-hidden flex flex-col lg:max-h-[calc(100vh-5.5rem)]">
             <SavingsHero c={calc} singleUnit={singleUnit} />
             <div className="flex-1 min-h-0 overflow-hidden">{panelBody}</div>
-            <div className="shrink-0 px-4 py-3 bg-[#f9fafb] border-t border-line space-y-1.5">
+            <div className="shrink-0 px-4 py-3 bg-[var(--color-gray-50)] border-t border-line space-y-1.5">
               <Button variant="primary" size="lg" icon="Send" className="w-full" onClick={submit}>Submit for validation</Button>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
                 <span className="font-mono">{idPreview ?? 'COIN-FY27-···-····'}</span>
@@ -878,7 +878,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
 function PageHeader2({ draftId, draftStatus, onCancel, onSave, allOpen, onToggleAll }: { draftId: string | null; draftStatus: React.ReactNode; onCancel: () => void; onSave: () => void; allOpen: boolean; onToggleAll: () => void }) {
   return (
     <PageHeader icon="CirclePlus" title="Submit Idea" fit
-      badge={draftId ? <Badge color="#64748b" icon="FileClock">{draftId}</Badge> : <Badge color="#2f4a9a" dot>New idea</Badge>}
+      badge={draftId ? <Badge color="var(--color-slate-500)" icon="FileClock">{draftId}</Badge> : <Badge color="var(--color-brand-500)" dot>New idea</Badge>}
       subtitle="Fill the steps in order — each one folds away when complete — while the savings summary on the right recalculates as you type"
       actions={<>
         <span className="hidden sm:inline-flex mr-1">{draftStatus}</span>

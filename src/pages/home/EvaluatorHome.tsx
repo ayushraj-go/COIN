@@ -46,11 +46,11 @@ export default function EvaluatorHome() {
         <RevealGrid className="h-full grid grid-cols-12 gap-3 xl:grid-rows-[auto_minmax(0,1fr)]">
           <Reveal className="col-span-12">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-              <MiniStat label="Awaiting evaluation" icon="FlaskConical" color="#223c86" value={awaiting.length} sub={<>{inrShort(sum(awaiting.map((a) => ideaAnnualised(a.i))))} annualised at stake</>} />
-              <MiniStat label="Beyond SLA" icon="Siren" color={breached ? '#e0364f' : '#0f9f6e'} value={breached} sub={rule ? `SLA ${rule.slaDays} working days · escalation day ${rule.escalateDay}` : 'Stage SLA'} />
-              <MiniStat label="Evaluated by me" icon="ClipboardCheck" color="#0d9488" value={evaluated.length} sub={`${evaluated.filter((i) => i.evaluation!.decision === 'Recommend').length} recommended · ${evaluated.filter((i) => i.evaluation!.decision === 'Reject').length} rejected`} />
-              <MiniStat label="Go rate" icon="CircleCheckBig" color="#0f9f6e" value={evaluated.length ? pct(goRate, 0) : '—'} sub="Go ÷ evaluated" />
-              <MiniStat label="Avg turnaround" icon="Timer" color="#ec8a1c" value={turnaround ? `${turnaround.toFixed(1)} d` : '—'} sub="Working days, stage entry → decision" tip={<InfoTip title="C3 · Stage bottleneck" formula="Avg days per stage (R&D, NPD sample, PAP)">Measured on your decisions.</InfoTip>} />
+              <MiniStat label="Awaiting evaluation" icon="FlaskConical" color="var(--color-brand-600)" value={awaiting.length} sub={<>{inrShort(sum(awaiting.map((a) => ideaAnnualised(a.i))))} annualised at stake</>} />
+              <MiniStat label="Beyond SLA" icon="Siren" color={breached ? 'var(--color-rose-600)' : 'var(--color-emerald-600)'} value={breached} sub={rule ? `SLA ${rule.slaDays} working days · escalation day ${rule.escalateDay}` : 'Stage SLA'} />
+              <MiniStat label="Evaluated by me" icon="ClipboardCheck" color="var(--color-teal-600)" value={evaluated.length} sub={`${evaluated.filter((i) => i.evaluation!.decision === 'Recommend').length} recommended · ${evaluated.filter((i) => i.evaluation!.decision === 'Reject').length} rejected`} />
+              <MiniStat label="Go rate" icon="CircleCheckBig" color="var(--color-emerald-600)" value={evaluated.length ? pct(goRate, 0) : '—'} sub="Go ÷ evaluated" />
+              <MiniStat label="Avg turnaround" icon="Timer" color="var(--color-orange-400)" value={turnaround ? `${turnaround.toFixed(1)} d` : '—'} sub="Working days, stage entry → decision" tip={<InfoTip title="C3 · Stage bottleneck" formula="Avg days per stage (R&D, NPD sample, PAP)">Measured on your decisions.</InfoTip>} />
             </div>
           </Reveal>
 
@@ -59,7 +59,7 @@ export default function EvaluatorHome() {
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Inbox"
               title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting {me.department} evaluation<InfoTip title="Evaluation">Cost-benefit analysis, risk assessment and supplier capability check, then recommend, reject or send back to the Team feasibility check. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
               subtitle="Sorted by SLA urgency · click to review in the side panel"
-              actions={awaiting.length ? <Badge color={breached ? '#e0364f' : '#2f4a9a'} dot>{awaiting.length}</Badge> : undefined}>
+              actions={awaiting.length ? <Badge color={breached ? 'var(--color-rose-600)' : 'var(--color-brand-500)'} dot>{awaiting.length}</Badge> : undefined}>
               <div ref={awRef} className="flex-1 min-h-0 overflow-hidden">
                 {awaiting.length ? awaiting.slice(0, awRows).map(({ i, sla }) => {
                   const lever = levers.find((l) => l.id === i.leverId)
@@ -80,9 +80,9 @@ export default function EvaluatorHome() {
               <div className="shrink-0 mt-2 pt-3 border-t border-line">
                 <div className="flex items-center justify-between gap-2 text-[10.5px] font-semibold uppercase tracking-wide text-muted"><span className="flex items-center gap-1 shrink-0"><Icon name="Timer" size={12} />Evaluation SLA</span><span className="normal-case font-medium truncate">{rule ? `${rule.slaDays} working days · reminder day ${rule.reminderDay} · ${rule.escalateTo} on day ${rule.escalateDay}` : ''}</span></div>
                 <div className="grid grid-cols-4 gap-2 mt-2">
-                  {([['ok', 'Within SLA', '#0f9f6e'], ['due', 'Reminder due', '#ec8a1c'], ['breach', 'Breached', '#e0364f'], ['escalated', 'Escalated', '#a3143a']] as const).map(([k, l, c]) => {
+                  {([['ok', 'Within SLA', 'var(--color-emerald-600)'], ['due', 'Reminder due', 'var(--color-orange-400)'], ['breach', 'Breached', 'var(--color-rose-600)'], ['escalated', 'Escalated', 'var(--color-rose-800)']] as const).map(([k, l, c]) => {
                     const n = awaiting.filter((a) => a.sla.state === k).length
-                    return <div key={k} className="rounded-lg border border-line bg-slate-50/60 px-2.5 py-1.5"><div className="text-[17px] font-bold num leading-none" style={{ color: n ? c : '#cbd5e1' }}>{n}</div><div className="text-[10.5px] text-muted mt-1 truncate">{l}</div></div>
+                    return <div key={k} className="rounded-lg border border-line bg-slate-50/60 px-2.5 py-1.5"><div className="text-[17px] font-bold num leading-none" style={{ color: n ? c : 'var(--color-slate-300)' }}>{n}</div><div className="text-[10.5px] text-muted mt-1 truncate">{l}</div></div>
                   })}
                 </div>
               </div>
@@ -95,7 +95,7 @@ export default function EvaluatorHome() {
               <div ref={evRef} className="flex-1 min-h-0 overflow-hidden">
                 {evaluated.length ? evaluated.slice(0, evRows).map((i) => (
                   <button key={i.id} onClick={() => openIdea(i.id)} className="group w-full h-[50px] flex items-center gap-2.5 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
-                    <Badge color={i.evaluation!.decision === 'Recommend' ? '#0f9f6e' : '#e0364f'} icon={i.evaluation!.decision === 'Recommend' ? 'Check' : 'X'}>{i.evaluation!.decision === 'Recommend' ? 'Recommended' : 'Rejected'}</Badge>
+                    <Badge color={i.evaluation!.decision === 'Recommend' ? 'var(--color-emerald-600)' : 'var(--color-rose-600)'} icon={i.evaluation!.decision === 'Recommend' ? 'Check' : 'X'}>{i.evaluation!.decision === 'Recommend' ? 'Recommended' : 'Rejected'}</Badge>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{i.title}</span>
                       <span className="flex items-center gap-2 mt-0.5 min-w-0"><StageTrackerMini idea={i} className="shrink-0" /><span className="text-[11px] text-muted truncate">{stageLabel(i, i.stage)} · {fmtDate(i.evaluation!.at?.slice(0, 10))}</span></span>
@@ -128,7 +128,7 @@ export default function EvaluatorHome() {
                       const l = mine.filter((i) => i.bucket === b)
                       const st = BUCKET_STYLE[b]
                       return (
-                        <button key={b} onClick={() => drill({ bucket: b }, '/my-ideas', false)} className="rounded-xl border px-2.5 py-1.5 text-left hover:-translate-y-0.5 transition-all min-w-0" style={{ borderColor: `${st.color}33`, background: st.soft }}>
+                        <button key={b} onClick={() => drill({ bucket: b }, '/my-ideas', false)} className="rounded-xl border px-2.5 py-1.5 text-left hover:-translate-y-0.5 transition-all min-w-0" style={{ borderColor: `color-mix(in srgb, ${st.color} 20%, transparent)`, background: st.soft }}>
                           <div className="text-[10px] font-semibold uppercase tracking-wide truncate" style={{ color: st.text }}>{b}</div>
                           <div className="flex items-baseline justify-between gap-1"><span className="text-[17px] font-bold text-ink num leading-tight">{l.length}</span><span className="text-[10.5px] text-muted num truncate">{inrShort(sum(l.map((x) => ideaAnnualised(x))))}</span></div>
                         </button>

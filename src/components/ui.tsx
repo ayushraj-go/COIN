@@ -48,7 +48,7 @@ export function Card({ title, subtitle, actions, children, className, bodyClass,
   title?: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; children?: React.ReactNode; className?: string; bodyClass?: string; pad?: boolean; icon?: string; onClick?: () => void; style?: React.CSSProperties
 }) {
   return (
-    <section className={cn('card flex flex-col min-w-0', onClick && 'cursor-pointer hover:border-[#d0d5dd] transition-colors', className)} onClick={onClick} style={style}>
+    <section className={cn('card flex flex-col min-w-0', onClick && 'cursor-pointer hover:border-[var(--color-gray-300)] transition-colors', className)} onClick={onClick} style={style}>
       {(title || actions) && (
         <header className="flex items-center justify-between gap-2 px-5 pt-4 pb-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -78,7 +78,7 @@ export function SpotlightCard({ children, className, color = 'rgb(27 49 111 / .1
         ref.current!.style.setProperty('--mx', `${e.clientX - r.left}px`)
         ref.current!.style.setProperty('--my', `${e.clientY - r.top}px`)
       }}
-      className={cn('group relative overflow-hidden card transition-colors duration-200 hover:border-[#d0d5dd]', onClick && 'cursor-pointer', className)}
+      className={cn('group relative overflow-hidden card transition-colors duration-200 hover:border-[var(--color-gray-300)]', onClick && 'cursor-pointer', className)}
     >
       
       <div className="relative">{children}</div>
@@ -90,7 +90,7 @@ export function SpotlightCard({ children, className, color = 'rgb(27 49 111 / .1
 export function BorderBeam({ className }: { className?: string }) {
   return (
     <div className={cn('pointer-events-none absolute inset-0 rounded-[inherit] [mask:linear-gradient(#000,#000)_content-box,linear-gradient(#000,#000)] [mask-composite:exclude] p-px', className)}>
-      <div className="absolute -inset-[100%] animate-[spin_6s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 290deg, #a6b3ff 320deg, #2f4a9a 340deg, #e35a67 355deg, transparent 360deg)' }} />
+      <div className="absolute -inset-[100%] animate-[spin_6s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 290deg, var(--color-brand-300) 320deg, var(--color-brand-500) 340deg, var(--color-accent-400) 355deg, transparent 360deg)' }} />
     </div>
   )
 }
@@ -100,12 +100,12 @@ type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'ou
 export function Button({ variant = 'secondary', size = 'md', icon, iconRight, children, className, loading, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: 'xs' | 'sm' | 'md' | 'lg'; icon?: string; iconRight?: string; loading?: boolean }) {
   const v: Record<BtnVariant, string> = {
     primary: 'bg-brand-grad text-white hover:brightness-110 shadow-[0_6px_16px_-8px_rgb(36_89_224/.75)] border border-brand-700/30',
-    secondary: 'bg-white text-ink-2 border border-[#d0d5dd] hover:bg-[#f9fafb] hover:text-ink shadow-[0_1px_2px_rgb(16_24_40/.05)]',
-    ghost: 'text-ink-2 hover:bg-[#f2f4f7] hover:text-ink border border-transparent',
-    danger: 'bg-white text-[#d02a45] border border-[#f6c9d1] hover:bg-[#fff1f3] hover:border-[#efa9b6]',
+    secondary: 'bg-white text-ink-2 border border-[var(--color-gray-300)] hover:bg-[var(--color-gray-50)] hover:text-ink shadow-[0_1px_2px_rgb(16_24_40/.05)]',
+    ghost: 'text-ink-2 hover:bg-[var(--color-gray-100)] hover:text-ink border border-transparent',
+    danger: 'bg-white text-[var(--color-accent-500)] border border-[var(--color-red-200)] hover:bg-[var(--color-rose-50)] hover:border-[var(--color-rose-300)]',
     success: 'bg-gradient-to-br from-accent-400 to-accent-600 text-white hover:brightness-110 border border-accent-600/30 shadow-[0_6px_16px_-8px_rgb(11_138_119/.7)]',
     outline: 'bg-transparent text-brand-700 border border-brand-200 hover:bg-brand-50',
-    dark: 'bg-[#101828] text-white hover:bg-[#1d2939] border border-[#101828] shadow-[0_1px_2px_rgb(16_24_40/.08)]',
+    dark: 'bg-[var(--color-gray-900)] text-white hover:bg-[var(--color-slate-800)] border border-[var(--color-gray-900)] shadow-[0_1px_2px_rgb(16_24_40/.08)]',
   }
   const s = { xs: 'h-7 px-2 text-[12px] gap-1 rounded-md', sm: 'h-8 px-2.5 text-[12.5px] gap-1.5 rounded-lg', md: 'h-9 px-3.5 text-[13px] gap-1.5 rounded-lg', lg: 'h-10 px-4 text-[13.5px] gap-2 rounded-lg' }[size]
   return (
@@ -118,17 +118,17 @@ export function Button({ variant = 'secondary', size = 'md', icon, iconRight, ch
 }
 export function IconButton({ icon, title, onClick, className, active, badge }: { icon: string; title?: string; onClick?: (e: React.MouseEvent) => void; className?: string; active?: boolean; badge?: number }) {
   return (
-    <button title={title} onClick={onClick} className={cn('relative h-8 w-8 grid place-items-center rounded-lg text-muted hover:bg-[#f2f4f7] hover:text-ink transition focus-ring', active && 'bg-[#f2f4f7] text-ink', className)}>
+    <button title={title} onClick={onClick} className={cn('relative h-8 w-8 grid place-items-center rounded-lg text-muted hover:bg-[var(--color-gray-100)] hover:text-ink transition focus-ring', active && 'bg-[var(--color-gray-100)] text-ink', className)}>
       <Icon name={icon} size={16} />
-      {!!badge && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#e0364f] text-white text-[10px] font-bold grid place-items-center ring-2 ring-white">{badge > 99 ? '99+' : badge}</span>}
+      {!!badge && <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[var(--color-rose-600)] text-white text-[10px] font-bold grid place-items-center ring-2 ring-white">{badge > 99 ? '99+' : badge}</span>}
     </button>
   )
 }
 
 // ─── Badges & chips ───────────────────────────────────────────────────────────
-export function Badge({ children, color = '#64748b', soft, className, dot, icon }: { children: React.ReactNode; color?: string; soft?: string; className?: string; dot?: boolean; icon?: string }) {
+export function Badge({ children, color = 'var(--color-slate-500)', soft, className, dot, icon }: { children: React.ReactNode; color?: string; soft?: string; className?: string; dot?: boolean; icon?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 h-[22px] px-2 rounded-full text-[11.5px] font-medium whitespace-nowrap border', className)} style={{ color, background: soft ?? `${color}12`, borderColor: `${color}24` }}>
+    <span className={cn('inline-flex items-center gap-1 h-[22px] px-2 rounded-full text-[11.5px] font-medium whitespace-nowrap border', className)} style={{ color, background: soft ?? `color-mix(in srgb, ${color} 7%, transparent)`, borderColor: `color-mix(in srgb, ${color} 14%, transparent)` }}>
       {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />}
       {icon && <Icon name={icon} size={12} />}
       {children}
@@ -155,24 +155,28 @@ export function LeverChip({ leverId, compact }: { leverId: string; compact?: boo
   )
 }
 export function SavingsTypeBadge({ type }: { type: string }) {
-  const c = type === 'Hard' ? '#0f9f6e' : type === 'Cost avoidance' ? '#0284c7' : '#7c3aed'
+  const c = type === 'Hard' ? 'var(--color-emerald-600)' : type === 'Cost avoidance' ? 'var(--color-sky-600)' : 'var(--color-violet-600)'
   return <Badge color={c}>{type}</Badge>
 }
 export function SlaPill({ state, left, working }: { state: string; left: number; working: number }) {
   if (state === 'none') return <span className="text-[11.5px] text-muted">—</span>
-  const map: Record<string, [string, string]> = { ok: ['#0f9f6e', `${left}d left`], due: ['#ec8a1c', `${left}d left`], breach: ['#e0364f', `${-left}d over`], escalated: ['#a3143a', `Escalated · ${-left}d`] }
-  const [c, l] = map[state] ?? ['#64748b', '']
+  const map: Record<string, [string, string]> = { ok: ['var(--color-emerald-600)', `${left}d left`], due: ['var(--color-orange-400)', `${left}d left`], breach: ['var(--color-rose-600)', `${-left}d over`], escalated: ['var(--color-rose-800)', `Escalated · ${-left}d`] }
+  const [c, l] = map[state] ?? ['var(--color-slate-500)', '']
   return <Badge color={c} icon={state === 'ok' ? 'Timer' : state === 'due' ? 'AlarmClock' : 'Siren'}>{l}</Badge>
 }
 export function AgeBadge({ days }: { days: number }) {
-  const c = days > 20 ? '#e0364f' : days > 10 ? '#ec8a1c' : '#64748b'
-  return <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 h-5 rounded" style={{ color: c, background: `${c}12` }}><Icons.Hourglass size={10} />{days}d</span>
+  const c = days > 20 ? 'var(--color-rose-600)' : days > 10 ? 'var(--color-orange-400)' : 'var(--color-slate-500)'
+  return <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 h-5 rounded" style={{ color: c, background: `color-mix(in srgb, ${c} 7%, transparent)` }}><Icons.Hourglass size={10} />{days}d</span>
 }
 
 // ─── Avatars ──────────────────────────────────────────────────────────────────
-export function Avatar({ name, color = '#223c86', size = 28, ring }: { name: string; color?: string; size?: number; ring?: boolean }) {
+// Avatar colours come from the active palette; stored hex colours (old user records) are ignored
+const AVATAR_TONES = ['brand-600', 'brand-800', 'accent-600', 'teal-600', 'sky-600', 'indigo-600', 'violet-600', 'slate-600']
+const avatarTone = (name: string) => `var(--color-${AVATAR_TONES[[...name].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % AVATAR_TONES.length]})`
+export function Avatar({ name, color, size = 28, ring }: { name: string; color?: string; size?: number; ring?: boolean }) {
+  if (!color || color.startsWith('#')) color = avatarTone(name)
   return (
-    <span className={cn('inline-grid place-items-center rounded-full font-bold text-white shrink-0 select-none', ring && 'ring-2 ring-white')} style={{ width: size, height: size, fontSize: size * 0.38, background: `linear-gradient(135deg, ${color}, ${color}cc)` }} title={name}>
+    <span className={cn('inline-grid place-items-center rounded-full font-bold text-white shrink-0 select-none', ring && 'ring-2 ring-white')} style={{ width: size, height: size, fontSize: size * 0.38, background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 80%, transparent))` }} title={name}>
       {initials(name)}
     </span>
   )
@@ -207,13 +211,13 @@ export function Tooltip({ content, children, side = 'top', className }: { conten
 export function InfoTip({ title, formula, children }: { title?: string; formula?: string; children?: React.ReactNode }) {
   return (
     <Tooltip content={<div>{title && <div className="font-semibold mb-0.5">{title}</div>}{formula && <div className="font-mono text-[10.5px] text-brand-700 bg-brand-50 rounded px-1.5 py-0.5 mt-0.5">{formula}</div>}{children && <div className="mt-1 text-muted">{children}</div>}</div>}>
-      <Icons.Info size={12.5} className="text-[#a3a9c2] hover:text-brand-600 cursor-help transition-colors" />
+      <Icons.Info size={12.5} className="text-[var(--color-slate-400)] hover:text-brand-600 cursor-help transition-colors" />
     </Tooltip>
   )
 }
 
 // ─── KPI cards with sparklines & count-up ─────────────────────────────────────
-export function Sparkline({ data, color = '#223c86', height = 28, width = 96, fill = true }: { data: number[]; color?: string; height?: number; width?: number; fill?: boolean }) {
+export function Sparkline({ data, color = 'var(--color-brand-600)', height = 28, width = 96, fill = true }: { data: number[]; color?: string; height?: number; width?: number; fill?: boolean }) {
   if (!data?.length) return null
   const max = Math.max(...data), min = Math.min(...data)
   const pts = data.map((v, i) => [(i / Math.max(1, data.length - 1)) * width, height - 2 - ((v - min) / (max - min || 1)) * (height - 4)])
@@ -245,15 +249,15 @@ export function Count({ value, className, suffix, digits = 0 }: { value: number;
   return <span className={cn('num', className)}><NumberFlow value={Number.isFinite(value) ? value : 0} format={{ minimumFractionDigits: digits, maximumFractionDigits: digits }} locales="en-IN" />{suffix}</span>
 }
 
-export function KpiCard({ label, value, money = true, suffix, digits, sub, delta, spark, color = '#223c86', icon, tip, formula, onClick, active, className }: {
+export function KpiCard({ label, value, money = true, suffix, digits, sub, delta, spark, color = 'var(--color-brand-600)', icon, tip, formula, onClick, active, className }: {
   label: string; value: number; money?: boolean; suffix?: string; digits?: number; sub?: React.ReactNode; delta?: number; spark?: number[]; color?: string; icon?: string; tip?: string; formula?: string; onClick?: () => void; active?: boolean; className?: string
 }) {
   return (
-    <SpotlightCard onClick={onClick} color={`${color}1c`} className={cn('p-4 min-w-0', active && 'ring-2 ring-offset-1', className)}>
+    <SpotlightCard onClick={onClick} color={`color-mix(in srgb, ${color} 11%, transparent)`} className={cn('p-4 min-w-0', active && 'ring-2 ring-offset-1', className)}>
       <div style={active ? ({ ['--tw-ring-color' as any]: color } as any) : undefined} />
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          {icon && <Icon name={icon} size={14} className="shrink-0 text-[#98a2b3]" />}
+          {icon && <Icon name={icon} size={14} className="shrink-0 text-[var(--color-slate-400)]" />}
           <span className="text-[12px] font-medium text-muted truncate">{label}</span>
           {(tip || formula) && <InfoTip title={label} formula={formula}>{tip}</InfoTip>}
         </div>
@@ -278,7 +282,7 @@ export function KpiCard({ label, value, money = true, suffix, digits, sub, delta
 }
 
 // ─── Gauge: FY target vs landing ──────────────────────────────────────────────
-export function Gauge({ value, max, marker, label, sub, size = 220, color = '#0f9f6e' }: { value: number; max: number; marker?: number; label?: React.ReactNode; sub?: React.ReactNode; size?: number; color?: string }) {
+export function Gauge({ value, max, marker, label, sub, size = 220, color = 'var(--color-emerald-600)' }: { value: number; max: number; marker?: number; label?: React.ReactNode; sub?: React.ReactNode; size?: number; color?: string }) {
   const r = size / 2 - 14, cx = size / 2, cy = size / 2
   const frac = Math.max(0, Math.min(1, value / (max || 1)))
   const arc = (f: number) => { const a = Math.PI * (1 - f); return [cx + r * Math.cos(a), cy - r * Math.sin(a)] }
@@ -291,11 +295,11 @@ export function Gauge({ value, max, marker, label, sub, size = 220, color = '#0f
     <div className="relative" style={{ width: size, height: size / 2 + 26 }}>
       <svg width={size} height={size / 2 + 12} className="overflow-visible">
         <defs>
-          <linearGradient id="gaugeG" x1="0" x2="1"><stop offset="0%" stopColor="#e0364f" /><stop offset="55%" stopColor="#ec8a1c" /><stop offset="100%" stopColor={color} /></linearGradient>
+          <linearGradient id="gaugeG" x1="0" x2="1"><stop offset="0%" stopColor="var(--color-rose-600)" /><stop offset="55%" stopColor="var(--color-orange-400)" /><stop offset="100%" stopColor={color} /></linearGradient>
         </defs>
-        <path d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`} fill="none" stroke="#eceef6" strokeWidth={16} strokeLinecap="round" />
+        <path d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`} fill="none" stroke="var(--color-brand-50)" strokeWidth={16} strokeLinecap="round" />
         <path d={`M${cx - r},${cy} A${r},${r} 0 0 1 ${cx + r},${cy}`} fill="none" stroke="url(#gaugeG)" strokeWidth={16} strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - frac * draw)} style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1)' }} />
-        {mk && <g><line x1={mk[0]} y1={mk[1]} x2={cx + (mk[0] - cx) * 0.78} y2={cy + (mk[1] - cy) * 0.78} stroke="#0f172a" strokeWidth={2.5} strokeLinecap="round" /></g>}
+        {mk && <g><line x1={mk[0]} y1={mk[1]} x2={cx + (mk[0] - cx) * 0.78} y2={cy + (mk[1] - cy) * 0.78} stroke="var(--color-slate-900)" strokeWidth={2.5} strokeLinecap="round" /></g>}
         <circle cx={ex} cy={ey} r={draw ? 6 : 0} fill="#fff" stroke={color} strokeWidth={3} style={{ transition: 'r .4s .9s' }} />
       </svg>
       <div className="absolute inset-x-0 text-center" style={{ top: size / 2 - 38 }}>
@@ -306,7 +310,7 @@ export function Gauge({ value, max, marker, label, sub, size = 220, color = '#0f
   )
 }
 
-export function ProgressBar({ value, color = '#223c86', height = 6, className, bg = '#eceef6' }: { value: number; color?: string; height?: number; className?: string; bg?: string }) {
+export function ProgressBar({ value, color = 'var(--color-brand-600)', height = 6, className, bg = 'var(--color-brand-50)' }: { value: number; color?: string; height?: number; className?: string; bg?: string }) {
   return (
     <div className={cn('w-full rounded-full overflow-hidden', className)} style={{ height, background: bg }}>
       <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(100, value))}%` }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full" style={{ background: color }} />
@@ -344,7 +348,7 @@ export function Segmented({ options, value, onChange, size = 'md' }: { options: 
 export function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label?: React.ReactNode; disabled?: boolean }) {
   return (
     <label className={cn('inline-flex items-center gap-2 select-none', disabled ? 'opacity-50' : 'cursor-pointer')}>
-      <button type="button" disabled={disabled} onClick={() => onChange(!checked)} className={cn('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-brand-600' : 'bg-[#d0d5dd]')}>
+      <button type="button" disabled={disabled} onClick={() => onChange(!checked)} className={cn('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-brand-600' : 'bg-[var(--color-gray-300)]')}>
         <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
       </button>
       {label && <span className="text-[13px] text-ink-2">{label}</span>}
@@ -353,7 +357,7 @@ export function Toggle({ checked, onChange, label, disabled }: { checked: boolea
 }
 export function Chip({ active, children, onClick, onRemove, color }: { active?: boolean; children: React.ReactNode; onClick?: () => void; onRemove?: () => void; color?: string }) {
   return (
-    <span onClick={onClick} className={cn('inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors select-none', active ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-white text-ink-2 border-line hover:bg-[#f9fafb]')} style={active && color ? { background: `${color}12`, borderColor: `${color}40`, color } : undefined}>
+    <span onClick={onClick} className={cn('inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors select-none', active ? 'bg-brand-50 text-brand-700 border-brand-200' : 'bg-white text-ink-2 border-line hover:bg-[var(--color-gray-50)]')} style={active && color ? { background: `color-mix(in srgb, ${color} 7%, transparent)`, borderColor: `color-mix(in srgb, ${color} 25%, transparent)`, color } : undefined}>
       {children}
       {onRemove && <Icons.X size={12} className="opacity-70 hover:opacity-100" onClick={(e) => { e.stopPropagation(); onRemove() }} />}
     </span>
@@ -370,8 +374,8 @@ export function Field({ label, required, hint, children, className, tag, error }
     </div>
   )
 }
-export function SourceTag({ children, color = '#961226' }: { children: React.ReactNode; color?: string }) {
-  return <span className="text-[10.5px] font-medium px-1.5 py-px rounded whitespace-nowrap" style={{ color, background: `${color}14` }}>{children}</span>
+export function SourceTag({ children, color = 'var(--color-accent-700)' }: { children: React.ReactNode; color?: string }) {
+  return <span className="text-[10.5px] font-medium px-1.5 py-px rounded whitespace-nowrap" style={{ color, background: `color-mix(in srgb, ${color} 8%, transparent)` }}>{children}</span>
 }
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
@@ -387,7 +391,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[120] flex items-start sm:items-center justify-center p-3 sm:p-6">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#101828]/40 backdrop-blur-[2px]" onClick={onClose} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-gray-900)]/40 backdrop-blur-[2px]" onClick={onClose} />
           <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
             <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-line">
               <div className="flex items-center gap-3">
@@ -397,7 +401,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
               <IconButton icon="X" onClick={onClose} />
             </div>
             <div className="px-5 py-4 overflow-y-auto">{children}</div>
-            {footer && <div className="px-5 py-3 border-t border-line bg-[#f7f8fc] flex items-center justify-end gap-2">{footer}</div>}
+            {footer && <div className="px-5 py-3 border-t border-line bg-[var(--color-slate-50)] flex items-center justify-end gap-2">{footer}</div>}
           </motion.div>
         </div>
       )}
@@ -416,7 +420,7 @@ export function Drawer({ open, onClose, children, width = 640, title, subtitle, 
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[110]">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#101828]/30 backdrop-blur-[2px]" onClick={onClose} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-gray-900)]/30 backdrop-blur-[2px]" onClick={onClose} />
           <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', duration: 0.45, bounce: 0.08 }} className="absolute right-0 top-0 bottom-0 bg-canvas shadow-2xl flex flex-col w-full" style={{ maxWidth: width }}>
             {(title || actions) && (
               <div className="relative flex items-start justify-between gap-3 px-5 py-3.5 bg-white border-b border-line">
@@ -579,5 +583,5 @@ export function Stat({ label, value, className, tone }: { label: React.ReactNode
   )
 }
 export function KV({ k, v }: { k: React.ReactNode; v: React.ReactNode }) {
-  return <div className="flex items-start justify-between gap-3 py-1.5 border-b border-dashed border-[#e3e6f0] last:border-0 text-[12.5px]"><span className="text-muted shrink-0">{k}</span><span className="font-medium text-ink text-right min-w-0">{v}</span></div>
+  return <div className="flex items-start justify-between gap-3 py-1.5 border-b border-dashed border-[var(--color-brand-100)] last:border-0 text-[12.5px]"><span className="text-muted shrink-0">{k}</span><span className="font-medium text-ink text-right min-w-0">{v}</span></div>
 }

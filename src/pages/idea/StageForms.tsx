@@ -12,7 +12,7 @@ import { Badge, Button, Field, Icon, InfoTip, Modal, Money, Segmented, cn } from
 import { PlanVsActualBlock } from './PlanVsActual'
 
 const toast = () => useStore.getState().toast
-const RISK_COLOR: Record<RiskLevel, string> = { Low: '#0f9f6e', Medium: '#ec8a1c', High: '#d7192d' }
+const RISK_COLOR: Record<RiskLevel, string> = { Low: 'var(--color-emerald-600)', Medium: 'var(--color-orange-400)', High: 'var(--color-accent-500)' }
 const DEPTS = ['Sourcing', 'R&D', 'Quality', 'DQA', 'Process', 'Production', 'Finance']
 const firstOfMonth = (d: string) => `${d.slice(0, 7)}-01`
 
@@ -109,7 +109,7 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
             <div className="mb-2 grid gap-1">
               {dups.map(({ idea: d, score }) => (
                 <button key={d.id} type="button" onClick={() => { setConflictWith(d.id); if (conflict === 'None') setConflict('Duplicate') }} className={cn('flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-[12px] hover:bg-slate-50', conflictWith === d.id ? 'border-red-300 bg-red-50' : 'border-line')}>
-                  <span className="font-mono text-[11px] text-muted shrink-0">{d.id}</span><span className="truncate flex-1 min-w-0">{d.title}</span><Badge color="#64748b">{Math.round(Math.min(1, score) * 100)}% match</Badge>
+                  <span className="font-mono text-[11px] text-muted shrink-0">{d.id}</span><span className="truncate flex-1 min-w-0">{d.title}</span><Badge color="var(--color-slate-500)">{Math.round(Math.min(1, score) * 100)}% match</Badge>
                 </button>
               ))}
             </div>
@@ -333,7 +333,7 @@ export function SupplierResponseCard({ idea }: { idea: Idea }) {
   const sc = idea.evaluation?.supplier
   if (!sc?.response) return null
   const r = sc.response
-  const c = r.canSupply === 'Yes' ? '#0f9f6e' : r.canSupply === 'Partly' ? '#ec8a1c' : '#d7192d'
+  const c = r.canSupply === 'Yes' ? 'var(--color-emerald-600)' : r.canSupply === 'Partly' ? 'var(--color-orange-400)' : 'var(--color-accent-500)'
   return (
     <div className="rounded-xl border border-line overflow-hidden">
       <div className="px-3.5 py-2.5 flex items-center gap-3 bg-slate-50/70 border-b border-line">
@@ -507,7 +507,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                 <div key={k} className="flex items-center justify-between gap-2 text-[12px] rounded-lg bg-slate-50 px-2.5 py-1.5">
                   <span className="font-semibold text-ink-2">L{k + 1} · {a.level}</span>
                   <span className="text-muted truncate">{users.find((u) => u.id === a.approverId)?.name ?? '—'}</span>
-                  <Badge color={a.decision === 'Approved' ? '#0f9f6e' : head || k === idea.approvals.findIndex((x) => !x.decision) ? '#ec8a1c' : '#94a3b8'}>{a.decision ?? (head || k === idea.approvals.findIndex((x) => !x.decision) ? 'This approval' : 'Next')}</Badge>
+                  <Badge color={a.decision === 'Approved' ? 'var(--color-emerald-600)' : head || k === idea.approvals.findIndex((x) => !x.decision) ? 'var(--color-orange-400)' : 'var(--color-slate-400)'}>{a.decision ?? (head || k === idea.approvals.findIndex((x) => !x.decision) ? 'This approval' : 'Next')}</Badge>
                 </div>
               ))}
             </div>

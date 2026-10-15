@@ -73,11 +73,11 @@ export function bucketFor(route: RouteKey, stage: string): Bucket {
   return si > ai ? 'In Execution' : 'Pipeline'
 }
 export const BUCKET_STYLE: Record<Bucket, { color: string; soft: string; text: string; label: string }> = {
-  Draft: { color: '#94a3b8', soft: '#f6f7fb', text: '#475569', label: 'Draft' },
-  Pipeline: { color: '#2f4a9a', soft: '#eef1f8', text: '#1b316f', label: 'Pipeline' },
-  'In Execution': { color: '#ec8a1c', soft: '#fff6ea', text: '#b35f0c', label: 'In Execution' },
-  Implemented: { color: '#14ab92', soft: '#ecfdf9', text: '#0d6e61', label: 'Implemented' },
-  Dropped: { color: '#6b7280', soft: '#f3f4f6', text: '#4b5563', label: 'Dropped' },
+  Draft: { color: 'var(--color-slate-400)', soft: 'var(--color-slate-50)', text: 'var(--color-slate-600)', label: 'Draft' },
+  Pipeline: { color: 'var(--color-brand-500)', soft: 'var(--color-brand-50)', text: 'var(--color-brand-700)', label: 'Pipeline' },
+  'In Execution': { color: 'var(--color-orange-400)', soft: 'var(--color-orange-50)', text: 'var(--color-amber-700)', label: 'In Execution' },
+  Implemented: { color: 'var(--color-emerald-500)', soft: 'var(--color-emerald-50)', text: 'var(--color-emerald-700)', label: 'Implemented' },
+  Dropped: { color: 'var(--color-gray-500)', soft: 'var(--color-gray-100)', text: 'var(--color-gray-600)', label: 'Dropped' },
 }
 
 export const isHard = (idea: Idea) => idea.savingsType === 'Hard'
@@ -122,9 +122,9 @@ export function healthOf(idea: Idea): Health {
   return 'On track'
 }
 export const HEALTH_STYLE: Record<Health, { color: string; soft: string }> = {
-  'On track': { color: '#0f9f6e', soft: '#f0fdf4' },
-  'At risk': { color: '#ec8a1c', soft: '#fff7ed' },
-  Delayed: { color: '#e0364f', soft: '#fef2f2' },
+  'On track': { color: 'var(--color-emerald-600)', soft: 'var(--color-green-50)' },
+  'At risk': { color: 'var(--color-orange-400)', soft: 'var(--color-orange-50)' },
+  Delayed: { color: 'var(--color-rose-600)', soft: 'var(--color-red-50)' },
 }
 
 export function stageAgeDays(idea: Idea) {

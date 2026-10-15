@@ -65,7 +65,7 @@ export function ApprovalAdmin() {
                   <tr key={r.id} className={cn(!ro && 'clickable')} onClick={() => !ro && setEdit(r)}>
                     <td className="font-mono text-[11.5px] text-muted">{r.id}</td>
                     <td className="font-medium text-ink">{fill(r.condition, r)}</td>
-                    <td><span className="flex items-center gap-1 flex-wrap">{r.approver.split(/→|\+/).map((a) => a.trim()).filter(Boolean).map((a, k, arr) => <React.Fragment key={a}><Badge color={a.includes('Head') ? '#223c86' : '#b8142a'}>{a}</Badge>{k < arr.length - 1 && <Icon name="ArrowRight" size={12} className="text-muted" />}</React.Fragment>)}{r.approver.startsWith('+') && <span className="text-[11px] text-muted">added</span>}</span></td>
+                    <td><span className="flex items-center gap-1 flex-wrap">{r.approver.split(/→|\+/).map((a) => a.trim()).filter(Boolean).map((a, k, arr) => <React.Fragment key={a}><Badge color={a.includes('Head') ? 'var(--color-brand-600)' : 'var(--color-accent-600)'}>{a}</Badge>{k < arr.length - 1 && <Icon name="ArrowRight" size={12} className="text-muted" />}</React.Fragment>)}{r.approver.startsWith('+') && <span className="text-[11px] text-muted">added</span>}</span></td>
                     <td className="num font-semibold" style={{ textAlign: 'right' }}>₹ {r.kind === 'value' ? x : y} lakh</td>
                     <td>{!ro && <Icon name="PencilLine" size={14} className="text-muted" />}</td>
                   </tr>
@@ -134,7 +134,7 @@ export function DropReasonsAdmin() {
               {isEdit
                 ? <input autoFocus className="input !h-8 flex-1" value={editing.v} onChange={(e) => setEditing({ i, v: e.target.value })} onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null); if (e.key === 'Enter' && editing.v.trim() && !dup(editing.v, i)) { const l = [...reasons]; l[i] = editing.v.trim(); commit(l, 'Drop reason renamed'); setEditing(null) } }} />
                 : <span className="flex-1 min-w-0 text-[13px] font-medium text-ink truncate">{r}</span>}
-              {/Other/.test(r) && <Badge color="#b8142a">Remarks mandatory</Badge>}
+              {/Other/.test(r) && <Badge color="var(--color-accent-600)">Remarks mandatory</Badge>}
               <span className="text-[11.5px] text-muted num w-20 text-right">{n} idea{n === 1 ? '' : 's'}</span>
               {!ro && (
                 <span className="flex items-center gap-0.5">
@@ -218,7 +218,7 @@ export function SlaAdmin() {
             { key: 'recipient', label: 'Recipient' },
             { key: 'channel', label: 'Channel' },
             { key: 'timing', label: 'Timing', render: (t) => <span className="text-ink-2">{t.timing}</span> },
-            { key: 'critical', label: 'Mutable', value: (t) => (t.critical ? 'No — critical' : 'Yes'), render: (t) => (t.critical ? <Badge color="#e0364f" icon="ShieldAlert">Cannot be muted</Badge> : <Badge color="#64748b">Can mute · digest</Badge>) },
+            { key: 'critical', label: 'Mutable', value: (t) => (t.critical ? 'No — critical' : 'Yes'), render: (t) => (t.critical ? <Badge color="var(--color-rose-600)" icon="ShieldAlert">Cannot be muted</Badge> : <Badge color="var(--color-slate-500)">Can mute · digest</Badge>) },
           ]} />
         <div className="text-[11.5px] text-muted mt-2">{NOTIF_FOOTNOTE}</div>
       </Card>
@@ -348,7 +348,7 @@ export function CalendarAdmin() {
             <KV k="FY start" v={fmtDate(fyStart(fy))} />
             <KV k="FY end (closure & carry-over)" v={fmtDate(fyEnd(fy))} />
             <KV k="Last realisation run" v={monthLong(settings.lastRealisationMonth)} />
-            <KV k={`${fy} closure`} v={fyClosed[fy] ? <Badge color="#0f9f6e" icon="LockKeyhole">Booked</Badge> : <Badge color="#64748b">Open</Badge>} />
+            <KV k={`${fy} closure`} v={fyClosed[fy] ? <Badge color="var(--color-emerald-600)" icon="LockKeyhole">Booked</Badge> : <Badge color="var(--color-slate-500)">Open</Badge>} />
           </div>
         </Card>
         <Card className="xl:col-span-8 rounded-2xl" title={`${fy} calendar`} icon="CalendarDays" subtitle="Monthly realisation runs on the 3rd working day for the previous month">
@@ -367,9 +367,9 @@ export function CalendarAdmin() {
               const current = ymOf(today) === m
               return (
                 <div key={m} className={cn('rounded-xl border px-2.5 py-2', current ? 'border-brand-300 bg-brand-50 shadow-sm' : realised ? 'border-emerald-200 bg-emerald-50/50' : 'border-line bg-white')}>
-                  <div className="flex items-center justify-between"><span className="text-[12.5px] font-bold text-ink">{monthLabel(m)}</span>{current && <Badge color="#223c86">Today</Badge>}</div>
+                  <div className="flex items-center justify-between"><span className="text-[12.5px] font-bold text-ink">{monthLabel(m)}</span>{current && <Badge color="var(--color-brand-600)">Today</Badge>}</div>
                   <div className="text-[10.5px] text-muted mt-0.5">Run {fmtDate(run)}</div>
-                  <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: realised ? '#0f9f6e' : '#64748b' }}>{realised ? 'Realised · mailer sent' : run < today ? 'Run due' : 'Scheduled'}</div>
+                  <div className="text-[10.5px] font-semibold mt-0.5" style={{ color: realised ? 'var(--color-emerald-600)' : 'var(--color-slate-500)' }}>{realised ? 'Realised · mailer sent' : run < today ? 'Run due' : 'Scheduled'}</div>
                 </div>
               )
             })}
@@ -441,11 +441,11 @@ export function AuditAdmin() {
     return all.filter((r) => (user === 'All' || r.userId === user) && (kind === 'All' || r.kind === kind) && (!from || r.at.slice(0, 10) >= from) && (!to || r.at.slice(0, 10) <= to) && (!k || `${r.ideaId} ${r.title} ${r.action} ${r.field ?? ''} ${r.oldValue ?? ''} ${r.newValue ?? ''} ${r.remarks ?? ''} ${r.userName}`.toLowerCase().includes(k)))
   }, [all, q, user, kind, from, to])
   const kinds = ['Create', 'Stage change', 'Approval', 'Override', 'Execution', 'Drop', 'Edit', 'Other']
-  const kColor: Record<string, string> = { Create: '#64748b', 'Stage change': '#2f4a9a', Approval: '#223c86', Override: '#b8142a', Execution: '#ec8a1c', Drop: '#e0364f', Edit: '#7c3aed', Other: '#64748b' }
+  const kColor: Record<string, string> = { Create: 'var(--color-slate-500)', 'Stage change': 'var(--color-brand-500)', Approval: 'var(--color-brand-600)', Override: 'var(--color-accent-600)', Execution: 'var(--color-orange-400)', Drop: 'var(--color-rose-600)', Edit: 'var(--color-violet-600)', Other: 'var(--color-slate-500)' }
   const actors = [...new Set(all.map((r) => r.userId))].map((id) => ({ id, name: all.find((r) => r.userId === id)?.userName ?? id })).sort((a, b) => a.name.localeCompare(b.name))
   const cols: Column<AuditRow>[] = [
     { key: 'at', label: 'Time', value: (r) => r.at, render: (r) => <span className="num text-ink-2">{fmtDateTime(r.at)}</span> },
-    { key: 'user', label: 'User', value: (r) => r.userName, render: (r) => <span className="inline-flex items-center gap-1.5"><Avatar name={r.userName} color={users.find((u) => u.id === r.userId)?.avatarColor ?? '#64748b'} size={20} /><span className="text-[12px]">{r.userName}</span></span> },
+    { key: 'user', label: 'User', value: (r) => r.userName, render: (r) => <span className="inline-flex items-center gap-1.5"><Avatar name={r.userName} color={users.find((u) => u.id === r.userId)?.avatarColor ?? 'var(--color-slate-500)'} size={20} /><span className="text-[12px]">{r.userName}</span></span> },
     { key: 'ideaId', label: 'Idea', render: (r) => <span className="font-mono text-[11.5px] font-semibold text-brand-700">{r.ideaId}</span> },
     { key: 'kind', label: 'Type', render: (r) => <Badge color={kColor[r.kind]}>{r.kind}</Badge> },
     { key: 'action', label: 'Action', render: (r) => <span className="block max-w-[260px] truncate font-medium text-ink" title={r.action}>{r.action}</span> },

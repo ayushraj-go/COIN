@@ -13,8 +13,8 @@ import { coValue, type CoData } from './data'
 
 const EXEC = BUCKET_STYLE['In Execution']
 const IMPL = BUCKET_STYLE.Implemented
-const RISK = '#e0364f'
-const FIN = { validated: '#0b8a77', pending: '#7fdcc6', queried: '#f2b04c', cumulative: '#223c86' }
+const RISK = 'var(--color-rose-600)'
+const FIN = { validated: 'var(--color-emerald-600)', pending: 'var(--color-emerald-300)', queried: 'var(--color-amber-500)', cumulative: 'var(--color-brand-600)' }
 
 /** Ledger rows of hard-saving ideas in scope (realisation is counted on hard savings only) */
 function useHardLedger(c: CoData) {
@@ -28,7 +28,7 @@ function Mini({ label, value, color, sub }: { label: string; value: ReactNode; c
   return (
     <div className="rounded-lg bg-slate-50 border border-line px-2.5 py-1.5 min-w-0">
       <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted truncate">{label}</div>
-      <div className="text-[13.5px] font-bold num truncate" style={{ color: color ?? '#0f1b33' }}>{value}{sub && <span className="ml-1 text-[10.5px] font-medium text-muted">{sub}</span>}</div>
+      <div className="text-[13.5px] font-bold num truncate" style={{ color: color ?? 'var(--color-slate-900)' }}>{value}{sub && <span className="ml-1 text-[10.5px] font-medium text-muted">{sub}</span>}</div>
     </div>
   )
 }
@@ -75,7 +75,7 @@ export function RealisedMonthlyCard({ c, className }: { c: CoData; className?: s
             <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis yAxisId="m" tick={AXIS_TICK} axisLine={false} tickLine={false} width={54} tickFormatter={(v) => inrShort(v, 0)} />
             <YAxis yAxisId="c" orientation="right" tick={AXIS_TICK} axisLine={false} tickLine={false} width={54} tickFormatter={(v) => inrShort(v, 0)} />
-            <RTooltip cursor={{ fill: '#f1f5f9', radius: 6 } as any} content={<ChartTip colors={FIN} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
+            <RTooltip cursor={{ fill: 'var(--color-slate-100)', radius: 6 } as any} content={<ChartTip colors={FIN} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
             <Bar yAxisId="m" dataKey="validated" name="Finance validated" stackId="r" fill={FIN.validated} maxBarSize={24} />
             <Bar yAxisId="m" dataKey="pending" name="Pending validation" stackId="r" fill={FIN.pending} maxBarSize={24} />
             <Bar yAxisId="m" dataKey="queried" name="Queried by Finance" stackId="r" fill={FIN.queried} radius={[4, 4, 0, 0]} maxBarSize={24} />
@@ -92,9 +92,9 @@ export function RealisedMonthlyCard({ c, className }: { c: CoData; className?: s
 
 // ─── 2 · Finance validation backlog ──────────────────────────────────────────
 const AGE_BANDS = [
-  { key: '≤15 d', max: 15, color: '#9be3d3' },
-  { key: '16–30 d', max: 30, color: '#3fbfa5' },
-  { key: '31–60 d', max: 60, color: '#f2b04c' },
+  { key: '≤15 d', max: 15, color: 'var(--color-emerald-200)' },
+  { key: '16–30 d', max: 30, color: 'var(--color-emerald-500)' },
+  { key: '31–60 d', max: 60, color: 'var(--color-amber-500)' },
   { key: '>60 d', max: Infinity, color: RISK },
 ]
 
@@ -123,8 +123,8 @@ export function ValidationBacklogCard({ c, className }: { c: CoData; className?:
       title={<span className="flex items-center gap-1.5">Finance validation backlog<InfoTip title="Finance validation backlog">MRN realisation rows not yet accepted by Finance — Pending (not reviewed) and Queried (sent back with remarks). Age = days since the month's realisation was posted.</InfoTip></span>}
       subtitle={fv ? 'Realised value awaiting Finance sign-off' : 'Finance validation is switched off in settings'}>
       <div className="grid grid-cols-2 gap-2">
-        <Mini label={`Pending · ${pend.length}`} value={inrShort(sum(pend.map((l) => l.realised)))} color="#0d6e61" />
-        <Mini label={`Queried · ${qry.length}`} value={inrShort(sum(qry.map((l) => l.realised)))} color={qry.length ? '#b35f0c' : undefined} />
+        <Mini label={`Pending · ${pend.length}`} value={inrShort(sum(pend.map((l) => l.realised)))} color="var(--color-emerald-700)" />
+        <Mini label={`Queried · ${qry.length}`} value={inrShort(sum(qry.map((l) => l.realised)))} color={qry.length ? 'var(--color-amber-700)' : undefined} />
       </div>
       <div className="mt-3 text-[11px] font-semibold text-muted flex items-center justify-between"><span>Age of open rows</span><span className="num">{open.length} rows · {inrShort(totalV)}</span></div>
       <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 gap-px mt-1">
@@ -144,7 +144,7 @@ export function ValidationBacklogCard({ c, className }: { c: CoData; className?:
           <button key={r.id} onClick={() => openIdea(r.id)} className="group flex items-center gap-2 py-1.5 px-1 -mx-1 rounded-md hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
             <span className="min-w-0 flex-1">
               <span className="block text-[12px] font-semibold text-ink truncate group-hover:text-brand-700">{titleOf(r.id)}</span>
-              <span className="block text-[10.5px] text-muted truncate"><span className="font-mono">{r.id}</span> · {r.months} month{r.months === 1 ? '' : 's'} · oldest {r.oldest} d{r.queried && <b className="text-[#b35f0c] font-semibold"> · queried</b>}</span>
+              <span className="block text-[10.5px] text-muted truncate"><span className="font-mono">{r.id}</span> · {r.months} month{r.months === 1 ? '' : 's'} · oldest {r.oldest} d{r.queried && <b className="text-[var(--color-amber-700)] font-semibold"> · queried</b>}</span>
             </span>
             <span className="text-[12.5px] font-bold text-ink num shrink-0">{inrShort(r.value)}</span>
           </button>
@@ -170,7 +170,7 @@ export function PhasingCard({ c, className }: { c: CoData; className?: string })
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Implemented" value={inrShort(impl)} color={IMPL.text} />
         <Mini label="In execution" value={inrShort(exec)} color={EXEC.text} />
-        <Mini label="Realised" value={inrShort(realised)} color="#1d47c0" />
+        <Mini label="Realised" value={inrShort(realised)} color="var(--color-brand-600)" />
       </div>
       <div className="flex-1 min-h-[160px] -ml-1 mt-2">
         <ResponsiveContainer width="100%" height="100%">
@@ -178,7 +178,7 @@ export function PhasingCard({ c, className }: { c: CoData; className?: string })
             <CartesianGrid vertical={false} stroke={GRID_STROKE} />
             <XAxis dataKey="short" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={50} tickFormatter={(v) => inrShort(v, 0)} />
-            <RTooltip cursor={{ fill: '#f1f5f9', radius: 6 } as any} content={<ChartTip colors={PH} labelFmt={(_: any, p: any) => p?.[0]?.payload?.label ?? ''} />} />
+            <RTooltip cursor={{ fill: 'var(--color-slate-100)', radius: 6 } as any} content={<ChartTip colors={PH} labelFmt={(_: any, p: any) => p?.[0]?.payload?.label ?? ''} />} />
             <Bar dataKey="implemented" name="Implemented" stackId="c" fill={IMPL.color} maxBarSize={30} />
             <Bar dataKey="inExec" name="In execution" stackId="c" fill={EXEC.color} radius={[4, 4, 0, 0]} maxBarSize={30} />
             <Line type="monotone" dataKey="realised" name="Realised" stroke={PH.realised} strokeWidth={2} dot={{ r: 3, fill: PH.realised }} />
@@ -265,7 +265,7 @@ export function AgeingCard({ c, className }: { c: CoData; className?: string }) 
       actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => drill({}, '/execution')}>Hub</Button>}>
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Median age" value={`${median} d`} />
-        <Mini label="Older than 90 d" value={old.length} color={old.length ? '#b35f0c' : undefined} sub={old.length ? inrShort(sum(old.map(coValue))) : undefined} />
+        <Mini label="Older than 90 d" value={old.length} color={old.length ? 'var(--color-amber-700)' : undefined} sub={old.length ? inrShort(sum(old.map(coValue))) : undefined} />
         <Mini label="Avg cycle" value={cycles.length ? `${cycle} d` : '—'} color={IMPL.text} />
       </div>
       <div className="flex-1 min-h-[160px] -ml-1 mt-2">
@@ -274,7 +274,7 @@ export function AgeingCard({ c, className }: { c: CoData; className?: string }) 
             <CartesianGrid vertical={false} stroke={GRID_STROKE} />
             <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
-            <RTooltip cursor={{ fill: '#f1f5f9', radius: 6 } as any} content={<ChartTip colors={colors} fmt={(v: number) => `${v}`} labelFmt={(l: string, p: any) => `${l} days · ${inrShort(p?.[0]?.payload?.value ?? 0)}`} />} />
+            <RTooltip cursor={{ fill: 'var(--color-slate-100)', radius: 6 } as any} content={<ChartTip colors={colors} fmt={(v: number) => `${v}`} labelFmt={(l: string, p: any) => `${l} days · ${inrShort(p?.[0]?.payload?.value ?? 0)}`} />} />
             <Bar dataKey="On track" stackId="h" fill={colors['On track']} maxBarSize={30} />
             <Bar dataKey="At risk" stackId="h" fill={colors['At risk']} maxBarSize={30} />
             <Bar dataKey="Delayed" stackId="h" fill={colors.Delayed} radius={[4, 4, 0, 0]} maxBarSize={30} />
@@ -322,7 +322,7 @@ export function DeliveryCard({ c, className }: { c: CoData; className?: string }
   const tDue = sum(rows.map((r) => r.msDue)), tOn = sum(rows.map((r) => r.msOnTime))
   const tChanges = sum(rows.map((r) => r.changes)), tDays = sum(rows.map((r) => r.days))
   const shown = rows.slice(0, 5)
-  const onColor = (p: number) => (p >= 85 ? '#0f9f6e' : p >= 65 ? '#b35f0c' : RISK)
+  const onColor = (p: number) => (p >= 85 ? 'var(--color-emerald-600)' : p >= 65 ? 'var(--color-amber-700)' : RISK)
   const cols = 'grid grid-cols-[minmax(0,1fr)_38px_62px_54px_50px] gap-2 items-center'
   return (
     <Card className={cn('h-full', className)} icon="CalendarClock" bodyClass="flex flex-col"
@@ -345,9 +345,9 @@ export function DeliveryCard({ c, className }: { c: CoData; className?: string }
               </span>
             </span>
             <span className="text-right text-[12px] text-ink num">{r.live}</span>
-            <span className="text-right text-[12px] font-semibold num" style={{ color: r.msDue ? onColor(p) : '#94a3b8' }}>{r.msDue ? pct(p, 0) : '—'}</span>
-            <span className="text-right text-[12px] num" style={{ color: r.changes ? '#b35f0c' : '#94a3b8' }}>{r.changes || '—'}</span>
-            <span className="text-right text-[12px] font-semibold num" style={{ color: r.days ? RISK : '#94a3b8' }}>{r.days ? `${r.days} d` : '—'}</span>
+            <span className="text-right text-[12px] font-semibold num" style={{ color: r.msDue ? onColor(p) : 'var(--color-slate-400)' }}>{r.msDue ? pct(p, 0) : '—'}</span>
+            <span className="text-right text-[12px] num" style={{ color: r.changes ? 'var(--color-amber-700)' : 'var(--color-slate-400)' }}>{r.changes || '—'}</span>
+            <span className="text-right text-[12px] font-semibold num" style={{ color: r.days ? RISK : 'var(--color-slate-400)' }}>{r.days ? `${r.days} d` : '—'}</span>
           </button>
         )
       }) : <EmptyState icon="CalendarClock" title="No executions" desc="Approved ideas appear once an execution plan is set." className="py-6" />}
@@ -398,7 +398,7 @@ export function LeakageCard({ c, className }: { c: CoData; className?: string })
               </span>
               <span className="w-[96px] shrink-0 text-right">
                 <span className="block text-[12.5px] font-bold num" style={{ color: RISK }}>{inrShort(r.value)}</span>
-                <ProgressBar value={(r.value / max) * 100} height={3} color="#f08a99" className="mt-1" />
+                <ProgressBar value={(r.value / max) * 100} height={3} color="var(--color-accent-300)" className="mt-1" />
               </span>
             </button>
           ))}

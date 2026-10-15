@@ -13,10 +13,10 @@ import { SubmitCta } from './SubmitterHome'
 import { useFitHeight, useRowsFit } from './fit'
 
 const ATT_STYLE: Record<string, { color: string; icon: string }> = {
-  Invited: { color: '#2f4a9a', icon: 'MailOpen' },
-  Accepted: { color: '#0f9f6e', icon: 'CircleCheck' },
-  Declined: { color: '#6b7280', icon: 'CircleX' },
-  Attended: { color: '#7c3aed', icon: 'BadgeCheck' },
+  Invited: { color: 'var(--color-brand-500)', icon: 'MailOpen' },
+  Accepted: { color: 'var(--color-emerald-600)', icon: 'CircleCheck' },
+  Declined: { color: 'var(--color-gray-500)', icon: 'CircleX' },
+  Attended: { color: 'var(--color-violet-600)', icon: 'BadgeCheck' },
 }
 
 export default function SupplierHome() {
@@ -64,10 +64,10 @@ export default function SupplierHome() {
           {/* Row 1 — KPIs + submit banner */}
           <Reveal className="col-span-12 xl:col-span-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 h-full [&>*]:h-full">
-              <MiniStat label="Workshop invites" icon="Presentation" color="#7c3aed" value={invites.length} sub={awaitingReply.length ? `${awaitingReply.length} awaiting your reply` : 'All invitations answered'} onClick={() => nav('/workshops')} />
-              <MiniStat label="Under review" icon="ClipboardCheck" color="#ec8a1c" value={underReview.length} sub={underReview.length ? 'Feasibility, R&D or sourcing approval' : 'Nothing awaiting review'} onClick={() => nav('/my-ideas')} />
-              <MiniStat label="My ideas" icon="Lightbulb" color="#2f4a9a" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
-              <MiniStat label="Gain-share offered" icon="Handshake" color="#0d9488" value={gs.length ? `${gsAvg.toFixed(1)}%` : '—'} sub={gs.length ? `avg on ${gs.length} ideas · ≈ ${inrShort(gsValue)} / yr` : 'Offer gain-share when you submit'} tip={<InfoTip title="Gain-share offered to Amber">{payoutNote}</InfoTip>} />
+              <MiniStat label="Workshop invites" icon="Presentation" color="var(--color-violet-600)" value={invites.length} sub={awaitingReply.length ? `${awaitingReply.length} awaiting your reply` : 'All invitations answered'} onClick={() => nav('/workshops')} />
+              <MiniStat label="Under review" icon="ClipboardCheck" color="var(--color-orange-400)" value={underReview.length} sub={underReview.length ? 'Feasibility, R&D or sourcing approval' : 'Nothing awaiting review'} onClick={() => nav('/my-ideas')} />
+              <MiniStat label="My ideas" icon="Lightbulb" color="var(--color-brand-500)" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
+              <MiniStat label="Gain-share offered" icon="Handshake" color="var(--color-teal-600)" value={gs.length ? `${gsAvg.toFixed(1)}%` : '—'} sub={gs.length ? `avg on ${gs.length} ideas · ≈ ${inrShort(gsValue)} / yr` : 'Offer gain-share when you submit'} tip={<InfoTip title="Gain-share offered to Amber">{payoutNote}</InfoTip>} />
             </div>
           </Reveal>
           <Reveal className="col-span-12 xl:col-span-4">
@@ -96,7 +96,7 @@ export default function SupplierHome() {
                     {(['Pipeline', 'In Execution', 'Implemented', 'Dropped'] as const).map((b) => {
                       const l = ownSubmitted.filter((i) => i.bucket === b)
                       const st = BUCKET_STYLE[b]
-                      return <div key={b} className="rounded-xl border px-3 py-1.5" style={{ borderColor: `${st.color}33`, background: st.soft }}><div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: st.text }}>{b}</div><div className="flex items-baseline justify-between gap-2"><span className="text-[17px] font-bold text-ink num leading-tight">{l.length}</span><span className="text-[11px] text-muted num">{inrShort(sum(l.map((x) => ideaAnnualised(x))))}</span></div></div>
+                      return <div key={b} className="rounded-xl border px-3 py-1.5" style={{ borderColor: `color-mix(in srgb, ${st.color} 20%, transparent)`, background: st.soft }}><div className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: st.text }}>{b}</div><div className="flex items-baseline justify-between gap-2"><span className="text-[17px] font-bold text-ink num leading-tight">{l.length}</span><span className="text-[11px] text-muted num">{inrShort(sum(l.map((x) => ideaAnnualised(x))))}</span></div></div>
                     })}
                   </div>
                 </>
@@ -125,7 +125,7 @@ export default function SupplierHome() {
                           {c.workshopDate ? <span><span className="block text-[16px] font-bold">{c.workshopDate.slice(8, 10)}</span><span className="block text-[9.5px] font-bold uppercase mt-0.5">{fmtDate(c.workshopDate).slice(3, 6)}</span></span> : <Icon name="Megaphone" size={17} />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden"><Badge color={c.status === 'Live' ? '#0f9f6e' : '#64748b'} dot>{c.status}</Badge><Badge color={s.color} icon={s.icon}>{st}</Badge></div>
+                          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden"><Badge color={c.status === 'Live' ? 'var(--color-emerald-600)' : 'var(--color-slate-500)'} dot>{c.status}</Badge><Badge color={s.color} icon={s.icon}>{st}</Badge></div>
                           <div className="text-[12.5px] font-semibold text-ink mt-1 truncate">{c.name}</div>
                           <div className="text-[11px] text-muted truncate">{c.type} · {com?.name ?? c.commodity}{c.venue ? ` · ${c.venue}` : ''}</div>
                         </div>

@@ -184,7 +184,7 @@ export function CrudSection<T extends Record<string, any>>({
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
-  return active ? <Badge color="#0f9f6e" dot>Active</Badge> : <Badge color="#6b7280" dot>Inactive</Badge>
+  return active ? <Badge color="var(--color-emerald-600)" dot>Active</Badge> : <Badge color="var(--color-gray-500)" dot>Inactive</Badge>
 }
 
 export function SectionIntro({ children, icon = 'Info' }: { children: React.ReactNode; icon?: string }) {

@@ -5,11 +5,11 @@ import { OUTREACH_KINDS, ROUTE_STAGES, STAGE } from '../../lib/masters'
 import { addDays } from '../../lib/format'
 
 /** Theme colours for charts (match Tailwind brand / accent tokens) */
-export const C_SENT = '#223c86' // brand-600
-export const C_DELIVERED = '#5e93fb' // brand-400
-export const C_OPENED = '#93b8ff' // brand-300
-export const C_REPLY = '#14ab92' // accent-500
-export const C_CONVERTED = '#0d6e61' // accent-700
+export const C_SENT = 'var(--color-brand-600)' // brand-600
+export const C_DELIVERED = 'var(--color-brand-400)' // brand-400
+export const C_OPENED = 'var(--color-brand-300)' // brand-300
+export const C_REPLY = 'var(--color-emerald-500)' // accent-500
+export const C_CONVERTED = 'var(--color-emerald-700)' // accent-700
 
 export const commodityLabel = (commodities: Commodity[], code: string) => commodityShort(commodities.find((c) => c.code === code)?.name ?? code)
 

@@ -10,11 +10,11 @@ import { daysBetween, fmtDate, inrShort, monthLong, pct, sum } from '../../lib/f
 import { Avatar, Badge, Button, Card, Count, EmptyState, HealthBadge, Icon, InfoTip, Money, cn } from '../../components/ui'
 import { AXIS_TICK, ChartTip, DrillModal, GRID_STROKE, drillUrl, useDrill } from '../home/shared'
 import { HEALTHS, coValue, type CoData, type CoStage } from './data'
-import { KpiTile } from '../../components/KpiTile'
+import { KpiTile, TileValue } from '../../components/KpiTile'
 
 const EXEC = BUCKET_STYLE['In Execution']
 const IMPL = BUCKET_STYLE.Implemented
-const RISK = '#e0364f'
+const RISK = 'var(--color-rose-600)'
 
 // ─── KPI tiles (shared CO-style tile) ─────────────────────────────────────────
 export function CoKpis({ c }: { c: CoData }) {
@@ -26,45 +26,37 @@ export function CoKpis({ c }: { c: CoData }) {
   const vShare = k.realised ? (k.validated / k.realised) * 100 : 0
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-      <KpiTile label="In Execution" icon="Rocket" color={EXEC.color} onClick={() => drill({ bucket: 'In Execution' })}
-        tip="Approved ideas being implemented — NPD sample, PAP price / source revision or internal execution. ₹ = FY-phased committed hard savings.">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[24px] leading-none font-bold tracking-tight text-ink"><Money value={k.execCommitted} /></span>
-          <span className="text-[11.5px] text-muted">committed</span>
-        </div>
-        <div className="text-[11.5px] text-muted mt-1.5 truncate"><b className="text-ink-2 num"><Count value={k.execCount} /></b> ideas · {inrShort(k.execAnnualised)} annualised</div>
+      <KpiTile label="In execution" icon="Rocket" color="var(--color-brand-600)" onClick={() => drill({ bucket: 'In Execution' })} spark={c.d.flows['In Execution'].values}
+        tip="Approved ideas being implemented — NPD sample, PAP price / source revision or internal execution. ₹ = FY-phased committed hard savings. Trend = ₹ approved each month.">
+        <TileValue value={<Money value={k.execCommitted} />} unit="committed" sub={<><b className="text-ink-2 num"><Count value={k.execCount} /></b> ideas · {inrShort(k.execAnnualised)} annualised</>} />
       </KpiTile>
 
-      <KpiTile label="Implemented" icon="CircleCheckBig" color={IMPL.color} onClick={() => drill({ bucket: 'Implemented' })}
-        tip="Marked Done with an effective date and approved price. ₹ = annualised impact at approved price; realisation flows from actual MRN.">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[24px] leading-none font-bold tracking-tight text-ink"><Money value={k.implAnnualised} /></span>
-          <span className="text-[11.5px] text-muted">annualised</span>
-        </div>
-        <div className="text-[11.5px] text-muted mt-1.5 truncate"><b className="text-ink-2 num"><Count value={k.implCount} /></b> ideas · {inrShort(k.implCommitted)} live in {c.fy}</div>
+      <KpiTile label="Implemented" icon="CircleCheckBig" color="var(--color-emerald-600)" onClick={() => drill({ bucket: 'Implemented' })} spark={c.d.flows.Implemented.values}
+        tip="Handed for verification with an effective date and approved price. ₹ = annualised impact at approved price; realisation flows from actual MRN. Trend = ₹ implemented each month.">
+        <TileValue value={<Money value={k.implAnnualised} />} unit="annualised" sub={<><b className="text-ink-2 num"><Count value={k.implCount} /></b> ideas · {inrShort(k.implCommitted)} live in {c.fy}</>} />
       </KpiTile>
 
-      <KpiTile hero label={`Realised savings · ${c.fy} to date`} icon="BadgeIndianRupee" color="#fff" onClick={() => nav('/reports/leakage')}
+      <KpiTile hero label={`Realised savings · ${c.fy} to date`} icon="BadgeIndianRupee" spark={c.d.trend.filter((t) => t.realised != null).map((t) => t.realised ?? 0)} onClick={() => nav('/reports/leakage')}
         tip="MRN-based realised hard savings = (baseline − approved price) × MRN quantity after the effective date. Validated = accepted by Finance.">
-        <div className="text-[24px] leading-none font-bold tracking-tight"><Money value={k.realised} /></div>
-        <div className="mt-2 flex h-1.5 rounded-full overflow-hidden bg-white/20">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${vShare}%` }} transition={{ duration: 0.9 }} className="bg-white" />
+        <div className="text-[27px] leading-none font-bold tracking-[-0.02em]"><Money value={k.realised} /></div>
+        <div className="mt-3 flex h-1.5 rounded-full overflow-hidden bg-white/15">
+          <motion.div initial={{ width: 0 }} animate={{ width: `${vShare}%` }} transition={{ duration: 0.9 }} className="bg-white rounded-full" />
         </div>
-        <div className="flex items-center justify-between gap-2 mt-1.5 text-[11.5px] text-white/85">
+        <div className="flex items-center justify-between gap-2 mt-2 text-[11.5px] text-white/80">
           <span className="truncate"><b className="text-white num">{inrShort(k.validated)}</b> validated</span>
           <span className="truncate"><b className="text-white num">{inrShort(k.pending)}</b> pending</span>
         </div>
       </KpiTile>
 
-      <KpiTile label="Overdue / at risk" icon="Siren" color={RISK} onClick={() => setWatchOpen(true)}
+      <KpiTile label="Overdue / at risk" icon="Siren" color="var(--color-accent-500)" onClick={() => setWatchOpen(true)}
         tip="Live executions past their due date (Delayed) or with an overdue milestone (At risk). ₹ = committed hard savings exposed.">
         <div className="flex items-baseline gap-2">
-          <span className="text-[24px] leading-none font-bold tracking-tight num" style={{ color: k.watchCount ? RISK : undefined }}><Count value={k.watchCount} /></span>
+          <span className="text-[27px] leading-none font-bold tracking-[-0.02em] num" style={{ color: k.watchCount ? 'var(--color-accent-600)' : undefined }}><Count value={k.watchCount} /></span>
           <span className="text-[11.5px] text-muted">executions · <b className="text-ink-2 num">{inrShort(k.watchCommitted)}</b> exposed</span>
         </div>
-        <div className="flex items-center gap-1.5 mt-2 text-[11px]">
+        <div className="flex items-center gap-1.5 mt-2.5 text-[11px]">
           <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: HEALTH_STYLE.Delayed.color, background: HEALTH_STYLE.Delayed.soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE.Delayed.color }} />{c.overdue.length} overdue</span>
-          <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: '#b35f0c', background: HEALTH_STYLE['At risk'].soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE['At risk'].color }} />{c.atRisk.length} at risk</span>
+          <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: 'var(--color-amber-700)', background: HEALTH_STYLE['At risk'].soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE['At risk'].color }} />{c.atRisk.length} at risk</span>
         </div>
       </KpiTile>
 
@@ -79,7 +71,7 @@ export function CoKpis({ c }: { c: CoData }) {
 }
 
 // ─── Implementation pipeline: post-approval stages + realised by month ────────
-const RM_COLORS = { validated: '#0b8a77', pendingPart: '#7fdcc6' }
+const RM_COLORS = { validated: 'var(--color-emerald-600)', pendingPart: 'var(--color-emerald-300)' }
 
 export function PipelineCard({ c, className }: { c: CoData; className?: string }) {
   const drill = useDrill()
@@ -111,7 +103,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
             <div key={r.st.key} className="relative min-w-0">
               <button onClick={() => click(r)} title={r.st.hint}
                 className="group w-full text-left rounded-xl border px-3 py-2.5 transition-colors hover:shadow-[0_8px_20px_-16px_rgb(15_27_51/.45)]"
-                style={{ background: r.st.key === 'impl' ? IMPL.soft : '#fffaf3', borderColor: `${st.color}33` }}>
+                style={{ background: r.st.key === 'impl' ? IMPL.soft : 'var(--color-orange-50)', borderColor: `color-mix(in srgb, ${st.color} 20%, transparent)` }}>
                 <span className="flex items-center gap-1.5 min-w-0">
                   <Icon name={r.st.icon} size={13} style={{ color: st.color }} className="shrink-0" />
                   <span className="text-[11.5px] font-semibold truncate" style={{ color: st.text }}>{r.st.label}</span>
@@ -121,7 +113,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
                   <span className="text-[12.5px] font-semibold text-ink-2 num">{r.count ? inrShort(r.value) : '—'}</span>
                 </span>
                 <span className="block mt-2 h-1.5 rounded-full bg-white/80 overflow-hidden">
-                  <motion.span className="block h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.8, delay: k * 0.06 }} style={{ background: `linear-gradient(90deg, ${st.color}aa, ${st.color})` }} />
+                  <motion.span className="block h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${w}%` }} transition={{ duration: 0.8, delay: k * 0.06 }} style={{ background: `linear-gradient(90deg, color-mix(in srgb, ${st.color} 67%, transparent), ${st.color})` }} />
                 </span>
                 <span className="block text-[10.5px] text-muted mt-1 num">{totalValue ? pct((r.value / totalValue) * 100, 0) : '0%'} of value</span>
               </button>
@@ -148,7 +140,7 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
               <CartesianGrid vertical={false} stroke={GRID_STROKE} />
               <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} />
               <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={54} tickFormatter={(v) => inrShort(v, 0)} />
-              <RTooltip cursor={{ fill: '#f1f5f9', radius: 6 } as any} content={<ChartTip colors={RM_COLORS} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
+              <RTooltip cursor={{ fill: 'var(--color-slate-100)', radius: 6 } as any} content={<ChartTip colors={RM_COLORS} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
               <Bar dataKey="validated" name="Finance validated" stackId="r" fill={RM_COLORS.validated} maxBarSize={22} />
               <Bar dataKey="pendingPart" name="Pending validation" stackId="r" fill={RM_COLORS.pendingPart} radius={[4, 4, 0, 0]} maxBarSize={22} />
             </BarChart>
@@ -167,8 +159,8 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
 function dueText(target: string, today: string) {
   const d = daysBetween(today, target)
   if (d < 0) return { text: `${-d} d overdue`, color: RISK }
-  if (d === 0) return { text: 'Due today', color: '#b35f0c' }
-  return { text: `in ${d} d`, color: '#66758f' }
+  if (d === 0) return { text: 'Due today', color: 'var(--color-amber-700)' }
+  return { text: `in ${d} d`, color: 'var(--color-slate-500)' }
 }
 
 export function HealthCard({ c, className }: { c: CoData; className?: string }) {
@@ -182,7 +174,7 @@ export function HealthCard({ c, className }: { c: CoData; className?: string }) 
     <Card className={cn('h-full', className)} icon="HeartPulse" bodyClass="flex flex-col"
       title={<span className="flex items-center gap-1.5">Execution health<InfoTip title="Execution health">Delayed = due date passed. At risk = a milestone is overdue. On track = otherwise. Owners and Commodity Leads get reminders every 15 days, weekly in the last 30 days, and weekly after the due date.</InfoTip></span>}
       subtitle={`${total} live executions · ${pct(onTimePct, 0)} on track`}
-      actions={c.overdue.length ? <Badge color={RISK} dot>{c.overdue.length} overdue</Badge> : <Badge color="#0f9f6e" icon="CircleCheck">None overdue</Badge>}>
+      actions={c.overdue.length ? <Badge color={RISK} dot>{c.overdue.length} overdue</Badge> : <Badge color="var(--color-emerald-600)" icon="CircleCheck">None overdue</Badge>}>
       {total ? (
         <>
           <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-100 gap-px">
@@ -193,7 +185,7 @@ export function HealthCard({ c, className }: { c: CoData; className?: string }) 
               <button key={r.h} onClick={() => drill({ bucket: 'In Execution', health: r.h })} className="text-left rounded-lg border border-line px-2.5 py-2 hover:bg-slate-50 transition-colors min-w-0">
                 <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-2"><span className="h-2 w-2 rounded-full shrink-0" style={{ background: HEALTH_STYLE[r.h].color }} />{r.h}</span>
                 <span className="flex items-baseline justify-between gap-1 mt-1">
-                  <span className="text-[18px] leading-none font-bold num" style={{ color: r.h === 'On track' ? '#0f1b33' : HEALTH_STYLE[r.h].color }}>{r.count}</span>
+                  <span className="text-[18px] leading-none font-bold num" style={{ color: r.h === 'On track' ? 'var(--color-slate-900)' : HEALTH_STYLE[r.h].color }}>{r.count}</span>
                   <span className="text-[11.5px] font-semibold text-ink-2 num truncate">{inrShort(r.value)}</span>
                 </span>
               </button>

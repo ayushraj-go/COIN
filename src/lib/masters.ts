@@ -28,11 +28,11 @@ export const LEVERS_DEFAULT: Lever[] = [
 
 // Distinct icon + tint per lever group (Section 14)
 export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string; text: string; icon: string }> = {
-  Commercial: { color: '#7c3aed', soft: '#f5f3ff', text: '#6d28d9', icon: 'Handshake' },
-  'Supply base': { color: '#0d9488', soft: '#f0fdfa', text: '#0f766e', icon: 'Factory' },
-  Engineering: { color: '#4f46e5', soft: '#eef2ff', text: '#4338ca', icon: 'Cog' },
-  'Logistics & packing': { color: '#0284c7', soft: '#f0f9ff', text: '#0369a1', icon: 'Truck' },
-  Operational: { color: '#db2777', soft: '#fdf2f8', text: '#be185d', icon: 'Settings2' },
+  Commercial: { color: 'var(--color-violet-600)', soft: 'var(--color-violet-50)', text: 'var(--color-violet-700)', icon: 'Handshake' },
+  'Supply base': { color: 'var(--color-teal-600)', soft: 'var(--color-teal-50)', text: 'var(--color-teal-700)', icon: 'Factory' },
+  Engineering: { color: 'var(--color-indigo-600)', soft: 'var(--color-indigo-50)', text: 'var(--color-indigo-700)', icon: 'Cog' },
+  'Logistics & packing': { color: 'var(--color-sky-600)', soft: 'var(--color-sky-50)', text: 'var(--color-sky-700)', icon: 'Truck' },
+  Operational: { color: 'var(--color-pink-600)', soft: 'var(--color-pink-50)', text: 'var(--color-pink-700)', icon: 'Settings2' },
 }
 
 // COIN workflow — every idea, on every route, runs the same six stages:

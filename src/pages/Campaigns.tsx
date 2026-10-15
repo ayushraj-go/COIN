@@ -196,8 +196,8 @@ function WorkshopsTab() {
               <div style={{ height: Math.max(140, chartData.length * 32 + 24) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap={8}>
-                    <CartesianGrid horizontal={false} stroke="#eef1f5" />
-                    <XAxis type="number" tickFormatter={(v) => inrShort(v, 0)} tick={{ fontSize: 11, fill: '#66758f' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid horizontal={false} stroke="var(--color-gray-100)" />
+                    <XAxis type="number" tickFormatter={(v) => inrShort(v, 0)} tick={{ fontSize: 11, fill: 'var(--color-slate-500)' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={130} tick={<YTick max={20} />} axisLine={false} tickLine={false} />
                     <RTooltip cursor={{ fill: 'rgb(15 27 51 / .04)' }} content={({ active, payload }) => {
                       if (!active || !payload?.length) return null
@@ -210,7 +210,7 @@ function WorkshopsTab() {
                         </div>
                       )
                     }} />
-                    <Bar dataKey="value" fill="#5e93fb" radius={[0, 3, 3, 0]} maxBarSize={14} cursor="pointer" onClick={(d: any) => nav(`/ideas?campaign=${d.id}`)} />
+                    <Bar dataKey="value" fill="var(--color-brand-400)" radius={[0, 3, 3, 0]} maxBarSize={14} cursor="pointer" onClick={(d: any) => nav(`/ideas?campaign=${d.id}`)} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -215,10 +215,10 @@ export function bridgeData(ctx: Ctx) {
   const RC = R + C
   const total = RC + P
   const rows = [
-    { key: 'realised', label: ctx.fv ? 'Realised (validated)' : 'Realised', base: 0, value: R, color: '#0f9f6e', drill: { bucket: 'Implemented' } as Record<string, string> },
-    { key: 'committed', label: 'Committed (remaining)', base: R, value: C, color: '#ec8a1c', drill: { bucket: 'In Execution' } as Record<string, string> },
-    { key: 'pipeline', label: 'Pipeline', base: RC, value: P, color: '#36509a', drill: { bucket: 'Pipeline' } as Record<string, string> },
-    { key: 'total', label: 'Total tracked', base: 0, value: total, color: '#223c86', drill: {} as Record<string, string> },
+    { key: 'realised', label: ctx.fv ? 'Realised (validated)' : 'Realised', base: 0, value: R, color: 'var(--color-emerald-600)', drill: { bucket: 'Implemented' } as Record<string, string> },
+    { key: 'committed', label: 'Committed (remaining)', base: R, value: C, color: 'var(--color-orange-400)', drill: { bucket: 'In Execution' } as Record<string, string> },
+    { key: 'pipeline', label: 'Pipeline', base: RC, value: P, color: 'var(--color-brand-500)', drill: { bucket: 'Pipeline' } as Record<string, string> },
+    { key: 'total', label: 'Total tracked', base: 0, value: total, color: 'var(--color-brand-600)', drill: {} as Record<string, string> },
   ]
   return { rows, R, C, P, RC, total }
 }
@@ -366,10 +366,10 @@ export function dropData(ctx: Ctx) {
 // ─── Report 9 — Ageing & SLA breach ──────────────────────────────────────────
 export const SLA_STATES = ['ok', 'due', 'breach', 'escalated'] as const
 export const SLA_STATE_STYLE: Record<string, { label: string; color: string }> = {
-  ok: { label: 'Within SLA', color: '#0f9f6e' },
-  due: { label: 'Reminder due', color: '#ec8a1c' },
-  breach: { label: 'SLA breached', color: '#e0364f' },
-  escalated: { label: 'Escalated', color: '#a3143a' },
+  ok: { label: 'Within SLA', color: 'var(--color-emerald-600)' },
+  due: { label: 'Reminder due', color: 'var(--color-orange-400)' },
+  breach: { label: 'SLA breached', color: 'var(--color-rose-600)' },
+  escalated: { label: 'Escalated', color: 'var(--color-rose-800)' },
 }
 export function ageingData(ctx: Ctx) {
   const rows = ctx.ideas

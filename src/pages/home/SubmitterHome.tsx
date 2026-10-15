@@ -55,8 +55,8 @@ export function OpenCampaigns({ className, supplierCode }: { className?: string;
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <Badge color={c.type === 'Workshop' ? '#7c3aed' : '#0284c7'} icon={c.type === 'Workshop' ? 'Presentation' : 'Megaphone'}>{c.type}</Badge>
-                      {invited && <Badge color="#223c86" icon="MailCheck">Invited</Badge>}
+                      <Badge color={c.type === 'Workshop' ? 'var(--color-violet-600)' : 'var(--color-sky-600)'} icon={c.type === 'Workshop' ? 'Presentation' : 'Megaphone'}>{c.type}</Badge>
+                      {invited && <Badge color="var(--color-brand-600)" icon="MailCheck">Invited</Badge>}
                       <span className="text-[11px] text-muted font-mono">{c.id}</span>
                     </div>
                     <div className="text-[13px] font-semibold text-ink mt-1 truncate">{c.name}</div>
@@ -148,7 +148,7 @@ export default function SubmitterHome() {
               {stats.map((s) => {
                 const st = BUCKET_STYLE[s.b]
                 return (
-                  <button key={s.b} onClick={() => drill({ bucket: s.b }, '/my-ideas', false)} className="card relative overflow-hidden text-left px-4 py-3.5 hover:-translate-y-0.5 hover:border-[#d0d5dd] transition-all">
+                  <button key={s.b} onClick={() => drill({ bucket: s.b }, '/my-ideas', false)} className="card relative overflow-hidden text-left px-4 py-3.5 hover:-translate-y-0.5 hover:border-[var(--color-gray-300)] transition-all">
                     <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: st.color }} />
                     <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: st.text }}><Icon name={BUCKET_ICON[s.b]} size={13} />{s.b}</div>
                     <div className="text-[24px] leading-none font-bold tracking-tight text-ink mt-2.5"><Count value={s.count} /></div>

@@ -7,15 +7,15 @@ import { fmtDate, inrShort, nowIso, sum, todayIso, uid } from '../../lib/format'
 import { Avatar, Badge, Button, Field, Icon, Modal, Segmented, SourceTag, cn } from '../../components/ui'
 import { Pager, usePaged } from './kit'
 
-export const PRIMARY = '#223c86'
-export const GOLD = '#b8142a'
+export const PRIMARY = 'var(--color-brand-600)'
+export const GOLD = 'var(--color-accent-600)'
 export type AttendanceStatus = Campaign['attendance'][string]
 export const ATTENDANCE: AttendanceStatus[] = ['Invited', 'Accepted', 'Declined', 'Attended']
 export const ATT_STYLE: Record<AttendanceStatus, { color: string; icon: string }> = {
-  Invited: { color: '#64748b', icon: 'MailQuestion' },
-  Accepted: { color: '#36509a', icon: 'CalendarCheck' },
-  Declined: { color: '#e0364f', icon: 'CalendarX' },
-  Attended: { color: '#0f9f6e', icon: 'UserCheck' },
+  Invited: { color: 'var(--color-slate-500)', icon: 'MailQuestion' },
+  Accepted: { color: 'var(--color-brand-500)', icon: 'CalendarCheck' },
+  Declined: { color: 'var(--color-rose-600)', icon: 'CalendarX' },
+  Attended: { color: 'var(--color-emerald-600)', icon: 'UserCheck' },
 }
 
 /** Ideas raised through a campaign (drafts excluded) */
@@ -46,7 +46,7 @@ export function CampaignStatusBadge({ status }: { status: Campaign['status'] }) 
       <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-70 animate-ping" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>Live
     </span>
   )
-  return status === 'Draft' ? <Badge color="#64748b" icon="FilePen">Draft</Badge> : <Badge color="#475569" icon="Lock">Closed</Badge>
+  return status === 'Draft' ? <Badge color="var(--color-slate-500)" icon="FilePen">Draft</Badge> : <Badge color="var(--color-slate-600)" icon="Lock">Closed</Badge>
 }
 export function CampaignTypeBadge({ type }: { type: Campaign['type'] }) {
   return type === 'Workshop' ? <Badge color={GOLD} icon="Presentation">Workshop</Badge> : <Badge color={PRIMARY} icon="Megaphone">Campaign</Badge>
@@ -323,5 +323,5 @@ export const submissionLink = (id: string) => `${window.location.origin}/submit?
 /** Single-line category tick for horizontal bar charts (no wrapping) */
 export const YTick = ({ x, y, payload, max = 22 }: any) => {
   const v = String(payload?.value ?? '')
-  return <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fill="#334155">{v.length > max ? v.slice(0, max - 1) + '…' : v}</text>
+  return <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} fill="var(--color-slate-700)">{v.length > max ? v.slice(0, max - 1) + '…' : v}</text>
 }

@@ -40,7 +40,7 @@ export default function SupplierForm() {
   const [failed, setFailed] = useState(false)
 
   const shell = (children: React.ReactNode) => (
-    <div className="min-h-full bg-[#f4f6fa]">
+    <div className="min-h-full bg-[var(--color-slate-100)]">
       <header className="bg-white border-b border-line">
         <div className="max-w-[760px] mx-auto px-4 h-14 flex items-center gap-2.5">
           <CoinMark size={30} />
@@ -77,8 +77,8 @@ export default function SupplierForm() {
         </div>
       </section>
       <section className="card p-5 grid gap-4">
-        <Field label="Can you supply this item?" required><Choice<Resp['canSupply']> value={canSupply} onChange={(v) => setCanSupply(v)} options={[{ key: 'Yes', label: 'Yes', tone: '#0f9f6e' }, { key: 'Partly', label: 'Partly', tone: '#ec8a1c' }, { key: 'No', label: 'No', tone: '#d7192d' }]} /></Field>
-        <Field label="Does it meet the specification?" required><Choice<Resp['meetsSpec']> value={meetsSpec} onChange={(v) => setMeetsSpec(v)} options={[{ key: 'Yes', label: 'Yes', tone: '#0f9f6e' }, { key: 'With deviation', label: 'With deviation', tone: '#ec8a1c' }, { key: 'No', label: 'No', tone: '#d7192d' }]} /></Field>
+        <Field label="Can you supply this item?" required><Choice<Resp['canSupply']> value={canSupply} onChange={(v) => setCanSupply(v)} options={[{ key: 'Yes', label: 'Yes', tone: 'var(--color-emerald-600)' }, { key: 'Partly', label: 'Partly', tone: 'var(--color-orange-400)' }, { key: 'No', label: 'No', tone: 'var(--color-accent-500)' }]} /></Field>
+        <Field label="Does it meet the specification?" required><Choice<Resp['meetsSpec']> value={meetsSpec} onChange={(v) => setMeetsSpec(v)} options={[{ key: 'Yes', label: 'Yes', tone: 'var(--color-emerald-600)' }, { key: 'With deviation', label: 'With deviation', tone: 'var(--color-orange-400)' }, { key: 'No', label: 'No', tone: 'var(--color-accent-500)' }]} /></Field>
         <div className="grid sm:grid-cols-2 gap-3">
           <Field label="Monthly capacity"><input className="input" value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="e.g. 120 MT per month" /></Field>
           <Field label="Lead time (days)"><input className="input num" type="number" min="0" value={lead} onChange={(e) => setLead(e.target.value)} placeholder="e.g. 30" /></Field>

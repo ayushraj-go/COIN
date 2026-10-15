@@ -11,7 +11,7 @@ export function FormSection({ letter, title, subtitle, icon, open, onToggle, sum
 }) {
   const complete = state.required > 0 && state.missing === 0
   return (
-    <section className={cn('card min-w-0 transition-colors', open && 'border-[#d0d5dd]')} data-section={letter}>
+    <section className={cn('card min-w-0 transition-colors', open && 'border-[var(--color-gray-300)]')} data-section={letter}>
       <div className="flex items-center gap-2 pr-3">
         <button type="button" onClick={onToggle} aria-expanded={open}
           className="flex-1 min-w-0 flex items-center gap-3 pl-4 pr-1 py-3 text-left rounded-xl focus-ring">
@@ -21,7 +21,7 @@ export function FormSection({ letter, title, subtitle, icon, open, onToggle, sum
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-2">
-              <Icon name={icon} size={14} className="text-[#98a2b3] shrink-0" />
+              <Icon name={icon} size={14} className="text-[var(--color-slate-400)] shrink-0" />
               <span className="text-[13.5px] font-semibold text-ink truncate">{title}</span>
             </span>
             <span className="block text-[11.5px] text-muted truncate">{open ? subtitle : summary}</span>

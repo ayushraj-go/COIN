@@ -68,7 +68,7 @@ export default function SupplierCheck() {
         <span className="text-slate-300">/</span><span className="text-ink font-semibold">Supplier capability check</span>
       </div>
       <PageHeader icon="Factory" title="Supplier capability check" fit
-        badge={<Badge color={sc?.status === 'Responded' ? '#0f9f6e' : sc?.status === 'Sent' ? '#ec8a1c' : '#64748b'}>{sc?.status ?? 'Not sent'}</Badge>}
+        badge={<Badge color={sc?.status === 'Responded' ? 'var(--color-emerald-600)' : sc?.status === 'Sent' ? 'var(--color-orange-400)' : 'var(--color-slate-500)'}>{sc?.status ?? 'Not sent'}</Badge>}
         subtitle={`${stageLabel(idea, STAGE.evaluation)} · ${idea.title} · annualised ${inrShort(annual)}`}
         actions={<Button size="sm" icon="FlaskConical" onClick={() => nav(`/ideas/${idea.id}`)}>Back to the idea</Button>} />
 
@@ -101,7 +101,7 @@ export default function SupplierCheck() {
                 <div className="grid sm:grid-cols-2 gap-1.5">
                   {options.map((s) => (
                     <button key={s.code} type="button" onClick={() => { setCode(s.code); setTouched(false) }} className={cn('text-left rounded-xl border px-3 py-2 transition-colors', code === s.code ? 'border-brand-500 bg-brand-50' : 'border-line bg-white hover:border-slate-300')}>
-                      <div className="flex items-center gap-1.5"><span className="text-[13px] font-semibold text-ink truncate">{s.name}</span>{s.tier && <Badge color={s.tier === 'Tier 1' ? '#1b316f' : '#64748b'}>{s.tier}</Badge>}</div>
+                      <div className="flex items-center gap-1.5"><span className="text-[13px] font-semibold text-ink truncate">{s.name}</span>{s.tier && <Badge color={s.tier === 'Tier 1' ? 'var(--color-brand-700)' : 'var(--color-slate-500)'}>{s.tier}</Badge>}</div>
                       <div className="text-[11.5px] text-muted truncate">{s.code} · {s.city} · {s.contactName}{current.has(s.code) ? ' · current supplier' : ''}</div>
                     </button>
                   ))}

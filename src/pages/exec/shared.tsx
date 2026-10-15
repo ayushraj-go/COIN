@@ -200,7 +200,7 @@ export function monthlyCommitted(idea: Idea, fy: string): Record<string, number>
   return out
 }
 
-export const SLA_COLOR: Record<string, string> = { none: '#94a3b8', ok: '#0f9f6e', due: '#ec8a1c', breach: '#e0364f', escalated: '#a3143a' }
+export const SLA_COLOR: Record<string, string> = { none: 'var(--color-slate-400)', ok: 'var(--color-emerald-600)', due: 'var(--color-orange-400)', breach: 'var(--color-rose-600)', escalated: 'var(--color-rose-800)' }
 
 /** Section header inside a card */
 export function MiniHead({ icon, children, right }: { icon?: string; children: React.ReactNode; right?: React.ReactNode }) {

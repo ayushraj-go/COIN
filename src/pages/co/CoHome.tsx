@@ -28,7 +28,7 @@ export default function CoHome() {
   return (
     <div>
       <HomeHeader
-        subtitle={<><Badge color="#d7192d">LENS</Badge> Linked Evidence of Negotiation and Savings · stages 5–6 · {c.fy} · {scope}</>}
+        subtitle={<><Badge color="var(--color-accent-500)">LENS</Badge> Linked Evidence of Negotiation and Savings · stages 5–6 · {c.fy} · {scope}</>}
         actions={headerActions} />
 
       {view === 'dashboard' ? (

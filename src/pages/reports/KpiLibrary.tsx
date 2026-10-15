@@ -19,14 +19,14 @@ interface BRow { key: string; label: string; value: number; display: string; dri
 interface Head { v: number; kind: 'money' | 'pct' | 'count' | 'days'; digits?: number; sub?: React.ReactNode; color?: string; display?: string }
 interface KDef { id: string; head: (ctx: Ctx, sm: Summary, n: number, space: Space) => Head; rows: (ctx: Ctx, dim: string, sm: Summary, n: number, space: Space) => BRow[]; max?: (rows: BRow[]) => number; marker?: number; asc?: boolean; extra?: (ctx: Ctx) => React.ReactNode }
 
-const GROUP_COLOR: Record<string, string> = { A: '#475569', B: '#0891b2', C: '#7c3aed', D: '#ec8a1c', E: '#b8142a', F: '#0d9488' }
+const GROUP_COLOR: Record<string, string> = { A: 'var(--color-slate-600)', B: 'var(--color-cyan-600)', C: 'var(--color-violet-600)', D: 'var(--color-orange-400)', E: 'var(--color-accent-600)', F: 'var(--color-teal-600)' }
 const GROUP_NOTE: Record<string, string> = {
   A: 'Savings in the pipeline, in execution and realised',
   B: 'How ideas move through the funnel', C: 'How fast ideas move', D: 'How reliably approved ideas deliver', E: 'Where the savings come from', F: 'How wide the innovation network is',
 }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 const dimsOf = (cut: string) => cut.split(',').map((x) => cap(x.trim()))
-const rateTone = (p: number) => (p >= 100 ? '#0f9f6e' : p >= 80 ? '#ec8a1c' : '#e0364f')
+const rateTone = (p: number) => (p >= 100 ? 'var(--color-emerald-600)' : p >= 80 ? 'var(--color-orange-400)' : 'var(--color-rose-600)')
 const ROUTES: RouteKey[] = ['Commercial', 'Supplier change', 'Technical', 'Internal', 'To be confirmed']
 
 interface Part { key: string; label: string; ideas: Idea[]; drill?: Drill }
@@ -76,9 +76,9 @@ const DEFS: KDef[] = [
     id: 'A2', head: (ctx, sm) => { const spend = ctx.scopeCommodities.reduce((a, c) => a + c.addressableSpend, 0); return { v: safeDiv(sm.realised, spend) * 100, kind: 'pct', digits: 3, sub: <>{inrShort(sm.realised)} of {inrBig(spend)} addressable spend</> } },
     rows: (ctx, dim) => byParts(ctx, dim, (p) => { const spend = dim === 'Commodity' ? ctx.commodities.find((c) => c.code === p.key)?.addressableSpend ?? 0 : ctx.scopeCommodities.filter((c) => c.categoryId === p.key).reduce((a, c) => a + c.addressableSpend, 0); return safeDiv(realisedOf(ctx, p.ideas), spend) * 100 }, (v) => pct(v, 3)),
   },
-  { id: 'A3', head: (_c, sm) => ({ v: sm.pipeline, kind: 'money', color: '#36509a', sub: <>{sm.counts.Pipeline} ideas in Pipeline</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => pipelineOf(p.ideas), money).map((r) => ({ ...r, drill: { ...r.drill, bucket: 'Pipeline' } })) },
+  { id: 'A3', head: (_c, sm) => ({ v: sm.pipeline, kind: 'money', color: 'var(--color-brand-500)', sub: <>{sm.counts.Pipeline} ideas in Pipeline</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => pipelineOf(p.ideas), money).map((r) => ({ ...r, drill: { ...r.drill, bucket: 'Pipeline' } })) },
   {
-    id: 'A4', head: (ctx, sm) => ({ v: committedExec(ctx, ctx.all), kind: 'money', color: '#ec8a1c', sub: <>incl. implemented ideas: {inrShort(sm.committed)}</> }),
+    id: 'A4', head: (ctx, sm) => ({ v: committedExec(ctx, ctx.all), kind: 'money', color: 'var(--color-orange-400)', sub: <>incl. implemented ideas: {inrShort(sm.committed)}</> }),
     rows: (ctx, dim) => {
       if (dim === 'Quarter') {
         const q = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }
@@ -89,7 +89,7 @@ const DEFS: KDef[] = [
     },
   },
   {
-    id: 'A5', head: (_c, sm) => ({ v: sm.realised, kind: 'money', color: '#0f9f6e', sub: <>{inrShort(sm.realisedValidated)} Finance-validated</> }),
+    id: 'A5', head: (_c, sm) => ({ v: sm.realised, kind: 'money', color: 'var(--color-emerald-600)', sub: <>{inrShort(sm.realisedValidated)} Finance-validated</> }),
     rows: (ctx, dim) => {
       if (dim === 'Month') return ctx.months.filter((m) => m <= ctx.lrm).map((m) => { const rows = ctx.hardLed.filter((l) => l.month === m); const v = rows.reduce((a, l) => a + l.realised, 0); const ids = new Set(rows.map((l) => l.ideaId)); return { key: m, label: monthLabel(m), value: v, display: money(v), ideas: ctx.ideas.filter((i) => ids.has(i.id)) } })
       if (dim === 'Supplier') {
@@ -100,7 +100,7 @@ const DEFS: KDef[] = [
       return byParts(ctx, dim, (p) => realisedOf(ctx, p.ideas), money)
     },
   },
-  { id: 'A9', head: (ctx, sm) => ({ v: sm.carryOver, kind: 'money', color: '#4f46e5', sub: <>beyond {ctx.fy} close (31 March)</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => groupSum(ctx, p.ideas).carryOver, money) },
+  { id: 'A9', head: (ctx, sm) => ({ v: sm.carryOver, kind: 'money', color: 'var(--color-indigo-600)', sub: <>beyond {ctx.fy} close (31 March)</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => groupSum(ctx, p.ideas).carryOver, money) },
   {
     id: 'B1', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', sub: <>{inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised</> }),
     rows: (ctx) => {
@@ -111,12 +111,12 @@ const DEFS: KDef[] = [
     asc: true,
   },
   {
-    id: 'B2', head: (ctx) => ({ v: conv(ctx.ideas), kind: 'pct', color: '#0f9f6e', sub: <>{ctx.ideas.filter((i) => i.bucket === 'Implemented').length} of {ctx.ideas.length} submitted</> }),
+    id: 'B2', head: (ctx) => ({ v: conv(ctx.ideas), kind: 'pct', color: 'var(--color-emerald-600)', sub: <>{ctx.ideas.filter((i) => i.bucket === 'Implemented').length} of {ctx.ideas.length} submitted</> }),
     rows: (ctx, dim) => byParts(ctx, dim, (p) => conv(p.ideas), (v, p) => `${pct(v, 0)} · ${p.ideas.filter(nonDraft).length}`), max: () => 100,
     extra: (ctx) => { const st = funnelSteps(ctx.all); return <div className="flex items-center gap-1 text-[10.5px] text-muted flex-wrap">{st.map((s, k) => <span key={s.step} className="inline-flex items-center gap-1">{k > 0 && <Icon name="ChevronRight" size={10} />}<b className="text-ink-2">{s.step}</b>{k > 0 && <span className="num">{pct((s.n / Math.max(1, st[k - 1].n)) * 100, 0)}</span>}</span>)}</div> },
   },
   {
-    id: 'B3', head: (ctx) => { const d = ctx.ideas.filter((i) => i.bucket === 'Dropped'); const m = new Map<string, number>(); d.forEach((i) => m.set(i.dropReason ?? '—', (m.get(i.dropReason ?? '—') ?? 0) + 1)); const top = [...m.entries()].sort((a, b) => b[1] - a[1])[0]; return { v: dropRate(ctx.ideas), kind: 'pct', color: '#6b7280', sub: <>{d.length} dropped · top: {top?.[0] ?? '—'}</> } },
+    id: 'B3', head: (ctx) => { const d = ctx.ideas.filter((i) => i.bucket === 'Dropped'); const m = new Map<string, number>(); d.forEach((i) => m.set(i.dropReason ?? '—', (m.get(i.dropReason ?? '—') ?? 0) + 1)); const top = [...m.entries()].sort((a, b) => b[1] - a[1])[0]; return { v: dropRate(ctx.ideas), kind: 'pct', color: 'var(--color-gray-500)', sub: <>{d.length} dropped · top: {top?.[0] ?? '—'}</> } },
     rows: (ctx, dim) => {
       const dropped = ctx.ideas.filter((i) => i.bucket === 'Dropped')
       if (dim === 'Reason' || dim === 'Stage') {
@@ -126,55 +126,55 @@ const DEFS: KDef[] = [
       }
       return byParts(ctx, dim, (p) => dropRate(p.ideas), (v, p) => `${pct(v, 0)} · ${p.ideas.filter((i) => i.bucket === 'Dropped').length}`).map((r) => ({ ...r, drill: { ...r.drill, bucket: 'Dropped' } }))
     },
-    extra: (ctx) => <div className="flex items-end gap-2"><MiniBars width={120} height={20} color="#6b7280" data={ctx.months.map((m) => ctx.ideas.filter((i) => i.bucket === 'Dropped' && (i.droppedAt ?? '').slice(0, 7) === m).length)} /><span className="text-[10px] text-muted">month-wise, Apr → Mar</span></div>,
+    extra: (ctx) => <div className="flex items-end gap-2"><MiniBars width={120} height={20} color="var(--color-gray-500)" data={ctx.months.map((m) => ctx.ideas.filter((i) => i.bucket === 'Dropped' && (i.droppedAt ?? '').slice(0, 7) === m).length)} /><span className="text-[10px] text-muted">month-wise, Apr → Mar</span></div>,
   },
   {
-    id: 'B4', head: (ctx) => { const o = openIdeas(ctx.ideas); return { v: mean(o.map((i) => stageAgeDays(i))), kind: 'days', color: '#ec8a1c', sub: <>{ctx.ideas.filter((i) => isBreach(ctx, i)).length} ideas beyond SLA</> } },
+    id: 'B4', head: (ctx) => { const o = openIdeas(ctx.ideas); return { v: mean(o.map((i) => stageAgeDays(i))), kind: 'days', color: 'var(--color-orange-400)', sub: <>{ctx.ideas.filter((i) => isBreach(ctx, i)).length} ideas beyond SLA</> } },
     rows: (ctx, dim) => {
       if (dim === 'Owner') {
         const m = new Map<string, { label: string; list: Idea[] }>()
         ctx.ideas.filter((i) => i.bucket === 'Pipeline').forEach((i) => { const o = stageOwner(ctx, i); const e = m.get(o.key) ?? { label: o.label, list: [] }; e.list.push(i); m.set(o.key, e) })
-        return [...m.entries()].map(([k, e]) => { const b = e.list.filter((i) => isBreach(ctx, i)).length; return { key: k, label: e.label, value: b, display: `${b} over SLA · ${e.list.length}`, ideas: e.list, color: b ? '#e0364f' : '#0f9f6e' } })
+        return [...m.entries()].map(([k, e]) => { const b = e.list.filter((i) => isBreach(ctx, i)).length; return { key: k, label: e.label, value: b, display: `${b} over SLA · ${e.list.length}`, ideas: e.list, color: b ? 'var(--color-rose-600)' : 'var(--color-emerald-600)' } })
       }
       const m = new Map<string, Idea[]>()
       openIdeas(ctx.ideas).forEach((i) => m.set(i.stage, [...(m.get(i.stage) ?? []), i]))
-      return [...m.entries()].map(([st, list]) => { const a = mean(list.map((i) => stageAgeDays(i))); const b = list.filter((i) => isBreach(ctx, i)).length; return { key: st, label: st, value: a, display: `${num(a, 0)} d${b ? ` · ${b} over` : ''}`, drill: { stage: st }, ideas: list, color: b ? '#e0364f' : '#ec8a1c' } })
+      return [...m.entries()].map(([st, list]) => { const a = mean(list.map((i) => stageAgeDays(i))); const b = list.filter((i) => isBreach(ctx, i)).length; return { key: st, label: st, value: a, display: `${num(a, 0)} d${b ? ` · ${b} over` : ''}`, drill: { stage: st }, ideas: list, color: b ? 'var(--color-rose-600)' : 'var(--color-orange-400)' } })
     },
   },
-  { id: 'C1', head: (ctx) => ({ v: c1(ctx.ideas), kind: 'days', color: '#7c3aed', sub: <>{ctx.ideas.filter((i) => i.approvedAt).length} approved ideas</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c1(p.ideas), days).filter((r) => !isNaN(r.value)) },
-  { id: 'C2', head: (ctx) => ({ v: c2(ctx.ideas), kind: 'days', color: '#7c3aed', sub: <>{ctx.ideas.filter((i) => i.bucket === 'Implemented').length} ideas Done</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c2(p.ideas), days).filter((r) => !isNaN(r.value)) },
+  { id: 'C1', head: (ctx) => ({ v: c1(ctx.ideas), kind: 'days', color: 'var(--color-violet-600)', sub: <>{ctx.ideas.filter((i) => i.approvedAt).length} approved ideas</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c1(p.ideas), days).filter((r) => !isNaN(r.value)) },
+  { id: 'C2', head: (ctx) => ({ v: c2(ctx.ideas), kind: 'days', color: 'var(--color-violet-600)', sub: <>{ctx.ideas.filter((i) => i.bucket === 'Implemented').length} ideas Done</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c2(p.ideas), days).filter((r) => !isNaN(r.value)) },
   {
-    id: 'C3', head: (ctx, _sm, _n, space) => { const s = stagesOf(ctx, space).filter((x) => x.stage !== 'Team feasibility check' || space === 'CO'); const top = [...s].sort((a, b) => b.avg - a.avg)[0]; return { v: top?.avg ?? NaN, kind: 'days', color: '#e0364f', sub: <>slowest: {top?.stage ?? '—'} · {space === 'CO' ? 'Execution started (NPD sample, PAP, go-live)' : 'R&D and sourcing approval'}</> } },
-    rows: (ctx, _dim, _sm, _n, space) => stagesOf(ctx, space).map((s) => ({ key: s.stage, label: s.stage, value: s.avg, display: `${num(s.avg, 1)} d · ${s.n}`, drill: { stage: s.stage }, color: /R&D|NPD|PAP/.test(s.stage) ? '#e0364f' : '#7c3aed' })),
+    id: 'C3', head: (ctx, _sm, _n, space) => { const s = stagesOf(ctx, space).filter((x) => x.stage !== 'Team feasibility check' || space === 'CO'); const top = [...s].sort((a, b) => b.avg - a.avg)[0]; return { v: top?.avg ?? NaN, kind: 'days', color: 'var(--color-rose-600)', sub: <>slowest: {top?.stage ?? '—'} · {space === 'CO' ? 'Execution started (NPD sample, PAP, go-live)' : 'R&D and sourcing approval'}</> } },
+    rows: (ctx, _dim, _sm, _n, space) => stagesOf(ctx, space).map((s) => ({ key: s.stage, label: s.stage, value: s.avg, display: `${num(s.avg, 1)} d · ${s.n}`, drill: { stage: s.stage }, color: /R&D|NPD|PAP/.test(s.stage) ? 'var(--color-rose-600)' : 'var(--color-violet-600)' })),
   },
-  { id: 'D1', head: (ctx) => { const o = onTime(ctx.ideas); return { v: o.pct, kind: 'pct', color: '#0f9f6e', sub: <>{o.ok} of {o.done} Done by original due date</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => onTime(p.ideas).pct, (v, p) => { const o = onTime(p.ideas); return `${pct(v, 0)} · ${o.ok}/${o.done}` }).filter((r) => !isNaN(r.value)), max: () => 100 },
-  { id: 'D2', head: (ctx) => { const o = ctx.ideas.filter((i) => isOverdue(ctx, i)); return { v: o.reduce((a, i) => a + committedHard(ctx, i), 0), kind: 'money', color: '#e0364f', sub: <>{o.length} ideas past due date</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => p.ideas.filter((i) => isOverdue(ctx, i)).reduce((a, i) => a + committedHard(ctx, i), 0), money).map((r) => ({ ...r, drill: { ...r.drill, health: 'Delayed' }, color: '#e0364f' })) },
+  { id: 'D1', head: (ctx) => { const o = onTime(ctx.ideas); return { v: o.pct, kind: 'pct', color: 'var(--color-emerald-600)', sub: <>{o.ok} of {o.done} Done by original due date</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => onTime(p.ideas).pct, (v, p) => { const o = onTime(p.ideas); return `${pct(v, 0)} · ${o.ok}/${o.done}` }).filter((r) => !isNaN(r.value)), max: () => 100 },
+  { id: 'D2', head: (ctx) => { const o = ctx.ideas.filter((i) => isOverdue(ctx, i)); return { v: o.reduce((a, i) => a + committedHard(ctx, i), 0), kind: 'money', color: 'var(--color-rose-600)', sub: <>{o.length} ideas past due date</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => p.ideas.filter((i) => isOverdue(ctx, i)).reduce((a, i) => a + committedHard(ctx, i), 0), money).map((r) => ({ ...r, drill: { ...r.drill, health: 'Delayed' }, color: 'var(--color-rose-600)' })) },
   { id: 'D3', head: (ctx) => { const r = realisationRate(ctx, ctx.ideas); return { v: r, kind: 'pct', color: rateTone(r), sub: <>realised ÷ committed to {monthLabel(ctx.lrm)}</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => realisationRate(ctx, p.ideas), (v) => pct(v, 0)).filter((r) => r.value > 0), max: () => 120, marker: 100 },
   {
-    id: 'D4', head: (ctx) => ({ v: ctx.led.reduce((a, l) => a + l.leakage, 0), kind: 'money', color: '#e0364f', sub: <>{ctx.led.filter((l) => l.leakage > 0).length} ledger entries</> }),
+    id: 'D4', head: (ctx) => ({ v: ctx.led.reduce((a, l) => a + l.leakage, 0), kind: 'money', color: 'var(--color-rose-600)', sub: <>{ctx.led.filter((l) => l.leakage > 0).length} ledger entries</> }),
     rows: (ctx, dim) => {
       const m = new Map<string, { v: number; ids: Set<string> }>()
       ctx.led.filter((l) => l.leakage > 0).forEach((l) => { const k = dim === 'Supplier' ? l.supplierCode : l.partCode; const e = m.get(k) ?? { v: 0, ids: new Set<string>() }; e.v += l.leakage; e.ids.add(l.ideaId); m.set(k, e) })
       return [...m.entries()].map(([k, e]) => {
         const desc = dim === 'Part' ? ctx.all.flatMap((i) => i.parts).find((p) => p.partCode === k)?.description : ctx.suppliers.find((s) => s.code === k)?.name
-        return { key: k, label: dim === 'Part' ? `${k} · ${desc ?? ''}` : desc ?? k, value: e.v, display: money(e.v), drill: dim === 'Supplier' ? { supplier: k } : { q: k }, ideas: ctx.ideas.filter((i) => e.ids.has(i.id)), color: '#e0364f' }
+        return { key: k, label: dim === 'Part' ? `${k} · ${desc ?? ''}` : desc ?? k, value: e.v, display: money(e.v), drill: dim === 'Supplier' ? { supplier: k } : { q: k }, ideas: ctx.ideas.filter((i) => e.ids.has(i.id)), color: 'var(--color-rose-600)' }
       })
     },
   },
   {
-    id: 'E1', head: (ctx) => { const d = leverData(ctx); return { v: d.negotiated, kind: 'pct', color: d.flag ? '#e0364f' : '#7c3aed', sub: <>{d.flag ? <b className="text-red-600">Flag: </b> : null}negotiated (commercial) share · flag &gt; {NEGOTIATION_FLAG_PCT}%</> } },
-    rows: (ctx) => leverData(ctx).rows.filter((r) => r.realised > 0).map((r) => ({ key: r.id, label: r.name, value: r.share, display: `${pct(r.share)} · ${inrShort(r.realised)}`, drill: { lever: r.id }, color: r.group === 'Commercial' ? '#7c3aed' : STRUCTURAL_LEVERS.includes(r.id) ? '#4f46e5' : '#0d9488' })), max: () => 100,
+    id: 'E1', head: (ctx) => { const d = leverData(ctx); return { v: d.negotiated, kind: 'pct', color: d.flag ? 'var(--color-rose-600)' : 'var(--color-violet-600)', sub: <>{d.flag ? <b className="text-red-600">Flag: </b> : null}negotiated (commercial) share · flag &gt; {NEGOTIATION_FLAG_PCT}%</> } },
+    rows: (ctx) => leverData(ctx).rows.filter((r) => r.realised > 0).map((r) => ({ key: r.id, label: r.name, value: r.share, display: `${pct(r.share)} · ${inrShort(r.realised)}`, drill: { lever: r.id }, color: r.group === 'Commercial' ? 'var(--color-violet-600)' : STRUCTURAL_LEVERS.includes(r.id) ? 'var(--color-indigo-600)' : 'var(--color-teal-600)' })), max: () => 100,
   },
-  { id: 'E2', head: (ctx) => { const d = leverData(ctx); return { v: d.structuralShare, kind: 'pct', color: '#4f46e5', sub: <>{inrShort(d.structuralTotal)} of {inrShort(d.total)} realised</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => { const t = realisedOf(ctx, p.ideas); return safeDiv(realisedOf(ctx, p.ideas.filter((i) => STRUCTURAL_LEVERS.includes(i.leverId))), t) * 100 }, (v) => pct(v)).filter((r) => r.value > 0), max: () => 100 },
+  { id: 'E2', head: (ctx) => { const d = leverData(ctx); return { v: d.structuralShare, kind: 'pct', color: 'var(--color-indigo-600)', sub: <>{inrShort(d.structuralTotal)} of {inrShort(d.total)} realised</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => { const t = realisedOf(ctx, p.ideas); return safeDiv(realisedOf(ctx, p.ideas.filter((i) => STRUCTURAL_LEVERS.includes(i.leverId))), t) * 100 }, (v) => pct(v)).filter((r) => r.value > 0), max: () => 100 },
   {
-    id: 'F1', head: (ctx, _sm, n) => { const t = topSuppliers(ctx, null, n); return { v: t.pct, kind: 'pct', color: '#0d9488', sub: <>{t.yes.length} of top-{t.pool.length} suppliers by spend submitted ≥ 1 idea</> } },
+    id: 'F1', head: (ctx, _sm, n) => { const t = topSuppliers(ctx, null, n); return { v: t.pct, kind: 'pct', color: 'var(--color-teal-600)', sub: <>{t.yes.length} of top-{t.pool.length} suppliers by spend submitted ≥ 1 idea</> } },
     rows: (ctx, _dim, _sm, n) => ctx.scopeCommodities.map((c) => { const t = topSuppliers(ctx, [c.code], n); return { key: c.code, label: c.name, value: t.pct, display: `${pct(t.pct, 0)} · ${t.yes.length}/${t.pool.length}`, drill: { commodity: c.code } } }).filter((r) => r.display.indexOf('/0') < 0), max: () => 100,
   },
   {
-    id: 'F2', head: (ctx) => { const withIdeas = ctx.campaigns.filter((c) => ctx.ideas.some((i) => i.campaignId === c.id)); const n = ctx.ideas.filter((i) => i.campaignId).length; return { v: safeDiv(n, withIdeas.length), kind: 'count', digits: 1, color: '#db2777', sub: <>ideas per campaign · {n} ideas, {inrShort(ctx.ideas.filter((i) => i.campaignId).reduce((a, i) => a + ideaAnnualised(i), 0))}</> } },
+    id: 'F2', head: (ctx) => { const withIdeas = ctx.campaigns.filter((c) => ctx.ideas.some((i) => i.campaignId === c.id)); const n = ctx.ideas.filter((i) => i.campaignId).length; return { v: safeDiv(n, withIdeas.length), kind: 'count', digits: 1, color: 'var(--color-pink-600)', sub: <>ideas per campaign · {n} ideas, {inrShort(ctx.ideas.filter((i) => i.campaignId).reduce((a, i) => a + ideaAnnualised(i), 0))}</> } },
     rows: (ctx, dim) => byParts(ctx, dim, (p) => p.ideas.length, (v, p) => `${v} · ${inrShort(p.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} · ${pct(conv(p.ideas), 0)}`),
   },
-  { id: 'F3', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', color: '#0d9488', sub: <>from {new Set(ctx.ideas.map((i) => i.department)).size} departments</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => p.ideas.length, (v, p) => `${v} · ${inrShort(p.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))}`) },
+  { id: 'F3', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', color: 'var(--color-teal-600)', sub: <>from {new Set(ctx.ideas.map((i) => i.department)).size} departments</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => p.ideas.length, (v, p) => `${v} · ${inrShort(p.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))}`) },
 ]
 
 function HeadValue({ h }: { h: Head }) {
@@ -209,7 +209,7 @@ function KpiTile({ def, ctx, sm, onRow, n, setN, space }: { def: KDef; ctx: Ctx;
           </select>
         )}
       </div>
-      <div className="mt-2 text-[22px] leading-none font-bold tracking-tight" style={{ color: head.color ?? '#1e3a5f' }}><HeadValue h={head} /></div>
+      <div className="mt-2 text-[22px] leading-none font-bold tracking-tight" style={{ color: head.color ?? 'var(--color-brand-700)' }}><HeadValue h={head} /></div>
       <div className="text-[11px] text-muted mt-1 truncate">{head.sub}</div>
       <div className="font-mono text-[10px] text-slate-400 mt-1 truncate" title={meta.formula}>{meta.formula}</div>
       {def.extra && <div className="mt-1.5">{def.extra(ctx)}</div>}
@@ -290,7 +290,7 @@ export function SpaceHeading({ space, count, unit = 'KPIs' }: { space: Space; co
   const m = SPACE_META[space]
   return (
     <div className="flex items-center gap-2.5 pt-2 pb-1.5 border-b border-line min-w-0">
-      <span className="h-6 px-2 rounded-md text-[11px] font-extrabold grid place-items-center border shrink-0" style={{ color: m.color, borderColor: `${m.color}40`, background: `${m.color}10` }}>{space}</span>
+      <span className="h-6 px-2 rounded-md text-[11px] font-extrabold grid place-items-center border shrink-0" style={{ color: m.color, borderColor: `color-mix(in srgb, ${m.color} 25%, transparent)`, background: `color-mix(in srgb, ${m.color} 6%, transparent)` }}>{space}</span>
       <h2 className="text-[15px] font-bold text-ink shrink-0">{m.name}</h2>
       <span className="text-[12px] text-muted shrink-0">· {count} {unit}</span>
       <span className="hidden xl:inline text-[12px] text-muted truncate min-w-0">· {m.tagline}</span>

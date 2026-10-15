@@ -13,7 +13,7 @@ const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'
 function Backdrop() {
   return (
     <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-[#fbfaf7]" />
+      <div className="absolute inset-0 bg-[var(--color-gray-50)]" />
       <div
         className="absolute inset-0"
         style={{
@@ -60,23 +60,23 @@ function Globe() {
       <defs>
         <radialGradient id="lg-sphere" cx="34%" cy="28%" r="80%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f3f5f8" />
-          <stop offset="100%" stopColor="#dde3ec" />
+          <stop offset="55%" stopColor="var(--color-slate-100)" />
+          <stop offset="100%" stopColor="var(--color-brand-100)" />
         </radialGradient>
-        <linearGradient id="lg-arc" x1="0" x2="1"><stop offset="0%" stopColor="#14ab92" /><stop offset="100%" stopColor="#36509a" /></linearGradient>
+        <linearGradient id="lg-arc" x1="0" x2="1"><stop offset="0%" stopColor="var(--color-emerald-500)" /><stop offset="100%" stopColor="var(--color-brand-500)" /></linearGradient>
         <clipPath id="lg-clip"><circle r={r} /></clipPath>
       </defs>
       <g style={{ transformOrigin: '0 0', animation: 'orbit-spin 80s linear infinite' }}>
-        <circle r={r + 52} fill="none" stroke="#0f1b33" strokeOpacity=".12" strokeDasharray="2 8" />
-        <circle cx={r + 52} cy={0} r={3.5} fill="#36509a" opacity=".8" />
-        <circle cx={-(r + 52)} cy={0} r={3} fill="#14ab92" />
+        <circle r={r + 52} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".12" strokeDasharray="2 8" />
+        <circle cx={r + 52} cy={0} r={3.5} fill="var(--color-brand-500)" opacity=".8" />
+        <circle cx={-(r + 52)} cy={0} r={3} fill="var(--color-emerald-500)" />
       </g>
-      <ellipse rx={r + 28} ry={(r + 28) * 0.3} transform="rotate(-18)" fill="none" stroke="#0f1b33" strokeOpacity=".08" />
-      <circle r={r} fill="url(#lg-sphere)" stroke="#cfd7e3" />
+      <ellipse rx={r + 28} ry={(r + 28) * 0.3} transform="rotate(-18)" fill="none" stroke="var(--color-slate-900)" strokeOpacity=".08" />
+      <circle r={r} fill="url(#lg-sphere)" stroke="var(--color-slate-300)" />
       <g clipPath="url(#lg-clip)">
-        {[r, r * 0.74, r * 0.42].map((rx, i) => <ellipse key={i} rx={rx} ry={r} fill="none" stroke="#0f1b33" strokeOpacity=".06" />)}
-        {[-0.6, 0, 0.6].map((k, i) => { const y = k * r; const rx = Math.sqrt(r * r - y * y); return <ellipse key={i} cy={y} rx={rx} ry={rx * 0.16} fill="none" stroke="#0f1b33" strokeOpacity=".06" /> })}
-        {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.3} fill="#7d8aa3" opacity={0.45 + ((i * 7) % 5) * 0.06} />)}
+        {[r, r * 0.74, r * 0.42].map((rx, i) => <ellipse key={i} rx={rx} ry={r} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".06" />)}
+        {[-0.6, 0, 0.6].map((k, i) => { const y = k * r; const rx = Math.sqrt(r * r - y * y); return <ellipse key={i} cy={y} rx={rx} ry={rx * 0.16} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".06" /> })}
+        {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.3} fill="var(--color-slate-500)" opacity={0.45 + ((i * 7) % 5) * 0.06} />)}
         {arcs.map(([a, b], i) => {
           const [x1, y1] = nodes[a], [x2, y2] = nodes[b]
           const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 34
@@ -85,8 +85,8 @@ function Globe() {
       </g>
       {nodes.map(([x, y], i) => (
         <g key={i} transform={`translate(${x},${y})`}>
-          <circle r={8} fill={i % 2 ? '#36509a' : '#14ab92'} opacity=".25" style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: `pulse-ring 3s ${i * 0.35}s ease-out infinite` }} />
-          <circle r={3.4} fill="#ffffff" stroke={i % 2 ? '#223c86' : '#0b8a77'} strokeWidth="1.5" />
+          <circle r={8} fill={i % 2 ? 'var(--color-brand-500)' : 'var(--color-emerald-500)'} opacity=".25" style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: `pulse-ring 3s ${i * 0.35}s ease-out infinite` }} />
+          <circle r={3.4} fill="#ffffff" stroke={i % 2 ? 'var(--color-brand-600)' : 'var(--color-emerald-600)'} strokeWidth="1.5" />
         </g>
       ))}
     </svg>
@@ -138,7 +138,7 @@ export default function Login() {
   ]
 
   return (
-    <div className="relative min-h-dvh lg:h-dvh w-full overflow-x-hidden bg-[#fbfaf7] text-ink">
+    <div className="relative min-h-dvh lg:h-dvh w-full overflow-x-hidden bg-[var(--color-gray-50)] text-ink">
       <Backdrop />
       <div className="relative z-10 min-h-dvh lg:h-full flex flex-col px-5 sm:px-10 xl:px-14 py-[clamp(14px,2.6vh,30px)]">
         {/* Header lock-up */}
@@ -241,14 +241,14 @@ export default function Login() {
                   <label className="label !text-[12px] !text-ink-2 !font-semibold">Email / Employee ID</label>
                   <div className="relative">
                     <Icon name="Mail" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                    <input className="input !h-[clamp(38px,5vh,44px)] !pl-10 !rounded-xl !bg-[#f6f6f3] !border-black/[.07] focus:!bg-white" placeholder="you@ambergroupindia.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} autoComplete="username" />
+                    <input className="input !h-[clamp(38px,5vh,44px)] !pl-10 !rounded-xl !bg-[var(--color-gray-100)] !border-black/[.07] focus:!bg-white" placeholder="you@ambergroupindia.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} autoComplete="username" />
                   </div>
                 </div>
                 <div>
                   <label className="label !text-[12px] !text-ink-2 !font-semibold">Password</label>
                   <div className="relative">
                     <Icon name="LockKeyhole" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                    <input type={show ? 'text' : 'password'} className="input !h-[clamp(38px,5vh,44px)] !pl-10 !pr-11 !rounded-xl !bg-[#f6f6f3] !border-black/[.07] focus:!bg-white" placeholder="Enter your password" value={password} onChange={(e) => { setPassword(e.target.value); setErr('') }} autoComplete="current-password" />
+                    <input type={show ? 'text' : 'password'} className="input !h-[clamp(38px,5vh,44px)] !pl-10 !pr-11 !rounded-xl !bg-[var(--color-gray-100)] !border-black/[.07] focus:!bg-white" placeholder="Enter your password" value={password} onChange={(e) => { setPassword(e.target.value); setErr('') }} autoComplete="current-password" />
                     <button type="button" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow((v) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted hover:text-ink hover:bg-black/[.04]"><Icon name={show ? 'EyeOff' : 'Eye'} size={15} /></button>
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function Login() {
                   <button type="button" onClick={() => setForgot(true)} className="font-semibold text-brand-600 hover:text-brand-800">Forgot password?</button>
                 </div>
                 {err && <div className="text-[12px] text-red-600 bg-red-50/90 ring-1 ring-red-100 rounded-xl px-3 py-2 flex items-center gap-2"><Icon name="CircleAlert" size={14} className="shrink-0" />{err}</div>}
-                <button className="group relative w-full h-[clamp(40px,5.2vh,46px)] rounded-xl text-white font-semibold text-[14px] overflow-hidden bg-[#111a2e] hover:bg-[#1a2540] shadow-[0_1px_0_rgb(255_255_255/.12)_inset,0_8px_20px_-10px_rgb(15_27_51/.6)] transition-all active:scale-[.99]">
+                <button className="group relative w-full h-[clamp(40px,5.2vh,46px)] rounded-xl text-white font-semibold text-[14px] overflow-hidden bg-[var(--color-slate-900)] hover:bg-[var(--color-slate-800)] shadow-[0_1px_0_rgb(255_255_255/.12)_inset,0_8px_20px_-10px_rgb(15_27_51/.6)] transition-all active:scale-[.99]">
                   <span className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-brand-500 via-brand-400 to-accent-400 opacity-90" />
                   <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                   <span className="relative inline-flex items-center gap-2">Sign in <Icon name="ArrowRight" size={15} /></span>
@@ -271,7 +271,7 @@ export default function Login() {
                   const head = users.find((x) => x.id === d.signInAs)!
                   return (
                     <button key={d.userId} title={`${d.role} — signs in as ${head.name} (Sourcing Head)`} onClick={() => { loginAs(d.signInAs); toast(`Signed in as ${head.name} · Sourcing Head`); go() }}
-                      className="group flex items-center gap-[7px] rounded-xl bg-[#f6f6f3] border border-transparent px-2 py-[clamp(5px,0.8vh,7px)] text-left hover:bg-white hover:border-black/[.08] hover:shadow-[0_6px_16px_-10px_rgb(15_27_51/.35)] transition-all min-w-0">
+                      className="group flex items-center gap-[7px] rounded-xl bg-[var(--color-gray-100)] border border-transparent px-2 py-[clamp(5px,0.8vh,7px)] text-left hover:bg-white hover:border-black/[.08] hover:shadow-[0_6px_16px_-10px_rgb(15_27_51/.35)] transition-all min-w-0">
                       <Avatar name={u.name} color={u.avatarColor} size={22} />
                       <span className="min-w-0"><span className="block text-[10.5px] font-semibold text-ink line-clamp-2 leading-[1.15] tracking-[-0.005em]">{d.role}</span><span className="block text-[10px] text-muted truncate leading-tight mt-px">{u.name}</span></span>
                     </button>

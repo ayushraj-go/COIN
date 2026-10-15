@@ -116,11 +116,11 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
           <Field label="First MRN at the new price" required hint={`Effective date — not before the start date (${fmtDate(idea.execution.startDate)}). Realised saving counts MRNs from this date.`}>
             <input type="date" className="input" value={date} min={idea.execution.startDate} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <Field label="Linked PAP request" tag={linked ? <SourceTag color="#0f9f6e">Linked</SourceTag> : <SourceTag color="#94a3b8">Not linked</SourceTag>}>
-            <div className="h-9 flex items-center gap-2 text-[12.5px]">{linked ? <><span className="font-mono">{idea.papRequestId}</span><Badge color={idea.papStatus === 'Price approved' ? '#0f9f6e' : '#ec8a1c'}>{idea.papStatus}</Badge></> : <span className="text-muted">Enter the approved price manually</span>}</div>
+          <Field label="Linked PAP request" tag={linked ? <SourceTag color="var(--color-emerald-600)">Linked</SourceTag> : <SourceTag color="var(--color-slate-400)">Not linked</SourceTag>}>
+            <div className="h-9 flex items-center gap-2 text-[12.5px]">{linked ? <><span className="font-mono">{idea.papRequestId}</span><Badge color={idea.papStatus === 'Price approved' ? 'var(--color-emerald-600)' : 'var(--color-orange-400)'}>{idea.papStatus}</Badge></> : <span className="text-muted">Enter the approved price manually</span>}</div>
           </Field>
           <Field label="NPD request">
-            <div className="h-9 flex items-center gap-2 text-[12.5px]">{idea.npdRequestId ? <><span className="font-mono">{idea.npdRequestId}</span><Badge color={idea.npdStatus === 'Sample approved' ? '#0f9f6e' : '#ec8a1c'}>{idea.npdStatus}</Badge></> : <span className="text-muted">Not required for this route</span>}</div>
+            <div className="h-9 flex items-center gap-2 text-[12.5px]">{idea.npdRequestId ? <><span className="font-mono">{idea.npdRequestId}</span><Badge color={idea.npdStatus === 'Sample approved' ? 'var(--color-emerald-600)' : 'var(--color-orange-400)'}>{idea.npdStatus}</Badge></> : <span className="text-muted">Not required for this route</span>}</div>
           </Field>
         </div>
         {idea.parts.length > 0 ? (
@@ -135,7 +135,7 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
                     <td style={{ textAlign: 'right' }} className="num text-muted">{inrPrice(p.newPrice)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {linked && <SourceTag color="#0f9f6e">from {idea.papRequestId}</SourceTag>}
+                        {linked && <SourceTag color="var(--color-emerald-600)">from {idea.papRequestId}</SourceTag>}
                         <input type="number" step="0.01" className="input !h-8 !w-28 text-right num" value={prices[p.partCode] ?? ''} onChange={(e) => setPrices({ ...prices, [p.partCode]: e.target.value })} />
                       </div>
                     </td>
@@ -219,7 +219,7 @@ export function TargetDateModal({ idea, newDate, open, onClose, fy }: { idea: Id
           <div><div className="text-[10.5px] font-bold uppercase text-muted">Current</div><div className="font-bold num">{fmtDate(old)}</div></div>
           <Icon name="ArrowRight" size={16} className="text-muted" />
           <div><div className="text-[10.5px] font-bold uppercase text-muted">New</div><div className="font-bold num">{fmtDate(newDate)}</div></div>
-          <Badge color={slip > 0 ? '#e0364f' : '#0f9f6e'}>{slip > 0 ? `+${slip} days` : `${slip} days`}</Badge>
+          <Badge color={slip > 0 ? 'var(--color-rose-600)' : 'var(--color-emerald-600)'}>{slip > 0 ? `+${slip} days` : `${slip} days`}</Badge>
         </div>
         <div className="text-[12px] text-muted">Each change needs a reason and is logged as slippage. Original due date: <b className="text-ink-2">{fmtDate(idea.execution.originalTargetDate)}</b>{idea.execution.slippage.length ? ` · ${idea.execution.slippage.length} earlier change${idea.execution.slippage.length > 1 ? 's' : ''}` : ''}.</div>
         <Field label="Reason for change" required><textarea autoFocus className="input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. NPD sample re-submission required" /></Field>
@@ -283,8 +283,8 @@ export function PhasingEditor({ idea, fy, onClose, canEdit }: { idea: Idea; fy: 
 // ─── Linked NPD / PAP requests — status synced ────────────────────────────────
 const NPD_STATUSES = ['ECN raised', 'Sample submitted', 'Sample approved', 'Sample failed'] as const
 const PAP_STATUSES = ['Raised', 'Price approved', 'Rejected'] as const
-export const npdColor = (s?: string) => (s === 'Sample approved' ? '#0f9f6e' : s === 'Sample failed' ? '#e0364f' : s ? '#ec8a1c' : '#94a3b8')
-export const papColor = (s?: string) => (s === 'Price approved' ? '#0f9f6e' : s === 'Rejected' ? '#e0364f' : s === 'Raised' ? '#ec8a1c' : '#94a3b8')
+export const npdColor = (s?: string) => (s === 'Sample approved' ? 'var(--color-emerald-600)' : s === 'Sample failed' ? 'var(--color-rose-600)' : s ? 'var(--color-orange-400)' : 'var(--color-slate-400)')
+export const papColor = (s?: string) => (s === 'Price approved' ? 'var(--color-emerald-600)' : s === 'Rejected' ? 'var(--color-rose-600)' : s === 'Raised' ? 'var(--color-orange-400)' : 'var(--color-slate-400)')
 
 export function LinkedEditor({ idea, onClose, canEdit }: { idea: Idea; onClose: () => void; canEdit: boolean }) {
   const [npd, setNpd] = useState<string>(idea.npdStatus ?? '')

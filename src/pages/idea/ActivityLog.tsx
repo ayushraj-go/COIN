@@ -16,16 +16,16 @@ const kindOf = (a: ActivityEntry): Kind[] => {
 }
 function iconFor(a: ActivityEntry): [string, string] {
   const s = a.action.toLowerCase()
-  if (s.includes('reject') || s.includes('dropped') || s.includes('no-go') || s.includes('declined')) return ['CircleX', '#e0364f']
-  if (s.includes('approved') || s.includes('implemented') || s.includes('done')) return ['CircleCheck', '#0f9f6e']
-  if (s.includes('override')) return ['PencilLine', '#ec8a1c']
-  if (s.includes('undone')) return ['Undo2', '#64748b']
-  if (s.includes('sent back') || s.includes('info')) return ['Undo2', '#ec8a1c']
-  if (s.includes('attachment')) return ['Paperclip', '#7c3aed']
-  if (s.includes('reassign') || s.includes('owner')) return ['UserRoundCog', '#0284c7']
-  if (s.includes('synced')) return ['RefreshCw', '#0d9488']
-  if (a.field === 'stage') return ['ArrowRight', '#2f4a9a']
-  return ['Dot', '#64748b']
+  if (s.includes('reject') || s.includes('dropped') || s.includes('no-go') || s.includes('declined')) return ['CircleX', 'var(--color-rose-600)']
+  if (s.includes('approved') || s.includes('implemented') || s.includes('done')) return ['CircleCheck', 'var(--color-emerald-600)']
+  if (s.includes('override')) return ['PencilLine', 'var(--color-orange-400)']
+  if (s.includes('undone')) return ['Undo2', 'var(--color-slate-500)']
+  if (s.includes('sent back') || s.includes('info')) return ['Undo2', 'var(--color-orange-400)']
+  if (s.includes('attachment')) return ['Paperclip', 'var(--color-violet-600)']
+  if (s.includes('reassign') || s.includes('owner')) return ['UserRoundCog', 'var(--color-sky-600)']
+  if (s.includes('synced')) return ['RefreshCw', 'var(--color-teal-600)']
+  if (a.field === 'stage') return ['ArrowRight', 'var(--color-brand-500)']
+  return ['Dot', 'var(--color-slate-500)']
 }
 /** Display labels: the execution "target date" is shown as the due date (stored action/field text is unchanged). */
 const actionLabel = (s: string) => s.replace(/\bTarget date\b/g, 'Due date').replace(/\btarget date\b/g, 'due date')
@@ -59,7 +59,7 @@ export function ActivityLog({ idea, limit, compact, onShowAll }: { idea: Idea; l
             return (
               <li key={a.id} className="flex gap-2.5 pb-2.5 relative">
                 {k < items.length - 1 && <span className="absolute left-[11px] top-6 bottom-0 w-px bg-slate-200" />}
-                <span className="h-6 w-6 rounded-full grid place-items-center shrink-0 relative" style={{ background: `${c}14`, color: c }}><Icon name={ic} size={12} /></span>
+                <span className="h-6 w-6 rounded-full grid place-items-center shrink-0 relative" style={{ background: `color-mix(in srgb, ${c} 8%, transparent)`, color: c }}><Icon name={ic} size={12} /></span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] text-ink leading-snug"><span className="font-semibold">{a.userName}</span> · {actionLabel(a.action)}</div>
                   {a.field && (a.oldValue || a.newValue) && <div className="text-[11px] text-muted truncate">{fieldLabel(a.field)}: {fmtVal(a.field, a.oldValue)} → {fmtVal(a.field, a.newValue)}</div>}

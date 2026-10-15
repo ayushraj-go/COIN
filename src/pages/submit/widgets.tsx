@@ -8,7 +8,7 @@ import { useStore } from '../../store/useStore'
 import { inrPrice, num, nowIso, uid } from '../../lib/format'
 
 const GROUP_ORDER: LeverGroup[] = ['Commercial', 'Supply base', 'Engineering', 'Logistics & packing', 'Operational']
-const ROUTE_COLOR: Record<RouteKey, string> = { Commercial: '#7c3aed', 'Supplier change': '#0d9488', Technical: '#4f46e5', Internal: '#db2777', 'To be confirmed': '#64748b' }
+const ROUTE_COLOR: Record<RouteKey, string> = { Commercial: 'var(--color-violet-600)', 'Supplier change': 'var(--color-teal-600)', Technical: 'var(--color-indigo-600)', Internal: 'var(--color-pink-600)', 'To be confirmed': 'var(--color-slate-500)' }
 
 export function RouteBadge({ route }: { route: RouteKey }) {
   return <Badge color={ROUTE_COLOR[route]} icon="Route">{route}</Badge>
@@ -190,7 +190,7 @@ export function SupplierSearch({ suppliers, commodity, value, onChange, exclude,
           <span className="block text-[13px] font-semibold text-ink truncate">{value.name}</span>
           <span className="block text-[11.5px] text-muted truncate">{value.isNew ? 'New supplier — not yet in vendor master (VMS)' : `${value.code} · ${s?.city ?? ''} · ${s?.commodities.join(', ') ?? ''}`}</span>
         </span>
-        {value.isNew ? <SourceTag color="#ec8a1c">New supplier</SourceTag> : <SourceTag>Vendor master</SourceTag>}
+        {value.isNew ? <SourceTag color="var(--color-orange-400)">New supplier</SourceTag> : <SourceTag>Vendor master</SourceTag>}
         <button type="button" onClick={() => onChange(null)} className="text-[12px] font-semibold text-brand-700 hover:underline">Change</button>
       </div>
     )
@@ -214,8 +214,8 @@ export function SupplierSearch({ suppliers, commodity, value, onChange, exclude,
                         <span className="block text-[12.5px] font-semibold text-ink truncate">{s.name}</span>
                         <span className="block text-[11px] text-muted truncate">{s.code} · {s.city} · {s.commodities.join(', ')}</span>
                       </span>
-                      {cur && <SourceTag color="#64748b">Current supplier</SourceTag>}
-                      {s.commodities.includes(commodity) && !cur && <SourceTag color="#0d9488">In commodity</SourceTag>}
+                      {cur && <SourceTag color="var(--color-slate-500)">Current supplier</SourceTag>}
+                      {s.commodities.includes(commodity) && !cur && <SourceTag color="var(--color-teal-600)">In commodity</SourceTag>}
                     </button>
                   )
                 })}

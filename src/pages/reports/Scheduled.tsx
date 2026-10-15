@@ -70,7 +70,7 @@ export default function Scheduled({ today, onOpenMailer, space }: { today: strin
     { key: 'n', label: '#', width: 40, value: (r) => r.n, render: (r) => <span className="h-6 w-6 rounded-md bg-slate-100 text-ink-2 text-[11px] font-bold grid place-items-center">{r.n}</span> },
     { key: 'name', label: 'Report', value: (r) => r.name, render: (r) => <span className="font-semibold text-ink">{r.name}</span> },
     { key: 'audience', label: 'Audience', value: (r) => r.audience },
-    { key: 'frequency', label: 'Frequency', value: (r) => r.frequency, render: (r) => <Badge color={FREQ_STYLE[r.frequency] ?? '#64748b'} dot>{r.frequency}</Badge> },
+    { key: 'frequency', label: 'Frequency', value: (r) => r.frequency, render: (r) => <Badge color={FREQ_STYLE[r.frequency] ?? 'var(--color-slate-500)'} dot>{r.frequency}</Badge> },
     { key: 'rule', label: 'Schedule', value: (r) => r.s.rule, render: (r) => <span className="block max-w-[300px] truncate text-ink-2" title={r.s.rule}>{r.s.rule}</span> },
     { key: 'next', label: 'Next send', value: (r) => r.s.next ?? '9999', render: (r) => (r.s.next ? <span className="num font-semibold text-ink">{fmtDate(r.s.next)} <span className="text-muted font-normal">· in {daysBetween(today, r.s.next)} d</span></span> : <span className="text-muted">Live</span>) },
     {

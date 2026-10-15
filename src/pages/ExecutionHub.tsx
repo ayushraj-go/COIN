@@ -138,17 +138,17 @@ export default function ExecutionHub() {
   }])
 
   const kpiCards: { k: Kpi; label: string; value: number; sub: React.ReactNode; icon: string; color: string; tip: string; formula?: string }[] = [
-    { k: 'all', label: 'In execution', value: active.length, sub: <>{inrShort(committedHard)} committed</>, icon: 'Rocket', color: '#ec8a1c', tip: 'Approved ideas with an owner and dates, until marked Done or Dropped. ₹ committed counts hard savings only; cost avoidance and one-time savings are reported separately.', formula: 'Σ FY-phased saving of ideas In Execution' },
-    { k: 'due', label: 'Due this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: '#2f4a9a', tip: 'Due date falls later this month.' },
-    { k: 'overdue', label: 'Overdue', value: sets.overdue.length, sub: <>{inrShort(cm(sets.overdue))} overdue</>, icon: 'Clock3', color: '#e0364f', tip: 'Due date passed — health Delayed. Owner and Commodity Lead are emailed the day after, then weekly.', formula: 'Overdue value = ₹ committed on ideas past due date' },
-    { k: 'risk', label: 'At risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: '#ec8a1c', tip: 'At least one milestone is past its due date while the due date is still ahead.' },
-    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} annualised · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: '#0f9f6e', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
-    { k: 'dropped', label: 'Dropped this month', value: sets.dropped.length, sub: <>{inrShort(sum(sets.dropped.map((i) => removedCommitted(i, fy))))} removed</>, icon: 'Ban', color: '#6b7280', tip: 'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.' },
+    { k: 'all', label: 'In execution', value: active.length, sub: <>{inrShort(committedHard)} committed</>, icon: 'Rocket', color: 'var(--color-orange-400)', tip: 'Approved ideas with an owner and dates, until marked Done or Dropped. ₹ committed counts hard savings only; cost avoidance and one-time savings are reported separately.', formula: 'Σ FY-phased saving of ideas In Execution' },
+    { k: 'due', label: 'Due this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: 'var(--color-brand-500)', tip: 'Due date falls later this month.' },
+    { k: 'overdue', label: 'Overdue', value: sets.overdue.length, sub: <>{inrShort(cm(sets.overdue))} overdue</>, icon: 'Clock3', color: 'var(--color-rose-600)', tip: 'Due date passed — health Delayed. Owner and Commodity Lead are emailed the day after, then weekly.', formula: 'Overdue value = ₹ committed on ideas past due date' },
+    { k: 'risk', label: 'At risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: 'var(--color-orange-400)', tip: 'At least one milestone is past its due date while the due date is still ahead.' },
+    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} annualised · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: 'var(--color-emerald-600)', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
+    { k: 'dropped', label: 'Dropped this month', value: sets.dropped.length, sub: <>{inrShort(sum(sets.dropped.map((i) => removedCommitted(i, fy))))} removed</>, icon: 'Ban', color: 'var(--color-gray-500)', tip: 'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.' },
   ]
 
   return (
     <div>
-      <PageHeader icon="Rocket" title="Execution Hub" badge={<Badge color="#1b316f">TRACE</Badge>}
+      <PageHeader icon="Rocket" title="Execution Hub" badge={<Badge color="var(--color-brand-700)">TRACE</Badge>}
         subtitle="Transition-linked Realisation of Actual CI Evidence — Execution started → Verification, with plan vs actual from MRN"
         actions={<>
           <Tooltip content={<div className="grid gap-1"><div>{dueWording(EXECUTION_INTRO)}</div>{EXECUTION_RECORD.map(([k, v]) => <div key={k}><b>{dueWording(k)}:</b> {dueWording(v)}</div>)}</div>}><span className="inline-flex items-center gap-1 text-[12px] text-muted cursor-help"><Icon name="Info" size={13} />Execution record rules</span></Tooltip>
@@ -240,7 +240,7 @@ export default function ExecutionHub() {
                       const open = expanded.has(i.id)
                       const status = ex.status
                       const health = healthOf(i)
-                      const hcol = status === 'Done' ? '#0f9f6e' : status === 'Dropped' ? '#6b7280' : HEALTH_STYLE[health].color
+                      const hcol = status === 'Done' ? 'var(--color-emerald-600)' : status === 'Dropped' ? 'var(--color-gray-500)' : HEALTH_STYLE[health].color
                       const p = ex.phasing
                       const psum = p.Q1 + p.Q2 + p.Q3 + p.Q4
                       const sys = committedInFy(ideaAnnualised(i), ex.targetDate, fy)
@@ -285,10 +285,10 @@ export default function ExecutionHub() {
                             <td>
                               <button onClick={(e) => setPop({ kind: 'phasing', id: i.id, el: e.currentTarget })} className="flex items-center gap-2 h-9 px-1.5 -mx-1.5 rounded-md hover:bg-slate-100">
                                 <span className="flex items-end gap-[3px] h-[22px]">
-                                  {QS.map((qq) => <span key={qq} className="w-[8px] rounded-[2px]" style={{ height: `${pmax ? Math.max(10, (p[qq] / pmax) * 100) : 10}%`, background: p[qq] > 0 ? '#ec8a1c' : '#e2e8f0' }} />)}
+                                  {QS.map((qq) => <span key={qq} className="w-[8px] rounded-[2px]" style={{ height: `${pmax ? Math.max(10, (p[qq] / pmax) * 100) : 10}%`, background: p[qq] > 0 ? 'var(--color-orange-400)' : 'var(--color-slate-200)' }} />)}
                                 </span>
                                 <span className="text-left leading-tight"><span className="block text-[12px] font-semibold num">{inrShort(psum)}</span><span className="block text-[10px] text-muted whitespace-nowrap">Q1 Q2 Q3 Q4</span></span>
-                                <Tooltip content={match ? 'Sum matches the system pre-fill (committedInFy)' : `Differs from system ${inrShort(sys)}`}><span className="h-2 w-2 rounded-full" style={{ background: match ? '#0f9f6e' : '#ec8a1c' }} /></Tooltip>
+                                <Tooltip content={match ? 'Sum matches the system pre-fill (committedInFy)' : `Differs from system ${inrShort(sys)}`}><span className="h-2 w-2 rounded-full" style={{ background: match ? 'var(--color-emerald-600)' : 'var(--color-orange-400)' }} /></Tooltip>
                               </button>
                             </td>
                             <td>
@@ -297,7 +297,7 @@ export default function ExecutionHub() {
                                 <ProgressBar value={ex.progress} color={hcol} height={5} />
                               </button>
                             </td>
-                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="#0f9f6e" icon="ShieldCheck">Verified</Badge> : ideaPerms(me, i).verify ? <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="#ec8a1c" icon="ShieldQuestion">Verify</Badge></button> : <Badge color="#ec8a1c" icon="ShieldQuestion">Awaiting verification</Badge>) : <Badge color="#6b7280" icon="Ban">Dropped</Badge>}</td>
+                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="var(--color-emerald-600)" icon="ShieldCheck">Verified</Badge> : ideaPerms(me, i).verify ? <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="var(--color-orange-400)" icon="ShieldQuestion">Verify</Badge></button> : <Badge color="var(--color-orange-400)" icon="ShieldQuestion">Awaiting verification</Badge>) : <Badge color="var(--color-gray-500)" icon="Ban">Dropped</Badge>}</td>
                             <td className="max-[1700px]:hidden">
                               {status === 'In Execution' ? (
                                 <div className="leading-tight"><div className={cn('text-[12.5px] font-semibold num', nr.cadence === 'Due date passed' && 'text-red-600')}>{fmtDateShort(nr.date)}</div><div className="text-[10.5px] text-muted">{nr.cadence}</div></div>
@@ -395,7 +395,7 @@ export default function ExecutionHub() {
 
 function LinkChip({ label, status, color }: { label: string; status?: string; color: string }) {
   return (
-    <span className="inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[10.5px] font-semibold whitespace-nowrap" style={{ color, background: `${color}14` }}>
+    <span className="inline-flex items-center gap-1 h-[18px] px-1.5 rounded text-[10.5px] font-semibold whitespace-nowrap" style={{ color, background: `color-mix(in srgb, ${color} 8%, transparent)` }}>
       <span className="font-bold">{label}</span><span className="opacity-90">{status && status !== 'Not raised' ? status : label === 'NPD' && !status ? 'n/a' : 'Not raised'}</span>
     </span>
   )

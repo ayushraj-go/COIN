@@ -8,9 +8,9 @@ import { inrShort, fmtDate } from '../../lib/format'
 import type { Filters, Idea } from '../../lib/types'
 
 // ─── recharts styling ─────────────────────────────────────────────────────────
-export const TICK = { fontSize: 11, fill: '#64748b' }
+export const TICK = { fontSize: 11, fill: 'var(--color-slate-500)' }
 export const AX = { axisLine: false, tickLine: false, tick: TICK } as const
-export const GRID = { vertical: false, stroke: '#eceef6' } as const
+export const GRID = { vertical: false, stroke: 'var(--color-brand-50)' } as const
 /** ₹ in crore with Indian digit grouping for very large values (₹ 12,435 Cr); otherwise the standard lakh / crore short form */
 export const inrBig = (v: number) => (Math.abs(v) >= 1e10 ? `${v < 0 ? '−' : ''}₹ ${Math.round(Math.abs(v) / 1e7).toLocaleString('en-IN')} Cr` : inrShort(v))
 
@@ -26,7 +26,7 @@ export const moneyTick = (v: number) => {
 export const pctTick = (v: number) => `${Math.round(v)}%`
 export const CURSOR = { fill: 'rgb(27 49 111 / .06)' }
 
-export const PALETTE = ['#223c86', '#b8142a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea', '#64748b']
+export const PALETTE = ['var(--color-brand-600)', 'var(--color-accent-600)', 'var(--color-emerald-600)', 'var(--color-orange-400)', 'var(--color-violet-600)', 'var(--color-teal-600)', 'var(--color-pink-600)', 'var(--color-sky-600)', 'var(--color-indigo-600)', 'var(--color-amber-600)', 'var(--color-emerald-600)', 'var(--color-purple-600)', 'var(--color-slate-500)']
 
 /** Custom white rounded tooltip */
 export function ChartTip({ active, payload, label, fmt, title, hint = 'Click to open the ideas behind it', hide = [] as string[] }: any) {
@@ -116,7 +116,7 @@ export function filterText(f: Filters, lookups: { plants: { id: string; name: st
 }
 
 // ─── Mini visuals (library previews, KPI tiles) ───────────────────────────────
-export function MiniBars({ data, color = '#223c86', height = 44, width = 150, colors, gap = 3 }: { data: number[]; color?: string; height?: number; width?: number; colors?: string[]; gap?: number }) {
+export function MiniBars({ data, color = 'var(--color-brand-600)', height = 44, width = 150, colors, gap = 3 }: { data: number[]; color?: string; height?: number; width?: number; colors?: string[]; gap?: number }) {
   const max = Math.max(1e-9, ...data.map((d) => Math.abs(d)))
   const n = Math.max(1, data.length)
   const bw = Math.max(2, (width - gap * (n - 1)) / n)
@@ -135,7 +135,7 @@ export function MiniHBars({ data, width = 150, rowH = 8, gap = 5 }: { data: { v:
     <svg width={width} height={data.length * (rowH + gap)}>
       {data.map((d, i) => (
         <g key={i}>
-          <rect x={0} y={i * (rowH + gap)} width={width} height={rowH} rx={rowH / 2} fill={d.track ?? '#eceef6'} />
+          <rect x={0} y={i * (rowH + gap)} width={width} height={rowH} rx={rowH / 2} fill={d.track ?? 'var(--color-brand-50)'} />
           <rect x={0} y={i * (rowH + gap)} width={Math.max(2, (Math.min(d.v, max) / max) * width)} height={rowH} rx={rowH / 2} fill={d.color} />
         </g>
       ))}
@@ -149,7 +149,7 @@ export function MiniDonut({ parts, size = 56, stroke = 9, label }: { parts: { v:
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eceef6" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-brand-50)" strokeWidth={stroke} />
         {parts.map((p, i) => {
           const len = (p.v / total) * c
           const el = <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={p.color} strokeWidth={stroke} strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-off} />
@@ -163,7 +163,7 @@ export function MiniDonut({ parts, size = 56, stroke = 9, label }: { parts: { v:
 }
 
 /** Horizontal meter row used in scorecards and KPI breakdowns */
-export function MeterRow({ label, value, display, max, color = '#223c86', onClick, sub, marker }: { label: React.ReactNode; value: number; display: React.ReactNode; max: number; color?: string; onClick?: () => void; sub?: React.ReactNode; marker?: number }) {
+export function MeterRow({ label, value, display, max, color = 'var(--color-brand-600)', onClick, sub, marker }: { label: React.ReactNode; value: number; display: React.ReactNode; max: number; color?: string; onClick?: () => void; sub?: React.ReactNode; marker?: number }) {
   const w = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <button type="button" onClick={onClick} disabled={!onClick} className={cn('w-full text-left group rounded-md px-1 -mx-1 py-[3px]', onClick && 'hover:bg-slate-50 cursor-pointer')}>
@@ -190,4 +190,4 @@ export const pdfText = (v: any) => String(v ?? '')
   .replace(/Σ\s?/g, 'Sum ').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/×/g, 'x').replace(/→/g, '->').replace(/[−–—]/g, '-')
   .replace(/…/g, '...').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/÷/g, '/')
 
-export const FREQ_STYLE: Record<string, string> = { Live: '#0f9f6e', 'Live / monthly': '#0d9488', Monthly: '#36509a', Weekly: '#7c3aed', Quarterly: '#ec8a1c', Annual: '#b8142a', 'Per campaign': '#db2777' }
+export const FREQ_STYLE: Record<string, string> = { Live: 'var(--color-emerald-600)', 'Live / monthly': 'var(--color-teal-600)', Monthly: 'var(--color-brand-500)', Weekly: 'var(--color-violet-600)', Quarterly: 'var(--color-orange-400)', Annual: 'var(--color-accent-600)', 'Per campaign': 'var(--color-pink-600)' }

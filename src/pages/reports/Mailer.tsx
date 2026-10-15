@@ -42,10 +42,10 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
   const mctx = useMemo(() => deriveCtx(ctx, n.ideas, comms, fy), [ctx, n.ideas, comms, fy])
 
   const headline: [string, number, string, string][] = [
-    ['Realised to date', n.realised, 'BadgeIndianRupee', '#0f9f6e'],
-    ['Committed (remaining)', n.committed, 'Rocket', '#ec8a1c'],
-    ['Pipeline', n.pipeline, 'Filter', '#36509a'],
-    ["Month's realised saving", n.monthRealised, 'CalendarCheck', '#223c86'],
+    ['Realised to date', n.realised, 'BadgeIndianRupee', 'var(--color-emerald-600)'],
+    ['Committed (remaining)', n.committed, 'Rocket', 'var(--color-orange-400)'],
+    ['Pipeline', n.pipeline, 'Filter', 'var(--color-brand-500)'],
+    ["Month's realised saving", n.monthRealised, 'CalendarCheck', 'var(--color-brand-600)'],
   ]
 
   // ─── attachments ────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
           <div className="flex items-center gap-2 px-4 h-11 border-b border-line bg-slate-50/70">
             <Icon name="Mail" size={16} className="text-ink-2" />
             <span className="text-[12.5px] font-semibold text-ink">Email preview</span>
-            <Badge color="#223c86">{myCut ? 'Commodity cut' : 'Management list'}</Badge>
+            <Badge color="var(--color-brand-600)">{myCut ? 'Commodity cut' : 'Management list'}</Badge>
             <span className="ml-auto flex items-center gap-2">
               <select className="input !h-8 !w-auto text-[12.5px] font-semibold" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Report month">
                 {months.map((m) => <option key={m} value={m}>{monthLong(m)}</option>)}
@@ -182,7 +182,7 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
                 : <Tooltip content="Only the Sourcing Head (or Admin) can send the monthly report manually" className="w-full"><Button icon="Lock" className="w-full" disabled>Send now · Sourcing Head only</Button></Tooltip>}
             </div>
           </Card>
-          <Card title="Recipients" icon="Users" subtitle="Configurable management distribution list" actions={<Badge color="#1e3a5f">{draft.length}</Badge>}>
+          <Card title="Recipients" icon="Users" subtitle="Configurable management distribution list" actions={<Badge color="var(--color-brand-700)">{draft.length}</Badge>}>
             <div className="flex flex-wrap gap-1.5">
               {draft.map((r) => (
                 <span key={r} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-slate-100 text-[12px] font-medium text-ink-2">
@@ -236,7 +236,7 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
               { key: 'at', label: 'Sent', value: (e) => e.at, render: (e) => <span className="num">{fmtDateTime(e.at)}</span> },
               { key: 'subject', label: 'Subject', render: (e) => <span className="font-medium text-ink">{e.subject}</span> },
               { key: 'to', label: 'Recipients', value: (e) => e.to.join(', '), render: (e) => <Tooltip content={e.to.join(', ')}><span className="text-ink-2">{e.to[0]}{e.to.length > 1 ? ` +${e.to.length - 1}` : ''}</span></Tooltip> },
-              { key: 'kind', label: 'Type', value: (e) => (e.subject.includes('commodity cut') ? 'Commodity cut' : 'Management list'), render: (e) => (e.subject.includes('commodity cut') ? <Badge color="#b8142a">Commodity cut</Badge> : <Badge color="#223c86">Management list</Badge>) },
+              { key: 'kind', label: 'Type', value: (e) => (e.subject.includes('commodity cut') ? 'Commodity cut' : 'Management list'), render: (e) => (e.subject.includes('commodity cut') ? <Badge color="var(--color-accent-600)">Commodity cut</Badge> : <Badge color="var(--color-brand-600)">Management list</Badge>) },
               { key: 'att', label: 'Attachments', value: (e) => (e.attachments ?? []).join(', '), render: (e) => <span className="text-muted">{(e.attachments ?? []).join(' · ') || '—'}</span> },
             ]}
             empty={<div className="p-6 text-center text-[12.5px] text-muted">No monthly report has been sent yet — use Send now or run the monthly realisation.</div>} />

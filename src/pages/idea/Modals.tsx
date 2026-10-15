@@ -97,7 +97,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
                     <td className="num" style={{ textAlign: 'right' }}>{inrPrice(p.newPrice)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {papApproved && <SourceTag color="#0f9f6e">from PAP</SourceTag>}
+                        {papApproved && <SourceTag color="var(--color-emerald-600)">from PAP</SourceTag>}
                         <input type="number" step="0.01" min="0" className="input num text-right !h-8 w-28" value={prices[p.partCode] ?? ''} onChange={(e) => setPrices((x) => ({ ...x, [p.partCode]: e.target.value }))} />
                       </div>
                     </td>

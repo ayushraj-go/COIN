@@ -63,7 +63,7 @@ export function ExecTimeline({ ideas, fy }: { ideas: Idea[]; fy: string }) {
             const done = ex.status === 'Done'
             const dropped = ex.status === 'Dropped'
             const health = healthOf(i)
-            const color = done ? '#0f9f6e' : dropped ? '#6b7280' : HEALTH_STYLE[health].color
+            const color = done ? 'var(--color-emerald-600)' : dropped ? 'var(--color-gray-500)' : HEALTH_STYLE[health].color
             const end = done ? ex.effectiveDate ?? ex.targetDate : dropped ? (i.droppedAt ?? ex.targetDate).slice(0, 10) : ex.targetDate
             const l = pos(ex.startDate), r = pos(end)
             const w = Math.max(0.9, r - l)
@@ -91,8 +91,8 @@ export function ExecTimeline({ ideas, fy }: { ideas: Idea[]; fy: string }) {
                   {/* bar */}
                   <div className="absolute top-1/2 -translate-y-1/2 z-[2]" style={{ left: `${l}%`, width: `${w}%` }}>
                     <Tooltip className="w-full" content={<div><b>{i.id}</b><div>{fmtDate(ex.startDate)} → {fmtDate(end)}</div><div>{done ? 'Done — Implemented' : dropped ? `Dropped — ${i.dropReason}` : `${health} · ${ex.progress}% complete`}</div></div>}>
-                      <button onClick={() => openIdea(i.id)} className="relative w-full h-[18px] rounded-full overflow-hidden border shadow-sm transition-transform hover:scale-y-110" style={{ background: `${color}22`, borderColor: `${color}66` }}>
-                        <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${done ? 100 : ex.progress}%`, background: `linear-gradient(90deg, ${color}bb, ${color})` }} />
+                      <button onClick={() => openIdea(i.id)} className="relative w-full h-[18px] rounded-full overflow-hidden border shadow-sm transition-transform hover:scale-y-110" style={{ background: `color-mix(in srgb, ${color} 13%, transparent)`, borderColor: `color-mix(in srgb, ${color} 40%, transparent)` }}>
+                        <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${done ? 100 : ex.progress}%`, background: `linear-gradient(90deg, color-mix(in srgb, ${color} 73%, transparent), ${color})` }} />
                         {ex.startDate < fyStart(fy) && <Icon name="ChevronsLeft" size={12} className="absolute left-0.5 top-1/2 -translate-y-1/2 text-white" />}
                         {end > fyEnd(fy) && <Icon name="ChevronsRight" size={12} className="absolute right-0.5 top-1/2 -translate-y-1/2" style={{ color }} />}
                       </button>

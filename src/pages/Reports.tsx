@@ -37,7 +37,7 @@ function useFilterText() {
 export function SpaceChip({ space, className }: { space: Space; className?: string }) {
   const m = SPACE_META[space]
   return (
-    <span title={m.name} className={cn('inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-extrabold tracking-wide border shrink-0', className)} style={{ color: m.color, borderColor: `${m.color}40`, background: `${m.color}10` }}>{space}</span>
+    <span title={m.name} className={cn('inline-flex items-center h-[22px] px-2 rounded-md text-[11px] font-extrabold tracking-wide border shrink-0', className)} style={{ color: m.color, borderColor: `color-mix(in srgb, ${m.color} 25%, transparent)`, background: `color-mix(in srgb, ${m.color} 6%, transparent)` }}>{space}</span>
   )
 }
 
@@ -132,7 +132,7 @@ function ReportDetail({ rkey }: { rkey: string }) {
   return (
     <div>
       <PageHeader icon={REPORT_ICON[def.key]} title={<span className="flex items-center gap-2"><span className="text-muted font-semibold">{def.n}.</span>{def.name}</span>}
-        badge={<span className="flex items-center gap-1.5"><SpaceChip space={eff} /><Badge color={FREQ_STYLE[def.frequency] ?? '#64748b'} dot>{def.frequency}</Badge></span>}
+        badge={<span className="flex items-center gap-1.5"><SpaceChip space={eff} /><Badge color={FREQ_STYLE[def.frequency] ?? 'var(--color-slate-500)'} dot>{def.frequency}</Badge></span>}
         subtitle={<>MIS · {SPACE_META[eff].name} · <Icon name="Users" size={12} className="inline -mt-0.5 mr-1" />{def.audience} · {def.visuals}</>}
         actions={<>
           <Button size="sm" variant="ghost" icon="ArrowLeft" onClick={() => nav('/reports')}>Library</Button>
@@ -158,7 +158,7 @@ function ReportDetail({ rkey }: { rkey: string }) {
       </div>
       <div className="mb-5 flex items-center gap-4">
         <FilterBar className="flex-1" />
-        {month && <span className="shrink-0"><Badge color="#b8142a" icon="CalendarDays">Month: {monthLong(month)}</Badge></span>}
+        {month && <span className="shrink-0"><Badge color="var(--color-accent-600)" icon="CalendarDays">Month: {monthLong(month)}</Badge></span>}
         <span className="shrink-0 whitespace-nowrap text-[11.5px] text-muted hidden 2xl:inline pr-1.5">{ctx.ideas.length} ideas in scope · exports use these filters</span>
       </div>
       {!ready ? <SkeletonGrid rows={2} /> : <View ctx={ctx} month={month} space={eff} />}

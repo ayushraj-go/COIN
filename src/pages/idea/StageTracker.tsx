@@ -43,7 +43,7 @@ function buildNodes(idea: Idea): TNode[] {
   })
   if (terminal) {
     const h = hist(idea.stage)
-    nodes.push({ key: '__terminal', label: idea.stage, short: idea.stage, state: 'terminal', enteredAt: idea.droppedAt ?? h?.enteredAt, by: h?.by, action: idea.dropReason, remarks: idea.dropRemarks, color: idea.stage === 'Rejected' ? '#e0364f' : '#6b7280' })
+    nodes.push({ key: '__terminal', label: idea.stage, short: idea.stage, state: 'terminal', enteredAt: idea.droppedAt ?? h?.enteredAt, by: h?.by, action: idea.dropReason, remarks: idea.dropRemarks, color: idea.stage === 'Rejected' ? 'var(--color-rose-600)' : 'var(--color-gray-500)' })
   }
   return nodes
 }
@@ -51,14 +51,14 @@ function buildNodes(idea: Idea): TNode[] {
 function Circle({ n, index, size = 32 }: { n: TNode; index: number; size?: number }) {
   const base = 'relative grid place-items-center rounded-full shrink-0 transition-all'
   const s = { width: size, height: size }
-  if (n.state === 'done') return <span className={base} style={{ ...s, background: n.color, color: '#fff', boxShadow: `0 4px 12px -4px ${n.color}aa` }}><Icon name="Check" size={size * 0.5} strokeWidth={3} /></span>
+  if (n.state === 'done') return <span className={base} style={{ ...s, background: n.color, color: '#fff', boxShadow: `0 4px 12px -4px color-mix(in srgb, ${n.color} 67%, transparent)` }}><Icon name="Check" size={size * 0.5} strokeWidth={3} /></span>
   if (n.state === 'current') return (
     <span className={base} style={{ ...s, background: '#fff', border: `2.5px solid ${n.color}` }}>
       <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ background: n.color }} />
       <span className="h-2.5 w-2.5 rounded-full" style={{ background: n.color }} />
     </span>
   )
-  if (n.state === 'failed') return <span className={base} style={{ ...s, background: '#e0364f', color: '#fff' }}><Icon name="X" size={size * 0.5} strokeWidth={3} /></span>
+  if (n.state === 'failed') return <span className={base} style={{ ...s, background: 'var(--color-rose-600)', color: '#fff' }}><Icon name="X" size={size * 0.5} strokeWidth={3} /></span>
   if (n.state === 'terminal') return <span className={base} style={{ ...s, background: n.color, color: '#fff' }}><Icon name="Ban" size={size * 0.5} /></span>
   if (n.state === 'bypassed') return <span className={base} style={{ ...s, background: '#fff', border: `2px dashed ${n.color}`, color: n.color }}><Icon name="SkipForward" size={size * 0.42} /></span>
   return <span className={cn(base, 'bg-white border-2 border-slate-200 text-slate-400 text-[11px] font-bold')} style={s}>{index}</span>
@@ -103,7 +103,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
       <div className="hidden sm:block overflow-x-auto no-scrollbar pb-1">
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>
           <div className="absolute h-[3px] rounded-full bg-slate-100" style={{ top: compact ? 13 : 15, left: `calc(100% / ${n} / 2)`, right: `calc(100% / ${n} / 2)` }}>
-            <motion.div className="h-full rounded-full origin-left" style={{ background: 'linear-gradient(90deg, #2f4a9a, #ec8a1c 70%, #0f9f6e)' }}
+            <motion.div className="h-full rounded-full origin-left" style={{ background: 'linear-gradient(90deg, var(--color-brand-500), var(--color-orange-400) 70%, var(--color-emerald-600))' }}
               initial={{ scaleX: 0 }} animate={{ scaleX: progress }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
           </div>
           {nodes.map((node, k) => (
@@ -135,7 +135,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
           <li key={node.key} className="flex gap-3">
             <div className="flex flex-col items-center">
               <Circle n={node} index={k} size={26} />
-              {k < nodes.length - 1 && <span className="w-[2px] flex-1 min-h-3 my-0.5 rounded" style={{ background: k < lastReached ? node.color : '#e5e7eb' }} />}
+              {k < nodes.length - 1 && <span className="w-[2px] flex-1 min-h-3 my-0.5 rounded" style={{ background: k < lastReached ? node.color : 'var(--color-gray-200)' }} />}
             </div>
             <div className="min-w-0 pb-3">
               <div className={cn('text-[12.5px] font-semibold leading-tight', node.state === 'future' || node.state === 'skipped' ? 'text-muted' : 'text-ink')}>{node.label}</div>

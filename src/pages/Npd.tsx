@@ -36,7 +36,7 @@ const colLabel = (k: keyof NpdSpoc) => {
 const nice = (s: string) => (/^[A-Z ]+$/.test(s) && /[A-Z]{5,}/.test(s) ? s.charAt(0) + s.slice(1).toLowerCase() : s)
 
 // calm, low-saturation avatar palette (keeps the page from going "too blue")
-const AV = ['#475467', '#3f6c84', '#2f7d6d', '#5d6b8a', '#7a6548', '#6a5a8c', '#4f7a5a', '#80586a', '#3e5f7a', '#6b6f45']
+const AV = ['var(--color-slate-600)', 'var(--color-cyan-700)', 'var(--color-teal-700)', 'var(--color-slate-500)', 'var(--color-gray-500)', 'var(--color-slate-500)', 'var(--color-emerald-700)', 'var(--color-gray-500)', 'var(--color-slate-600)', 'var(--color-emerald-700)']
 const avColor = (name: string) => AV[[...name].reduce((a, ch) => a + ch.charCodeAt(0), 0) % AV.length]
 
 const PAGE = 14
@@ -83,13 +83,13 @@ export default function Npd() {
       {/* header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-xl bg-[#101828] text-white grid place-items-center shrink-0 shadow-[0_6px_16px_-10px_rgb(16_24_40/.8)]">
+          <div className="h-10 w-10 rounded-xl bg-[var(--color-gray-900)] text-white grid place-items-center shrink-0 shadow-[0_6px_16px_-10px_rgb(16_24_40/.8)]">
             <Icon name="PackageSearch" size={18} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-[20px] leading-tight font-bold tracking-[-0.02em] text-ink">NPD development master</h1>
-              <Badge color="#475467" soft="#f2f4f7" icon="Lock">Read-only</Badge>
+              <Badge color="var(--color-slate-600)" soft="var(--color-gray-100)" icon="Lock">Read-only</Badge>
             </div>
             <p className="text-[12.5px] text-muted mt-0.5">Who develops each commodity on an NPD route (ECN → sample), and how long DQA performance and reliability testing takes.</p>
           </div>
@@ -100,7 +100,7 @@ export default function Npd() {
       {/* provenance strip */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-line bg-white px-3.5 py-2 text-[12px] text-ink-2">
         <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-          <span className="h-5 px-1.5 rounded-md bg-[#101828] text-white text-[10.5px] font-bold tracking-wide grid place-items-center">{NPD_SOURCE.system}</span>
+          <span className="h-5 px-1.5 rounded-md bg-[var(--color-gray-900)] text-white text-[10.5px] font-bold tracking-wide grid place-items-center">{NPD_SOURCE.system}</span>
           Synced from VMS
         </span>
         <Dot />
@@ -145,7 +145,7 @@ export default function Npd() {
                 </optgroup>
                 <option value="__none">No corporate SPOC ({ROWS.length - WITH_SPOC})</option>
               </select>
-              <div className="inline-flex items-center rounded-lg border border-line bg-[#f8f9fb] p-0.5">
+              <div className="inline-flex items-center rounded-lg border border-line bg-[var(--color-slate-50)] p-0.5">
                 {([['all', 'All'], ['assigned', 'Assigned'], ['unassigned', 'Unassigned'], ['testing', 'Has testing']] as const).map(([k, l]) => (
                   <button key={k} onClick={() => { setScope(k); setPage(0) }} className={cn('h-7 px-2.5 rounded-md text-[12px] font-medium transition-colors', scope === k ? 'bg-white text-ink shadow-[0_1px_2px_rgb(16_24_40/.1)]' : 'text-muted hover:text-ink')}>{l}</button>
                 ))}
@@ -161,10 +161,10 @@ export default function Npd() {
               <thead><tr><th>Code</th><th>Commodity</th><th>Corporate SPOC</th><th>Testing (perf / rel)</th><th>Plant and DQA SPOCs</th></tr></thead>
               <tbody>
                 {shown.map((r) => (
-                  <tr key={r.id} className={cn('clickable', r.id === sel.id && '!bg-[#f6f8fb] [&>td:first-child]:shadow-[inset_2px_0_0_#223c86]')} onClick={() => setSelId(r.id)}>
+                  <tr key={r.id} className={cn('clickable', r.id === sel.id && '!bg-[var(--color-slate-50)] [&>td:first-child]:shadow-[inset_2px_0_0_var(--color-brand-600)]')} onClick={() => setSelId(r.id)}>
                     <td>{r.code ? <span className="font-mono text-[12px] font-semibold text-ink">{r.code}</span> : <span className="text-[11px] text-muted italic">no code</span>}</td>
                     <td className="truncate"><span className="text-ink font-medium" title={r.name}>{nice(r.name)}</span></td>
-                    <td className="truncate">{r.spoc.corporate ? <span className="inline-flex items-center gap-1.5 min-w-0"><Avatar name={r.spoc.corporate} color={avColor(r.spoc.corporate)} size={20} /><span className="truncate">{r.spoc.corporate}</span></span> : <span className="text-[12px] text-[#98a2b3]">Not assigned</span>}</td>
+                    <td className="truncate">{r.spoc.corporate ? <span className="inline-flex items-center gap-1.5 min-w-0"><Avatar name={r.spoc.corporate} color={avColor(r.spoc.corporate)} size={20} /><span className="truncate">{r.spoc.corporate}</span></span> : <span className="text-[12px] text-[var(--color-slate-400)]">Not assigned</span>}</td>
                     <td>{r.hasTest ? <span className="inline-flex items-center gap-1 text-[12px]"><TestPill d={r.perfDays} /><span className="text-muted">/</span><TestPill d={r.relDays} /></span> : <span className="text-muted">—</span>}</td>
                     <td className="truncate">
                       {r.plantKeys.length ? (
@@ -172,7 +172,7 @@ export default function Npd() {
                           {r.plantKeys.slice(0, 2).map((k) => <PlantChip key={k} k={k} name={r.spoc[k]!} />)}
                           {r.plantKeys.length > 2 && (
                             <Tooltip content={<div className="space-y-0.5">{r.plantKeys.slice(2).map((k) => <div key={k}>{colLabel(k)}: <b>{r.spoc[k]}</b></div>)}</div>}>
-                              <span className="h-5 px-1.5 rounded-md bg-[#f2f4f7] text-[11px] font-semibold text-ink-2 grid place-items-center">+{r.plantKeys.length - 2}</span>
+                              <span className="h-5 px-1.5 rounded-md bg-[var(--color-gray-100)] text-[11px] font-semibold text-ink-2 grid place-items-center">+{r.plantKeys.length - 2}</span>
                             </Tooltip>
                           )}
                         </span>
@@ -190,7 +190,7 @@ export default function Npd() {
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="xs" icon="ChevronLeft" disabled={pg === 0} onClick={() => setPage(pg - 1)}>Previous</Button>
                 {Array.from({ length: pages }, (_, i) => (
-                  <button key={i} onClick={() => setPage(i)} className={cn('h-7 min-w-7 px-1.5 rounded-md text-[12px] font-medium num', i === pg ? 'bg-[#101828] text-white' : 'text-ink-2 hover:bg-[#f2f4f7]')}>{i + 1}</button>
+                  <button key={i} onClick={() => setPage(i)} className={cn('h-7 min-w-7 px-1.5 rounded-md text-[12px] font-medium num', i === pg ? 'bg-[var(--color-gray-900)] text-white' : 'text-ink-2 hover:bg-[var(--color-gray-100)]')}>{i + 1}</button>
                 ))}
                 <Button variant="ghost" size="xs" iconRight="ChevronRight" disabled={pg >= pages - 1} onClick={() => setPage(pg + 1)}>Next</Button>
               </div>
@@ -208,21 +208,21 @@ export default function Npd() {
 }
 
 // ─── pieces ───────────────────────────────────────────────────────────────────
-const Dot = () => <span className="h-1 w-1 rounded-full bg-[#c4cad6]" />
+const Dot = () => <span className="h-1 w-1 rounded-full bg-[var(--color-brand-200)]" />
 
 function StatTile({ icon, label, value, sub, pct, warn, onClick }: { icon: string; label: string; value: number; sub: string; pct?: number; warn?: boolean; onClick?: () => void }) {
   return (
-    <button onClick={onClick} disabled={!onClick} className={cn('card text-left px-4 py-3.5 min-w-0 transition-colors', onClick && 'hover:border-[#cfd6e2]')}>
+    <button onClick={onClick} disabled={!onClick} className={cn('card text-left px-4 py-3.5 min-w-0 transition-colors', onClick && 'hover:border-[var(--color-slate-300)]')}>
       <div className="flex items-center gap-2 text-[12px] font-medium text-muted">
-        <span className="h-6 w-6 rounded-md bg-[#f2f4f7] text-ink-2 grid place-items-center"><Icon name={icon} size={13} /></span>
+        <span className="h-6 w-6 rounded-md bg-[var(--color-gray-100)] text-ink-2 grid place-items-center"><Icon name={icon} size={13} /></span>
         {label}
       </div>
       <div className="flex items-baseline gap-2 mt-2">
         <span className="text-[24px] leading-none font-bold tracking-[-0.02em] text-ink num">{value}</span>
-        {pct != null && <span className={cn('text-[12px] font-semibold num', warn ? 'text-[#b54708]' : 'text-accent-700')}>{Math.round(pct * 1000) / 10}%</span>}
+        {pct != null && <span className={cn('text-[12px] font-semibold num', warn ? 'text-[var(--color-amber-700)]' : 'text-accent-700')}>{Math.round(pct * 1000) / 10}%</span>}
       </div>
       {pct != null && (
-        <div className="mt-2 h-1.5 rounded-full bg-[#eef0f4] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(pct * 100, 1.5)}%`, background: warn ? '#dc8a3c' : '#14ab92' }} /></div>
+        <div className="mt-2 h-1.5 rounded-full bg-[var(--color-gray-100)] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(pct * 100, 1.5)}%`, background: warn ? 'var(--color-amber-600)' : 'var(--color-emerald-500)' }} /></div>
       )}
       {pct == null && <div className="mt-2 h-1.5" />}
       <div className="text-[11.5px] text-muted mt-2 truncate" title={sub}>{sub}</div>
@@ -239,7 +239,7 @@ function PlantChip({ k, name }: { k: keyof NpdSpoc; name: string }) {
   return (
     <Tooltip content={<span>{colLabel(k)}: <b>{name}</b></span>}>
       <span className="inline-flex items-center h-5 rounded-md border border-line bg-white text-[11px] overflow-hidden max-w-[148px]">
-        <span className="px-1 bg-[#f4f6f9] text-muted font-medium h-full grid place-items-center shrink-0">{short}</span>
+        <span className="px-1 bg-[var(--color-slate-100)] text-muted font-medium h-full grid place-items-center shrink-0">{short}</span>
         <span className="px-1.5 text-ink-2 truncate">{name}</span>
       </span>
     </Tooltip>
@@ -258,7 +258,7 @@ function DetailPanel({ row, onPerson }: { row: Row; onPerson: (p: string) => voi
     <aside className="card xl:sticky xl:top-4 min-w-0">
       <div className="px-4 pt-3.5 pb-3 border-b border-line">
         <div className="flex items-center gap-2">
-          <span className="h-7 min-w-7 px-1.5 rounded-md bg-[#f2f4f7] font-mono text-[12px] font-bold text-ink grid place-items-center">{row.code || '—'}</span>
+          <span className="h-7 min-w-7 px-1.5 rounded-md bg-[var(--color-gray-100)] font-mono text-[12px] font-bold text-ink grid place-items-center">{row.code || '—'}</span>
           <div className="min-w-0">
             <div className="text-[13.5px] font-semibold text-ink truncate">{nice(row.name)}</div>
             <div className="text-[11.5px] text-muted">{filled} of {NPD_SPOC_COLUMNS.length} SPOC fields filled in VMS</div>
@@ -278,7 +278,7 @@ function DetailPanel({ row, onPerson }: { row: Row; onPerson: (p: string) => voi
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-lg bg-[#fffaeb] border border-[#fde7b0] px-2.5 py-2 text-[12px] text-[#93370d]">
+          <div className="flex items-center gap-2 rounded-lg bg-[var(--color-amber-50)] border border-[var(--color-amber-100)] px-2.5 py-2 text-[12px] text-[var(--color-orange-800)]">
             <Icon name="CalendarClock" size={13} />Not scheduled in VMS yet
           </div>
         )}
@@ -288,17 +288,17 @@ function DetailPanel({ row, onPerson }: { row: Row; onPerson: (p: string) => voi
         <div className="text-[11px] font-semibold text-muted mb-1">SPOC matrix</div>
         {groups.map((g) => (
           <div key={g.title} className="mt-2">
-            <div className="text-[10.5px] font-semibold text-[#98a2b3] mb-0.5">{g.title}</div>
+            <div className="text-[10.5px] font-semibold text-[var(--color-slate-400)] mb-0.5">{g.title}</div>
             {g.keys.map((k) => {
               const v = row.spoc[k]
               return (
-                <div key={k} className="flex items-center justify-between gap-2 h-7 text-[12px] border-b border-dashed border-[#eceff4] last:border-0">
+                <div key={k} className="flex items-center justify-between gap-2 h-7 text-[12px] border-b border-dashed border-[var(--color-slate-100)] last:border-0">
                   <span className="text-ink-2 truncate">{k === 'corporate' ? 'Sourcing development' : k === 'dqa' ? 'DQA' : k === 'specialProjects' ? 'Special projects' : `${COL[k].label}${g.title.startsWith('RAC') ? ` · ${COL[k].plant}` : ''}`}</span>
                   {v ? (
                     <button onClick={() => onPerson(v)} className="inline-flex items-center gap-1.5 min-w-0 font-medium text-ink hover:text-brand-700" title={`Show all commodities for ${v}`}>
                       <Avatar name={v} color={avColor(v)} size={18} /><span className="truncate">{v}</span>
                     </button>
-                  ) : <span className="text-[#c0c6d1]">—</span>}
+                  ) : <span className="text-[var(--color-brand-200)]">—</span>}
                 </div>
               )
             })}
@@ -324,13 +324,13 @@ function Directory({ onPerson }: { onPerson: (p: string) => void }) {
     return (
       <div className="flex flex-wrap gap-1 mt-3">
         {list.map((r) => (
-          <span key={r.id} title={r.name} className="inline-flex items-center h-[22px] rounded-md border border-line bg-[#fafbfc] text-[11px] overflow-hidden max-w-full">
+          <span key={r.id} title={r.name} className="inline-flex items-center h-[22px] rounded-md border border-line bg-[var(--color-gray-50)] text-[11px] overflow-hidden max-w-full">
             <span className="px-1 font-mono font-semibold text-ink">{r.code || '·'}</span>
             <span className="pr-1.5 text-muted truncate max-w-[120px]">{nice(r.name)}</span>
           </span>
         ))}
         {rows.length > LIMIT && (
-          <button onClick={() => toggle(key)} className="h-[22px] px-2 rounded-md text-[11px] font-semibold text-ink-2 hover:bg-[#f2f4f7]">{all ? 'Show less' : `+${rows.length - LIMIT} more`}</button>
+          <button onClick={() => toggle(key)} className="h-[22px] px-2 rounded-md text-[11px] font-semibold text-ink-2 hover:bg-[var(--color-gray-100)]">{all ? 'Show less' : `+${rows.length - LIMIT} more`}</button>
         )}
       </div>
     )
@@ -354,7 +354,7 @@ function Directory({ onPerson }: { onPerson: (p: string) => void }) {
                   <div className="text-[10.5px] text-muted">codes</div>
                 </div>
               </div>
-              <div className="mt-2.5 h-1 rounded-full bg-[#eef0f4] overflow-hidden"><div className="h-full rounded-full bg-[#98a2b3]" style={{ width: `${(p.rows.length / max) * 100}%` }} /></div>
+              <div className="mt-2.5 h-1 rounded-full bg-[var(--color-gray-100)] overflow-hidden"><div className="h-full rounded-full bg-[var(--color-slate-400)]" style={{ width: `${(p.rows.length / max) * 100}%` }} /></div>
               {chips(p.name, p.rows)}
               <button onClick={() => onPerson(p.name)} className="mt-auto pt-3 self-start text-[12px] font-medium text-brand-700 hover:underline inline-flex items-center gap-1">View in commodity list<Icon name="ArrowRight" size={12} /></button>
             </div>
@@ -367,7 +367,7 @@ function Directory({ onPerson }: { onPerson: (p: string) => void }) {
           <SectionTitle title="Plant and DQA SPOCs" sub="Filled only for Aluminium (AA) so far" tight />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             {plant.map((p) => (
-              <button key={p.name} onClick={() => onPerson(p.name)} className="flex items-center gap-2.5 py-2 border-b border-dashed border-[#eceff4] text-left min-w-0 hover:bg-[#fafbfc]">
+              <button key={p.name} onClick={() => onPerson(p.name)} className="flex items-center gap-2.5 py-2 border-b border-dashed border-[var(--color-slate-100)] text-left min-w-0 hover:bg-[var(--color-gray-50)]">
                 <Avatar name={p.name} color={avColor(p.name)} size={24} />
                 <div className="min-w-0">
                   <div className="text-[12.5px] font-semibold text-ink truncate">{p.name}</div>
@@ -380,7 +380,7 @@ function Directory({ onPerson }: { onPerson: (p: string) => void }) {
         <div className="card px-4 py-3.5 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <SectionTitle title="Without a corporate SPOC" sub={`${unassigned.length} commodity codes, mostly finished goods and services. Assign in VMS.`} tight />
-            <Badge color="#b54708" soft="#fffaeb">{unassigned.length} gaps</Badge>
+            <Badge color="var(--color-amber-700)" soft="var(--color-amber-50)">{unassigned.length} gaps</Badge>
           </div>
           {chips('__none', unassigned)}
           <button onClick={() => onPerson('__none')} className="mt-3 text-[12px] font-medium text-brand-700 hover:underline inline-flex items-center gap-1">View in commodity list<Icon name="ArrowRight" size={12} /></button>
@@ -405,7 +405,7 @@ function VendorTab() {
   const list = (rows: typeof VENDOR_GROUPS) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
       {rows.map((g) => (
-        <div key={g.code} className="flex items-center gap-2.5 h-9 border-b border-dashed border-[#eceff4] min-w-0">
+        <div key={g.code} className="flex items-center gap-2.5 h-9 border-b border-dashed border-[var(--color-slate-100)] min-w-0">
           <span className="font-mono text-[11.5px] font-semibold text-ink w-[86px] shrink-0">{g.code}</span>
           <span className="text-[12.5px] text-ink-2 truncate">{g.name.replace(/^Creditors\s+/i, '').replace('Staturoty', 'Statutory').replace(/^./, (c) => c.toUpperCase())}</span>
         </div>
@@ -418,14 +418,14 @@ function VendorTab() {
         <div className="card px-4 py-3.5">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <SectionTitle title="Domestic creditor groups" sub="Vendor account groups used when a supplier is created in VMS" tight />
-            <Badge color="#475467" soft="#f2f4f7">{dom.length} groups</Badge>
+            <Badge color="var(--color-slate-600)" soft="var(--color-gray-100)">{dom.length} groups</Badge>
           </div>
           {list(dom)}
         </div>
         <div className="card px-4 py-3.5">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <SectionTitle title="Import creditor groups" sub="Overseas suppliers: raw material, capex, expense and service" tight />
-            <Badge color="#0b8a77">{imp.length} groups</Badge>
+            <Badge color="var(--color-emerald-600)">{imp.length} groups</Badge>
           </div>
           {list(imp)}
         </div>
@@ -434,8 +434,8 @@ function VendorTab() {
         <SectionTitle title="Payment methods" sub={`${PAYMENT_METHODS.length} methods allowed on vendor records`} tight />
         <div className="mt-1">
           {PAYMENT_METHODS.map((m) => (
-            <div key={m} className="flex items-center gap-3 py-2.5 border-b border-dashed border-[#eceff4] last:border-0">
-              <span className="h-8 w-8 rounded-lg bg-[#f2f4f7] text-ink-2 grid place-items-center shrink-0"><Icon name={m === 'LC' || m === 'TT' ? 'Globe' : m.includes('Cheque') || m === 'PDC' ? 'FileText' : 'ArrowLeftRight'} size={14} /></span>
+            <div key={m} className="flex items-center gap-3 py-2.5 border-b border-dashed border-[var(--color-slate-100)] last:border-0">
+              <span className="h-8 w-8 rounded-lg bg-[var(--color-gray-100)] text-ink-2 grid place-items-center shrink-0"><Icon name={m === 'LC' || m === 'TT' ? 'Globe' : m.includes('Cheque') || m === 'PDC' ? 'FileText' : 'ArrowLeftRight'} size={14} /></span>
               <div className="min-w-0">
                 <div className="text-[12.5px] font-semibold text-ink">{m}</div>
                 <div className="text-[11.5px] text-muted">{PAY_GLOSS[m] ?? '—'}</div>
@@ -443,7 +443,7 @@ function VendorTab() {
             </div>
           ))}
         </div>
-        <div className="mt-3 rounded-lg bg-[#f8f9fb] border border-line px-3 py-2 text-[11.5px] text-muted flex gap-2">
+        <div className="mt-3 rounded-lg bg-[var(--color-slate-50)] border border-line px-3 py-2 text-[11.5px] text-muted flex gap-2">
           <Icon name="Info" size={13} className="shrink-0 mt-0.5" />Reference lists from VMS. COIN shows them for context; vendor creation and payment terms stay in VMS.
         </div>
       </div>

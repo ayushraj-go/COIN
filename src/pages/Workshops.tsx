@@ -56,8 +56,8 @@ export default function Workshops() {
         <>
           <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
             <KpiCard label="Invitations" value={invites.length} money={false} icon="MailOpen" color={PRIMARY} sub={isSupplier ? `${pending} awaiting your reply` : `${invites.filter((c) => c.status === 'Live').length} live`} tip="Workshop invitations are emailed on campaign launch, with a reminder 2 days before." />
-            <KpiCard label={isSupplier ? 'Accepted' : 'Live now'} value={isSupplier ? accepted : invites.filter((c) => c.status === 'Live').length} money={false} icon="CalendarCheck" color="#0f9f6e" sub={isSupplier ? 'Accepted or attended' : 'Open for submissions'} />
-            <KpiCard label="My ideas" value={allMine.length} money={false} icon="Lightbulb" color="#ec8a1c" sub={`${allMine.filter((i) => i.bucket === 'Implemented').length} implemented`} tip="Ideas you submitted with a campaign / workshop tag." />
+            <KpiCard label={isSupplier ? 'Accepted' : 'Live now'} value={isSupplier ? accepted : invites.filter((c) => c.status === 'Live').length} money={false} icon="CalendarCheck" color="var(--color-emerald-600)" sub={isSupplier ? 'Accepted or attended' : 'Open for submissions'} />
+            <KpiCard label="My ideas" value={allMine.length} money={false} icon="Lightbulb" color="var(--color-orange-400)" sub={`${allMine.filter((i) => i.bucket === 'Implemented').length} implemented`} tip="Ideas you submitted with a campaign / workshop tag." />
             <KpiCard label="My ideas · ₹ value" value={myValue} icon="IndianRupee" color={GOLD} sub="Annualised impact, excl. dropped" formula="(P baseline − P new) × Q last FY MRN" />
           </Stagger>
 

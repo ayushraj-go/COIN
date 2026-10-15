@@ -13,13 +13,13 @@ const EMBED_LIMIT = 1.5 * 1024 * 1024 // larger non-image files are stored as re
 const isImage = (a: Pick<Attachment, 'type' | 'name'>) => a.type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(a.name)
 function fileIcon(a: Attachment): [string, string] {
   const n = a.name.toLowerCase()
-  if (isImage(a)) return ['FileImage', '#7c3aed']
-  if (n.endsWith('.pdf')) return ['FileText', '#e0364f']
-  if (/\.(xlsx?|csv)$/.test(n)) return ['FileSpreadsheet', '#0f9f6e']
-  if (/\.(docx?|txt)$/.test(n)) return ['FileText', '#2f4a9a']
-  if (/\.(zip|rar|7z)$/.test(n)) return ['FileArchive', '#ec8a1c']
-  if (/\.(dwg|dxf|step|stp|igs)$/.test(n)) return ['FileCode2', '#0d9488']
-  return ['File', '#64748b']
+  if (isImage(a)) return ['FileImage', 'var(--color-violet-600)']
+  if (n.endsWith('.pdf')) return ['FileText', 'var(--color-rose-600)']
+  if (/\.(xlsx?|csv)$/.test(n)) return ['FileSpreadsheet', 'var(--color-emerald-600)']
+  if (/\.(docx?|txt)$/.test(n)) return ['FileText', 'var(--color-brand-500)']
+  if (/\.(zip|rar|7z)$/.test(n)) return ['FileArchive', 'var(--color-orange-400)']
+  if (/\.(dwg|dxf|step|stp|igs)$/.test(n)) return ['FileCode2', 'var(--color-teal-600)']
+  return ['File', 'var(--color-slate-500)']
 }
 
 function readDataUrl(f: File): Promise<string> {
@@ -117,7 +117,7 @@ export function Attachments({ idea, compact }: { idea: Idea; compact?: boolean }
                   {a.dataUrl && isImage(a) ? (
                     <div className="h-24 bg-slate-100 overflow-hidden"><img src={a.dataUrl} alt={a.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>
                   ) : (
-                    <div className="h-24 grid place-items-center" style={{ background: `${color}0d` }}>
+                    <div className="h-24 grid place-items-center" style={{ background: `color-mix(in srgb, ${color} 5%, transparent)` }}>
                       <div className="flex flex-col items-center gap-1" style={{ color }}>
                         <Icon name={icon} size={28} strokeWidth={1.6} />
                         <span className="text-[10px] font-bold uppercase tracking-wider">{a.name.split('.').pop()}</span>

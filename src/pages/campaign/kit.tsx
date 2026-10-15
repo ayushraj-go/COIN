@@ -157,7 +157,7 @@ export function Pager({ page, pages, from, to, total, onPage, noun = 'items', cl
 }
 
 // ─── Funnel bar — sent → opened → replied → ideas → approved ──────────────────
-export const FUNNEL_COLORS = { opened: '#cbd5e1', replied: '#33c6aa', ideas: '#5e93fb', approved: '#1d47c0' }
+export const FUNNEL_COLORS = { opened: 'var(--color-slate-300)', replied: 'var(--color-emerald-400)', ideas: 'var(--color-brand-400)', approved: 'var(--color-brand-600)' }
 export function FunnelBar({ sent, opened, replied, ideas, approved, compact }: { sent: number; opened: number; replied: number; ideas: number; approved: number; compact?: boolean }) {
   const w = (n: number) => `${sent ? Math.min(100, (n / sent) * 100) : 0}%`
   const segs: [string, number, string][] = [['Opened', opened, FUNNEL_COLORS.opened], ['Replied', replied, FUNNEL_COLORS.replied], ['Ideas', ideas, FUNNEL_COLORS.ideas], ['Approved', approved, FUNNEL_COLORS.approved]]

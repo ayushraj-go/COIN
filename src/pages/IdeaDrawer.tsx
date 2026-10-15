@@ -45,7 +45,7 @@ export default function IdeaDrawer() {
           <div className="p-4 space-y-3 flex-1">
             {/* header */}
             <section className="card relative overflow-hidden p-3.5">
-              <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${BUCKET_STYLE[idea.bucket].color}, ${BUCKET_STYLE[idea.bucket].color}33)` }} />
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${BUCKET_STYLE[idea.bucket].color}, color-mix(in srgb, ${BUCKET_STYLE[idea.bucket].color} 20%, transparent))` }} />
               <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">

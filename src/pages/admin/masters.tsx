@@ -17,7 +17,7 @@ const EVALUATORS = ['—', 'R&D', 'DQA', 'Quality', 'Process', 'Production', 'R&
 const NPD = ['No', 'Yes', 'Yes (supplier qualification)', 'Trial only', 'To be confirmed']
 const ALL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Sourcing', 'Finance', 'Management', 'Sourcing Excellence', 'Supplier']
 const ROLE_KEYS = Object.keys(ROLE_LABEL) as RoleKey[]
-const AVATAR = ['#223c86', '#2f4a9a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#b8142a']
+const AVATAR = ['var(--color-brand-600)', 'var(--color-brand-500)', 'var(--color-emerald-600)', 'var(--color-orange-400)', 'var(--color-violet-600)', 'var(--color-teal-600)', 'var(--color-pink-600)', 'var(--color-sky-600)', 'var(--color-indigo-600)', 'var(--color-accent-600)']
 const opt = (a: string[]): [string, string][] => a.map((x) => [x, x])
 
 function useLookups() {
@@ -46,7 +46,7 @@ export function CategoryAdmin() {
       columns={[
         { key: 'id', label: 'Code', render: (c) => <span className="font-mono font-semibold text-brand-700">{c.id}</span> },
         { key: 'name', label: 'Commodity group', render: (c) => <span className="font-semibold text-ink">{c.name}</span> },
-        { key: 'buyingType', label: 'Buying type', render: (c) => <Badge color={c.buyingType === 'Direct' ? '#223c86' : '#b8142a'}>{c.buyingType}</Badge> },
+        { key: 'buyingType', label: 'Buying type', render: (c) => <Badge color={c.buyingType === 'Direct' ? 'var(--color-brand-600)' : 'var(--color-accent-600)'}>{c.buyingType}</Badge> },
         { key: 'commodities', label: 'Commodities', value: (c) => commodities.filter((x) => x.categoryId === c.id).map((x) => x.name).join(', '), render: (c) => <span className="text-ink-2">{commodities.filter((x) => x.categoryId === c.id).map((x) => x.code).join(' · ') || '—'}</span> },
         { key: 'ideas', label: 'Ideas', align: 'right', value: (c) => ideas.filter((i) => i.categoryId === c.id).length },
       ]} />
@@ -132,7 +132,7 @@ export function LeverAdmin() {
           const st = LEVER_GROUP_STYLE[g]
           const ls = levers.filter((l) => l.group === g)
           return (
-            <div key={g} className="rounded-xl border px-3 py-2 bg-white" style={{ borderColor: `${st.color}33` }}>
+            <div key={g} className="rounded-xl border px-3 py-2 bg-white" style={{ borderColor: `color-mix(in srgb, ${st.color} 20%, transparent)` }}>
               <div className="flex items-center gap-2">
                 <span className="h-7 w-7 rounded-lg grid place-items-center" style={{ background: st.soft, color: st.color }}><Icon name={st.icon} size={14} /></span>
                 <span className="text-[12.5px] font-semibold text-ink">{g}</span>
@@ -165,7 +165,7 @@ export function LeverAdmin() {
           { key: 'name', label: 'Category', value: (l) => l.name, render: (l) => <LeverChip leverId={l.id} /> },
           { key: 'group', label: 'Group', value: (l) => l.group },
           { key: 'savingsType', label: 'Savings type', value: (l) => l.savingsType },
-          { key: 'route', label: 'Route', value: (l) => l.route, render: (l) => <Badge color={l.route === 'Technical' ? '#4f46e5' : l.route === 'Commercial' ? '#7c3aed' : l.route === 'Supplier change' ? '#0d9488' : l.route === 'Internal' ? '#db2777' : '#6b7280'}>{l.route}</Badge> },
+          { key: 'route', label: 'Route', value: (l) => l.route, render: (l) => <Badge color={l.route === 'Technical' ? 'var(--color-indigo-600)' : l.route === 'Commercial' ? 'var(--color-violet-600)' : l.route === 'Supplier change' ? 'var(--color-teal-600)' : l.route === 'Internal' ? 'var(--color-pink-600)' : 'var(--color-gray-500)'}>{l.route}</Badge> },
           { key: 'evaluator', label: 'Evaluator', value: (l) => l.evaluator },
           { key: 'npdSample', label: 'NPD sample', value: (l) => l.npdSample },
           { key: 'ideas', label: 'Ideas', align: 'right', value: (l) => ideas.filter((i) => i.leverId === l.id).length },
@@ -212,7 +212,7 @@ export function RouteAdmin() {
         const open = ideas.filter((i) => i.route === r && (i.bucket === 'Pipeline' || i.bucket === 'In Execution')).length
         const approvers = [...new Set(ls.map((l) => rndDeptFor(l.evaluator)))]
         return (
-          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="#b8142a">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ? `Scope document: ${doc.stages}` : 'Route to be defined by Sourcing'} icon="Route"
+          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="var(--color-accent-600)">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ? `Scope document: ${doc.stages}` : 'Route to be defined by Sourcing'} icon="Route"
             actions={<span className="text-[11.5px] text-muted">{ls.length} levers · {open} open ideas</span>}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Categories on this route</div><div className="flex flex-wrap gap-1.5">{ls.length ? ls.map((l) => <LeverChip key={l.id} leverId={l.id} />) : <span className="text-[12px] text-muted">No category mapped</span>}</div></div>
@@ -259,7 +259,7 @@ export function DepartmentAdmin() {
           <Button variant="primary" icon="Plus" disabled={!add.trim() || !!err} onClick={() => { commit([...departments, add.trim()], `${add.trim()} added`); setAdd('') }}>Add department</Button>
         </div>
       )}
-      <div className="mt-3 flex flex-wrap gap-1.5">{ALL_DEPTS.filter((d) => !departments.includes(d)).map((d) => <Badge key={d} color="#64748b">{d} · system</Badge>)}</div>
+      <div className="mt-3 flex flex-wrap gap-1.5">{ALL_DEPTS.filter((d) => !departments.includes(d)).map((d) => <Badge key={d} color="var(--color-slate-500)">{d} · system</Badge>)}</div>
     </Card>
   )
 }
@@ -282,7 +282,7 @@ export function PlantAdmin() {
       columns={[
         { key: 'id', label: 'Code', render: (p) => <span className="font-mono font-semibold text-brand-700">{p.id}</span> },
         { key: 'name', label: 'Plant', render: (p) => <span className="font-semibold">{p.name}</span> },
-        { key: 'bu', label: 'BU', render: (p) => <Badge color="#b8142a">{p.bu}</Badge> },
+        { key: 'bu', label: 'BU', render: (p) => <Badge color="var(--color-accent-600)">{p.bu}</Badge> },
         { key: 'users', label: 'Users', align: 'right', value: (p) => users.filter((u) => u.plant === p.id).length },
         { key: 'ideas', label: 'Ideas', align: 'right', value: (p) => ideas.filter((i) => i.plant === p.id).length },
       ]} />
@@ -349,8 +349,8 @@ export function UserAdmin() {
           { key: 'name', label: 'User', value: (u) => u.name, render: (u) => <span className="flex items-center gap-2 min-w-0"><Avatar name={u.name} color={u.avatarColor} size={26} /><span className="min-w-0"><span className="block text-[12.5px] font-semibold text-ink truncate">{u.name}</span><span className="block text-[11px] text-muted truncate max-w-[220px]">{u.designation}</span></span></span> },
           { key: 'employeeId', label: 'Employee ID', render: (u) => <span className="font-mono text-[11.5px]">{u.employeeId}</span> },
           { key: 'email', label: 'Email', render: (u) => <span className="text-ink-2">{u.email}</span> },
-          { key: 'roles', label: 'Roles', value: (u) => u.roles.map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} color={r === 'admin' ? '#b8142a' : r === 'head' ? '#223c86' : r === 'supplier' ? '#0d9488' : '#475569'}>{ROLE_LABEL[r]}</Badge>)}</span> },
-          { key: 'commodities', label: 'Commodities', value: (u) => u.commodities.join(', '), render: (u) => <span className="text-[11.5px] text-ink-2">{u.commodities.length ? u.commodities.join(' · ') : u.roles.some((r) => ['head', 'finance', 'mgmt', 'admin'].includes(r)) ? <Badge color="#223c86">All (org-wide)</Badge> : '—'}</span> },
+          { key: 'roles', label: 'Roles', value: (u) => u.roles.map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} color={r === 'admin' ? 'var(--color-accent-600)' : r === 'head' ? 'var(--color-brand-600)' : r === 'supplier' ? 'var(--color-teal-600)' : 'var(--color-slate-600)'}>{ROLE_LABEL[r]}</Badge>)}</span> },
+          { key: 'commodities', label: 'Commodities', value: (u) => u.commodities.join(', '), render: (u) => <span className="text-[11.5px] text-ink-2">{u.commodities.length ? u.commodities.join(' · ') : u.roles.some((r) => ['head', 'finance', 'mgmt', 'admin'].includes(r)) ? <Badge color="var(--color-brand-600)">All (org-wide)</Badge> : '—'}</span> },
           { key: 'department', label: 'Department' },
           { key: 'plant', label: 'Plant', value: (u) => plants.find((p) => p.id === u.plant)?.name ?? u.plant },
           { key: 'active', label: 'Active', value: (u) => (u.active ? 'Active' : 'Inactive'), render: (u) => <span onClick={(e) => { e.stopPropagation(); toggle(u) }}><Toggle checked={u.active} onChange={() => undefined} disabled={ro} /></span> },
@@ -380,7 +380,7 @@ export function VendorAdmin() {
       columns={[
         { key: 'code', label: 'Code', render: (s) => <span className="font-mono font-semibold text-brand-700">{s.code}</span> },
         { key: 'name', label: 'Vendor', render: (s) => <span className="font-semibold text-ink">{s.name}</span> },
-        { key: 'commodities', label: 'Commodities', value: (s) => s.commodities.join(', '), render: (s) => <span className="flex gap-1">{s.commodities.map((c) => <Badge key={c} color="#475569">{c}</Badge>)}</span> },
+        { key: 'commodities', label: 'Commodities', value: (s) => s.commodities.join(', '), render: (s) => <span className="flex gap-1">{s.commodities.map((c) => <Badge key={c} color="var(--color-slate-600)">{c}</Badge>)}</span> },
         { key: 'contactName', label: 'Contact' },
         { key: 'contactEmail', label: 'Email', render: (s) => <span className="text-ink-2">{s.contactEmail}</span> },
         { key: 'city', label: 'City' },
@@ -419,7 +419,7 @@ export function PartAdmin() {
         { key: 'uom', label: 'UoM' },
         { key: 'commodity', label: 'Commodity' },
         { key: 'supplier', label: 'Supplier', value: (p) => suppliers.find((s) => s.code === p.supplierCode)?.name ?? p.supplierCode, render: (p) => <span className="text-ink-2">{p.supplierCode} · {suppliers.find((s) => s.code === p.supplierCode)?.name}</span> },
-        { key: 'lbp', label: 'LBP', align: 'right', value: (p) => p.lbp ?? -1, render: (p) => (p.lbp != null ? <span className="num">{inrPrice(p.lbp)}</span> : <Badge color="#ec8a1c">No LBP</Badge>) },
+        { key: 'lbp', label: 'LBP', align: 'right', value: (p) => p.lbp ?? -1, render: (p) => (p.lbp != null ? <span className="num">{inrPrice(p.lbp)}</span> : <Badge color="var(--color-orange-400)">No LBP</Badge>) },
         { key: 'poPrice', label: 'PO price', align: 'right', value: (p) => p.poPrice, render: (p) => <span className="num">{inrPrice(p.poPrice)}</span> },
         { key: 'lastFyMrnQty', label: 'Last FY MRN qty', align: 'right', value: (p) => p.lastFyMrnQty, render: (p) => <span className="num">{num(p.lastFyMrnQty)}</span> },
         { key: 'plant', label: 'Plant' },

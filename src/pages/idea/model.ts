@@ -27,7 +27,7 @@ export const ROUTE_ICON: Record<RouteKey, string> = { Commercial: 'Handshake', '
 export const ROUTES: RouteKey[] = ['Commercial', 'Supplier change', 'Technical', 'Internal', 'To be confirmed']
 export const LEVER_GROUPS: LeverGroup[] = ['Commercial', 'Supply base', 'Engineering', 'Logistics & packing', 'Operational']
 export const SAVINGS_TYPES = ['Hard', 'Cost avoidance', 'One-time'] as const
-export const SAVINGS_TYPE_COLOR: Record<string, string> = { Hard: '#0f9f6e', 'Cost avoidance': '#0284c7', 'One-time': '#7c3aed' }
+export const SAVINGS_TYPE_COLOR: Record<string, string> = { Hard: 'var(--color-emerald-600)', 'Cost avoidance': 'var(--color-sky-600)', 'One-time': 'var(--color-violet-600)' }
 
 export const stagesOf = (idea: Pick<Idea, 'route'>) => ROUTE_STAGES[idea.route] ?? ROUTE_STAGES.Commercial
 /** Stage name as shown for this idea ("Evaluation" → "R&D evaluation") */
@@ -300,15 +300,15 @@ export function withUndo(id: string, fn: () => void, message: string, opts: { fi
 
 // ─── Source tags & part maths ────────────────────────────────────────────────
 export const BASELINE_TAG: Record<IdeaPart['baselineSource'], { label: string; color: string }> = {
-  LBP: { label: 'from LBP', color: '#0284c7' },
-  'PO price': { label: 'PO price', color: '#4f46e5' },
-  Quoted: { label: 'Quoted', color: '#7c3aed' },
-  Override: { label: 'Override', color: '#ec8a1c' },
+  LBP: { label: 'from LBP', color: 'var(--color-sky-600)' },
+  'PO price': { label: 'PO price', color: 'var(--color-indigo-600)' },
+  Quoted: { label: 'Quoted', color: 'var(--color-violet-600)' },
+  Override: { label: 'Override', color: 'var(--color-orange-400)' },
 }
 export const VOLUME_TAG: Record<IdeaPart['volumeSource'], { label: string; color: string }> = {
-  'MRN FY26': { label: 'from MRN FY26', color: '#0d9488' },
-  Forecast: { label: 'Forecast', color: '#ec8a1c' },
-  Override: { label: 'Override', color: '#ec8a1c' },
+  'MRN FY26': { label: 'from MRN FY26', color: 'var(--color-teal-600)' },
+  Forecast: { label: 'Forecast', color: 'var(--color-orange-400)' },
+  Override: { label: 'Override', color: 'var(--color-orange-400)' },
 }
 
 // ─── Excel export (ideas + part-wise savings) ────────────────────────────────

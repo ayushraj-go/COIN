@@ -19,15 +19,15 @@ export function IdeaMetaChips({ idea, className }: { idea: Idea; className?: str
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
       <LeverChip leverId={idea.leverId} />
-      <Badge color="#334155" icon={ROUTE_ICON[idea.route]}>{idea.route} route</Badge>
+      <Badge color="var(--color-slate-700)" icon={ROUTE_ICON[idea.route]}>{idea.route} route</Badge>
       <SavingsTypeBadge type={idea.savingsType} />
-      <Badge color="#0f766e" icon="Boxes">{commodity?.name ?? idea.commodity}</Badge>
-      <Badge color="#475569" icon="MapPin">{plant ? `${plant.name} · ${plant.bu}` : idea.plant}</Badge>
-      <Badge color="#64748b" icon={idea.buyingType === 'Direct' ? 'Package' : 'Briefcase'}>{idea.buyingType}</Badge>
-      {idea.isSupplierSubmission && <Badge color="#0d9488" icon="Factory">Supplier idea · {idea.supplierCode}</Badge>}
+      <Badge color="var(--color-teal-700)" icon="Boxes">{commodity?.name ?? idea.commodity}</Badge>
+      <Badge color="var(--color-slate-600)" icon="MapPin">{plant ? `${plant.name} · ${plant.bu}` : idea.plant}</Badge>
+      <Badge color="var(--color-slate-500)" icon={idea.buyingType === 'Direct' ? 'Package' : 'Briefcase'}>{idea.buyingType}</Badge>
+      {idea.isSupplierSubmission && <Badge color="var(--color-teal-600)" icon="Factory">Supplier idea · {idea.supplierCode}</Badge>}
       {campaign && (
         <Link to={`/campaigns/${campaign.id}`} onClick={() => useStore.getState().openIdea(null)} className="inline-flex">
-          <Badge color="#223c86" icon="Megaphone" className="hover:brightness-95">{campaign.name}</Badge>
+          <Badge color="var(--color-brand-600)" icon="Megaphone" className="hover:brightness-95">{campaign.name}</Badge>
         </Link>
       )}
     </div>
@@ -52,10 +52,10 @@ export function DetailsCard({ idea, compact }: { idea: Idea; compact?: boolean }
         <Block label="Proposed change" icon="Sparkles">{idea.proposedChange || <span className="text-muted">Not provided</span>}</Block>
         <Block label="Evidence" icon="FileCheck2">
           {idea.evidence || <span className="text-muted">No evidence text</span>}
-          {idea.evidenceTags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{idea.evidenceTags.map((t) => <Badge key={t} color="#4f46e5" icon="Tag">{t}</Badge>)}</div>}
+          {idea.evidenceTags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{idea.evidenceTags.map((t) => <Badge key={t} color="var(--color-indigo-600)" icon="Tag">{t}</Badge>)}</div>}
         </Block>
         <div className="min-w-0 rounded-xl bg-slate-50/70 border border-slate-100 px-3 py-1.5">
-          <KV k="Proposed supplier" v={idea.proposedSupplier ? <span>{idea.proposedSupplier.name}{idea.proposedSupplier.code ? <span className="text-muted"> · {idea.proposedSupplier.code}</span> : null}{idea.proposedSupplier.isNew && <Badge color="#ec8a1c" className="ml-1.5">New supplier</Badge>}</span> : '—'} />
+          <KV k="Proposed supplier" v={idea.proposedSupplier ? <span>{idea.proposedSupplier.name}{idea.proposedSupplier.code ? <span className="text-muted"> · {idea.proposedSupplier.code}</span> : null}{idea.proposedSupplier.isNew && <Badge color="var(--color-orange-400)" className="ml-1.5">New supplier</Badge>}</span> : '—'} />
           <KV k="Gain-share % offered to Amber" v={idea.isSupplierSubmission ? (idea.gainSharePct != null ? `${idea.gainSharePct}%` : '—') : <span className="text-muted">Supplier submissions only</span>} />
           <KV k="Validity of offer" v={idea.isSupplierSubmission ? (idea.offerValidity ? <span className={idea.offerValidity < todayIso() ? 'text-red-600' : undefined}>{fmtDate(idea.offerValidity)}{idea.offerValidity < todayIso() ? ' · expired' : ''}</span> : '—') : <span className="text-muted">Supplier submissions only</span>} />
           <KV k="Expected implementation" v={idea.expectedQuarter || '—'} />
@@ -67,12 +67,12 @@ export function DetailsCard({ idea, compact }: { idea: Idea; compact?: boolean }
   )
 }
 
-function PanelShell({ title, icon, status, children, tone = '#64748b' }: { title: string; icon: string; status?: ReactNode; children: ReactNode; tone?: string }) {
+function PanelShell({ title, icon, status, children, tone = 'var(--color-slate-500)' }: { title: string; icon: string; status?: ReactNode; children: ReactNode; tone?: string }) {
   return (
     <section className="card p-3.5 min-w-0 flex flex-col">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={{ background: `${tone}14`, color: tone }}><Icon name={icon} size={14} /></span>
+          <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${tone} 8%, transparent)`, color: tone }}><Icon name={icon} size={14} /></span>
           <h3 className="text-[13px] font-semibold text-ink truncate">{title}</h3>
         </div>
         {status}
@@ -108,7 +108,7 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
           {ex.originalTargetDate !== ex.targetDate && <div className="text-[10.5px] text-muted">orig. {fmtDate(ex.originalTargetDate)} · {ex.slippage.length} slip{ex.slippage.length === 1 ? '' : 's'}</div>}
         </div>
         <div className="min-w-0"><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">{ex.effectiveDate ? 'Effective' : 'Progress'}</div>
-          {ex.effectiveDate ? <div className="text-[13px] font-semibold mt-1 text-emerald-700">{fmtDate(ex.effectiveDate)}</div> : <div className="mt-2 flex items-center gap-2"><ProgressBar value={ex.progress} color="#ec8a1c" className="flex-1" /><span className="text-[12px] font-semibold num">{ex.progress}%</span></div>}
+          {ex.effectiveDate ? <div className="text-[13px] font-semibold mt-1 text-emerald-700">{fmtDate(ex.effectiveDate)}</div> : <div className="mt-2 flex items-center gap-2"><ProgressBar value={ex.progress} color="var(--color-orange-400)" className="flex-1" /><span className="text-[12px] font-semibold num">{ex.progress}%</span></div>}
         </div>
       </div>
       {idea.lock && <div className="mt-3 rounded-xl border border-line p-3"><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center justify-between gap-2"><span>Plan vs actual · locked {idea.lock.timelineMonths}-month target</span><span className="normal-case tracking-normal font-medium">CO date {fmtDate(idea.coDate ?? idea.lock.startDate)} · MRN link: ERP feed (future)</span></div><PlanBlock idea={idea} /></div>}
@@ -152,8 +152,8 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
 }
 
 // ─── Linked NPD / PAP requests (status synced) ───────────────────────────────
-const NPD_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', 'ECN raised': '#2f4a9a', 'Sample submitted': '#ec8a1c', 'Sample approved': '#0f9f6e', 'Sample failed': '#e0364f' }
-const PAP_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', Raised: '#2f4a9a', 'Price approved': '#0f9f6e', Rejected: '#e0364f' }
+const NPD_COLOR: Record<string, string> = { 'Not raised': 'var(--color-slate-400)', 'ECN raised': 'var(--color-brand-500)', 'Sample submitted': 'var(--color-orange-400)', 'Sample approved': 'var(--color-emerald-600)', 'Sample failed': 'var(--color-rose-600)' }
+const PAP_COLOR: Record<string, string> = { 'Not raised': 'var(--color-slate-400)', Raised: 'var(--color-brand-500)', 'Price approved': 'var(--color-emerald-600)', Rejected: 'var(--color-rose-600)' }
 export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolean }) {
   const me = useMe()
   const syncNpdPap = useStore((s) => s.syncNpdPap)
@@ -181,7 +181,7 @@ export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolea
   }
   const Row = ({ sys, id, status, color, onSync, syncKey, na, icon }: { sys: string; id?: string; status: string; color: string; onSync: () => void; syncKey: string; na?: string; icon: string }) => (
     <div className="flex items-center gap-2.5 py-2 border-b border-dashed border-slate-200 last:border-0">
-      <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: `${color}14`, color }}><Icon name={icon} size={15} /></span>
+      <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${color} 8%, transparent)`, color }}><Icon name={icon} size={15} /></span>
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{sys}</div>
         {na ? <div className="text-[12px] text-muted truncate">{na}</div> : (
@@ -198,7 +198,7 @@ export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolea
   )
   return (
     <Card title="Linked requests" icon="Link2" subtitle={compact ? undefined : 'NPD platform and Price Approval Portal, status synced'}>
-      <Row sys="NPD request (ECN)" id={idea.npdRequestId} status={npd} color={NPD_COLOR[npd] ?? '#64748b'} onSync={syncNpd} syncKey="npd" icon="TestTubeDiagonal"
+      <Row sys="NPD request (ECN)" id={idea.npdRequestId} status={npd} color={NPD_COLOR[npd] ?? 'var(--color-slate-500)'} onSync={syncNpd} syncKey="npd" icon="TestTubeDiagonal"
         na={!needsNpd ? `Not applicable — ${idea.route} route has no NPD sample` : !idea.npdRequestId ? 'Raised automatically at the NPD sample stage' : undefined} />
       {choose && (
         <div className="my-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
@@ -210,7 +210,7 @@ export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolea
           </div>
         </div>
       )}
-      <Row sys="PAP price revision" id={idea.papRequestId} status={pap} color={PAP_COLOR[pap] ?? '#64748b'} onSync={syncPap} syncKey="pap" icon="BadgeIndianRupee"
+      <Row sys="PAP price revision" id={idea.papRequestId} status={pap} color={PAP_COLOR[pap] ?? 'var(--color-slate-500)'} onSync={syncPap} syncKey="pap" icon="BadgeIndianRupee"
         na={!idea.papRequestId ? 'Raised automatically at the PAP stage after approval' : undefined} />
     </Card>
   )

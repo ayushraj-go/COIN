@@ -16,15 +16,15 @@ const stagesOf = (key: string) => Object.keys(STAGE_SLA_KEY).filter((s) => STAGE
 
 export type ActionKind = 'validate' | 'feasibility' | 'evaluate' | 'approve' | 'savings' | 'overdue' | 'info' | 'draft' | 'sla'
 export const ACTION_META: Record<ActionKind, { label: string; icon: string; color: string }> = {
-  validate: { label: 'Feasibility check', icon: 'UsersRound', color: '#2f4a9a' },
-  feasibility: { label: 'Feasibility', icon: 'Factory', color: '#0d9488' },
-  evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: '#4f46e5' },
-  approve: { label: 'Sourcing approval', icon: 'Stamp', color: '#223c86' },
-  savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: '#0f9f6e' },
-  overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: '#e0364f' },
-  info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: '#ec8a1c' },
-  draft: { label: 'Drafts', icon: 'FilePen', color: '#64748b' },
-  sla: { label: 'SLA breaches', icon: 'Siren', color: '#a3143a' },
+  validate: { label: 'Feasibility check', icon: 'UsersRound', color: 'var(--color-brand-500)' },
+  feasibility: { label: 'Feasibility', icon: 'Factory', color: 'var(--color-teal-600)' },
+  evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: 'var(--color-indigo-600)' },
+  approve: { label: 'Sourcing approval', icon: 'Stamp', color: 'var(--color-brand-600)' },
+  savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)' },
+  overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: 'var(--color-rose-600)' },
+  info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: 'var(--color-orange-400)' },
+  draft: { label: 'Drafts', icon: 'FilePen', color: 'var(--color-slate-500)' },
+  sla: { label: 'SLA breaches', icon: 'Siren', color: 'var(--color-rose-800)' },
 }
 
 export interface ActionItem {
@@ -121,7 +121,7 @@ function SlaWatch() {
   const nav = useNavigate()
   const filters = useStore((s) => s.filters)
   const rows = useSlaRows()
-  const cellCls = (n: number, color: string) => (n ? { color, background: `${color}12` } : { color: '#cbd5e1' })
+  const cellCls = (n: number, color: string) => (n ? { color, background: `color-mix(in srgb, ${color} 7%, transparent)` } : { color: 'var(--color-slate-300)' })
   return (
     <div className="mt-2 pt-2 border-t border-line shrink-0">
       <div className="flex items-center justify-between mb-1">
@@ -133,9 +133,9 @@ function SlaWatch() {
           <span className="text-[11.5px] text-ink-2 truncate">{x.r.stage} <span className="text-muted">· {x.r.slaDays}d</span></span>
           <span className="grid grid-cols-4 gap-1 w-[176px] text-center text-[11px] font-bold num">
             <span className="text-ink-2">{x.open}</span>
-            <span className="rounded" style={cellCls(x.due, '#ec8a1c')}>{x.due}</span>
-            <span className="rounded" style={cellCls(x.breach, '#e0364f')}>{x.breach}</span>
-            <span className="rounded" style={cellCls(x.escalated, '#a3143a')}>{x.escalated}</span>
+            <span className="rounded" style={cellCls(x.due, 'var(--color-orange-400)')}>{x.due}</span>
+            <span className="rounded" style={cellCls(x.breach, 'var(--color-rose-600)')}>{x.breach}</span>
+            <span className="rounded" style={cellCls(x.escalated, 'var(--color-rose-800)')}>{x.escalated}</span>
           </span>
         </button>
       ))}
@@ -150,29 +150,29 @@ export function SlaWatchCard({ className }: { className?: string }) {
   const rows = useSlaRows()
   const tot = rows.reduce((a, x) => ({ open: a.open + x.open, due: a.due + x.due, breach: a.breach + x.breach, escalated: a.escalated + x.escalated }), { open: 0, due: 0, breach: 0, escalated: 0 })
   const go = (stage: string) => (stage === 'Finance validation' ? nav('/reports/leakage') : nav(drillUrl({ sla: 'breach', stage: stagesOf(stage).length === 1 ? stagesOf(stage)[0] : undefined }, filters)))
-  const num = (n: number, color: string) => <span className="inline-flex justify-center min-w-[34px] h-7 px-2 items-center rounded-md text-[13px] font-semibold num" style={n ? { color, background: `${color}14` } : { color: '#d0d5dd' }}>{n}</span>
+  const num = (n: number, color: string) => <span className="inline-flex justify-center min-w-[34px] h-7 px-2 items-center rounded-md text-[13px] font-semibold num" style={n ? { color, background: `color-mix(in srgb, ${color} 8%, transparent)` } : { color: 'var(--color-gray-300)' }}>{n}</span>
   return (
     <Card className={cn('h-full', className)} icon="Timer" bodyClass="flex flex-col"
       title={<span className="flex items-center gap-1.5">SLA watch<InfoTip title="Stage SLAs">Working days each idea has spent in its current stage against the stage SLA. Reminder and escalation days follow Section 12. Click a stage to open the ideas behind it.</InfoTip></span>}
       subtitle="Ideas in my scope, by review stage"
-      actions={tot.breach + tot.escalated > 0 ? <Badge color="#e0364f" dot>{tot.breach + tot.escalated} beyond SLA</Badge> : <Badge color="#0f9f6e" icon="CircleCheck">All within SLA</Badge>}>
+      actions={tot.breach + tot.escalated > 0 ? <Badge color="var(--color-rose-600)" dot>{tot.breach + tot.escalated} beyond SLA</Badge> : <Badge color="var(--color-emerald-600)" icon="CircleCheck">All within SLA</Badge>}>
       <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,64px)] items-center gap-x-2 pb-2 border-b border-line text-[12px] font-medium text-muted">
         <span>Stage</span><span className="text-center">Open</span><span className="text-center">Due</span><span className="text-center">Breach</span><span className="text-center">Escalated</span>
       </div>
       <div className="flex flex-col">
         {rows.map((x) => (
-          <button key={x.r.stage} onClick={() => go(x.r.stage)} className="h-10 grid grid-cols-[minmax(0,1fr)_repeat(4,64px)] items-center gap-x-2 border-b border-[#eef2f8] last:border-0 hover:bg-brand-50/60 -mx-2 px-2 rounded-md text-left">
+          <button key={x.r.stage} onClick={() => go(x.r.stage)} className="h-10 grid grid-cols-[minmax(0,1fr)_repeat(4,64px)] items-center gap-x-2 border-b border-[var(--color-brand-50)] last:border-0 hover:bg-brand-50/60 -mx-2 px-2 rounded-md text-left">
             <span className="min-w-0 truncate text-[13px] font-medium text-ink">{x.r.stage} <span className="text-muted font-normal">· {x.r.slaDays}d</span></span>
             <span className="text-center text-[14px] font-semibold text-ink num">{x.open}</span>
-            <span className="text-center">{num(x.due, '#ec8a1c')}</span>
-            <span className="text-center">{num(x.breach, '#e0364f')}</span>
-            <span className="text-center">{num(x.escalated, '#a3143a')}</span>
+            <span className="text-center">{num(x.due, 'var(--color-orange-400)')}</span>
+            <span className="text-center">{num(x.breach, 'var(--color-rose-600)')}</span>
+            <span className="text-center">{num(x.escalated, 'var(--color-rose-800)')}</span>
           </button>
         ))}
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,64px)] items-center gap-x-2 pt-2.5 mt-1 border-t border-line text-[13px] font-semibold">
         <span className="text-ink">Total</span>
-        <span className="text-center num text-ink">{tot.open}</span><span className="text-center num" style={{ color: '#b35f0c' }}>{tot.due}</span><span className="text-center num" style={{ color: '#d92d20' }}>{tot.breach}</span><span className="text-center num" style={{ color: '#a3143a' }}>{tot.escalated}</span>
+        <span className="text-center num text-ink">{tot.open}</span><span className="text-center num" style={{ color: 'var(--color-amber-700)' }}>{tot.due}</span><span className="text-center num" style={{ color: 'var(--color-red-600)' }}>{tot.breach}</span><span className="text-center num" style={{ color: 'var(--color-rose-800)' }}>{tot.escalated}</span>
       </div>
     </Card>
   )
@@ -196,7 +196,7 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
       title={<span className="flex items-center gap-1.5">{title}<InfoTip title="My actions">Everything waiting on you, sorted by SLA urgency (escalated → breached → due). Click an item to review it in the side panel without leaving the page.</InfoTip></span>}
       subtitle={items.length ? `${items.length} open${breached ? ` · ${breached} beyond SLA / overdue` : ''}` : 'Nothing pending'}
       icon="Inbox"
-      actions={items.length ? <Badge color={breached ? '#e0364f' : '#2f4a9a'} dot>{items.length}</Badge> : undefined}>
+      actions={items.length ? <Badge color={breached ? 'var(--color-rose-600)' : 'var(--color-brand-500)'} dot>{items.length}</Badge> : undefined}>
       {kinds.length > 1 && (
         <div className="flex flex-wrap gap-1.5 pb-2 shrink-0">
           <Chip active={kind === 'all'} onClick={() => setKind('all')}>All {items.length}</Chip>
@@ -210,13 +210,13 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
             return (
               <button key={a.key} onClick={() => (a.route && a.kind === 'savings' ? nav(a.route) : a.ideaId ? openIdea(a.ideaId) : a.route && nav(a.route))}
                 className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
-                <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: `${m.color}12`, color: m.color }}><Icon name={m.icon} size={15} /></span>
+                <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${m.color} 7%, transparent)`, color: m.color }}><Icon name={m.icon} size={15} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{a.title}</span>
                   <span className="block text-[11px] text-muted truncate">{m.label} · {a.sub}</span>
                 </span>
                 <span className="flex flex-col items-end gap-1 shrink-0">
-                  {a.kind === 'overdue' ? <Badge color="#e0364f" icon="CalendarX2">{a.overdueDays}d overdue</Badge> : a.sla ? <SlaPill state={a.sla.state} left={a.sla.left} working={a.sla.working} /> : <span className="h-[22px]" />}
+                  {a.kind === 'overdue' ? <Badge color="var(--color-rose-600)" icon="CalendarX2">{a.overdueDays}d overdue</Badge> : a.sla ? <SlaPill state={a.sla.state} left={a.sla.left} working={a.sla.working} /> : <span className="h-[22px]" />}
                   {a.value != null && a.value > 0 && <span className="text-[11px] font-semibold text-ink-2 num">{inrShort(a.value)}</span>}
                 </span>
               </button>

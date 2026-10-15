@@ -9,9 +9,9 @@ import { planVsActual } from '../../lib/workflow'
 import { Icon, cn } from '../../components/ui'
 import { AXIS_TICK, ChartTip, GRID_STROKE } from '../home/shared'
 
-export const PLAN_COLOR = '#1b316f'
-export const ACTUAL_COLOR = '#0f9f6e'
-export const BEHIND_COLOR = '#d7192d'
+export const PLAN_COLOR = 'var(--color-brand-700)'
+export const ACTUAL_COLOR = 'var(--color-emerald-600)'
+export const BEHIND_COLOR = 'var(--color-accent-500)'
 
 /** Plan vs actual numbers for one idea (null until a lock is signed) */
 export function useIdeaPlan(idea: Idea) {

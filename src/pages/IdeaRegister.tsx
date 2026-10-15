@@ -24,16 +24,16 @@ function FacetChip({ label, count, color, active, onClick, icon, tip }: { label:
   if (!count && !active) return null
   const el = (
     <button onClick={onClick}
-      className={cn('inline-flex items-center gap-1.5 h-[26px] pl-2 pr-0.5 rounded-full text-[11.5px] font-semibold border transition-all whitespace-nowrap', active ? 'text-white border-transparent shadow-[0_6px_14px_-6px_rgb(35_43_110/.6)]' : 'bg-[#f6f7fc] text-ink-2 border-transparent hover:bg-white hover:border-line hover:shadow-sm')}
-      style={active ? { background: `linear-gradient(135deg, ${color}, ${color}d9)` } : undefined}>
+      className={cn('inline-flex items-center gap-1.5 h-[26px] pl-2 pr-0.5 rounded-full text-[11.5px] font-semibold border transition-all whitespace-nowrap', active ? 'text-white border-transparent shadow-[0_6px_14px_-6px_rgb(35_43_110/.6)]' : 'bg-[var(--color-slate-50)] text-ink-2 border-transparent hover:bg-white hover:border-line hover:shadow-sm')}
+      style={active ? { background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 85%, transparent))` } : undefined}>
       {icon ? <Icon name={icon} size={12} style={{ color: active ? '#fff' : color }} /> : <span className="h-2 w-2 rounded-full" style={{ background: active ? '#fff' : color }} />}
       {label}
-      <span className={cn('min-w-[22px] h-[22px] px-1.5 rounded-full text-[10.5px] font-bold grid place-items-center num', active ? 'bg-white/25 text-white' : 'bg-white text-[#5b6384] ring-1 ring-line/70')}>{count}</span>
+      <span className={cn('min-w-[22px] h-[22px] px-1.5 rounded-full text-[10.5px] font-bold grid place-items-center num', active ? 'bg-white/25 text-white' : 'bg-white text-[var(--color-slate-500)] ring-1 ring-line/70')}>{count}</span>
     </button>
   )
   return tip ? <Tooltip content={tip}>{el}</Tooltip> : el
 }
-const GroupLabel = ({ children }: { children: string }) => <span className="text-[9.5px] font-bold uppercase tracking-[.14em] text-[#8a91ad] ml-1 mr-1">{children}</span>
+const GroupLabel = ({ children }: { children: string }) => <span className="text-[9.5px] font-bold uppercase tracking-[.14em] text-[var(--color-slate-400)] ml-1 mr-1">{children}</span>
 const Sep = () => <span className="hidden md:block w-px h-4 bg-gradient-to-b from-transparent via-line to-transparent mx-1.5" />
 
 // ─── Summary strip: value by bucket (click to filter) ─────────────────────────
@@ -363,7 +363,7 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
             <Sep />
             <GroupLabel>Route</GroupLabel>
             {ROUTES.map((rt) => (
-              <FacetChip key={rt} label={rt} icon={ROUTE_ICON[rt]} color="#334155" count={cnt(facets.route, (r) => r.idea.route === rt)} active={params.route === rt} onClick={() => toggle('route', rt)} />
+              <FacetChip key={rt} label={rt} icon={ROUTE_ICON[rt]} color="var(--color-slate-700)" count={cnt(facets.route, (r) => r.idea.route === rt)} active={params.route === rt} onClick={() => toggle('route', rt)} />
             ))}
             <Sep />
             <GroupLabel>Savings</GroupLabel>
@@ -372,8 +372,8 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
                 tip={t === 'Hard' ? 'Counts as hard savings' : 'Reported separately from hard savings'} />
             ))}
             <Sep />
-            <FacetChip label="SLA breach" icon="Siren" color="#e0364f" count={cnt(facets.sla, (r) => r.sla.state === 'breach' || r.sla.state === 'escalated')} active={params.sla === 'breach'} onClick={() => toggle('sla', 'breach')} tip="Working days in the current stage beyond the stage SLA (Section 12)" />
-            {mode === 'all' && <FacetChip label="Supplier ideas" icon="Factory" color="#0d9488" count={cnt(facets.supplierOnly, (r) => r.idea.isSupplierSubmission)} active={params.supplierOnly === 'true'} onClick={() => toggle('supplierOnly', 'true')} />}
+            <FacetChip label="SLA breach" icon="Siren" color="var(--color-rose-600)" count={cnt(facets.sla, (r) => r.sla.state === 'breach' || r.sla.state === 'escalated')} active={params.sla === 'breach'} onClick={() => toggle('sla', 'breach')} tip="Working days in the current stage beyond the stage SLA (Section 12)" />
+            {mode === 'all' && <FacetChip label="Supplier ideas" icon="Factory" color="var(--color-teal-600)" count={cnt(facets.supplierOnly, (r) => r.idea.isSupplierSubmission)} active={params.supplierOnly === 'true'} onClick={() => toggle('supplierOnly', 'true')} />}
           </div>
             <button onClick={() => setShowFacets((v) => !v)} className="shrink-0 h-[26px] px-2 rounded-md text-[12px] font-medium text-brand-700 hover:bg-brand-50 flex items-center gap-1">
               {showFacets ? 'Less' : 'More filters'}<Icon name={showFacets ? 'ChevronUp' : 'ChevronDown'} size={13} />

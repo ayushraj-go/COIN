@@ -12,15 +12,19 @@ import { ideaAnnualised } from '../lib/calc'
 import { useVisibleIdeas } from '../lib/hooks'
 import IdeaDrawer from '../pages/IdeaDrawer'
 import { AmberMark, AmberWordmark } from './Logo'
+import { ThemePicker } from './ThemePicker'
+import { paletteByKey, usePalette } from '../lib/theme'
 
-function Logo({ collapsed }: { collapsed: boolean; tone?: 'light' | 'dark' }) {
+function Logo({ collapsed, tone }: { collapsed: boolean; tone?: 'light' | 'dark' }) {
+  const paletteKey = usePalette((s) => s.key)
+  const light = (tone ?? (paletteByKey(paletteKey).sidebar === 'dark' ? 'light' : 'dark')) === 'light'
   return (
     <div className={cn('flex items-center h-14 shrink-0', collapsed ? 'justify-center px-2' : 'px-4')}>
-      {collapsed ? <AmberMark size={26} /> : (
+      {collapsed ? <AmberMark size={26} tone={light ? 'light' : 'dark'} /> : (
         <div className="min-w-0 flex items-center gap-2.5">
-          <AmberWordmark size={22} />
-          <span className="h-5 w-px bg-brand-300/70" />
-          <span className="text-[11px] font-extrabold tracking-[.16em] text-brand-grad">COIN</span>
+          <AmberWordmark size={22} tone={light ? 'light' : 'dark'} />
+          <span className="h-5 w-px" style={{ background: 'var(--sb-border)' }} />
+          <span className={cn('text-[11px] font-extrabold tracking-[.18em]', light ? 'text-white/80' : 'text-brand-grad')}>COIN</span>
         </div>
       )}
     </div>
@@ -35,11 +39,12 @@ const SPACE_META = {
 function SideLink({ i, collapsed }: { i: ReturnType<typeof navForSpace>[number]; collapsed: boolean }) {
   return (
     <NavLink to={i.path} end={i.path === '/'} title={collapsed ? i.label : undefined}
-      className={({ isActive }) => cn('group relative flex items-center gap-2.5 h-9 [@media(max-height:760px)]:h-8 rounded-lg text-[13px] transition-all mb-0.5', collapsed ? 'justify-center px-0' : 'px-2.5',
-        isActive ? 'bg-brand-grad text-white font-semibold shadow-[0_6px_16px_-8px_rgb(47_91_198/.7)]' : 'text-[#33415c] font-medium hover:bg-white/75 hover:text-brand-700 hover:shadow-[0_2px_8px_-4px_rgb(47_91_198/.35)]')}>
+      className={({ isActive }) => cn('group relative flex items-center gap-2.5 h-9 [@media(max-height:760px)]:h-8 rounded-lg text-[13px] transition-colors mb-0.5', collapsed ? 'justify-center px-0' : 'px-2.5',
+        isActive ? 'bg-[var(--sb-active-bg)] text-[var(--sb-active-fg)] font-semibold' : 'text-[var(--sb-fg)] font-medium hover:bg-[var(--sb-hover)]')}>
       {({ isActive }) => (
         <>
-          <Icon name={i.icon} size={16} strokeWidth={isActive ? 2.2 : 1.8} className={cn('shrink-0', isActive ? 'text-white' : 'text-[#5f74a0] group-hover:text-brand-600')} />
+          {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[var(--sb-indicator)]" />}
+          <Icon name={i.icon} size={16} strokeWidth={isActive ? 2.2 : 1.8} className={cn('shrink-0', isActive ? 'text-[var(--sb-active-fg)]' : 'text-[var(--sb-icon)]')} />
           {!collapsed && <span className="flex-1 truncate">{i.label}</span>}
         </>
       )}
@@ -60,55 +65,50 @@ function Sidebar() {
   const sections = [...new Set(main.map((i) => i.section))]
   const meta = space ? SPACE_META[space] : null
   return (
-    <aside className={cn('hidden md:flex flex-col transition-[width] duration-300 shrink-0 relative z-20 overflow-hidden shadow-[1px_0_0_rgb(47_91_198/.10),8px_0_28px_-20px_rgb(47_91_198/.45)]', collapsed ? 'w-[68px]' : 'w-[228px]')}
-      style={{ background: 'linear-gradient(172deg, #e7ebf5 0%, #eef1f7 38%, #f2f2f6 68%, #f6e8eb 100%)' }}>
-      {/* depth: soft colour orbs + fine dot texture */}
-      <div className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-brand-300/20 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 top-1/3 h-48 w-48 rounded-full bg-[#9aa7c7]/15 blur-3xl" />
-      <div className="pointer-events-none absolute -left-10 -bottom-16 h-56 w-56 rounded-full bg-accent-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute inset-0 opacity-[.35]" style={{ backgroundImage: 'radial-gradient(rgb(71 85 105 / .14) 1px, transparent 1px)', backgroundSize: '14px 14px', maskImage: 'linear-gradient(180deg, #000, transparent 30%, transparent 70%, #000)', WebkitMaskImage: 'linear-gradient(180deg, #000, transparent 30%, transparent 70%, #000)' }} />
+    <aside className={cn('hidden md:flex flex-col transition-[width] duration-300 shrink-0 relative z-20 overflow-hidden border-r', collapsed ? 'w-[68px]' : 'w-[232px]')}
+      style={{ background: 'var(--sb-bg)', borderColor: 'var(--sb-border)' }}>
       <div className="relative z-10 flex flex-col h-full min-h-0">
       <Logo collapsed={collapsed} />
       {meta && (
         <div className="px-2.5 pb-2.5">
           <button onClick={() => { setSpace(null); nav('/') }} title="Switch workspace (CO / IN)"
-            className={cn('group w-full flex items-center gap-2.5 rounded-xl bg-white/80 backdrop-blur border border-white shadow-[0_6px_18px_-10px_rgb(47_91_198/.45)] hover:bg-white transition-colors', collapsed ? 'justify-center h-10' : 'px-2 py-1.5')}>
+            className={cn('group w-full flex items-center gap-2.5 rounded-xl border bg-[var(--sb-card)] border-[var(--sb-border)] hover:bg-[var(--sb-hover)] transition-colors', collapsed ? 'justify-center h-10' : 'px-2 py-1.5')}>
             <span className={cn('h-8 w-8 rounded-lg text-white text-[11px] font-extrabold grid place-items-center shrink-0', space === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{meta.code}</span>
-            {!collapsed && <span className="flex-1 min-w-0 text-left leading-tight"><span className="block text-[12.5px] font-semibold text-ink truncate">{meta.name}</span><span className="block text-[11px] text-muted truncate">{meta.sub}</span></span>}
-            {!collapsed && <Icon name="ArrowLeftRight" size={14} className="text-[#8a9bb8] group-hover:text-brand-600 shrink-0" />}
+            {!collapsed && <span className="flex-1 min-w-0 text-left leading-tight"><span className="block text-[12.5px] font-semibold text-[var(--sb-card-fg)] truncate">{meta.name}</span><span className="block text-[11px] text-[var(--sb-card-sub)] truncate">{meta.sub}</span></span>}
+            {!collapsed && <Icon name="ArrowLeftRight" size={14} className="text-[var(--sb-icon)] shrink-0" />}
           </button>
         </div>
       )}
       <nav className="relative flex-1 min-h-0 overflow-hidden px-2.5 pt-1">
         {sections.map((sec, si) => (
           <div key={sec} className={cn(si > 0 && 'mt-3 [@media(max-height:760px)]:mt-2')}>
-            {!collapsed && <div className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[#6b7fa8]">{sec}</div>}
-            {collapsed && si > 0 && <div className="mx-3 mb-2 h-px bg-brand-200/70" />}
+            {!collapsed && <div className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[var(--sb-muted)]">{sec}</div>}
+            {collapsed && si > 0 && <div className="mx-3 mb-2 h-px bg-[var(--sb-border)]" />}
             {main.filter((i) => i.section === sec).map((i) => <SideLink key={i.key} i={i} collapsed={collapsed} />)}
           </div>
         ))}
         {!space && (
           <div className="mt-3">
-            {!collapsed && <div className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[#6b7fa8]">Workspaces</div>}
-            {collapsed && <div className="mx-3 mb-2 h-px bg-brand-200/70" />}
+            {!collapsed && <div className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[var(--sb-muted)]">Workspaces</div>}
+            {collapsed && <div className="mx-3 mb-2 h-px bg-[var(--sb-border)]" />}
             {(['CO', 'IN'] as const).map((k) => (
               <button key={k} onClick={() => { setSpace(k); nav('/') }} title={collapsed ? SPACE_META[k].name : undefined}
-                className={cn('group w-full flex items-center gap-2.5 h-9 rounded-lg text-[13px] font-medium text-[#33415c] hover:bg-white/75 hover:text-brand-700 transition-all mb-0.5', collapsed ? 'justify-center' : 'px-2')}>
+                className={cn('group w-full flex items-center gap-2.5 h-9 rounded-lg text-[13px] font-medium text-[var(--sb-fg)] hover:bg-[var(--sb-hover)] transition-colors mb-0.5', collapsed ? 'justify-center' : 'px-2')}>
                 <span className={cn('h-6 w-6 rounded-md text-white text-[9.5px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{k}</span>
                 {!collapsed && <span className="flex-1 truncate text-left">{SPACE_META[k].name}</span>}
-                {!collapsed && <Icon name="ChevronRight" size={14} className="text-[#8a9bb8] opacity-0 group-hover:opacity-100 transition-opacity" />}
+                {!collapsed && <Icon name="ChevronRight" size={14} className="text-[var(--sb-icon)] opacity-0 group-hover:opacity-100 transition-opacity" />}
               </button>
             ))}
           </div>
         )}
       </nav>
       {pinned.length > 0 && (
-        <div className="px-2.5 pt-2 pb-1 border-t border-white/70">
+        <div className="px-2.5 pt-2 pb-1 border-t border-[var(--sb-border)]">
           {pinned.map((i) => <SideLink key={i.key} i={i} collapsed={collapsed} />)}
         </div>
       )}
       <div className="px-2.5 pb-2">
-        <button onClick={toggle} title={collapsed ? 'Expand' : 'Collapse'} className={cn('w-full h-8 rounded-lg flex items-center gap-2.5 text-[#5f74a0] hover:text-ink hover:bg-white/75 text-[12.5px] font-medium', collapsed ? 'justify-center' : 'px-2.5')}>
+        <button onClick={toggle} title={collapsed ? 'Expand' : 'Collapse'} className={cn('w-full h-8 rounded-lg flex items-center gap-2.5 text-[var(--sb-icon)] hover:text-[var(--sb-active-fg)] hover:bg-[var(--sb-hover)] text-[12.5px] font-medium', collapsed ? 'justify-center' : 'px-2.5')}>
           <Icon name={collapsed ? 'PanelLeftOpen' : 'PanelLeftClose'} size={16} strokeWidth={1.8} />{!collapsed && 'Collapse'}
         </button>
       </div>
@@ -129,7 +129,7 @@ function MobileNav() {
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-[130] md:hidden">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0e1330]/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-slate-900)]/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} className="absolute left-0 top-0 bottom-0 w-[270px] bg-white p-2 overflow-y-auto shadow-2xl">
               <Logo collapsed={false} tone="dark" />
               {items.map((i) => (
@@ -181,7 +181,7 @@ function CommandPalette() {
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[150] flex items-start justify-center pt-[12vh] px-3">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0e1330]/25 backdrop-blur-md" onClick={() => setOpen(false)} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-slate-900)]/25 backdrop-blur-md" onClick={() => setOpen(false)} />
           <motion.div initial={{ opacity: 0, scale: 0.96, y: -8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ type: 'spring', duration: 0.3, bounce: 0.1 }} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-[0_40px_100px_-30px_rgb(14_19_48/.45)] ring-1 ring-brand-100 overflow-hidden">
             <div className="flex items-center gap-3 px-4 h-14 border-b border-line">
               <Icon name="Search" size={18} className="text-muted" />
@@ -232,7 +232,7 @@ function UserMenu() {
   useEffect(() => { setOpen(false) }, [loc.pathname])
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex items-center gap-2 h-9 pl-1 pr-1.5 rounded-lg hover:bg-[#f9fafb] transition-colors">
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex items-center gap-2 h-9 pl-1 pr-1.5 rounded-lg hover:bg-[var(--color-gray-50)] transition-colors">
         <Avatar name={me.name} color={me.avatarColor} size={28} />
         <span className="hidden lg:block text-left leading-tight">
           <span className="block text-[12.5px] font-semibold text-ink max-w-[140px] truncate">{me.name}</span>
@@ -256,7 +256,7 @@ function UserMenu() {
                   <div className="text-[11px] text-muted truncate">{me.employeeId} · {me.department} · {me.email}</div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="#223c86">{ROLE_LABEL[r]}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="var(--color-brand-600)">{ROLE_LABEL[r]}</Badge>)}</div>
               <div className="border-t border-line my-1" />
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
               <div>
@@ -285,7 +285,7 @@ function UserMenu() {
 
 function Toasts() {
   const { toasts, dismissToast } = useStore()
-  const style = { success: ['CircleCheck', '#0f9f6e'], error: ['CircleX', '#e0364f'], info: ['Info', '#2f4a9a'], warning: ['TriangleAlert', '#ec8a1c'] } as const
+  const style = { success: ['CircleCheck', 'var(--color-emerald-600)'], error: ['CircleX', 'var(--color-rose-600)'], info: ['Info', 'var(--color-brand-500)'], warning: ['TriangleAlert', 'var(--color-orange-400)'] } as const
   return (
     <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 w-[360px] max-w-[92vw]">
       <AnimatePresence>
@@ -327,7 +327,8 @@ function Celebration() {
   useEffect(() => {
     if (n === prev.current) return
     prev.current = n
-    const colors = ['#223c86', '#e35a67', '#0f9f6e', '#7b8cfb', '#d7192d']
+    const css = getComputedStyle(document.documentElement)
+    const colors = ['--color-brand-600', '--color-accent-400', '--color-emerald-500', '--color-brand-300', '--color-accent-500'].map((v) => css.getPropertyValue(v).trim() || '#223c86')
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, scalar: 0.9 })
     setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors }), 180)
     setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 }, colors }), 300)
@@ -348,22 +349,22 @@ export default function AppShell() {
     <div className="h-full flex overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="relative h-14 shrink-0 backdrop-blur-md flex items-center gap-3 px-3 md:px-6 z-10" style={{ background: 'linear-gradient(90deg, rgb(255 255 255 / .92), rgb(246 248 251 / .92) 60%, rgb(238 249 246 / .92))' }}>
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, rgb(27 49 111 / .22), rgb(20 171 146 / .35), rgb(27 49 111 / .06))' }} />
+        <header className="relative h-14 shrink-0 backdrop-blur-md flex items-center gap-3 px-3 md:px-6 z-10 border-b border-line" style={{ background: 'color-mix(in srgb, #ffffff 88%, transparent)' }}>
           <MobileNav />
-          <button onClick={() => setSearchOpen(true)} className="group flex items-center gap-2 h-9 w-full max-w-[380px] px-3 rounded-lg bg-white border border-line hover:border-[#d0d5dd] text-[#98a2b3] text-[13px] transition-colors">
+          <button onClick={() => setSearchOpen(true)} className="group flex items-center gap-2 h-9 w-full max-w-[380px] px-3 rounded-lg bg-white border border-line hover:border-[var(--color-gray-300)] text-[var(--color-slate-400)] text-[13px] transition-colors">
             <Icon name="Search" size={15} />
             <span className="flex-1 text-left truncate">Search ideas, parts, suppliers, campaigns…</span>
-            <kbd className="hidden sm:inline text-[10px] font-medium text-muted bg-[#f9fafb] border border-line rounded px-1.5 py-px">Ctrl K</kbd>
+            <kbd className="hidden sm:inline text-[10px] font-medium text-muted bg-[var(--color-gray-50)] border border-line rounded px-1.5 py-px">Ctrl K</kbd>
           </button>
           <div className="flex-1" />
           <div className="hidden xl:flex items-center gap-1.5 text-[12px] font-medium text-ink-2">
-            <Icon name="CalendarRange" size={14} className="text-[#98a2b3]" />FY27 · Q3 (Oct–Dec)
+            <Icon name="CalendarRange" size={14} className="text-[var(--color-slate-400)]" />FY27 · Q3 (Oct–Dec)
           </div>
           <span className="hidden xl:block h-4 w-px bg-line" />
           <div className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-ink-2 mr-2">
             <span className="relative flex h-2 w-2"><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" /></span>ERP · PAP · NPD synced
           </div>
+          <ThemePicker />
           <UserMenu />
         </header>
         <main ref={mainRef} className="relative flex-1 overflow-y-auto overflow-x-hidden">

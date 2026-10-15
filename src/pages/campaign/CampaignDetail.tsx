@@ -54,7 +54,7 @@ export default function OutreachCampaignDetail({ batch: b }: { batch: OutreachBa
   const mail = logged ? { subject: logged.subject, body: logged.body } : tpl && vars ? { subject: renderSupplierTemplate(tpl.subject, vars), body: renderSupplierTemplate(tpl.body, vars) } : null
 
   const stages: { label: string; value: number; note: string; color: string }[] = [
-    { label: 'Sent', value: f.sent, note: `${f.delivered} delivered`, color: '#94a3b8' },
+    { label: 'Sent', value: f.sent, note: `${f.delivered} delivered`, color: 'var(--color-slate-400)' },
     { label: 'Opened', value: f.opened, note: 'read receipts', color: FUNNEL_COLORS.opened },
     { label: 'Replied', value: f.replied, note: `${f.replies} ${f.replies === 1 ? 'response' : 'responses'}`, color: FUNNEL_COLORS.replied },
     { label: 'Ideas received', value: ideasN, note: 'open or part-specific', color: FUNNEL_COLORS.ideas },

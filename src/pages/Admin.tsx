@@ -44,8 +44,8 @@ export default function Admin() {
   const C = sec.C
   return (
     <AdminRO.Provider value={!isAdmin}>
-      <PageHeader icon="Settings2" title="Admin & Masters" badge={<Badge color="#223c86">M12</Badge>} subtitle={mod.scope}
-        actions={isAdmin ? <Badge color="#0f9f6e" icon="ShieldCheck">Admin · full edit access</Badge> : <Badge color="#64748b" icon="Lock">Read-only</Badge>} />
+      <PageHeader icon="Settings2" title="Admin & Masters" badge={<Badge color="var(--color-brand-600)">M12</Badge>} subtitle={mod.scope}
+        actions={isAdmin ? <Badge color="var(--color-emerald-600)" icon="ShieldCheck">Admin · full edit access</Badge> : <Badge color="var(--color-slate-500)" icon="Lock">Read-only</Badge>} />
       {!isAdmin && (
         <div className="flex items-start gap-2.5 rounded-2xl border border-gold-200 bg-gold-50/70 px-4 py-3 mb-3">
           <Icon name="Lock" size={16} className="text-gold-600 mt-0.5" />

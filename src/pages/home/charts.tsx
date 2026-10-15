@@ -16,7 +16,7 @@ import { AXIS_TICK, BucketFilterChip, ChartTip, DrillModal, GRID_STROKE, drillUr
 const kpiTip = (id: string) => { const k = KPIS.find((x) => x.id === id)!; return <InfoTip title={`${k.id} · ${k.kpi}`} formula={k.formula}>Cut by: {k.cut}</InfoTip> }
 
 // ─── Savings trend by month ───────────────────────────────────────────────────
-const TREND_COLORS = { realised: '#4ade80', validated: '#0b7a55', cumulative: '#223c86' }
+const TREND_COLORS = { realised: 'var(--color-green-400)', validated: 'var(--color-emerald-700)', cumulative: 'var(--color-brand-600)' }
 
 export function TrendCard({ d, className, height = 262 }: { d: HomeData; className?: string; height?: number }) {
   const fv = useStore((s) => s.settings.financeValidation)
@@ -47,23 +47,23 @@ export function TrendCard({ d, className, height = 262 }: { d: HomeData; classNa
           <ComposedChart data={d.trend} margin={{ top: 10, right: 2, left: 0, bottom: 0 }} barGap={2}
             onClick={(e: any) => { const m = e?.activePayload?.[0]?.payload?.month; if (m && m <= lrm) setMonth(m) }}>
             <defs>
-              <linearGradient id="homeTrRealised" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4ade80" stopOpacity={0.95} /><stop offset="100%" stopColor="#bbf7d0" stopOpacity={0.7} /></linearGradient>
-              <linearGradient id="homeTrValidated" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f9f6e" /><stop offset="100%" stopColor="#0b7a55" /></linearGradient>
+              <linearGradient id="homeTrRealised" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--color-green-400)" stopOpacity={0.95} /><stop offset="100%" stopColor="var(--color-green-200)" stopOpacity={0.7} /></linearGradient>
+              <linearGradient id="homeTrValidated" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--color-emerald-600)" /><stop offset="100%" stopColor="var(--color-emerald-700)" /></linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke={GRID_STROKE} />
             <XAxis dataKey="label" tick={AXIS_TICK} axisLine={false} tickLine={false} />
             <YAxis yAxisId="m" tick={AXIS_TICK} axisLine={false} tickLine={false} width={58} tickFormatter={(v) => inrShort(v, 0)} />
             <YAxis yAxisId="c" orientation="right" tick={AXIS_TICK} axisLine={false} tickLine={false} width={62} tickFormatter={(v) => inrShort(v, 0)} />
-            <RTooltip cursor={{ fill: '#f1f5f9', radius: 6 } as any} content={<ChartTip colors={TREND_COLORS} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
-            {showRef && <ReferenceLine yAxisId="c" x={lrmLabel} stroke="#cbd5e1" strokeDasharray="2 3" label={{ value: 'Last realisation run', position: 'insideTopLeft', fontSize: 10, fill: '#94a3b8' }} />}
+            <RTooltip cursor={{ fill: 'var(--color-slate-100)', radius: 6 } as any} content={<ChartTip colors={TREND_COLORS} labelFmt={(_: any, p: any) => monthLong(p?.[0]?.payload?.month ?? '')} />} />
+            {showRef && <ReferenceLine yAxisId="c" x={lrmLabel} stroke="var(--color-slate-300)" strokeDasharray="2 3" label={{ value: 'Last realisation run', position: 'insideTopLeft', fontSize: 10, fill: 'var(--color-slate-400)' }} />}
             <Bar yAxisId="m" dataKey="realised" name="Realised (month)" fill="url(#homeTrRealised)" radius={[4, 4, 0, 0]} maxBarSize={16} className="cursor-pointer" />
             <Bar yAxisId="m" dataKey="validated" name="Finance validated (month)" fill="url(#homeTrValidated)" radius={[4, 4, 0, 0]} maxBarSize={16} className="cursor-pointer" />
-            <Line yAxisId="c" type="monotone" dataKey="cumulative" name={fv ? 'Cumulative validated' : 'Cumulative realised'} stroke={TREND_COLORS.cumulative} strokeWidth={2.2} dot={{ r: 2.5, fill: '#223c86' }} activeDot={{ r: 4 }} />
+            <Line yAxisId="c" type="monotone" dataKey="cumulative" name={fv ? 'Cumulative validated' : 'Cumulative realised'} stroke={TREND_COLORS.cumulative} strokeWidth={2.2} dot={{ r: 2.5, fill: 'var(--color-brand-600)' }} activeDot={{ r: 4 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[11px] text-muted">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: '#86efac' }} />Realised (month)</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--color-green-300)' }} />Realised (month)</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-green-700" />Finance validated (month)</span>
         <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded" style={{ background: TREND_COLORS.cumulative }} />Cumulative {fv ? 'validated' : 'realised'}</span>
       </div>
@@ -80,7 +80,7 @@ const STEPS: Step[] = [
   { key: 'evaluation', label: 'Evaluation', stages: [STAGE.evaluation], bucket: 'Pipeline', icon: 'FlaskConical' },
   { key: 'approval', label: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
   { key: 'execution', label: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
-  { key: 'implemented', label: 'Implemented', stages: ['Implemented'], bucket: 'Implemented', icon: 'CircleCheckBig' },
+  { key: 'implemented', label: STAGE.verification, stages: [STAGE.verification], bucket: 'Implemented', icon: 'CircleCheckBig' },
   { key: 'dropped', label: 'Dropped / rejected', stages: ['Dropped', 'Rejected'], bucket: 'Dropped', icon: 'CircleSlash' },
 ]
 
@@ -116,7 +116,7 @@ export function FunnelCard({ d, sel, onClear, className }: { d: HomeData; sel: B
               </span>
               <span className="relative h-[20px] flex justify-center">
                 <span className="absolute inset-y-[9px] inset-x-0 rounded-full bg-slate-100" />
-                {r.count > 0 && <span className="relative h-full rounded-md grid place-items-center text-[10.5px] font-bold text-white transition-all duration-700" style={{ width: `${w}%`, background: `linear-gradient(90deg, ${st.color}cc, ${st.color})`, boxShadow: sel === r.st.bucket ? `0 0 0 2px ${st.color}44` : undefined }}>{r.count}</span>}
+                {r.count > 0 && <span className="relative h-full rounded-md grid place-items-center text-[10.5px] font-bold text-white transition-all duration-700" style={{ width: `${w}%`, background: `linear-gradient(90deg, color-mix(in srgb, ${st.color} 80%, transparent), ${st.color})`, boxShadow: sel === r.st.bucket ? `0 0 0 2px color-mix(in srgb, ${st.color} 27%, transparent)` : undefined }}>{r.count}</span>}
               </span>
               <span className="w-[74px] text-right text-[12px] font-semibold text-ink num">{r.count ? inrShort(r.value) : '—'}</span>
             </button>
@@ -190,7 +190,7 @@ export function LeverMixCard({ d, sel, onClear, className }: { d: HomeData; sel:
       </div>
       <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-line">
         <div><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Structural share<InfoTip title="E2 · Structural savings share" formula="(VA/VE + material + localisation) ÷ total realised">{STRUCTURAL_NOTE}</InfoTip></div><div className="text-[14px] font-bold text-indigo-700 num">{pct(structural)} <span className="text-[11px] font-medium text-muted">of realised</span></div></div>
-        <div><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Negotiation share{kpiTip('E1')}</div><div className="text-[14px] font-bold num" style={{ color: negotiation > 50 ? '#e0364f' : '#6d28d9' }}>{pct(negotiation)} <span className="text-[11px] font-medium text-muted">of realised</span></div></div>
+        <div><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Negotiation share{kpiTip('E1')}</div><div className="text-[14px] font-bold num" style={{ color: negotiation > 50 ? 'var(--color-rose-600)' : 'var(--color-violet-700)' }}>{pct(negotiation)} <span className="text-[11px] font-medium text-muted">of realised</span></div></div>
       </div>
     </Card>
   )
@@ -274,13 +274,13 @@ export function PortfolioCard({ d, className }: { d: HomeData; className?: strin
             const share = ((mode === 'value' ? x.value : x.count) / total) * 100
             return (
               <button key={x.name} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} onClick={() => drill({ bucket: x.name })}
-                className={cn('w-full text-left rounded-lg px-3 py-2.5 transition-colors', hover === k ? 'bg-[#f9fafb]' : 'hover:bg-[#f9fafb]')}>
+                className={cn('w-full text-left rounded-lg px-3 py-2.5 transition-colors', hover === k ? 'bg-[var(--color-gray-50)]' : 'hover:bg-[var(--color-gray-50)]')}>
                 <span className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-2 text-[13.5px] font-medium text-ink"><span className="h-2.5 w-2.5 rounded-full" style={{ background: x.color }} />{x.name}</span>
                   <span className="text-[14px] font-semibold text-ink num">{fmt(x)}</span>
                 </span>
                 <span className="flex items-center gap-3 mt-1.5">
-                  <ProgressBar value={share} height={6} color={x.color} bg="#f2f4f7" className="flex-1" />
+                  <ProgressBar value={share} height={6} color={x.color} bg="var(--color-gray-100)" className="flex-1" />
                   <span className="text-[12px] text-muted num w-[92px] text-right">{pct(share, 0)} · {mode === 'value' ? `${x.count} ideas` : inrShort(x.value)}</span>
                 </span>
               </button>

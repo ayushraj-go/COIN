@@ -22,7 +22,7 @@ export const CO_STAGES: CoStage[] = [
   { key: 'npd', label: 'NPD sample', short: 'NPD sample', stages: [STAGE.execution], icon: 'TestTubes', hint: 'Execution started · ECN raised, sample under trial / approval', match: (i) => i.stage === STAGE.execution && execStep(i) === 'npd' },
   { key: 'pap', label: 'PAP price / source', short: 'PAP', stages: [STAGE.execution], icon: 'FileBadge', hint: 'Execution started · price or source revision awaiting PAP release', match: (i) => i.stage === STAGE.execution && execStep(i) === 'pap' },
   { key: 'exec', label: 'Go-live / internal', short: 'Go-live', stages: [STAGE.execution], icon: 'Wrench', hint: 'Execution started · first MRN at the new price, or an internal change on the line', match: (i) => i.stage === STAGE.execution && execStep(i) === 'exec' },
-  { key: 'impl', label: 'Implemented', short: 'Implemented', stages: ['Implemented'], icon: 'CircleCheckBig', hint: 'Effective date set; realisation flows from actual MRN', match: (i) => i.stage === 'Implemented' },
+  { key: 'impl', label: 'Verification', short: 'Verification', stages: [STAGE.verification], icon: 'CircleCheckBig', hint: 'Handed for verification — first MRN at the new price; Finance confirms the locked target', match: (i) => i.stage === STAGE.verification },
 ]
 
 export const HEALTHS: Health[] = ['On track', 'At risk', 'Delayed']

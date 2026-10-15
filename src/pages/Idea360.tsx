@@ -36,7 +36,7 @@ function HeaderCard({ idea }: { idea: Idea }) {
   const st = BUCKET_STYLE[idea.bucket]
   return (
     <section className="card relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${st.color}, ${st.color}33)` }} />
+      <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${st.color}, color-mix(in srgb, ${st.color} 20%, transparent))` }} />
       <div className="p-4 pt-5 flex flex-col lg:flex-row lg:items-start gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -45,10 +45,10 @@ function HeaderCard({ idea }: { idea: Idea }) {
             <span className="inline-flex items-center h-[22px] px-2 rounded-full border border-line bg-white"><StageBadge stage={idea.stage} bucket={idea.bucket} idea={idea} /></span>
             {idea.locked && (
               <Tooltip content="Data integrity: approved values are locked; changes after approval need a change reason and re-approval above the set %.">
-                <Badge color="#0f172a" soft="#f1f5f9" icon="Lock">Approved values are locked</Badge>
+                <Badge color="var(--color-slate-900)" soft="var(--color-slate-100)" icon="Lock">Approved values are locked</Badge>
               </Tooltip>
             )}
-            {idea.infoRequested && <Badge color="#ec8a1c" icon="MessageCircleQuestion">More info requested</Badge>}
+            {idea.infoRequested && <Badge color="var(--color-orange-400)" icon="MessageCircleQuestion">More info requested</Badge>}
           </div>
           <h1 className="mt-2 text-[19px] md:text-[22px] font-bold tracking-tight text-ink leading-snug">{idea.title || <span className="text-muted">Untitled draft</span>}</h1>
           <IdeaMetaChips idea={idea} className="mt-2.5" />

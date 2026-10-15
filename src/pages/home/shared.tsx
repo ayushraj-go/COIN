@@ -28,8 +28,8 @@ export function Reveal({ children, className }: { children: React.ReactNode; cla
 }
 
 // ─── Chart primitives (Section 14 chart rules) ────────────────────────────────
-export const AXIS_TICK = { fontSize: 11, fill: '#64748b' }
-export const GRID_STROKE = '#eceef6'
+export const AXIS_TICK = { fontSize: 11, fill: 'var(--color-slate-500)' }
+export const GRID_STROKE = 'var(--color-brand-50)'
 
 /** White rounded recharts tooltip */
 export function ChartTip({ active, payload, label, fmt = (v: number) => inrShort(v), labelFmt, colors }: any) {
@@ -146,8 +146,8 @@ export function StageTrackerMini({ idea, className }: { idea: Idea; className?: 
         const done = implemented || k < cur
         const isCur = !implemented && k === cur
         const c = BUCKET_STYLE[bucketFor(idea.route, s)].color
-        const bg = dropped && isCur ? '#e0364f' : done || isCur ? c : '#e2e8f0'
-        return <span key={s} className="h-1.5 rounded-full transition-all" style={{ width: isCur ? 16 : 9, background: bg, opacity: dropped && k < cur ? 0.45 : 1, boxShadow: isCur ? `0 0 0 2px ${bg}33` : undefined }} />
+        const bg = dropped && isCur ? 'var(--color-rose-600)' : done || isCur ? c : 'var(--color-slate-200)'
+        return <span key={s} className="h-1.5 rounded-full transition-all" style={{ width: isCur ? 16 : 9, background: bg, opacity: dropped && k < cur ? 0.45 : 1, boxShadow: isCur ? `0 0 0 2px color-mix(in srgb, ${bg} 20%, transparent)` : undefined }} />
       })}
     </div>
   )
@@ -204,7 +204,7 @@ export function BucketFilterChip({ bucket, onClear }: { bucket: Bucket | null; o
   if (!bucket) return null
   const s = BUCKET_STYLE[bucket]
   return (
-    <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-full text-[11px] font-semibold border" style={{ color: s.text, background: s.soft, borderColor: `${s.color}33` }}>
+    <span className="inline-flex items-center gap-1 h-6 pl-2 pr-1 rounded-full text-[11px] font-semibold border" style={{ color: s.text, background: s.soft, borderColor: `color-mix(in srgb, ${s.color} 20%, transparent)` }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.color }} />{bucket}
       <button onClick={onClear} className="h-4 w-4 grid place-items-center rounded-full hover:bg-white/80" title="Clear bucket filter"><Icon name="X" size={10} /></button>
     </span>
@@ -229,9 +229,9 @@ export function HomeSkeleton({ variant = 'dashboard' }: { variant?: 'dashboard' 
 }
 
 /** Compact KPI tile for people homes */
-export function MiniStat({ label, value, sub, icon, color = '#223c86', onClick, tip }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: string; color?: string; onClick?: () => void; tip?: React.ReactNode }) {
+export function MiniStat({ label, value, sub, icon, color = 'var(--color-brand-600)', onClick, tip }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: string; color?: string; onClick?: () => void; tip?: React.ReactNode }) {
   return (
-    <div onClick={onClick} className={cn('card p-4 relative overflow-hidden min-w-0 transition-colors', onClick && 'cursor-pointer hover:border-[#d0d5dd]')}>
+    <div onClick={onClick} className={cn('card p-4 relative overflow-hidden min-w-0 transition-colors', onClick && 'cursor-pointer hover:border-[var(--color-gray-300)]')}>
       <div className="flex items-center gap-1.5">
         <Icon name={icon} size={14} className="shrink-0" style={{ color }} />
         <span className="text-[12px] font-medium text-muted truncate">{label}</span>

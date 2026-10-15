@@ -8,14 +8,14 @@ function Sel({ k, label, options, grow = 1, value, onChange }: { k: keyof Filter
   const current = options.find(([v]) => v === value)?.[1] ?? value
   return (
     <label title={`${label}: ${current}`} className={cn('group relative flex items-center h-8 min-w-[140px] md:min-w-0 rounded-lg text-[12.5px] transition-colors ring-1 ring-inset shadow-[0_1px_2px_rgb(16_24_40/.04)]',
-      on ? 'bg-brand-50 ring-brand-200' : 'bg-white ring-[#d0d5dd] hover:bg-[#f9fafb]')}
+      on ? 'bg-brand-50 ring-brand-200' : 'bg-white ring-[var(--color-gray-300)] hover:bg-[var(--color-gray-50)]')}
       style={{ flex: `${grow} 1 0` }}>
       
-      <span className={cn('pl-2.5 pr-1 text-[12px] font-normal whitespace-nowrap', on ? 'text-brand-600' : 'text-[#98a2b3]')}>{label}</span>
+      <span className={cn('pl-2.5 pr-1 text-[12px] font-normal whitespace-nowrap', on ? 'text-brand-600' : 'text-[var(--color-slate-400)]')}>{label}</span>
       <select value={value} onChange={(e) => onChange(k, e.target.value)} className={cn('appearance-none bg-transparent pr-6 pl-0.5 h-full font-medium outline-none cursor-pointer flex-1 min-w-0 w-0 truncate', on ? 'text-brand-800' : 'text-ink')}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
-      <Icon name="ChevronDown" size={13} className={cn('absolute right-1.5 pointer-events-none transition-colors', on ? 'text-brand-500' : 'text-[#98a2b3]')} />
+      <Icon name="ChevronDown" size={13} className={cn('absolute right-1.5 pointer-events-none transition-colors', on ? 'text-brand-500' : 'text-[var(--color-slate-400)]')} />
     </label>
   )
 }

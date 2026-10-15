@@ -57,7 +57,7 @@ function BucketCard({ bucket, d, active, onClick }: { bucket: Exclude<Bucket, 'D
       onMouseMove={(e) => { const r = ref.current!.getBoundingClientRect(); ref.current!.style.setProperty('--mx', `${e.clientX - r.left}px`); ref.current!.style.setProperty('--my', `${e.clientY - r.top}px`) }}
       className={cn('group relative overflow-hidden card text-left p-4 h-full w-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-18px_rgb(36_89_224/.55)] focus-ring')}
       style={{ background: `linear-gradient(160deg, ${st.soft} 0%, #ffffff 58%)`, ...(active ? { boxShadow: `inset 0 0 0 1.5px ${st.color}` } : {}) }}>
-      <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${st.color}, ${st.color}55)` }} />
+      <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${st.color}, color-mix(in srgb, ${st.color} 33%, transparent))` }} />
       <div className="relative flex items-start justify-between gap-2">
         <span className="flex items-center gap-1.5 min-w-0">
           <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0 text-white" style={{ background: `linear-gradient(135deg, ${st.color}, ${st.text})`, boxShadow: `0 6px 14px -8px ${st.color}` }}><Icon name={BUCKET_ICON[bucket]} size={14} strokeWidth={2.2} /></span>
@@ -65,7 +65,7 @@ function BucketCard({ bucket, d, active, onClick }: { bucket: Exclude<Bucket, 'D
           <span onClick={(e) => e.stopPropagation()}><InfoTip title={bucket}>{BUCKET_TIP[bucket]}</InfoTip></span>
         </span>
         {flow.delta != null && (
-          <span title="₹ inflow into this bucket: last 3 months vs prior 3 months" className={cn('inline-flex items-center gap-0.5 text-[11px] font-medium rounded-full px-1.5 h-5 shrink-0 border', good ? 'text-[#067647] bg-[#ecfdf3] border-[#abefc6]' : 'text-[#b42318] bg-[#fef3f2] border-[#fecdca]')}>
+          <span title="₹ inflow into this bucket: last 3 months vs prior 3 months" className={cn('inline-flex items-center gap-0.5 text-[11px] font-medium rounded-full px-1.5 h-5 shrink-0 border', good ? 'text-[var(--color-emerald-700)] bg-[var(--color-emerald-50)] border-[var(--color-emerald-200)]' : 'text-[var(--color-red-700)] bg-[var(--color-red-50)] border-[var(--color-red-200)]')}>
             <Icon name={flow.delta >= 0 ? 'TrendingUp' : 'TrendingDown'} size={11} />{Math.abs(flow.delta).toFixed(0)}%
           </span>
         )}
@@ -112,7 +112,7 @@ export function TopIdeasCard({ d, sel, onClear, className }: { d: HomeData; sel:
             const st = BUCKET_STYLE[i.bucket]
             return (
               <button key={i.id} onClick={() => openIdea(i.id)} className="group flex items-center gap-3 py-2 px-1.5 -mx-1.5 rounded-lg hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
-                <span className="h-7 w-7 rounded-lg grid place-items-center text-[12px] font-bold shrink-0 num" style={{ background: k === 0 ? 'linear-gradient(135deg, #f6ecd9, #e9d3a6)' : '#f1f5f9', color: k === 0 ? '#7a5a22' : '#475569', boxShadow: k === 0 ? 'inset 0 0 0 1px #d9bf8a' : undefined }}>{k + 1}</span>
+                <span className="h-7 w-7 rounded-lg grid place-items-center text-[12px] font-bold shrink-0 num" style={{ background: k === 0 ? 'linear-gradient(135deg, var(--color-orange-100), var(--color-orange-200))' : 'var(--color-slate-100)', color: k === 0 ? 'var(--color-amber-800)' : 'var(--color-slate-600)', boxShadow: k === 0 ? 'inset 0 0 0 1px var(--color-orange-300)' : undefined }}>{k + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 min-w-0">
                     <span className="font-mono text-[10.5px] text-muted shrink-0">{i.id}</span>
@@ -178,7 +178,7 @@ export function SavingsToValidateCard({ d, className }: { d: HomeData; className
       </div>
       <div className="mt-3">
         <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-100">
-          {(['Validated', 'Pending', 'Queried'] as const).map((k) => <motion.div key={k} initial={{ width: 0 }} animate={{ width: `${(byStatus[k] / total) * 100}%` }} transition={{ duration: 0.9 }} style={{ background: k === 'Validated' ? '#0f9f6e' : k === 'Pending' ? '#ec8a1c' : '#e0364f' }} />)}
+          {(['Validated', 'Pending', 'Queried'] as const).map((k) => <motion.div key={k} initial={{ width: 0 }} animate={{ width: `${(byStatus[k] / total) * 100}%` }} transition={{ duration: 0.9 }} style={{ background: k === 'Validated' ? 'var(--color-emerald-600)' : k === 'Pending' ? 'var(--color-orange-400)' : 'var(--color-rose-600)' }} />)}
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[11px] text-muted">
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-600" />Validated {inrShort(byStatus.Validated)}</span>
@@ -202,7 +202,7 @@ export function SavingsToValidateCard({ d, className }: { d: HomeData; className
         {!months.length && <div className="text-[12.5px] text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2 flex items-center gap-2"><Icon name="CheckCheck" size={14} />Nothing pending — every posted month is validated.</div>}
       </div>
       <div className="flex flex-wrap gap-1.5 mt-2">
-        {Object.entries(exc).map(([k, v]) => <Badge key={k} color={v ? (k === 'Price leakage' ? '#e0364f' : '#ec8a1c') : '#94a3b8'} icon={k === 'Price leakage' ? 'TriangleAlert' : k === 'No MRN received' ? 'PackageX' : 'TrendingDown'}>{k} · {v}</Badge>)}
+        {Object.entries(exc).map(([k, v]) => <Badge key={k} color={v ? (k === 'Price leakage' ? 'var(--color-rose-600)' : 'var(--color-orange-400)') : 'var(--color-slate-400)'} icon={k === 'Price leakage' ? 'TriangleAlert' : k === 'No MRN received' ? 'PackageX' : 'TrendingDown'}>{k} · {v}</Badge>)}
       </div>
       {queried.length > 0 && <div className="text-[11.5px] text-muted mt-2">{queried.length} line{queried.length === 1 ? '' : 's'} queried back to buyers.</div>}
     </Card>
@@ -219,10 +219,10 @@ export function RealisationCard({ d, className }: { d: HomeData; className?: str
   const vShare = s.realised ? (s.realisedValidated / s.realised) * 100 : 0
   const max = Math.max(d.periodCommitted, s.realised, 1)
   const bars = [
-    { label: `Committed ${monthShort(d.trend[0]?.month ?? lrm)}–${monthLabel(lrm)}`, v: d.periodCommitted, c: '#ec8a1c' },
-    { label: 'Realised (MRN-based)', v: s.realised, c: '#0f9f6e' },
-    { label: 'Finance validated', v: s.realisedValidated, c: '#0b7a55' },
-    { label: 'Price leakage', v: s.leakage, c: '#e0364f' },
+    { label: `Committed ${monthShort(d.trend[0]?.month ?? lrm)}–${monthLabel(lrm)}`, v: d.periodCommitted, c: 'var(--color-orange-400)' },
+    { label: 'Realised (MRN-based)', v: s.realised, c: 'var(--color-emerald-600)' },
+    { label: 'Finance validated', v: s.realisedValidated, c: 'var(--color-emerald-700)' },
+    { label: 'Price leakage', v: s.leakage, c: 'var(--color-rose-600)' },
   ]
   return (
     <Card className={cn('h-full', className)} bodyClass="flex flex-col" icon="Scale"
@@ -230,7 +230,7 @@ export function RealisationCard({ d, className }: { d: HomeData; className?: str
       subtitle={`FY to date through ${monthLong(lrm)} · realisation rate = realised ÷ committed for the period`}>
       <div className="flex items-end gap-4">
         <div>
-          <div className="text-[30px] leading-none font-extrabold tracking-tight" style={{ color: rate >= 95 ? '#0b7a55' : rate >= 80 ? '#c2410c' : '#e0364f' }}><Count value={rate} digits={1} suffix="%" /></div>
+          <div className="text-[30px] leading-none font-extrabold tracking-tight" style={{ color: rate >= 95 ? 'var(--color-emerald-700)' : rate >= 80 ? 'var(--color-orange-700)' : 'var(--color-rose-600)' }}><Count value={rate} digits={1} suffix="%" /></div>
           <div className="text-[11.5px] text-muted mt-1">Realisation rate</div>
         </div>
         <div>

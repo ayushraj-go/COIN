@@ -99,7 +99,7 @@ function WorkshopCampaignPage() {
     { key: 'submitter', label: 'Submitted by', render: (i) => <span className="block leading-tight"><span className="block truncate max-w-[120px]">{i.submitterName}</span>{i.isSupplierSubmission && <span className="block text-[11px] text-muted">Supplier</span>}</span>, value: (i) => i.submitterName },
     { key: 'lever', label: 'Lever', render: (i) => <LeverChip leverId={i.leverId} compact />, value: (i) => levers.find((l) => l.id === i.leverId)?.name },
     { key: 'stage', label: 'Stage', render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} idea={i} />, value: (i) => i.stage },
-    { key: 'value', label: 'Annualised', align: 'right', render: (i) => <span className="num font-semibold" style={{ color: i.bucket === 'Dropped' ? '#6b7280' : undefined }}>{inrShort(ideaAnnualised(i))}</span>, value: (i) => ideaAnnualised(i) },
+    { key: 'value', label: 'Annualised', align: 'right', render: (i) => <span className="num font-semibold" style={{ color: i.bucket === 'Dropped' ? 'var(--color-gray-500)' : undefined }}>{inrShort(ideaAnnualised(i))}</span>, value: (i) => ideaAnnualised(i) },
   ]
 
   return (
@@ -147,7 +147,7 @@ function WorkshopCampaignPage() {
               </span>
               {(['Pipeline', 'In Execution', 'Implemented', 'Dropped'] as const).map((b) => (
                 <Tooltip key={b} content={`${stats.buckets[b]} ${b} — open in Idea Register`}>
-                  <button onClick={() => nav(`/ideas?campaign=${c.id}&bucket=${encodeURIComponent(b)}`)} className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg border text-[12px] font-semibold hover:shadow-sm" style={{ color: BUCKET_STYLE[b].text, background: BUCKET_STYLE[b].soft, borderColor: `${BUCKET_STYLE[b].color}33` }}>
+                  <button onClick={() => nav(`/ideas?campaign=${c.id}&bucket=${encodeURIComponent(b)}`)} className="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg border text-[12px] font-semibold hover:shadow-sm" style={{ color: BUCKET_STYLE[b].text, background: BUCKET_STYLE[b].soft, borderColor: `color-mix(in srgb, ${BUCKET_STYLE[b].color} 20%, transparent)` }}>
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: BUCKET_STYLE[b].color }} />{b}<span className="num">{stats.buckets[b]}</span>
                   </button>
                 </Tooltip>
@@ -196,8 +196,8 @@ function WorkshopCampaignPage() {
               <div style={{ height: Math.max(140, byLever.length * 34 + 20) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={byLever} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap={8}>
-                    <CartesianGrid horizontal={false} stroke="#eceef6" />
-                    <XAxis type="number" tickFormatter={(v) => inrShort(v, 0)} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid horizontal={false} stroke="var(--color-brand-50)" />
+                    <XAxis type="number" tickFormatter={(v) => inrShort(v, 0)} tick={{ fontSize: 11, fill: 'var(--color-slate-500)' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={124} tick={<YTick max={19} />} axisLine={false} tickLine={false} />
                     <RTooltip cursor={{ fill: 'rgb(27 49 111 / .05)' }} content={({ active, payload }) => {
                       if (!active || !payload?.length) return null

@@ -9,7 +9,7 @@ import { Avatar, Button, Card, EmptyState, Icon, InfoTip, ProgressBar, Segmented
 import { useFy } from './shared'
 
 type Q = 'Q1' | 'Q2' | 'Q3' | 'Q4'
-const MEDAL = ['#b8142a', '#94a3b8', '#b45309']
+const MEDAL = ['var(--color-accent-600)', 'var(--color-slate-400)', 'var(--color-amber-700)']
 
 interface Row { userId: string; name: string; dept: string; color: string; ideas: number; value: number; implemented: number; maxIdea: number; supplier: boolean; campaign: number }
 
@@ -31,7 +31,7 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
       const u = users.find((x) => x.id === i.submitterId)
       const isSup = !!u?.roles.includes('supplier')
       const dept = isSup ? suppliers.find((s) => s.code === u?.supplierCode)?.name ?? 'Supplier' : u?.department ?? i.department
-      const row = map[q].get(i.submitterId) ?? { userId: i.submitterId, name: u?.name ?? i.submitterName, dept, color: u?.avatarColor ?? '#64748b', ideas: 0, value: 0, implemented: 0, maxIdea: 0, supplier: isSup, campaign: 0 }
+      const row = map[q].get(i.submitterId) ?? { userId: i.submitterId, name: u?.name ?? i.submitterName, dept, color: u?.avatarColor ?? 'var(--color-slate-500)', ideas: 0, value: 0, implemented: 0, maxIdea: 0, supplier: isSup, campaign: 0 }
       const v = ideaAnnualised(i)
       row.ideas++
       row.value += v
@@ -68,11 +68,11 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
           {rows.map((r, k) => {
             const isMe = r.userId === me?.id
             const badges: { icon: string; label: string; color: string }[] = []
-            if (r.implemented) badges.push({ icon: 'BadgeCheck', label: `${r.implemented} implemented`, color: '#0f9f6e' })
-            if (r.maxIdea >= 1e7) badges.push({ icon: 'Gem', label: `Big bet · single idea ${inrShort(r.maxIdea)}`, color: '#7c3aed' })
-            if (r.supplier) badges.push({ icon: 'Factory', label: 'Supplier partner', color: '#0d9488' })
-            if (r.campaign) badges.push({ icon: 'Megaphone', label: `${r.campaign} via campaign / workshop`, color: '#223c86' })
-            if (r.ideas >= 5) badges.push({ icon: 'Flame', label: `${r.ideas} ideas this quarter`, color: '#ec8a1c' })
+            if (r.implemented) badges.push({ icon: 'BadgeCheck', label: `${r.implemented} implemented`, color: 'var(--color-emerald-600)' })
+            if (r.maxIdea >= 1e7) badges.push({ icon: 'Gem', label: `Big bet · single idea ${inrShort(r.maxIdea)}`, color: 'var(--color-violet-600)' })
+            if (r.supplier) badges.push({ icon: 'Factory', label: 'Supplier partner', color: 'var(--color-teal-600)' })
+            if (r.campaign) badges.push({ icon: 'Megaphone', label: `${r.campaign} via campaign / workshop`, color: 'var(--color-brand-600)' })
+            if (r.ideas >= 5) badges.push({ icon: 'Flame', label: `${r.ideas} ideas this quarter`, color: 'var(--color-orange-400)' })
             return (
               <div key={r.userId} className={cn('flex items-center gap-2 py-1 px-1.5 rounded-lg', isMe ? 'bg-brand-50/70 ring-1 ring-brand-200' : 'hover:bg-slate-50')}>
                 <span className="w-5 grid place-items-center shrink-0">
@@ -84,11 +84,11 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
                     <span className="text-[12.5px] font-semibold text-ink truncate shrink-0 max-w-[55%]">{r.name}</span>
                     {isMe && <span className="text-[10px] font-bold text-brand-700 bg-brand-100 rounded px-1 shrink-0">You</span>}
                     <span className="flex items-center gap-0.5 shrink-0">
-                      {badges.slice(0, 3).map((b) => <Tooltip key={b.icon} content={b.label}><span className="h-4 w-4 rounded grid place-items-center" style={{ background: `${b.color}16`, color: b.color }}><Icon name={b.icon} size={10.5} /></span></Tooltip>)}
+                      {badges.slice(0, 3).map((b) => <Tooltip key={b.icon} content={b.label}><span className="h-4 w-4 rounded grid place-items-center" style={{ background: `color-mix(in srgb, ${b.color} 9%, transparent)`, color: b.color }}><Icon name={b.icon} size={10.5} /></span></Tooltip>)}
                     </span>
                     <span className="text-[11px] text-muted truncate min-w-0" title={r.dept}>{r.dept}</span>
                   </div>
-                  <ProgressBar value={((by === 'ideas' ? r.ideas : r.value) / (lead || 1)) * 100} height={3} color={k < 3 ? MEDAL[k] : '#cbd5e1'} className="mt-1" />
+                  <ProgressBar value={((by === 'ideas' ? r.ideas : r.value) / (lead || 1)) * 100} height={3} color={k < 3 ? MEDAL[k] : 'var(--color-slate-300)'} className="mt-1" />
                 </div>
                 <div className="text-right shrink-0 w-[92px] leading-tight">
                   <span className="text-[12.5px] font-bold text-ink num">{r.ideas}</span><span className="text-[10.5px] text-muted"> idea{r.ideas === 1 ? '' : 's'}</span>

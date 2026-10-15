@@ -22,7 +22,7 @@ function Shell({ n, title, icon, tone, status, action, children }: { n: number; 
     <section className="card relative overflow-hidden p-3.5 flex flex-col min-w-0">
       <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: tone }} />
       <div className="flex items-center gap-2 mb-2.5">
-        <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={{ background: `${tone}14`, color: tone }}><Icon name={icon} size={14} /></span>
+        <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${tone} 8%, transparent)`, color: tone }}><Icon name={icon} size={14} /></span>
         <div className="min-w-0 flex-1"><div className="text-[10px] font-bold uppercase tracking-wide text-muted">Stage {n}</div><div className="text-[13.5px] font-semibold text-ink leading-tight truncate">{title}</div></div>
         {status}
       </div>
@@ -33,7 +33,7 @@ function Shell({ n, title, icon, tone, status, action, children }: { n: number; 
 }
 const Row = ({ k, v }: { k: string; v: React.ReactNode }) => <div className="flex items-baseline justify-between gap-3 py-[3px]"><span className="text-muted shrink-0">{k}</span><span className="font-medium text-ink text-right truncate min-w-0">{v}</span></div>
 const Waiting = ({ children }: { children: React.ReactNode }) => <div className="text-muted leading-relaxed">{children}</div>
-const GREEN = '#0f9f6e', ORANGE = '#ec8a1c', GREY = '#94a3b8', RED = '#d7192d'
+const GREEN = 'var(--color-emerald-600)', ORANGE = 'var(--color-orange-400)', GREY = 'var(--color-slate-400)', RED = 'var(--color-accent-500)'
 
 export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }) {
   const me = useMe()

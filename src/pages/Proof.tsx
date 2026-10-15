@@ -40,7 +40,7 @@ export default function Proof() {
   const leakage = sum(rows.map((r) => r.leakage))
   const firstMrn = locked.filter((i) => !!i.execution?.effectiveDate).length
   const verified = locked.filter((i) => !!i.verification?.verifiedAt).length
-  const STATUS_COLOR = { Verified: '#0f9f6e', 'Awaiting verification': '#ec8a1c', 'In execution': '#1b316f' }
+  const STATUS_COLOR = { Verified: 'var(--color-emerald-600)', 'Awaiting verification': 'var(--color-orange-400)', 'In execution': 'var(--color-brand-700)' }
   const cols: Column<PartRow>[] = [
     { key: 'idea', label: 'Idea', value: (r) => r.idea.id, render: (r) => <button onClick={(e) => { e.stopPropagation(); openIdea(r.idea.id) }} className="font-mono text-[11.5px] font-semibold text-brand-700 hover:underline">{r.idea.id}</button> },
     { key: 'part', label: 'Part', value: (r) => r.partCode, render: (r) => <div className="min-w-[180px]"><div className="font-mono text-[12px] font-semibold">{r.partCode}</div><div className="text-[11.5px] text-muted truncate max-w-[240px]">{r.description}</div></div> },
@@ -57,7 +57,7 @@ export default function Proof() {
 
   return (
     <div className="pb-8">
-      <PageHeader icon="BadgeIndianRupee" title="Savings proof" badge={<Badge color="#d7192d">PROOF</Badge>} fit
+      <PageHeader icon="BadgeIndianRupee" title="Savings proof" badge={<Badge color="var(--color-accent-500)">PROOF</Badge>} fit
         subtitle="Part-linked Realisation and Optimisation Output Framework — every locked target traced to its parts and MRN"
         actions={<Segmented size="sm" value={scope} onChange={(k) => setScope(k as typeof scope)} options={[{ key: 'all', label: 'All' }, { key: 'execution', label: 'Execution started' }, { key: 'verification', label: 'Verification' }]} />} />
       <FilterBar compact className="mb-4" />

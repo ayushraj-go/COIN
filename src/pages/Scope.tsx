@@ -47,7 +47,7 @@ const SECTIONS: { id: string; title: string; icon: string; space: DocSpace }[] =
 const inView = (view: View, space: DocSpace | string) => view === 'All' || space === 'Both' || space === view
 /** Section numbers for the current view (sections hidden in this view are absent) */
 const NumCtx = createContext<Record<string, string>>({})
-const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: '#0f9f8a' }, IN: { label: 'IN', color: '#223c86' }, Both: { label: 'CO · IN', color: '#64748b' } }
+const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: 'var(--color-emerald-600)' }, IN: { label: 'IN', color: 'var(--color-brand-600)' }, Both: { label: 'CO · IN', color: 'var(--color-slate-500)' } }
 const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Innovation Network (IN)', All: 'both workspaces (CO and IN)' }
 // KPI groups and reports by workspace (CO first in every listing)
 const KPI_GROUP_SPACE: Record<string, DocSpace> = { A: 'Both', B: 'IN', C: 'Both', D: 'CO', E: 'Both', F: 'IN' }
@@ -68,7 +68,7 @@ function Section({ id, children, intro }: { id: string; children: React.ReactNod
           {nums[id] || <Icon name={s.icon} size={16} />}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-[18px] leading-tight font-bold tracking-tight text-ink flex flex-wrap items-center gap-2">{s.title}<span className="text-[10.5px] font-bold tracking-wide rounded-md px-1.5 py-0.5 border" style={{ color: tag.color, borderColor: `${tag.color}40`, background: `${tag.color}0d` }}>{tag.label}</span></h2>
+          <h2 className="text-[18px] leading-tight font-bold tracking-tight text-ink flex flex-wrap items-center gap-2">{s.title}<span className="text-[10.5px] font-bold tracking-wide rounded-md px-1.5 py-0.5 border" style={{ color: tag.color, borderColor: `color-mix(in srgb, ${tag.color} 25%, transparent)`, background: `color-mix(in srgb, ${tag.color} 5%, transparent)` }}>{tag.label}</span></h2>
           {intro && <p className="text-[13.5px] leading-relaxed text-ink-2 mt-1.5 max-w-[980px]">{intro}</p>}
         </div>
       </header>
@@ -107,7 +107,7 @@ function Bullets({ items, numbered, cols }: { items: React.ReactNode[]; numbered
   )
 }
 function Callout({ tone = 'info', icon, children, title }: { tone?: 'info' | 'danger' | 'gold' | 'success'; icon?: string; children: React.ReactNode; title?: string }) {
-  const s = { info: ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Info'], danger: ['#fef2f2', '#fecaca', '#b91c1c', 'TriangleAlert'], gold: ['#fbf5ea', '#e9d3a6', '#7a5a22', 'Lightbulb'], success: ['#f0fdf4', '#bbf7d0', '#0b7a55', 'CircleCheck'] }[tone]
+  const s = { info: ['var(--color-brand-50)', 'var(--color-brand-200)', 'var(--color-brand-600)', 'Info'], danger: ['var(--color-red-50)', 'var(--color-red-200)', 'var(--color-red-700)', 'TriangleAlert'], gold: ['var(--color-orange-50)', 'var(--color-orange-200)', 'var(--color-amber-800)', 'Lightbulb'], success: ['var(--color-green-50)', 'var(--color-green-200)', 'var(--color-emerald-700)', 'CircleCheck'] }[tone]
   return (
     <div className="rounded-xl border px-3.5 py-2.5 flex gap-2.5 text-[13px] leading-relaxed" style={{ background: s[0], borderColor: s[1], color: s[2] }}>
       <Icon name={icon ?? s[3]} size={16} className="mt-0.5 shrink-0" />
@@ -158,10 +158,10 @@ function SavingsCalculator() {
   const isDefault = JSON.stringify(v) === JSON.stringify(DEFAULT)
   const maxQ = Math.max(1, ...Object.values(phases).map(Math.abs))
   const out: { label: string; value: string; sub: string; color: string; tip: string }[] = [
-    { label: 'Saving per unit', value: inrPrice(perUnit), sub: `${pct(v.baseline ? (perUnit / v.baseline) * 100 : 0, 2)} of baseline`, color: neg ? '#e0364f' : '#0b7a55', tip: 'P(baseline) − P(new)' },
-    { label: 'Annualised impact', value: L(annual), sub: inr(annual), color: neg ? '#e0364f' : '#0f172a', tip: '(P(baseline) − P(new)) × Q(last FY MRN)' },
-    { label: `Committed in ${v.fy}`, value: L(committed), sub: `${months.toFixed(months % 1 ? 2 : 0)} of 12 months live`, color: '#c2410c', tip: 'Annualised × months live in the FY ÷ 12, phased by quarter from go-live' },
-    { label: 'Carry-over to next FY', value: L(carry), sub: 'Falls beyond 31 March', color: '#475569', tip: 'Annualised impact − committed saving in the FY' },
+    { label: 'Saving per unit', value: inrPrice(perUnit), sub: `${pct(v.baseline ? (perUnit / v.baseline) * 100 : 0, 2)} of baseline`, color: neg ? 'var(--color-rose-600)' : 'var(--color-emerald-700)', tip: 'P(baseline) − P(new)' },
+    { label: 'Annualised impact', value: L(annual), sub: inr(annual), color: neg ? 'var(--color-rose-600)' : 'var(--color-slate-900)', tip: '(P(baseline) − P(new)) × Q(last FY MRN)' },
+    { label: `Committed in ${v.fy}`, value: L(committed), sub: `${months.toFixed(months % 1 ? 2 : 0)} of 12 months live`, color: 'var(--color-orange-700)', tip: 'Annualised × months live in the FY ÷ 12, phased by quarter from go-live' },
+    { label: 'Carry-over to next FY', value: L(carry), sub: 'Falls beyond 31 March', color: 'var(--color-slate-600)', tip: 'Annualised impact − committed saving in the FY' },
   ]
   return (
     <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50/60 via-white to-white p-4">
@@ -200,7 +200,7 @@ function SavingsCalculator() {
               {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => (
                 <div key={q}>
                   <div className="h-16 rounded-lg bg-slate-50 border border-slate-100 flex items-end overflow-hidden">
-                    <motion.div className="w-full rounded-t-md" style={{ background: 'linear-gradient(180deg, #fb923c, #ec8a1c)' }} initial={{ height: 0 }} animate={{ height: `${(Math.abs(phases[q]) / maxQ) * 100}%` }} transition={{ duration: 0.5 }} />
+                    <motion.div className="w-full rounded-t-md" style={{ background: 'linear-gradient(180deg, var(--color-orange-400), var(--color-orange-400))' }} initial={{ height: 0 }} animate={{ height: `${(Math.abs(phases[q]) / maxQ) * 100}%` }} transition={{ duration: 0.5 }} />
                   </div>
                   <div className="text-[11px] font-semibold text-ink-2 mt-1">{q}</div>
                   <div className="text-[11px] text-muted num">{phases[q] ? L(phases[q]) : '—'}</div>
@@ -267,15 +267,15 @@ export default function Scope() {
   const leverGroups = Object.keys(LEVER_GROUP_STYLE) as LeverGroup[]
   const nextRun = thirdWorkingDay(addMonthsYm(settings.lastRealisationMonth, 2))
   const stats: [string, number][] = [['roles', ROLES.length], ['categories', levers.length], ['routes', ROUTES_TABLE.length], ['form fields', FORM_FIELDS.length], ['modules', MODULES.length], ['NPD codes', NPD_COMMODITIES.length], ['KPIs', KPIS.length], ['reports', REPORTS.length], ['email triggers', NOTIF_TRIGGERS.length], ['stage SLAs', SLA_DEFAULTS.length], ['integrations', INTEGRATIONS.length], ['NFRs', NFRS.length], ['decisions', DECISIONS.length]]
-  const swatch: Record<string, string> = { Pipeline: BUCKET_STYLE.Pipeline.color, 'In Execution': BUCKET_STYLE['In Execution'].color, Implemented: BUCKET_STYLE.Implemented.color, Dropped: BUCKET_STYLE.Dropped.color, 'Overdue / leakage / negative saving': '#e0364f' }
+  const swatch: Record<string, string> = { Pipeline: BUCKET_STYLE.Pipeline.color, 'In Execution': BUCKET_STYLE['In Execution'].color, Implemented: BUCKET_STYLE.Implemented.color, Dropped: BUCKET_STYLE.Dropped.color, 'Overdue / leakage / negative saving': 'var(--color-rose-600)' }
   const slaChanged = SLA_DEFAULTS.some((d) => { const r = slaRules.find((x) => x.stage === d.stage); return !r || r.slaDays !== d.slaDays || r.reminderDay !== d.reminderDay || r.escalateDay !== d.escalateDay || r.escalateTo !== d.escalateTo })
   const dropChanged = JSON.stringify(dropReasons) !== JSON.stringify(DROP_REASONS_DEFAULT)
   const decisionNow: Record<number, React.ReactNode> = {
-    1: <Badge color="#64748b">Route: To be confirmed</Badge>,
-    2: <Badge color={settings.financeValidation ? '#0f9f6e' : '#64748b'} icon={settings.financeValidation ? 'ShieldCheck' : 'ShieldOff'}>{settings.financeValidation ? 'On' : 'Off'}</Badge>,
-    4: <Badge color="#223c86">X = ₹ {settings.xThresholdLakh} lakh</Badge>,
-    9: <Badge color={settings.leaderboardVisible ? '#0f9f6e' : '#64748b'}>{settings.leaderboardVisible ? 'Visible · top 10 per quarter' : 'Hidden'}</Badge>,
-    10: <Badge color={slaChanged ? '#ec8a1c' : '#0f9f6e'}>{slaChanged ? 'Customised in Admin' : 'As proposed'}</Badge>,
+    1: <Badge color="var(--color-slate-500)">Route: To be confirmed</Badge>,
+    2: <Badge color={settings.financeValidation ? 'var(--color-emerald-600)' : 'var(--color-slate-500)'} icon={settings.financeValidation ? 'ShieldCheck' : 'ShieldOff'}>{settings.financeValidation ? 'On' : 'Off'}</Badge>,
+    4: <Badge color="var(--color-brand-600)">X = ₹ {settings.xThresholdLakh} lakh</Badge>,
+    9: <Badge color={settings.leaderboardVisible ? 'var(--color-emerald-600)' : 'var(--color-slate-500)'}>{settings.leaderboardVisible ? 'Visible · top 10 per quarter' : 'Hidden'}</Badge>,
+    10: <Badge color={slaChanged ? 'var(--color-orange-400)' : 'var(--color-emerald-600)'}>{slaChanged ? 'Customised in Admin' : 'As proposed'}</Badge>,
   }
 
   if (!ready) {
@@ -290,7 +290,7 @@ export default function Scope() {
   return (
     <div>
       <PageHeader icon="BookOpenText" title="Scope & Methodology" subtitle={`Describes ${VIEW_LABEL[view]} · ${DOC_META.date} · ${DOC_META.author}`}
-        badge={<Badge color="#b8142a" icon="FileBadge">{DOC_META.version} · {DOC_META.status}</Badge>}
+        badge={<Badge color="var(--color-accent-600)" icon="FileBadge">{DOC_META.version} · {DOC_META.status}</Badge>}
         actions={<><span className="no-print"><Segmented size="sm" value={view} onChange={(k) => { setView(k as View); setActive('doc') }} options={[{ key: 'CO', label: 'CO' }, { key: 'IN', label: 'IN' }, { key: 'All', label: 'All' }]} /></span><Button icon="Printer" onClick={() => window.print()}>Print</Button><Button variant="primary" icon="LayoutDashboard" onClick={() => nav('/')}>Open dashboard</Button></>} />
 
       <div className="grid lg:grid-cols-[252px_minmax(0,1fr)] gap-4 items-start">
@@ -299,7 +299,7 @@ export default function Scope() {
           <nav className="card p-2 shadow-[0_12px_32px_-24px_rgb(36_89_224/.45)]">
             <div className="px-2 pt-1.5 pb-2">
               <div className="text-[10.5px] font-bold uppercase tracking-[.12em] text-muted">Contents</div>
-              <ProgressBar value={progress} height={3} color="#223c86" className="mt-2" />
+              <ProgressBar value={progress} height={3} color="var(--color-brand-600)" className="mt-2" />
             </div>
             {shown.map((s) => {
               const on = active === s.id
@@ -326,7 +326,7 @@ export default function Scope() {
 
           {/* Document */}
           <section id="doc" data-scope-section className="card scroll-mt-4 relative overflow-hidden p-5 md:p-6">
-            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #223c86, #6d9bff 55%, #b8142a)' }} />
+            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'linear-gradient(90deg, var(--color-brand-600), var(--color-brand-400) 55%, var(--color-accent-600))' }} />
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(600px 260px at 100% 0%, rgb(27 49 111 / .07), transparent 60%), radial-gradient(420px 220px at 0% 100%, rgb(184 137 63 / .08), transparent 60%)' }} />
             <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px] [&>*]:min-w-0">
               <div>
@@ -348,7 +348,7 @@ export default function Scope() {
               <div className="grid grid-cols-2 gap-2.5 content-start">
                 {WORKSPACES.map((w) => (
                   <div key={w.code} className="rounded-xl border border-line bg-white p-3">
-                    <div className="flex items-center gap-2"><span className="h-8 w-8 rounded-lg grid place-items-center" style={{ background: `${w.color}14`, color: w.color }}><Icon name={w.icon} size={16} /></span><span className="text-[20px] font-extrabold tracking-tight" style={{ color: w.color }}>{w.code}</span></div>
+                    <div className="flex items-center gap-2"><span className="h-8 w-8 rounded-lg grid place-items-center" style={{ background: `color-mix(in srgb, ${w.color} 8%, transparent)`, color: w.color }}><Icon name={w.icon} size={16} /></span><span className="text-[20px] font-extrabold tracking-tight" style={{ color: w.color }}>{w.code}</span></div>
                     <div className="text-[12.5px] font-semibold text-ink mt-2">{w.name}</div>
                     <div className="text-[12px] font-medium text-ink-2 leading-snug mt-0.5">{w.covers}</div>
                     <div className="text-[11.5px] text-muted leading-snug mt-1">{w.pages}</div>
@@ -370,7 +370,7 @@ export default function Scope() {
           {/* 3 */}
           <Section id="s3" intro={ROLES_INTRO}>
             <DocTable head={['Role', 'Who at Amber', 'Primary job in COIN', 'Data visibility']} widths={['17%', '28%', '33%']}
-              rows={ROLES.map((r) => [<span className="flex items-center gap-2">{r.role}{me?.roles.includes(r.key as any) && <Badge color="#223c86">You</Badge>}</span>, r.who, r.job, <Badge color="#475569">{r.visibility}</Badge>])} />
+              rows={ROLES.map((r) => [<span className="flex items-center gap-2">{r.role}{me?.roles.includes(r.key as any) && <Badge color="var(--color-brand-600)">You</Badge>}</span>, r.who, r.job, <Badge color="var(--color-slate-600)">{r.visibility}</Badge>])} />
             <Sub title="Permission matrix (✓ = allowed, — = not allowed)" icon="KeyRound" aside={me && <span className="text-[11.5px] text-muted">Your column: <b className="text-brand-700">{ROLE_LABEL[primaryRole(me)]}</b></span>}>
               <div className="overflow-x-auto rounded-xl border border-line">
                 <table className="w-full border-separate border-spacing-0 text-[12.5px]">
@@ -410,7 +410,7 @@ export default function Scope() {
                 </Sub>
                 <Sub title="Savings classification" icon="Tags">
                   <div className="text-[12px] text-muted mb-2">{SAVINGS_CLASS_NOTE}</div>
-                  <DocTable head={['Classification', 'Examples', 'Counts as hard savings']} dense rows={SAVINGS_TYPES.map((s) => [s.type, s.examples, s.counts === 'Yes' ? <Badge color="#0f9f6e" icon="Check">Yes</Badge> : <Badge color="#64748b">{s.counts}</Badge>])} />
+                  <DocTable head={['Classification', 'Examples', 'Counts as hard savings']} dense rows={SAVINGS_TYPES.map((s) => [s.type, s.examples, s.counts === 'Yes' ? <Badge color="var(--color-emerald-600)" icon="Check">Yes</Badge> : <Badge color="var(--color-slate-500)">{s.counts}</Badge>])} />
                 </Sub>
               </div>
             </div>
@@ -418,7 +418,7 @@ export default function Scope() {
               <Callout tone="gold" icon="Quote">{WORKED_EXAMPLE}</Callout>
               <div className="mt-3"><SavingsCalculator /></div>
             </Sub>
-            <Sub title="Credibility rules" icon="ShieldCheck" aside={<Badge color={settings.financeValidation ? '#0f9f6e' : '#64748b'} icon={settings.financeValidation ? 'ShieldCheck' : 'ShieldOff'}>Finance validation {settings.financeValidation ? 'on' : 'off'} in this build</Badge>}>
+            <Sub title="Credibility rules" icon="ShieldCheck" aside={<Badge color={settings.financeValidation ? 'var(--color-emerald-600)' : 'var(--color-slate-500)'} icon={settings.financeValidation ? 'ShieldCheck' : 'ShieldOff'}>Finance validation {settings.financeValidation ? 'on' : 'off'} in this build</Badge>}>
               <Bullets items={CREDIBILITY_RULES} cols />
             </Sub>
           </Section>
@@ -444,12 +444,12 @@ export default function Scope() {
               <Sub title="Execution record per idea" icon="ClipboardList"><DocTable head={['Field', 'Rule']} widths={['28%']} dense rows={EXECUTION_RECORD.map(([a, b]) => [a, b])} /></Sub>
               <div className="space-y-4">
                 <Sub title="Execution Hub screen" icon="MonitorCog"><Bullets items={EXECUTION_SCREEN} /></Sub>
-                <Sub title="Drop reason codes (configurable)" icon="CircleSlash" aside={dropChanged ? <Badge color="#ec8a1c">{dropReasons.length} configured in Admin</Badge> : undefined}>
+                <Sub title="Drop reason codes (configurable)" icon="CircleSlash" aside={dropChanged ? <Badge color="var(--color-orange-400)">{dropReasons.length} configured in Admin</Badge> : undefined}>
                   <div className="flex flex-wrap gap-1.5">{DROP_REASONS_DEFAULT.map((r) => <span key={r} className="inline-flex items-center h-7 px-2.5 rounded-full bg-slate-100 border border-slate-200 text-[12px] font-medium text-slate-700">{r}</span>)}</div>
                 </Sub>
               </div>
             </div>
-            <Sub title="Realisation cycle (monthly)" icon="RefreshCw" aside={<Badge color="#0f9f6e" icon="CalendarClock">Next run {fmtDate(nextRun)}</Badge>}>
+            <Sub title="Realisation cycle (monthly)" icon="RefreshCw" aside={<Badge color="var(--color-emerald-600)" icon="CalendarClock">Next run {fmtDate(nextRun)}</Badge>}>
               <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {REALISATION_CYCLE.map((s, k) => (
                   <div key={k} className="relative rounded-xl border border-line bg-white p-3 pl-11">
@@ -488,7 +488,7 @@ export default function Scope() {
                 const st = LEVER_GROUP_STYLE[l.group]
                 return [
                   <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: st.text }}><span className="h-2 w-2 rounded-full" style={{ background: st.color }} />{l.group}</span>,
-                  <span className="inline-flex items-center gap-2"><span className="h-6 w-6 rounded-md grid place-items-center shrink-0" style={{ background: st.soft, color: st.color }}><Icon name={l.icon} size={13} /></span><span>{l.name}</span><span className="text-[10.5px] font-mono text-muted">{l.id}</span>{!l.active && <Badge color="#64748b">Inactive</Badge>}</span>,
+                  <span className="inline-flex items-center gap-2"><span className="h-6 w-6 rounded-md grid place-items-center shrink-0" style={{ background: st.soft, color: st.color }}><Icon name={l.icon} size={13} /></span><span>{l.name}</span><span className="text-[10.5px] font-mono text-muted">{l.id}</span>{!l.active && <Badge color="var(--color-slate-500)">Inactive</Badge>}</span>,
                   l.savingsType, l.route, l.evaluator, l.npdSample,
                 ]
               })} />
@@ -511,7 +511,7 @@ export default function Scope() {
                   const b = BUCKET_STYLE[st === 'Implemented' ? 'Implemented' : st === STAGE.execution ? 'In Execution' : 'Pipeline']
                   return (
                     <React.Fragment key={st}>
-                      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `${b.color}33` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{st}</span>
+                      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `color-mix(in srgb, ${b.color} 20%, transparent)` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{st}</span>
                       {k < TRACKER_STAGES.length - 1 && <Icon name="ArrowRight" size={13} className="text-slate-300" />}
                     </React.Fragment>
                   )
@@ -536,7 +536,7 @@ export default function Scope() {
                         const b = BUCKET_STYLE[/Implemented/i.test(s) ? 'Implemented' : ai >= 0 && k > ai ? 'In Execution' : 'Pipeline']
                         return (
                           <React.Fragment key={s}>
-                            <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `${b.color}33` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{s}</span>
+                            <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-semibold border" style={{ background: b.soft, color: b.text, borderColor: `color-mix(in srgb, ${b.color} 20%, transparent)` }}><span className="text-[10px] opacity-70 num">{k + 1}</span>{s}</span>
                             {k < stages.length - 1 && <Icon name="ArrowRight" size={13} className="text-slate-300" />}
                           </React.Fragment>
                         )
@@ -549,7 +549,7 @@ export default function Scope() {
             <div className="max-w-[760px]">
               <Sub title="Approval matrix (configurable)" icon="Stamp">
                 <DocTable head={['Annualised impact', 'Approver', 'Current setting']} dense
-                  rows={APPROVAL_MATRIX_DOC.map(([a, b], k) => [a, b, <Badge color="#223c86">{k === 0 ? `≤ ₹ ${settings.xThresholdLakh} lakh` : `> ₹ ${settings.xThresholdLakh} lakh`}</Badge>])} />
+                  rows={APPROVAL_MATRIX_DOC.map(([a, b], k) => [a, b, <Badge color="var(--color-brand-600)">{k === 0 ? `≤ ₹ ${settings.xThresholdLakh} lakh` : `> ₹ ${settings.xThresholdLakh} lakh`}</Badge>])} />
                 <div className="mt-2"><Callout tone="gold" icon="Info">{APPROVAL_NOTE} This build uses X = ₹ {settings.xThresholdLakh} lakh ({inrShort(settings.xThresholdLakh * LAKH)}), editable in Admin & Masters.</Callout></div>
               </Sub>
             </div>
@@ -559,13 +559,13 @@ export default function Scope() {
           <Section id="s7" intro={FORM_INTRO}>
             <Callout tone="info" icon="PanelsTopLeft">{FORM_LAYOUT}</Callout>
             <div className="flex flex-wrap gap-1.5">
-              {[...new Set(FORM_FIELDS.map((f) => f.card))].map((c) => <Badge key={c} color="#223c86">{c} · {FORM_FIELDS.filter((f) => f.card === c).length}</Badge>)}
-              <Badge color="#b8142a" icon="WandSparkles">{FORM_FIELDS.filter((f) => /Auto|Calculated/.test(f.type)).length} auto-filled or calculated</Badge>
+              {[...new Set(FORM_FIELDS.map((f) => f.card))].map((c) => <Badge key={c} color="var(--color-brand-600)">{c} · {FORM_FIELDS.filter((f) => f.card === c).length}</Badge>)}
+              <Badge color="var(--color-accent-600)" icon="WandSparkles">{FORM_FIELDS.filter((f) => /Auto|Calculated/.test(f.type)).length} auto-filled or calculated</Badge>
             </div>
             <DocTable head={['#', 'Step', 'Field', 'Type', 'Req.', 'Source / behaviour']} widths={['4%', '14%', '20%', '13%', '10%']} dense
               rows={FORM_FIELDS.map((f) => [
                 <span className="num text-muted">{f.n}</span>, <span className="text-[11.5px] font-semibold text-brand-700">{f.card}</span>, <span className="font-semibold text-ink">{f.field}</span>,
-                <span className="text-[12px]">{f.type}</span>, f.req === 'Yes' ? <Badge color="#e0364f">Yes</Badge> : f.req === 'No' ? <span className="text-muted">No</span> : <span className="text-[12px]">{f.req}</span>, f.source,
+                <span className="text-[12px]">{f.type}</span>, f.req === 'Yes' ? <Badge color="var(--color-rose-600)">Yes</Badge> : f.req === 'No' ? <span className="text-muted">No</span> : <span className="text-[12px]">{f.req}</span>, f.source,
               ])} />
             <Sub title="Interactive behaviour" icon="MousePointerClick"><Bullets items={FORM_BEHAVIOUR} /></Sub>
           </Section>
@@ -615,11 +615,11 @@ export default function Scope() {
           <Section id="s11" intro={DASHBOARDS_INTRO}>
             <Sub title="Dashboards" icon="LayoutDashboard">
               <DocTable head={['Workspace', 'View', 'Who', 'What it shows']} widths={['10%', '15%', '22%']} dense
-                rows={DASHBOARDS.filter((d) => d.space === 'Entry' || iv(d.space)).map((d) => [<Badge color={d.space === 'CO' ? '#0f9f8a' : d.space === 'IN' ? '#223c86' : '#475569'}>{d.space}</Badge>, <span className="font-semibold text-ink">{d.view}</span>, <span className="text-[12px]">{d.who}</span>, d.contents])} />
+                rows={DASHBOARDS.filter((d) => d.space === 'Entry' || iv(d.space)).map((d) => [<Badge color={d.space === 'CO' ? 'var(--color-emerald-600)' : d.space === 'IN' ? 'var(--color-brand-600)' : 'var(--color-slate-600)'}>{d.space}</Badge>, <span className="font-semibold text-ink">{d.view}</span>, <span className="text-[12px]">{d.who}</span>, d.contents])} />
             </Sub>
             <P>{REPORTS_INTRO}</P>
             <DocTable head={['#', 'Report', 'Audience', 'Key visuals', 'Frequency', '']} widths={['4%', '19%', '17%', undefined, '11%', '8%']} dense
-              rows={coFirst(REPORTS.filter((r) => iv(REPORT_SPACE[r.key] ?? 'Both')), (r) => REPORT_SPACE[r.key] ?? 'Both').map((r) => [<span className="num text-muted">{r.n}</span>, r.name, r.audience, r.visuals, <Badge color="#475569">{r.frequency}</Badge>,
+              rows={coFirst(REPORTS.filter((r) => iv(REPORT_SPACE[r.key] ?? 'Both')), (r) => REPORT_SPACE[r.key] ?? 'Both').map((r) => [<span className="num text-muted">{r.n}</span>, r.name, r.audience, r.visuals, <Badge color="var(--color-slate-600)">{r.frequency}</Badge>,
                 <Button size="xs" variant="outline" iconRight="ArrowUpRight" onClick={() => nav(r.key === 'home' ? '/' : `/reports/${r.key}`)}>Open</Button>])} />
             <Callout tone="info" icon="MousePointerClick">{REPORTS_NOTE}</Callout>
             {iv('CO') && <Sub title="Monthly management mailer" icon="Mail" aside={<span className="text-[11.5px] text-muted">{settings.mailerRecipients.length} recipients configured</span>}>
@@ -631,10 +631,10 @@ export default function Scope() {
           <Section id="s12" intro={NOTIF_INTRO}>
             <Sub title="Emails sent by COIN" icon="Mail">
               <DocTable head={['Email', 'Recipient', 'Channel', 'When']} widths={['24%', '24%', '22%']} dense
-                rows={NOTIF_TRIGGERS.filter((t) => iv(t.space)).map((t) => [t.trigger, t.recipient, <Badge color="#223c86" icon="Mail">{t.channel}</Badge>, t.timing])} />
+                rows={NOTIF_TRIGGERS.filter((t) => iv(t.space)).map((t) => [t.trigger, t.recipient, <Badge color="var(--color-brand-600)" icon="Mail">{t.channel}</Badge>, t.timing])} />
             </Sub>
             <Sub title="Reminders and escalations on screen" icon="AlarmClock"><Bullets items={REMINDERS_ON_SCREEN.filter((r) => iv(r.space)).map((r) => r.text)} /></Sub>
-            <Sub title="Stage SLAs (defaults, configurable)" icon="Timer" aside={slaChanged ? <Badge color="#ec8a1c">Customised in Admin</Badge> : <Badge color="#0f9f6e">In force as proposed</Badge>}>
+            <Sub title="Stage SLAs (defaults, configurable)" icon="Timer" aside={slaChanged ? <Badge color="var(--color-orange-400)">Customised in Admin</Badge> : <Badge color="var(--color-emerald-600)">In force as proposed</Badge>}>
               <DocTable head={['Stage', 'SLA', 'Reminder', 'Escalation to', 'Configured now']} dense
                 rows={coFirst(SLA_DEFAULTS.filter((d) => iv(SLA_SPACE(d.stage))), (d) => SLA_SPACE(d.stage)).map((d) => {
                   const r = slaRules.find((x) => x.stage === d.stage)
@@ -650,7 +650,7 @@ export default function Scope() {
           <Section id="s13" intro={INTEGRATION_INTRO}>
             <DocTable head={['System', 'Data exchanged', 'Direction', 'Used for']} widths={['20%', '30%', '14%']} dense
               rows={coFirst(INTEGRATIONS.filter((i) => iv(i.space)), (i) => i.space).map((i) => [i.system, i.data,
-                <Badge color={i.direction === 'Into COIN' ? '#0f9f6e' : i.direction === 'Out of COIN' ? '#223c86' : '#b8142a'} icon={i.direction === 'Into COIN' ? 'ArrowDownToLine' : i.direction === 'Out of COIN' ? 'ArrowUpFromLine' : 'ArrowLeftRight'}>{i.direction}</Badge>, i.use])} />
+                <Badge color={i.direction === 'Into COIN' ? 'var(--color-emerald-600)' : i.direction === 'Out of COIN' ? 'var(--color-brand-600)' : 'var(--color-accent-600)'} icon={i.direction === 'Into COIN' ? 'ArrowDownToLine' : i.direction === 'Out of COIN' ? 'ArrowUpFromLine' : 'ArrowLeftRight'}>{i.direction}</Badge>, i.use])} />
             <Callout tone="success" icon="FileSpreadsheet" title="Fallback">{INTEGRATION_FALLBACK}</Callout>
           </Section>
 

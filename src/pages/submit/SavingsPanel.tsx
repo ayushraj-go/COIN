@@ -21,7 +21,7 @@ export interface SavingsCalc {
 }
 
 const F = (name: string) => FORMULAS.find((f) => f.name === name)?.expr
-export const tone = (v: number) => (v > 0 ? '#0f9f6e' : v < 0 ? '#e0364f' : '#64748b')
+export const tone = (v: number) => (v > 0 ? 'var(--color-emerald-600)' : v < 0 ? 'var(--color-rose-600)' : 'var(--color-slate-500)')
 
 export function PctBadge({ pct, dark }: { pct: number | null; dark?: boolean }) {
   if (pct == null) return null
@@ -144,7 +144,7 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, leadName, h
 }
 
 export function SavingsHero({ c, singleUnit }: { c: SavingsCalc; singleUnit?: PartCalc }) {
-  const col = (v: number | null | undefined) => (v == null ? '#0f172a' : v > 0 ? '#0f9f6e' : v < 0 ? '#e0364f' : '#0f172a')
+  const col = (v: number | null | undefined) => (v == null ? 'var(--color-slate-900)' : v > 0 ? 'var(--color-emerald-600)' : v < 0 ? 'var(--color-rose-600)' : 'var(--color-slate-900)')
   return (
     <div className="shrink-0 px-4 pt-3 pb-3 border-b border-line bg-brand-50/40">
       <div>
@@ -164,7 +164,7 @@ export function SavingsHero({ c, singleUnit }: { c: SavingsCalc; singleUnit?: Pa
         <div className="grid grid-cols-2 gap-2 mt-2.5">
           <div className="rounded-lg bg-white border border-line px-2.5 py-1.5">
             <div className="text-[10.5px] uppercase tracking-wide text-muted font-semibold">Saving / unit</div>
-            <div className="text-[14px] font-bold num mt-0.5" style={{ color: singleUnit ? col(singleUnit.unit) : '#0f172a' }}>
+            <div className="text-[14px] font-bold num mt-0.5" style={{ color: singleUnit ? col(singleUnit.unit) : 'var(--color-slate-900)' }}>
               {c.isOpen ? '—' : singleUnit ? `${inrPrice(singleUnit.unit)} / ${singleUnit.uom}` : c.rows.length > 1 ? `${c.rows.length} parts · see below` : '₹ 0.00'}
             </div>
           </div>

@@ -43,7 +43,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-[12px] text-muted">Estimate for open idea (rough annual impact)</div>
-              <div className="text-[20px] font-bold text-ink num">{inrShort(total)} <SourceTag color="#ec8a1c">Estimate</SourceTag></div>
+              <div className="text-[20px] font-bold text-ink num">{inrShort(total)} <SourceTag color="var(--color-orange-400)">Estimate</SourceTag></div>
             </div>
             <div className="text-[12px] text-muted max-w-sm">Part codes, baseline and volume are added by the team at the Team feasibility check; the estimate is replaced by the part-wise calculation.</div>
           </div>

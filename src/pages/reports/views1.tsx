@@ -54,10 +54,10 @@ function HomeCO({ ctx, month }: { ctx: Ctx; month?: string }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: s.realisedCounting, icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula, sub: `${s.counts.Implemented} ideas implemented`, onClick: () => drill({ bucket: 'Implemented' }) },
-        { label: 'Committed (remaining)', value: s.remainingCommitted, icon: 'Rocket', color: '#ec8a1c', formula: 'Σ FY-phased saving still to come (In Execution + implemented months not yet realised)', sub: `${s.counts['In Execution']} ideas in execution`, onClick: () => drill({ bucket: 'In Execution' }) },
-        { label: 'Implemented (annualised)', value: s.values.Implemented, icon: 'CircleCheck', color: '#0d9488', sub: `${s.counts.Implemented} ideas`, onClick: () => drill({ bucket: 'Implemented' }) },
-        { label: 'Carry-over to next FY', value: s.carryOver, icon: 'CalendarArrowUp', color: '#4f46e5', formula: kf('A9').formula },
+        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: s.realisedCounting, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula, sub: `${s.counts.Implemented} ideas implemented`, onClick: () => drill({ bucket: 'Implemented' }) },
+        { label: 'Committed (remaining)', value: s.remainingCommitted, icon: 'Rocket', color: 'var(--color-orange-400)', formula: 'Σ FY-phased saving still to come (In Execution + implemented months not yet realised)', sub: `${s.counts['In Execution']} ideas in execution`, onClick: () => drill({ bucket: 'In Execution' }) },
+        { label: 'Implemented (annualised)', value: s.values.Implemented, icon: 'CircleCheck', color: 'var(--color-teal-600)', sub: `${s.counts.Implemented} ideas`, onClick: () => drill({ bucket: 'Implemented' }) },
+        { label: 'Carry-over to next FY', value: s.carryOver, icon: 'CalendarArrowUp', color: 'var(--color-indigo-600)', formula: kf('A9').formula },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-4" title="Savings summary" icon="BadgeIndianRupee" actions={<InfoTip title="Savings summary" formula="Realised from MRN; committed = FY-phased saving still to come">Hard savings only. Cost avoidance and one-time savings are reported separately.</InfoTip>}>
@@ -72,7 +72,7 @@ function HomeCO({ ctx, month }: { ctx: Ctx; month?: string }) {
           </div>
         </Card>
         <Card className="lg:col-span-8" title="Monthly savings trend" icon="ChartColumn" subtitle={`Hard savings realised from MRN · ${ctx.fy} · click a month for its ideas`}>
-          <Legend className="mb-1" items={[{ label: 'Validated', color: '#0f9f6e' }, { label: 'Pending validation', color: '#86efac' }, { label: 'Cumulative realised', color: '#1e3a5f' }]} />
+          <Legend className="mb-1" items={[{ label: 'Validated', color: 'var(--color-emerald-600)' }, { label: 'Pending validation', color: 'var(--color-green-300)' }, { label: 'Cumulative realised', color: 'var(--color-brand-700)' }]} />
           <ChartBox height={244}>
             <ComposedChart data={trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />
@@ -80,13 +80,13 @@ function HomeCO({ ctx, month }: { ctx: Ctx; month?: string }) {
               <YAxis yAxisId="m" {...AX} tickFormatter={moneyTick} width={58} />
               <YAxis yAxisId="c" orientation="right" {...AX} tickFormatter={moneyTick} width={58} />
               <Tooltip cursor={CURSOR} content={<ChartTip fmt={(v: number) => inrShort(v)} title={(l: string, p: any[]) => monthLabel(p?.[0]?.payload?.month ?? '') || l} />} />
-              <Bar yAxisId="m" dataKey="validated" name="Validated" stackId="r" fill="#0f9f6e" onClick={(x: any) => list.show(`Ideas realising saving in ${monthLabel(x.month)}`, monthIdeas(x.month))} cursor="pointer">
+              <Bar yAxisId="m" dataKey="validated" name="Validated" stackId="r" fill="var(--color-emerald-600)" onClick={(x: any) => list.show(`Ideas realising saving in ${monthLabel(x.month)}`, monthIdeas(x.month))} cursor="pointer">
                 {trend.map((t) => <Cell key={t.month} fillOpacity={month && month !== t.month ? 0.35 : 1} />)}
               </Bar>
-              <Bar yAxisId="m" dataKey="pending" name="Pending validation" stackId="r" fill="#86efac" radius={[4, 4, 0, 0]} onClick={(x: any) => list.show(`Ideas realising saving in ${monthLabel(x.month)}`, monthIdeas(x.month))} cursor="pointer">
+              <Bar yAxisId="m" dataKey="pending" name="Pending validation" stackId="r" fill="var(--color-green-300)" radius={[4, 4, 0, 0]} onClick={(x: any) => list.show(`Ideas realising saving in ${monthLabel(x.month)}`, monthIdeas(x.month))} cursor="pointer">
                 {trend.map((t) => <Cell key={t.month} fillOpacity={month && month !== t.month ? 0.35 : 1} />)}
               </Bar>
-              <Line yAxisId="c" type="monotone" dataKey="cumulative" name="Cumulative realised" stroke="#1e3a5f" strokeWidth={2} dot={{ r: 2.5 }} connectNulls={false} />
+              <Line yAxisId="c" type="monotone" dataKey="cumulative" name="Cumulative realised" stroke="var(--color-brand-700)" strokeWidth={2} dot={{ r: 2.5 }} connectNulls={false} />
             </ComposedChart>
           </ChartBox>
         </Card>
@@ -123,10 +123,10 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Ideas submitted', value: ctx.ideas.length, money: false, icon: 'Lightbulb', color: '#1e3a5f', formula: kf('B1').formula, sub: `${inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised` },
-        { label: 'Pipeline value', value: s.pipeline, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, sub: `${s.counts.Pipeline} ideas in pipeline`, onClick: () => drill({ bucket: 'Pipeline' }) },
-        { label: 'Conversion rate', value: conv, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', formula: kf('B2').formula, sub: `${d.steps[3].n} of ${d.steps[0].n} implemented` },
-        { label: 'Dropped', value: s.counts.Dropped, money: false, icon: 'CircleX', color: '#6b7280', formula: kf('B3').formula, sub: `${inrShort(s.values.Dropped)} annualised`, onClick: () => drill({ bucket: 'Dropped' }) },
+        { label: 'Ideas submitted', value: ctx.ideas.length, money: false, icon: 'Lightbulb', color: 'var(--color-brand-700)', formula: kf('B1').formula, sub: `${inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised` },
+        { label: 'Pipeline value', value: s.pipeline, icon: 'Filter', color: 'var(--color-brand-500)', formula: kf('A3').formula, sub: `${s.counts.Pipeline} ideas in pipeline`, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Conversion rate', value: conv, money: false, suffix: '%', digits: 1, icon: 'Percent', color: 'var(--color-emerald-600)', formula: kf('B2').formula, sub: `${d.steps[3].n} of ${d.steps[0].n} implemented` },
+        { label: 'Dropped', value: s.counts.Dropped, money: false, icon: 'CircleX', color: 'var(--color-gray-500)', formula: kf('B3').formula, sub: `${inrShort(s.values.Dropped)} annualised`, onClick: () => drill({ bucket: 'Dropped' }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-5" title="Idea funnel" icon="Filter" subtitle="Count and ₹ per bucket · stage-to-stage conversion">
@@ -147,7 +147,7 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
               return (
                 <button key={st.step} onClick={() => list.show(`${st.step} ideas`, st.ideas)} className="w-full flex items-center gap-2 group">
                   <span className="w-[78px] text-[11.5px] text-muted text-left shrink-0">{st.step}</span>
-                  <span className="flex-1 flex justify-center"><span className="h-6 rounded-md grid place-items-center text-[11.5px] font-bold text-white transition group-hover:brightness-110" style={{ width: `${Math.max(14, (st.n / maxStep) * 100)}%`, background: ['#64748b', '#2f4a9a', '#ec8a1c', '#14ab92'][k] }}>{st.n}</span></span>
+                  <span className="flex-1 flex justify-center"><span className="h-6 rounded-md grid place-items-center text-[11.5px] font-bold text-white transition group-hover:brightness-110" style={{ width: `${Math.max(14, (st.n / maxStep) * 100)}%`, background: ['var(--color-slate-500)', 'var(--color-brand-500)', 'var(--color-orange-400)', 'var(--color-emerald-500)'][k] }}>{st.n}</span></span>
                   <span className="w-[46px] text-right text-[11px] font-semibold num text-ink-2">{k ? pct(c, 0) : ''}</span>
                 </button>
               )
@@ -196,10 +196,10 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: b.R, icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula, onClick: () => drill({ bucket: 'Implemented' }) },
-        { label: 'Committed (remaining)', value: b.C, icon: 'Rocket', color: '#ec8a1c', formula: kf('A4').formula, onClick: () => drill({ bucket: 'In Execution' }) },
-        { label: 'Pipeline', value: b.P, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
-        { label: 'Total tracked', value: b.total, icon: 'Sigma', color: '#223c86', formula: 'Realised + remaining committed + pipeline' },
+        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: b.R, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula, onClick: () => drill({ bucket: 'Implemented' }) },
+        { label: 'Committed (remaining)', value: b.C, icon: 'Rocket', color: 'var(--color-orange-400)', formula: kf('A4').formula, onClick: () => drill({ bucket: 'In Execution' }) },
+        { label: 'Pipeline', value: b.P, icon: 'Filter', color: 'var(--color-brand-500)', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Total tracked', value: b.total, icon: 'Sigma', color: 'var(--color-brand-600)', formula: 'Realised + remaining committed + pipeline' },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-8" title="Savings bridge" icon="ChartColumnStacked" subtitle="Waterfall: realised → committed → pipeline → total tracked">
@@ -212,7 +212,7 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
               <Bar dataKey="base" stackId="w" fill="transparent" isAnimationActive={false} />
               <Bar dataKey="value" name="Value" stackId="w" radius={[5, 5, 0, 0]} cursor="pointer" onClick={(x: any) => click(x)}>
                 {b.rows.map((r) => <Cell key={r.key} fill={r.color} />)}
-                <LabelList dataKey="value" position="top" formatter={(v: number) => inrShort(v)} style={{ fontSize: 11, fontWeight: 700, fill: '#0f172a' }} />
+                <LabelList dataKey="value" position="top" formatter={(v: number) => inrShort(v)} style={{ fontSize: 11, fontWeight: 700, fill: 'var(--color-slate-900)' }} />
               </Bar>
             </BarChart>
           </ChartBox>
@@ -254,9 +254,9 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
                     <td className="num font-semibold" style={{ textAlign: 'right' }}>{inrShort(tot)}</td>
                     <td>
                       <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                        <div style={{ width: `${(r.realised / maxTotal) * 100}%`, background: '#0f9f6e' }} />
-                        <div style={{ width: `${(r.remaining / maxTotal) * 100}%`, background: '#ec8a1c' }} />
-                        <div style={{ width: `${(r.pipeline / maxTotal) * 100}%`, background: '#36509a' }} />
+                        <div style={{ width: `${(r.realised / maxTotal) * 100}%`, background: 'var(--color-emerald-600)' }} />
+                        <div style={{ width: `${(r.remaining / maxTotal) * 100}%`, background: 'var(--color-orange-400)' }} />
+                        <div style={{ width: `${(r.pipeline / maxTotal) * 100}%`, background: 'var(--color-brand-500)' }} />
                       </div>
                     </td>
                   </tr>
@@ -265,7 +265,7 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
             </tbody>
           </table>
         </div>
-        <Legend className="mt-2" items={[{ label: 'Realised', color: '#0f9f6e' }, { label: 'Committed (remaining)', color: '#ec8a1c' }, { label: 'Pipeline', color: '#36509a' }]} />
+        <Legend className="mt-2" items={[{ label: 'Realised', color: 'var(--color-emerald-600)' }, { label: 'Committed (remaining)', color: 'var(--color-orange-400)' }, { label: 'Pipeline', color: 'var(--color-brand-500)' }]} />
       </Card>
       {list.el}
     </div>
@@ -299,28 +299,28 @@ function CommodityCO({ ctx }: { ctx: Ctx }) {
     { key: 'remaining', label: 'Committed (remaining)', align: 'right', value: (r) => r.remaining, render: (r) => <span className="num text-orange-700">{inrShort(r.remaining)}</span> },
     { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented },
     { key: 'rate', label: 'Realisation rate', align: 'right', value: (r) => r.rate, render: (r) => <span className="num">{r.rate ? pct(r.rate, 0) : '—'}</span> },
-    { key: 'leakage', label: 'Price leakage', align: 'right', value: (r) => r.leakage, render: (r) => <span className="num" style={{ color: r.leakage > 0 ? '#e0364f' : undefined }}>{inrShort(r.leakage)}</span> },
+    { key: 'leakage', label: 'Price leakage', align: 'right', value: (r) => r.leakage, render: (r) => <span className="num" style={{ color: r.leakage > 0 ? 'var(--color-rose-600)' : undefined }}>{inrShort(r.leakage)}</span> },
     { key: 'spendPct', label: 'Savings % of spend', align: 'right', value: (r) => r.spendPct, render: (r) => <span className="num">{pct(r.spendPct, 2)}</span> },
   ]
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Commodities', value: rows.length, money: false, icon: 'Boxes', color: '#1e3a5f', sub: `${rows.filter((r) => r.realised > 0).length} with realised saving` },
-        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: s.realisedCounting, icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula },
-        { label: 'Committed (remaining)', value: s.remainingCommitted, icon: 'Rocket', color: '#ec8a1c', formula: kf('A4').formula },
-        { label: 'Realisation rate', value: rate, money: false, suffix: '%', digits: 1, icon: 'Gauge', color: '#0d9488', formula: kf('D3').formula },
-        { label: 'Price leakage', value: rows.reduce((a, r) => a + r.leakage, 0), icon: 'Droplets', color: '#e0364f', formula: kf('D4').formula },
+        { label: 'Commodities', value: rows.length, money: false, icon: 'Boxes', color: 'var(--color-brand-700)', sub: `${rows.filter((r) => r.realised > 0).length} with realised saving` },
+        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: s.realisedCounting, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula },
+        { label: 'Committed (remaining)', value: s.remainingCommitted, icon: 'Rocket', color: 'var(--color-orange-400)', formula: kf('A4').formula },
+        { label: 'Realisation rate', value: rate, money: false, suffix: '%', digits: 1, icon: 'Gauge', color: 'var(--color-teal-600)', formula: kf('D3').formula },
+        { label: 'Price leakage', value: rows.reduce((a, r) => a + r.leakage, 0), icon: 'Droplets', color: 'var(--color-rose-600)', formula: kf('D4').formula },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-8" title="Realised & committed by commodity" icon="ChartColumn" actions={<Legend items={[{ label: 'Realised', color: '#0f9f6e' }, { label: 'Committed (remaining)', color: '#ec8a1c' }]} />}>
+        <Card className="lg:col-span-8" title="Realised & committed by commodity" icon="ChartColumn" actions={<Legend items={[{ label: 'Realised', color: 'var(--color-emerald-600)' }, { label: 'Committed (remaining)', color: 'var(--color-orange-400)' }]} />}>
           <ChartBox height={300}>
             <BarChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barGap={2}>
               <CartesianGrid {...GRID} />
               <XAxis dataKey="code" {...AX} interval={0} />
               <YAxis {...AX} tickFormatter={moneyTick} width={58} />
               <Tooltip cursor={CURSOR} content={<ChartTip fmt={(v: number) => inrShort(v)} title={(l: string) => commodityName(ctx, l)} />} />
-              <Bar dataKey="realised" name="Realised" fill="#0f9f6e" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(x: any) => drill({ commodity: x.code, bucket: 'Implemented' })} />
-              <Bar dataKey="remaining" name="Committed (remaining)" fill="#ec8a1c" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(x: any) => drill({ commodity: x.code, bucket: 'In Execution' })} />
+              <Bar dataKey="realised" name="Realised" fill="var(--color-emerald-600)" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(x: any) => drill({ commodity: x.code, bucket: 'Implemented' })} />
+              <Bar dataKey="remaining" name="Committed (remaining)" fill="var(--color-orange-400)" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(x: any) => drill({ commodity: x.code, bucket: 'In Execution' })} />
             </BarChart>
           </ChartBox>
         </Card>
@@ -328,11 +328,11 @@ function CommodityCO({ ctx }: { ctx: Ctx }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1 min-w-0">
               <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted">Savings % of spend</div>
-              {spend.map((r) => <MeterRow key={r.code} label={r.code} value={r.spendPct} max={maxSpend} color="#7c3aed" display={pct(r.spendPct, 2)} onClick={() => drill({ commodity: r.code })} />)}
+              {spend.map((r) => <MeterRow key={r.code} label={r.code} value={r.spendPct} max={maxSpend} color="var(--color-violet-600)" display={pct(r.spendPct, 2)} onClick={() => drill({ commodity: r.code })} />)}
             </div>
             <div className="space-y-1 min-w-0">
               <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted">Realisation rate</div>
-              {rated.map((r) => <MeterRow key={r.code} label={r.code} value={Math.min(120, r.rate)} max={120} marker={100} color={r.rate >= 100 ? '#0f9f6e' : r.rate >= 80 ? '#ec8a1c' : '#e0364f'} display={pct(r.rate, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Implemented' })} />)}
+              {rated.map((r) => <MeterRow key={r.code} label={r.code} value={Math.min(120, r.rate)} max={120} marker={100} color={r.rate >= 100 ? 'var(--color-emerald-600)' : r.rate >= 80 ? 'var(--color-orange-400)' : 'var(--color-rose-600)'} display={pct(r.rate, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Implemented' })} />)}
               {!rated.length && <div className="text-[11.5px] text-muted">No realisation yet</div>}
             </div>
           </div>
@@ -363,17 +363,17 @@ function CommodityIN({ ctx }: { ctx: Ctx }) {
     { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented },
     { key: 'conversion', label: 'Conversion', align: 'right', value: (r) => r.conversion, render: (r) => <span className="num">{pct(r.conversion, 0)}</span> },
     { key: 'dropped', label: 'Dropped', align: 'right', value: (r) => r.nDropped },
-    { key: 'breaches', label: 'Beyond SLA', align: 'right', value: (r) => r.breaches, render: (r) => <span className="num" style={{ color: r.breaches ? '#e0364f' : undefined }}>{r.breaches}</span> },
+    { key: 'breaches', label: 'Beyond SLA', align: 'right', value: (r) => r.breaches, render: (r) => <span className="num" style={{ color: r.breaches ? 'var(--color-rose-600)' : undefined }}>{r.breaches}</span> },
   ]
   const BK = [['nPipeline', 'Pipeline'], ['nExec', 'In Execution'], ['nImpl', 'Implemented'], ['nDropped', 'Dropped']] as const
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Commodities', value: rows.length, money: false, icon: 'Boxes', color: '#1e3a5f', sub: `${rows.filter((r) => r.submitted > 0).length} with ideas` },
-        { label: 'Ideas submitted', value: totalSub, money: false, icon: 'Lightbulb', color: '#1e3a5f', formula: kf('B1').formula },
-        { label: 'Pipeline value', value: ctx.sum.pipeline, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
-        { label: 'Conversion rate', value: totalSub ? (totalImpl / totalSub) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', formula: kf('B2').formula, sub: `${totalImpl} of ${totalSub} ideas` },
-        { label: 'Ideas beyond SLA', value: rows.reduce((a, r) => a + r.breaches, 0), money: false, icon: 'Siren', color: '#e0364f', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
+        { label: 'Commodities', value: rows.length, money: false, icon: 'Boxes', color: 'var(--color-brand-700)', sub: `${rows.filter((r) => r.submitted > 0).length} with ideas` },
+        { label: 'Ideas submitted', value: totalSub, money: false, icon: 'Lightbulb', color: 'var(--color-brand-700)', formula: kf('B1').formula },
+        { label: 'Pipeline value', value: ctx.sum.pipeline, icon: 'Filter', color: 'var(--color-brand-500)', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Conversion rate', value: totalSub ? (totalImpl / totalSub) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: 'var(--color-emerald-600)', formula: kf('B2').formula, sub: `${totalImpl} of ${totalSub} ideas` },
+        { label: 'Ideas beyond SLA', value: rows.reduce((a, r) => a + r.breaches, 0), money: false, icon: 'Siren', color: 'var(--color-rose-600)', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-8" title="Ideas by commodity" icon="ChartColumnStacked" subtitle="Submitted ideas by where they are now" actions={<Legend items={BK.map(([, b]) => ({ label: b, color: BUCKET_STYLE[b].color }))} />}>
@@ -391,11 +391,11 @@ function CommodityIN({ ctx }: { ctx: Ctx }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1 min-w-0">
               <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted">Conversion</div>
-              {conv.map((r) => <MeterRow key={r.code} label={r.code} value={r.conversion} max={100} color="#0f9f6e" display={pct(r.conversion, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Implemented' })} />)}
+              {conv.map((r) => <MeterRow key={r.code} label={r.code} value={r.conversion} max={100} color="var(--color-emerald-600)" display={pct(r.conversion, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Implemented' })} />)}
             </div>
             <div className="space-y-1 min-w-0">
               <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted">Drop rate</div>
-              {drops.map((r) => <MeterRow key={r.code} label={r.code} value={r.dropRate} max={100} color="#6b7280" display={pct(r.dropRate, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Dropped' })} />)}
+              {drops.map((r) => <MeterRow key={r.code} label={r.code} value={r.dropRate} max={100} color="var(--color-gray-500)" display={pct(r.dropRate, 0)} onClick={() => drill({ commodity: r.code, bucket: 'Dropped' })} />)}
             </div>
           </div>
         </Card>
@@ -430,7 +430,7 @@ export function BuyerReport({ ctx, space = 'CO' }: { ctx: Ctx; space?: Space }) 
     { key: 'realised', label: 'Realised', align: 'right', value: (r) => r.realised, render: (r) => <span className="num text-emerald-700">{inrShort(r.realised)}</span> },
     { key: 'committed', label: 'Committed (remaining)', align: 'right', value: (r) => r.committed, render: (r) => <span className="num text-orange-700">{inrShort(r.committed)}</span> },
     { key: 'onTime', label: 'On-time %', align: 'right', value: (r) => r.onTimePct, render: (r) => <span className="num">{isNaN(r.onTimePct) ? '—' : `${pct(r.onTimePct, 0)} (${r.onTime}/${r.done})`}</span> },
-    { key: 'overdue', label: 'Overdue ₹', align: 'right', value: (r) => r.overdueValue, render: (r) => <span className="num font-semibold" style={{ color: r.overdueValue > 0 ? '#e0364f' : undefined }}>{inrShort(r.overdueValue)} {r.overdueCount ? `(${r.overdueCount})` : ''}</span> },
+    { key: 'overdue', label: 'Overdue ₹', align: 'right', value: (r) => r.overdueValue, render: (r) => <span className="num font-semibold" style={{ color: r.overdueValue > 0 ? 'var(--color-rose-600)' : undefined }}>{inrShort(r.overdueValue)} {r.overdueCount ? `(${r.overdueCount})` : ''}</span> },
     { key: 'rate', label: 'Realisation rate', align: 'right', value: (r) => r.realisationRate, render: (r) => <span className="num">{pct(r.realisationRate, 0)}</span> },
   ] : [
     ...base,
@@ -439,43 +439,43 @@ export function BuyerReport({ ctx, space = 'CO' }: { ctx: Ctx; space?: Space }) 
     { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented },
     { key: 'conversion', label: 'Conversion', align: 'right', value: (r) => r.conversion, render: (r) => <span className="num">{pct(r.conversion, 0)}</span> },
     { key: 'age', label: 'Avg ageing (days)', align: 'right', value: (r) => r.avgAge, render: (r) => <span className="num">{isNaN(r.avgAge) ? '—' : num(r.avgAge, 1)}</span> },
-    { key: 'breaches', label: 'Beyond SLA', align: 'right', value: (r) => r.breaches, render: (r) => <span className="num" style={{ color: r.breaches ? '#e0364f' : undefined }}>{r.breaches}</span> },
+    { key: 'breaches', label: 'Beyond SLA', align: 'right', value: (r) => r.breaches, render: (r) => <span className="num" style={{ color: r.breaches ? 'var(--color-rose-600)' : undefined }}>{r.breaches}</span> },
   ]
   const bars = co
-    ? [{ k: 'realised', label: 'Realised', color: '#0f9f6e' }, { k: 'committed', label: 'Committed', color: '#ec8a1c' }]
-    : [{ k: 'pipeline', label: 'Pipeline value', color: '#2f4a9a' }]
+    ? [{ k: 'realised', label: 'Realised', color: 'var(--color-emerald-600)' }, { k: 'committed', label: 'Committed', color: 'var(--color-orange-400)' }]
+    : [{ k: 'pipeline', label: 'Pipeline value', color: 'var(--color-brand-500)' }]
   const maxBar = Math.max(1, ...rows.map((r) => bars.reduce((a, b) => a + (r as any)[b.k], 0)))
   const tiles = (r: R): [string, string, string, (() => void)?][] => co ? [
-    ['Realised', inrShort(r.realised), '#0b7a55'],
-    ['On-time', isNaN(r.onTimePct) ? '—' : pct(r.onTimePct, 0), '#1e3a5f'],
-    ['Overdue', inrShort(r.overdueValue), r.overdueValue > 0 ? '#e0364f' : '#1e3a5f', () => list.show(`${r.name} · overdue ideas`, r.overdueIdeas)],
-    ['Rate', pct(r.realisationRate, 0), '#1e3a5f'],
+    ['Realised', inrShort(r.realised), 'var(--color-emerald-700)'],
+    ['On-time', isNaN(r.onTimePct) ? '—' : pct(r.onTimePct, 0), 'var(--color-brand-700)'],
+    ['Overdue', inrShort(r.overdueValue), r.overdueValue > 0 ? 'var(--color-rose-600)' : 'var(--color-brand-700)', () => list.show(`${r.name} · overdue ideas`, r.overdueIdeas)],
+    ['Rate', pct(r.realisationRate, 0), 'var(--color-brand-700)'],
   ] : [
-    ['Ideas', String(r.submitted), '#1e3a5f'],
-    ['Conv.', pct(r.conversion, 0), '#0b7a55'],
-    ['Ageing', isNaN(r.avgAge) ? '—' : `${num(r.avgAge, 0)} d`, r.avgAge > 10 ? '#ec8a1c' : '#1e3a5f'],
-    ['Over SLA', String(r.breaches), r.breaches ? '#e0364f' : '#1e3a5f', () => list.show(`${r.name} · ideas beyond SLA`, r.breachIdeas)],
+    ['Ideas', String(r.submitted), 'var(--color-brand-700)'],
+    ['Conv.', pct(r.conversion, 0), 'var(--color-emerald-700)'],
+    ['Ageing', isNaN(r.avgAge) ? '—' : `${num(r.avgAge, 0)} d`, r.avgAge > 10 ? 'var(--color-orange-400)' : 'var(--color-brand-700)'],
+    ['Over SLA', String(r.breaches), r.breaches ? 'var(--color-rose-600)' : 'var(--color-brand-700)', () => list.show(`${r.name} · ideas beyond SLA`, r.breachIdeas)],
   ]
   return (
     <div className="grid gap-3">
       <KpiStrip items={co ? [
-        { label: 'Buyers', value: rows.length, money: false, icon: 'Users', color: '#1e3a5f' },
-        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: rows.reduce((a, r) => a + r.realised, 0), icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula },
-        { label: 'On-time implementation', value: totDone ? (totOnTime / totDone) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'CalendarCheck', color: '#0f9f6e', formula: kf('D1').formula, sub: `${totOnTime} of ${totDone} done on time` },
-        { label: 'Overdue value', value: rows.reduce((a, r) => a + r.overdueValue, 0), icon: 'Clock3', color: '#e0364f', formula: kf('D2').formula, onClick: () => drill({ health: 'Delayed' }) },
-        { label: 'Realisation rate', value: realisationRate(ctx, ctx.all), money: false, suffix: '%', digits: 1, icon: 'Gauge', color: '#0d9488', formula: kf('D3').formula },
+        { label: 'Buyers', value: rows.length, money: false, icon: 'Users', color: 'var(--color-brand-700)' },
+        { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: rows.reduce((a, r) => a + r.realised, 0), icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula },
+        { label: 'On-time implementation', value: totDone ? (totOnTime / totDone) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'CalendarCheck', color: 'var(--color-emerald-600)', formula: kf('D1').formula, sub: `${totOnTime} of ${totDone} done on time` },
+        { label: 'Overdue value', value: rows.reduce((a, r) => a + r.overdueValue, 0), icon: 'Clock3', color: 'var(--color-rose-600)', formula: kf('D2').formula, onClick: () => drill({ health: 'Delayed' }) },
+        { label: 'Realisation rate', value: realisationRate(ctx, ctx.all), money: false, suffix: '%', digits: 1, icon: 'Gauge', color: 'var(--color-teal-600)', formula: kf('D3').formula },
       ] : [
-        { label: 'Buyers', value: rows.length, money: false, icon: 'Users', color: '#1e3a5f' },
-        { label: 'Ideas', value: totSub, money: false, icon: 'Lightbulb', color: '#1e3a5f', formula: kf('B1').formula },
-        { label: 'Conversion rate', value: totSub ? (totImpl / totSub) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', formula: kf('B2').formula, sub: `${totImpl} of ${totSub} implemented` },
-        { label: 'Avg ageing', value: ages.length ? ages.reduce((a, r) => a + r.avgAge, 0) / ages.length : 0, money: false, suffix: ' d', digits: 1, icon: 'Hourglass', color: '#ec8a1c', formula: kf('B4').formula },
-        { label: 'Ideas beyond SLA', value: rows.reduce((a, r) => a + r.breaches, 0), money: false, icon: 'Siren', color: '#e0364f', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
+        { label: 'Buyers', value: rows.length, money: false, icon: 'Users', color: 'var(--color-brand-700)' },
+        { label: 'Ideas', value: totSub, money: false, icon: 'Lightbulb', color: 'var(--color-brand-700)', formula: kf('B1').formula },
+        { label: 'Conversion rate', value: totSub ? (totImpl / totSub) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: 'var(--color-emerald-600)', formula: kf('B2').formula, sub: `${totImpl} of ${totSub} implemented` },
+        { label: 'Avg ageing', value: ages.length ? ages.reduce((a, r) => a + r.avgAge, 0) / ages.length : 0, money: false, suffix: ' d', digits: 1, icon: 'Hourglass', color: 'var(--color-orange-400)', formula: kf('B4').formula },
+        { label: 'Ideas beyond SLA', value: rows.reduce((a, r) => a + r.breaches, 0), money: false, icon: 'Siren', color: 'var(--color-rose-600)', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-5" title={co ? 'Savings per buyer' : 'Pipeline value per buyer'} icon="ChartBarBig" actions={<Legend items={bars.map((b) => ({ label: b.label, color: b.color }))} />}>
           <ChartBox height={Math.max(240, rows.length * 44)}>
             <BarChart data={rows.map((r) => ({ ...r, short: r.name.split(' ')[0] }))} layout="vertical" margin={{ top: 4, right: 12, left: 0, bottom: 0 }} barGap={1}>
-              <CartesianGrid horizontal={false} stroke="#eceef6" />
+              <CartesianGrid horizontal={false} stroke="var(--color-brand-50)" />
               <XAxis type="number" {...AX} tickFormatter={moneyTick} />
               <YAxis type="category" dataKey="short" {...AX} width={64} />
               <Tooltip cursor={CURSOR} content={<ChartTip fmt={(v: number) => inrShort(v)} title={(_l: string, p: any[]) => p?.[0]?.payload?.name} />} />
@@ -489,7 +489,7 @@ export function BuyerReport({ ctx, space = 'CO' }: { ctx: Ctx; space?: Space }) 
               <div className="flex items-center gap-2.5">
                 <Avatar name={r.name} color={r.color} size={32} />
                 <div className="min-w-0 flex-1"><div className="text-[13px] font-semibold text-ink truncate">{r.name}</div><div className="text-[11px] text-muted truncate">{r.commodities.map((c) => commodityName(ctx, c)).join(' · ')}</div></div>
-                <span className="text-[15px] font-bold num" style={{ color: co ? '#0b7a55' : '#1e3a5f' }}>{co ? inrShort(r.realised) : inrShort(r.pipeline)}</span>
+                <span className="text-[15px] font-bold num" style={{ color: co ? 'var(--color-emerald-700)' : 'var(--color-brand-700)' }}>{co ? inrShort(r.realised) : inrShort(r.pipeline)}</span>
               </div>
               <div className="mt-2 relative h-2 rounded-full bg-slate-100 overflow-hidden flex">
                 {bars.map((b) => <div key={b.k} style={{ width: `${((r as any)[b.k] / maxBar) * 100}%`, background: b.color }} />)}
@@ -537,14 +537,14 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Suppliers with ideas', value: rows.filter((r) => r.ideas > 0).length, money: false, icon: 'Factory', color: '#0d9488' },
-        { label: 'Supplier-submitted ideas', value: own, money: false, icon: 'Lightbulb', color: '#7c3aed', onClick: () => list.show('Supplier-submitted ideas', ctx.ideas.filter((i) => i.isSupplierSubmission)), tip: 'Ideas submitted by suppliers through the Supplier Workspace' },
-        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: '#36509a', tip: 'Σ annualised impact of ideas linked to each supplier' },
-        { label: 'Avg gain-share offered', value: gs.length ? gs.reduce((a, r) => a + r.gainShare, 0) / gs.length : 0, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: '#ec8a1c', tip: 'Gain-share % offered to Amber on supplier submissions (captured as a field only)' },
-        { label: 'Supplier participation', value: rows.filter((r) => r.supplierSubmitted > 0).length, money: false, icon: 'Users', color: '#0d9488', tip: 'Suppliers who submitted at least one idea through the Supplier Workspace', sub: 'submitted ≥ 1 idea' },
+        { label: 'Suppliers with ideas', value: rows.filter((r) => r.ideas > 0).length, money: false, icon: 'Factory', color: 'var(--color-teal-600)' },
+        { label: 'Supplier-submitted ideas', value: own, money: false, icon: 'Lightbulb', color: 'var(--color-violet-600)', onClick: () => list.show('Supplier-submitted ideas', ctx.ideas.filter((i) => i.isSupplierSubmission)), tip: 'Ideas submitted by suppliers through the Supplier Workspace' },
+        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: 'var(--color-brand-500)', tip: 'Σ annualised impact of ideas linked to each supplier' },
+        { label: 'Avg gain-share offered', value: gs.length ? gs.reduce((a, r) => a + r.gainShare, 0) / gs.length : 0, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: 'var(--color-orange-400)', tip: 'Gain-share % offered to Amber on supplier submissions (captured as a field only)' },
+        { label: 'Supplier participation', value: rows.filter((r) => r.supplierSubmitted > 0).length, money: false, icon: 'Users', color: 'var(--color-teal-600)', tip: 'Suppliers who submitted at least one idea through the Supplier Workspace', sub: 'submitted ≥ 1 idea' },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-8" title="Idea value by supplier" icon="ChartColumn" subtitle="Top 12 by annualised value · bar colour = conversion" actions={<Legend items={[{ label: '≥ 40% conversion', color: '#0f9f6e' }, { label: '20–40%', color: '#0d9488' }, { label: '< 20%', color: '#94a3b8' }]} />}>
+        <Card className="lg:col-span-8" title="Idea value by supplier" icon="ChartColumn" subtitle="Top 12 by annualised value · bar colour = conversion" actions={<Legend items={[{ label: '≥ 40% conversion', color: 'var(--color-emerald-600)' }, { label: '20–40%', color: 'var(--color-teal-600)' }, { label: '< 20%', color: 'var(--color-slate-400)' }]} />}>
           <ChartBox height={290}>
             <BarChart data={top} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />
@@ -552,7 +552,7 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
               <YAxis {...AX} tickFormatter={moneyTick} width={58} />
               <Tooltip cursor={CURSOR} content={<ChartTip fmt={(v: number, p: any) => (p.dataKey === 'value' ? inrShort(v) : v)} title={(_l: string, p: any[]) => p?.[0]?.payload?.name} />} />
               <Bar dataKey="value" name="Value" radius={[4, 4, 0, 0]} cursor="pointer" onClick={(x: any) => drill({ supplier: x.code })}>
-                {top.map((r) => <Cell key={r.code} fill={r.conversion >= 40 ? '#0f9f6e' : r.conversion >= 20 ? '#0d9488' : '#94a3b8'} />)}
+                {top.map((r) => <Cell key={r.code} fill={r.conversion >= 40 ? 'var(--color-emerald-600)' : r.conversion >= 20 ? 'var(--color-teal-600)' : 'var(--color-slate-400)'} />)}
               </Bar>
             </BarChart>
           </ChartBox>
@@ -560,7 +560,7 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
         <Card className="lg:col-span-4" title="Idea conversion" icon="CircleCheckBig" subtitle="Ideas implemented of all ideas per supplier">
           {conv.length ? (
             <div className="space-y-1.5">
-              {conv.map((r) => <MeterRow key={r.code} label={`${r.name}`} sub={`${r.ideas} idea${r.ideas === 1 ? '' : 's'} · ${pct(r.conversion, 0)} implemented`} value={r.implemented} max={Math.max(1, r.ideas)} color="#0d9488" display={`${r.implemented}/${r.ideas}`} onClick={() => drill({ supplier: r.code })} />)}
+              {conv.map((r) => <MeterRow key={r.code} label={`${r.name}`} sub={`${r.ideas} idea${r.ideas === 1 ? '' : 's'} · ${pct(r.conversion, 0)} implemented`} value={r.implemented} max={Math.max(1, r.ideas)} color="var(--color-teal-600)" display={`${r.implemented}/${r.ideas}`} onClick={() => drill({ supplier: r.code })} />)}
             </div>
           ) : <SectionNote icon="Info">No supplier ideas in the active scope.</SectionNote>}
         </Card>
@@ -588,15 +588,15 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
     { key: 'realised', label: 'Realised', align: 'right', value: (r) => r.realised, render: (r) => <span className="num font-semibold text-emerald-700">{inrShort(r.realised)}</span> },
     { key: 'share', label: 'Share of realised', align: 'right', value: (r) => r.share, render: (r) => <span className="num font-semibold">{pct(r.share)}</span> },
     { key: 'pipeline', label: 'Pipeline', align: 'right', value: (r) => r.pipeline, render: (r) => <span className="num text-blue-700">{inrShort(r.pipeline)}</span> },
-    { key: 'structural', label: 'Structural', value: (r) => (r.structural ? 'Yes' : 'No'), render: (r) => (r.structural ? <Badge color="#4f46e5" icon="Cog">Structural</Badge> : <span className="text-muted">—</span>) },
+    { key: 'structural', label: 'Structural', value: (r) => (r.structural ? 'Yes' : 'No'), render: (r) => (r.structural ? <Badge color="var(--color-indigo-600)" icon="Cog">Structural</Badge> : <span className="text-muted">—</span>) },
   ]
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Realised (all categories)', value: d.total, icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula },
-        { label: 'Negotiated share', value: d.negotiated, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: d.flag ? '#e0364f' : '#7c3aed', formula: kf('E1').formula, sub: `Negotiation category alone ${pct(d.negotiationLever)}`, onClick: () => drill({ group: 'Commercial' }) },
-        { label: 'Structural savings share', value: d.structuralShare, money: false, suffix: '%', digits: 1, icon: 'Cog', color: '#4f46e5', formula: kf('E2').formula, sub: inrShort(d.structuralTotal) },
-        { label: 'Categories contributing', value: bars.length, money: false, icon: 'Layers', color: '#1e3a5f', sub: `of ${ctx.levers.filter((l) => l.active).length} active categories` },
+        { label: 'Realised (all categories)', value: d.total, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula },
+        { label: 'Negotiated share', value: d.negotiated, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: d.flag ? 'var(--color-rose-600)' : 'var(--color-violet-600)', formula: kf('E1').formula, sub: `Negotiation category alone ${pct(d.negotiationLever)}`, onClick: () => drill({ group: 'Commercial' }) },
+        { label: 'Structural savings share', value: d.structuralShare, money: false, suffix: '%', digits: 1, icon: 'Cog', color: 'var(--color-indigo-600)', formula: kf('E2').formula, sub: inrShort(d.structuralTotal) },
+        { label: 'Categories contributing', value: bars.length, money: false, icon: 'Layers', color: 'var(--color-brand-700)', sub: `of ${ctx.levers.filter((l) => l.active).length} active categories` },
       ]} />
       {d.flag
         ? <SectionNote icon="TriangleAlert" tone="red"><b>Heavy dependence on negotiation:</b> commercial / negotiated categories deliver {pct(d.negotiated)} of realised saving (flag above {NEGOTIATION_FLAG_PCT}%). Negotiated savings rarely repeat next year — push VA/VE, material and localisation ideas.</SectionNote>
@@ -605,13 +605,13 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
         <Card className="lg:col-span-7" title="Realised savings by category" icon="ChartBarBig" subtitle="Bar colour = category group">
           <ChartBox height={Math.max(260, bars.length * 26)}>
             <BarChart data={bars} layout="vertical" margin={{ top: 4, right: 56, left: 0, bottom: 0 }}>
-              <CartesianGrid horizontal={false} stroke="#eceef6" />
+              <CartesianGrid horizontal={false} stroke="var(--color-brand-50)" />
               <XAxis type="number" {...AX} tickFormatter={moneyTick} />
               <YAxis type="category" dataKey="name" {...AX} width={190} />
               <Tooltip cursor={CURSOR} content={<ChartTip fmt={(v: number, p: any) => `${inrShort(v)} · ${pct(p.payload.share)}`} />} />
               <Bar dataKey="realised" name="Realised" radius={[0, 4, 4, 0]} barSize={14} cursor="pointer" onClick={(x: any) => drill({ lever: x.id })}>
-                {bars.map((r) => <Cell key={r.id} fill={LEVER_GROUP_STYLE[r.group as LeverGroup]?.color ?? '#64748b'} />)}
-                <LabelList dataKey="share" position="right" formatter={(v: number) => pct(v)} style={{ fontSize: 10.5, fill: '#475569', fontWeight: 600 }} />
+                {bars.map((r) => <Cell key={r.id} fill={LEVER_GROUP_STYLE[r.group as LeverGroup]?.color ?? 'var(--color-slate-500)'} />)}
+                <LabelList dataKey="share" position="right" formatter={(v: number) => pct(v)} style={{ fontSize: 10.5, fill: 'var(--color-slate-600)', fontWeight: 600 }} />
               </Bar>
             </BarChart>
           </ChartBox>
@@ -622,7 +622,7 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={d.groups} dataKey="realised" nameKey="group" innerRadius={52} outerRadius={86} paddingAngle={2} stroke="none" cursor="pointer" onClick={(x: any) => drill({ group: x.group ?? x.payload?.group })}>
-                    {d.groups.map((g) => <Cell key={g.group} fill={LEVER_GROUP_STYLE[g.group as LeverGroup]?.color ?? '#64748b'} />)}
+                    {d.groups.map((g) => <Cell key={g.group} fill={LEVER_GROUP_STYLE[g.group as LeverGroup]?.color ?? 'var(--color-slate-500)'} />)}
                   </Pie>
                   <Tooltip content={<ChartTip fmt={(v: number) => inrShort(v)} title={(_l: string, p: any[]) => p?.[0]?.name} />} />
                 </PieChart>
@@ -645,7 +645,7 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
         </Card>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-7" title="Structural share trend" icon="TrendingUp" subtitle="(VA/VE + material + localisation) ÷ total realised, month by month" actions={<Legend items={[{ label: 'Structural', color: '#4f46e5' }, { label: 'Other categories', color: '#cbd5e1' }, { label: 'Cumulative share', color: '#b8142a' }]} />}>
+        <Card className="lg:col-span-7" title="Structural share trend" icon="TrendingUp" subtitle="(VA/VE + material + localisation) ÷ total realised, month by month" actions={<Legend items={[{ label: 'Structural', color: 'var(--color-indigo-600)' }, { label: 'Other categories', color: 'var(--color-slate-300)' }, { label: 'Cumulative share', color: 'var(--color-accent-600)' }]} />}>
           <ChartBox height={250}>
             <ComposedChart data={d.trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />
@@ -653,17 +653,17 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
               <YAxis yAxisId="v" {...AX} tickFormatter={moneyTick} width={58} />
               <YAxis yAxisId="p" orientation="right" {...AX} tickFormatter={pctTick} domain={[0, 100]} width={40} />
               <Tooltip cursor={CURSOR} content={<ChartTip hint="" fmt={(v: number, p: any) => (p.dataKey === 'share' || p.dataKey === 'cumShare' ? pct(v) : inrShort(v))} />} />
-              <Bar yAxisId="v" dataKey="structural" name="Structural" stackId="s" fill="#4f46e5" />
-              <Bar yAxisId="v" dataKey="other" name="Other categories" stackId="s" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-              <Line yAxisId="p" dataKey="share" name="Month share" stroke="#4f46e5" strokeDasharray="4 3" dot={{ r: 2.5 }} />
-              <Line yAxisId="p" dataKey="cumShare" name="Cumulative share" stroke="#b8142a" strokeWidth={2} dot={{ r: 3 }} />
+              <Bar yAxisId="v" dataKey="structural" name="Structural" stackId="s" fill="var(--color-indigo-600)" />
+              <Bar yAxisId="v" dataKey="other" name="Other categories" stackId="s" fill="var(--color-slate-300)" radius={[4, 4, 0, 0]} />
+              <Line yAxisId="p" dataKey="share" name="Month share" stroke="var(--color-indigo-600)" strokeDasharray="4 3" dot={{ r: 2.5 }} />
+              <Line yAxisId="p" dataKey="cumShare" name="Cumulative share" stroke="var(--color-accent-600)" strokeWidth={2} dot={{ r: 3 }} />
             </ComposedChart>
           </ChartBox>
           <SectionNote icon="Lightbulb" tone="blue">{STRUCTURAL_NOTE}</SectionNote>
         </Card>
         <Card className="lg:col-span-5" title="Structural share by commodity" icon="Cog" subtitle="E2 cut by commodity">
           <div className="space-y-1.5">
-            {comm.map((r) => <MeterRow key={r.code} label={r.name} value={r.structuralPct} max={100} color="#4f46e5" display={pct(r.structuralPct)} sub={`Realised ${inrShort(r.realisedAll)}`} onClick={() => drill({ commodity: r.code, group: 'Engineering' })} />)}
+            {comm.map((r) => <MeterRow key={r.code} label={r.name} value={r.structuralPct} max={100} color="var(--color-indigo-600)" display={pct(r.structuralPct)} sub={`Realised ${inrShort(r.realisedAll)}`} onClick={() => drill({ commodity: r.code, group: 'Engineering' })} />)}
             {!comm.length && <SectionNote>No realised saving in the active scope yet.</SectionNote>}
           </div>
         </Card>

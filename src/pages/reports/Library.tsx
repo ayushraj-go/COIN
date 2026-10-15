@@ -37,24 +37,24 @@ function usePreviews(ctx: Ctx) {
     const lk = leakageData(ctx)
     const cl = closureData(ctx)
     const co: Record<string, Preview> = {
-      home: { visual: <MiniBars width={130} height={52} data={home.trend.map((m) => (m.future ? 0 : m.realised))} color="#0f9f6e" gap={2} />, stat: inrShort(s.realisedCounting), statLabel: 'realised FY to date', color: '#0f9f6e' },
+      home: { visual: <MiniBars width={130} height={52} data={home.trend.map((m) => (m.future ? 0 : m.realised))} color="var(--color-emerald-600)" gap={2} />, stat: inrShort(s.realisedCounting), statLabel: 'realised FY to date', color: 'var(--color-emerald-600)' },
       bridge: { visual: <MiniBars width={130} height={52} data={b.rows.map((r) => r.value)} colors={b.rows.map((r) => r.color)} gap={6} />, stat: inrShort(b.total), statLabel: 'realised + committed + pipeline' },
-      commodity: { visual: <MiniBars width={130} height={52} data={comm.map((r) => r.realised)} color="#0f9f6e" gap={2} />, stat: `${comm.filter((r) => r.realised > 0).length} / ${comm.length}`, statLabel: 'commodities with realised saving' },
-      buyer: { visual: <MiniHBars width={130} rowH={6} gap={4} data={buyers.slice(0, 6).map((r) => ({ v: r.realised, max: Math.max(1, ...buyers.map((x) => x.realised)), color: '#0f9f6e' }))} />, stat: inrShort(buyers.reduce((a, r) => a + r.overdueValue, 0)), statLabel: 'overdue across buyers', color: '#e0364f' },
-      lever: { visual: <MiniDonut size={58} stroke={10} parts={lev.groups.map((g) => ({ v: g.realised, color: LEVER_GROUP_STYLE[g.group as LeverGroup]?.color ?? '#94a3b8' }))} label={pct(lev.structuralShare, 0)} />, stat: pct(lev.structuralShare), statLabel: 'structural share', color: lev.flag ? '#e0364f' : '#4f46e5' },
-      execution: { visual: <MiniDonut size={58} stroke={10} parts={ex.health.map((h) => ({ v: h.items.length, color: HEALTH_STYLE[h.health].color }))} label={ex.inExec.length} />, stat: String(ex.overdue.length), statLabel: 'overdue · past due date', color: ex.overdue.length ? '#e0364f' : '#0f9f6e' },
-      leakage: { visual: <MiniBars width={130} height={52} data={lk.monthly.map((m) => m.realised)} color="#0f9f6e" gap={4} />, stat: inrShort(lk.leakage), statLabel: 'price leakage', color: '#e0364f' },
-      closure: { visual: <MiniDonut size={58} stroke={10} parts={[{ v: cl.inFy, color: '#ec8a1c' }, { v: cl.carry, color: '#4f46e5' }]} />, stat: inrShort(cl.carry), statLabel: `carry-over into ${cl.next}`, color: '#4f46e5' },
+      commodity: { visual: <MiniBars width={130} height={52} data={comm.map((r) => r.realised)} color="var(--color-emerald-600)" gap={2} />, stat: `${comm.filter((r) => r.realised > 0).length} / ${comm.length}`, statLabel: 'commodities with realised saving' },
+      buyer: { visual: <MiniHBars width={130} rowH={6} gap={4} data={buyers.slice(0, 6).map((r) => ({ v: r.realised, max: Math.max(1, ...buyers.map((x) => x.realised)), color: 'var(--color-emerald-600)' }))} />, stat: inrShort(buyers.reduce((a, r) => a + r.overdueValue, 0)), statLabel: 'overdue across buyers', color: 'var(--color-rose-600)' },
+      lever: { visual: <MiniDonut size={58} stroke={10} parts={lev.groups.map((g) => ({ v: g.realised, color: LEVER_GROUP_STYLE[g.group as LeverGroup]?.color ?? 'var(--color-slate-400)' }))} label={pct(lev.structuralShare, 0)} />, stat: pct(lev.structuralShare), statLabel: 'structural share', color: lev.flag ? 'var(--color-rose-600)' : 'var(--color-indigo-600)' },
+      execution: { visual: <MiniDonut size={58} stroke={10} parts={ex.health.map((h) => ({ v: h.items.length, color: HEALTH_STYLE[h.health].color }))} label={ex.inExec.length} />, stat: String(ex.overdue.length), statLabel: 'overdue · past due date', color: ex.overdue.length ? 'var(--color-rose-600)' : 'var(--color-emerald-600)' },
+      leakage: { visual: <MiniBars width={130} height={52} data={lk.monthly.map((m) => m.realised)} color="var(--color-emerald-600)" gap={4} />, stat: inrShort(lk.leakage), statLabel: 'price leakage', color: 'var(--color-rose-600)' },
+      closure: { visual: <MiniDonut size={58} stroke={10} parts={[{ v: cl.inFy, color: 'var(--color-orange-400)' }, { v: cl.carry, color: 'var(--color-indigo-600)' }]} />, stat: inrShort(cl.carry), statLabel: `carry-over into ${cl.next}`, color: 'var(--color-indigo-600)' },
     }
     const subN = (ideas: Idea[]) => ideas.filter(nonDraft).length
     const inn: Record<string, Preview> = {
-      home: { visual: <MiniDonut size={58} stroke={10} parts={(['Pipeline', 'In Execution', 'Implemented', 'Dropped'] as const).map((k) => ({ v: s.counts[k], color: BUCKET_STYLE[k].color }))} label={ctx.ideas.length} />, stat: inrShort(s.pipeline), statLabel: `pipeline · ${s.counts.Pipeline} ideas`, color: '#1e3a5f' },
-      commodity: { visual: <MiniBars width={130} height={52} data={comm.map((r) => r.submitted)} color="#2f4a9a" gap={2} />, stat: String(comm.reduce((a, r) => a + r.submitted, 0)), statLabel: `ideas across ${comm.length} commodities` },
-      buyer: { visual: <MiniHBars width={130} rowH={6} gap={4} data={buyers.slice(0, 6).map((r) => ({ v: subN(r.ideas), max: Math.max(1, ...buyers.map((x) => subN(x.ideas))), color: '#2f4a9a' }))} />, stat: String(buyers.reduce((a, r) => a + r.breaches, 0)), statLabel: 'ideas beyond SLA', color: buyers.some((r) => r.breaches) ? '#e0364f' : '#0f9f6e' },
-      supplier: { visual: <MiniBars width={130} height={52} data={sup.slice(0, 12).map((r) => r.value)} color="#0d9488" gap={2} />, stat: String(sup.reduce((a, r) => a + r.supplierSubmitted, 0)), statLabel: 'supplier-submitted ideas' },
-      drops: { visual: <MiniBars width={130} height={52} data={dr.months.map((m) => m.total)} color="#6b7280" gap={2} />, stat: pct(dr.rate), statLabel: `drop rate · ${dr.dropped.length} ideas` },
-      ageing: { visual: <MiniHBars width={130} rowH={6} gap={4} data={ag.byStage.map((st) => ({ v: st.breach + st.escalated, max: Math.max(1, ...ag.byStage.map((x) => x.total)), color: '#e0364f' }))} />, stat: String(ag.breached.length), statLabel: 'ideas beyond SLA', color: ag.breached.length ? '#e0364f' : '#0f9f6e' },
-      campaign: { visual: <MiniHBars width={130} rowH={6} gap={4} data={cam.slice(0, 6).map((c) => ({ v: c.ideas, max: Math.max(1, ...cam.map((x) => x.ideas)), color: '#db2777' }))} />, stat: String(cam.reduce((a, c) => a + c.ideas, 0)), statLabel: `ideas from ${cam.length} campaigns` },
+      home: { visual: <MiniDonut size={58} stroke={10} parts={(['Pipeline', 'In Execution', 'Implemented', 'Dropped'] as const).map((k) => ({ v: s.counts[k], color: BUCKET_STYLE[k].color }))} label={ctx.ideas.length} />, stat: inrShort(s.pipeline), statLabel: `pipeline · ${s.counts.Pipeline} ideas`, color: 'var(--color-brand-700)' },
+      commodity: { visual: <MiniBars width={130} height={52} data={comm.map((r) => r.submitted)} color="var(--color-brand-500)" gap={2} />, stat: String(comm.reduce((a, r) => a + r.submitted, 0)), statLabel: `ideas across ${comm.length} commodities` },
+      buyer: { visual: <MiniHBars width={130} rowH={6} gap={4} data={buyers.slice(0, 6).map((r) => ({ v: subN(r.ideas), max: Math.max(1, ...buyers.map((x) => subN(x.ideas))), color: 'var(--color-brand-500)' }))} />, stat: String(buyers.reduce((a, r) => a + r.breaches, 0)), statLabel: 'ideas beyond SLA', color: buyers.some((r) => r.breaches) ? 'var(--color-rose-600)' : 'var(--color-emerald-600)' },
+      supplier: { visual: <MiniBars width={130} height={52} data={sup.slice(0, 12).map((r) => r.value)} color="var(--color-teal-600)" gap={2} />, stat: String(sup.reduce((a, r) => a + r.supplierSubmitted, 0)), statLabel: 'supplier-submitted ideas' },
+      drops: { visual: <MiniBars width={130} height={52} data={dr.months.map((m) => m.total)} color="var(--color-gray-500)" gap={2} />, stat: pct(dr.rate), statLabel: `drop rate · ${dr.dropped.length} ideas` },
+      ageing: { visual: <MiniHBars width={130} rowH={6} gap={4} data={ag.byStage.map((st) => ({ v: st.breach + st.escalated, max: Math.max(1, ...ag.byStage.map((x) => x.total)), color: 'var(--color-rose-600)' }))} />, stat: String(ag.breached.length), statLabel: 'ideas beyond SLA', color: ag.breached.length ? 'var(--color-rose-600)' : 'var(--color-emerald-600)' },
+      campaign: { visual: <MiniHBars width={130} rowH={6} gap={4} data={cam.slice(0, 6).map((c) => ({ v: c.ideas, max: Math.max(1, ...cam.map((x) => x.ideas)), color: 'var(--color-pink-600)' }))} />, stat: String(cam.reduce((a, c) => a + c.ideas, 0)), statLabel: `ideas from ${cam.length} campaigns` },
     }
     return { CO: co, IN: inn } as Record<Space, Record<string, Preview>>
   }, [ctx])
@@ -96,11 +96,11 @@ export default function Library({ ctx, space }: { ctx: Ctx; space: Space | null 
                         <div className="text-[14px] font-bold text-ink leading-tight">{r.name}</div>
                         <div className="flex items-center gap-1 text-[11.5px] text-muted mt-0.5"><Icon name="Users" size={12} />{r.audience}</div>
                       </div>
-                      <Badge color={FREQ_STYLE[r.frequency] ?? '#64748b'} dot className="shrink-0">{r.frequency}</Badge>
+                      <Badge color={FREQ_STYLE[r.frequency] ?? 'var(--color-slate-500)'} dot className="shrink-0">{r.frequency}</Badge>
                     </div>
                     <div className="mt-3 flex items-end justify-between gap-3 rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2.5 min-h-[78px]">
                       <div className="min-w-0">
-                        <div className="text-[19px] font-bold num leading-none" style={{ color: p.color ?? '#1e3a5f' }}>{p.stat}</div>
+                        <div className="text-[19px] font-bold num leading-none" style={{ color: p.color ?? 'var(--color-brand-700)' }}>{p.stat}</div>
                         <div className="text-[11px] text-muted mt-1 leading-tight">{p.statLabel}</div>
                       </div>
                       <div className="shrink-0">{p.visual}</div>
