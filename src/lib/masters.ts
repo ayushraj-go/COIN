@@ -36,19 +36,23 @@ export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string
 }
 
 // COIN workflow — every idea, on every route, runs the same six stages:
-// Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented.
-// The route (Section 6) still decides who evaluates inside R&D approval and which milestones Execution started carries.
+// Idea submitted → Team feasibility check → <dept> evaluation → Sourcing approval → Execution started → Verification.
+// Stages 1–4 live in IN (Innovation Network), 5–6 in CO (Cost Optimisation). The evaluation stage is stored as
+// "Evaluation" and shown as "<submitter's department> evaluation" (see stageLabel in workflow.ts).
 export const STAGE = {
   submitted: 'Idea submitted',
   feasibility: 'Team feasibility check',
-  rnd: 'R&D approval',
+  evaluation: 'Evaluation',
   approval: 'Sourcing approval',
   execution: 'Execution started',
-  implemented: 'Implemented',
+  verification: 'Verification',
 } as const
 /** Stages an idea moves through after submission (the tracker adds "Idea submitted" in front) */
-export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.rnd, STAGE.approval, STAGE.execution, STAGE.implemented]
+export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval, STAGE.execution, STAGE.verification]
 export const TRACKER_STAGES: string[] = [STAGE.submitted, ...WORKFLOW_STAGES]
+/** IN = stages up to Sourcing approval; CO = Execution started and Verification */
+export const IN_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval]
+export const CO_STAGE_NAMES: string[] = [STAGE.execution, STAGE.verification]
 export const ROUTE_STAGES: Record<RouteKey, string[]> = {
   Commercial: WORKFLOW_STAGES,
   'Supplier change': WORKFLOW_STAGES,
@@ -63,24 +67,34 @@ export const STAGE_SHORT: Record<string, string> = Object.fromEntries(TRACKER_ST
 // Stages that carry an SLA rule (Section 12)
 export const STAGE_SLA_KEY: Record<string, string> = {
   [STAGE.feasibility]: STAGE.feasibility,
-  [STAGE.rnd]: STAGE.rnd,
+  [STAGE.evaluation]: STAGE.evaluation,
   [STAGE.approval]: STAGE.approval,
 }
 
 export const FEASIBILITY_STAGES: string[] = [STAGE.feasibility]
-export const EVALUATION_STAGES: string[] = [STAGE.rnd]
+export const EVALUATION_STAGES: string[] = [STAGE.evaluation]
+
+/** Risk assessment factors at evaluation (each Low / Medium / High with ₹ cost at risk) */
+export const RISK_FACTORS: { key: string; label: string; hint: string }[] = [
+  { key: 'quality', label: 'Quality', hint: 'Field failure, warranty or spec deviation' },
+  { key: 'supply', label: 'Supply continuity', hint: 'Single source, capacity or ramp-up' },
+  { key: 'oem', label: 'Customer / OEM approval', hint: 'Customer PPAP or approval needed' },
+  { key: 'tooling', label: 'Tooling & lead time', hint: 'New tool, trial or long lead time' },
+  { key: 'price', label: 'Price volatility', hint: 'Commodity / forex linked price' },
+]
 
 /** R&D approves every idea; the lever's other evaluators (DQA, Quality, Process, Production) join R&D at this stage */
 export const rndDeptFor = (evaluator?: string) =>
   !evaluator || evaluator === '—' || evaluator === 'To be confirmed' ? 'R&D' : evaluator.includes('R&D') ? evaluator : `R&D + ${evaluator}`
 
-/** Checklist carried by "Execution started" — NPD sample and PAP price revision live here */
+/** Execution started — route-specific steps first, then the three steps every idea closes with */
+export const FINAL_MILESTONES = ['First MRN at new price', 'Implementation confirmed', 'Handed for verification'] as const
 export const MILESTONE_TEMPLATES: Record<RouteKey, string[]> = {
-  Technical: ['NPD ECN raised', 'NPD sample approved', 'PAP price approved', 'First MRN at new price'],
-  'Supplier change': ['NPD sample approved', 'Source change approved in PAP', 'First MRN at new price'],
-  Commercial: ['PAP revision request raised', 'PAP price approved', 'First MRN at new price'],
-  Internal: ['Execution plan signed off', 'Trial run', 'Implemented on line', 'First month saving verified'],
-  'To be confirmed': ['PAP revision request raised', 'PAP price approved', 'First MRN at new price'],
+  Technical: ['NPD ECN raised', 'NPD sample approved', 'PAP price approved', ...FINAL_MILESTONES],
+  'Supplier change': ['NPD sample approved', 'Source change approved in PAP', ...FINAL_MILESTONES],
+  Commercial: ['PAP revision request raised', 'PAP price approved', ...FINAL_MILESTONES],
+  Internal: ['Execution plan signed off', 'Trial run', ...FINAL_MILESTONES],
+  'To be confirmed': ['PAP revision request raised', 'PAP price approved', ...FINAL_MILESTONES],
 }
 
 export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Sourcing']
@@ -131,6 +145,8 @@ const u = (id: string, name: string, employeeId: string, roles: User['roles'], d
   id, name, employeeId, email: `${name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/\.$/, '')}@ambergroupindia.com`, password: pw, roles, department, plant, designation, commodities, avatarColor: COLORS[ci++ % COLORS.length], active: true, ...extra,
 })
 
+/** Feasibility team (stage 2): commodity buyers and leads plus one member from each department */
+const FEASIBILITY_TEAM = ['u-buyer1', 'u-buyer2', 'u-buyer3', 'u-buyer4', 'u-buyer5', 'u-buyer6', 'u-buyer7', 'u-lead1', 'u-lead2', 'u-lead3', 'u-sub1', 'u-sub2', 'u-sub3', 'u-sub4', 'u-sub5']
 export const USERS_DEFAULT: User[] = [
   u('u-sub1', 'Neha Verma', 'AEL-20417', ['submitter'], 'R&D', 'Senior Engineer, R&D', [], 'RJP'),
   u('u-sup1', 'Rakesh Gupta', 'V10021', ['supplier'], 'Supplier', 'Key Account Manager, Sunrise Fasteners Pvt Ltd', ['FAS'], 'RJP', { supplierCode: 'V10021', email: 'rakesh.gupta@sunrisefasteners.in' }),
@@ -161,7 +177,7 @@ export const USERS_DEFAULT: User[] = [
   u('u-sup2', 'Lakshmi Narayan', 'V10007', ['supplier'], 'Supplier', 'Sales Head, Coolmax Compressors India', ['CMP'], 'SRC', { supplierCode: 'V10007', email: 'lakshmi@coolmaxindia.com' }),
   u('u-sup3', 'Gurpreet Sandhu', 'V10005', ['supplier'], 'Supplier', 'Director, Shakti Steel Processors', ['STL'], 'RJP', { supplierCode: 'V10005', email: 'gurpreet@shaktisteel.in' }),
   u('u-sup4', 'Ankit Jain', 'V10009', ['supplier'], 'Supplier', 'Business Head, Circuitek Electronics', ['PCB'], 'NDA', { supplierCode: 'V10009', email: 'ankit.jain@circuitek.in' }),
-]
+].map((x) => (FEASIBILITY_TEAM.includes(x.id) ? { ...x, roles: [...x.roles, 'feasibility' as const] } : x))
 
 // Demo login tiles — one per role (hard-coded, password coin@2026)
 export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [
@@ -205,7 +221,7 @@ export const SUPPLIERS_DEFAULT: Supplier[] = [
   { code: 'V10023', name: 'RoadRunner Freight Carriers', commodities: ['FRT'], contactEmail: 'bookings@roadrunner.in', contactName: 'Sukhwinder Brar', city: 'Ludhiana', spend: 180 * CR },
   { code: 'V10024', name: 'Toolkart Industrial Supplies', commodities: ['MRO'], contactEmail: 'b2b@toolkart.in', contactName: 'Neeraj Kart', city: 'Noida', spend: 120 * CR },
   { code: 'V10025', name: 'Facilitas Services', commodities: ['FAC'], contactEmail: 'contracts@facilitas.in', contactName: 'Maria D\'Souza', city: 'Gurugram', spend: 150 * CR },
-]
+].map((x) => ({ ...x, tier: x.spend >= 500 * CR && x.code !== 'V10005' ? 'Tier 1' : 'Tier 2' }) as Supplier)
 
 type PartRow = [string, string, string, string, number | null, number, number]
 // code, description, uom, supplier, LBP (null = no LBP → PO price), PO price, last FY MRN qty
@@ -300,7 +316,7 @@ export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
 // SLA per workflow stage (Section 12 values, mapped onto the six-stage flow)
 export const SLA_RULES_DEFAULT: SlaRule[] = [
   { stage: STAGE.feasibility, slaDays: 5, reminderDay: 4, escalateTo: 'Commodity Lead', escalateDay: 6 },
-  { stage: STAGE.rnd, slaDays: 10, reminderDay: 8, escalateTo: 'R&D Head + Commodity Lead', escalateDay: 11 },
+  { stage: STAGE.evaluation, slaDays: 10, reminderDay: 8, escalateTo: 'Department head + Commodity Lead', escalateDay: 11 },
   { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Sourcing Head', escalateDay: 4 },
   ...SLA_DEFAULTS.filter((r) => r.stage === 'Finance validation').map((r) => ({ ...r })),
 ]

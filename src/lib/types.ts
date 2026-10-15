@@ -10,6 +10,7 @@ export type RoleKey =
   | 'finance'
   | 'mgmt'
   | 'admin'
+  | 'feasibility'
 
 export type Department = 'R&D' | 'DQA' | 'Quality' | 'Process' | 'Production' | 'Sourcing' | 'Finance' | 'Management' | 'Sourcing Excellence' | 'Supplier'
 
@@ -150,12 +151,96 @@ export interface Feasibility {
   onBehalf?: boolean
 }
 
-export interface TechEval {
-  evaluatorDept: string
-  decision?: 'Go' | 'No-go'
-  validationPlan?: string
-  at?: string
+// ─── Six-stage workflow records (stage 2 → 6) ────────────────────────────────
+/** Stage 2 — Team feasibility check: four checks by the feasibility team */
+export interface FeasibilityCheck {
+  technical: 'Yes' | 'No'
+  technicalNote?: string
+  cost: 'Valid' | 'Not valid'
+  costNote?: string
+  conflict: 'None' | 'Duplicate' | 'Conflict'
+  conflictWith?: string
+  conflictNote?: string
+  decision: 'Go' | 'No-go'
+  departments: string[]
+  remarks?: string
+  by: string
+  byDept: string
+  at: string
+}
+
+/** Stage 3 — supplier capability check (email + public form, no Amber data) */
+export interface SupplierCheck {
+  status: 'Not sent' | 'Sent' | 'Responded' | 'Skipped'
+  token?: string
+  supplierCode?: string
+  supplierName?: string
+  contactName?: string
+  email?: string
+  subject?: string
+  body?: string
+  sentAt?: string
+  sentBy?: string
+  item?: string
+  spec?: string
+  requiredBy?: string
+  skippedReason?: string
+  response?: {
+    canSupply: 'Yes' | 'Partly' | 'No'
+    meetsSpec: 'Yes' | 'With deviation' | 'No'
+    capacityPerMonth?: string
+    leadTimeDays?: number
+    indicativePrice?: number
+    certifications?: string
+    remarks?: string
+    contactName: string
+    respondedAt: string
+  }
+}
+
+/** Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability, decision */
+export interface Evaluation {
+  dept: string
+  cbaVerified?: boolean
+  cbaNote?: string
+  risks?: RiskItem[]
+  riskRemarks?: string
+  supplier?: SupplierCheck
+  decision?: 'Recommend' | 'Reject'
+  remarks?: string
   by?: string
+  at?: string
+}
+
+/** Stage 4 — Sourcing approval: commercial assessment, supplier alignment, signed budget + timeline lock */
+export interface ApprovalLock {
+  commercialOk: boolean
+  supplierAligned: 'Confirmed' | 'Skipped' | 'Not confirmed'
+  budget: number
+  timelineMonths: number
+  startDate: string
+  endDate: string
+  targetSaving: number
+  signatureName: string
+  signatureData?: string
+  signedAt: string
+  signedBy: string
+}
+
+/** Stage 6 — Verification: business side confirms the target was achieved */
+export interface Verification {
+  handedAt?: string
+  handedBy?: string
+  mrnAtApproved?: boolean
+  financeValidated?: boolean
+  targetAchieved?: boolean
+  realisedAtVerification?: number
+  targetAtVerification?: number
+  verifiedAt?: string
+  verifiedBy?: string
+  remarks?: string
+  returnedAt?: string
+  returnReason?: string
 }
 
 export interface Idea {
@@ -212,7 +297,14 @@ export interface Idea {
   activity: ActivityEntry[]
   comments: Comment[]
   feasibility?: Feasibility
-  techEval?: TechEval
+  feasibilityCheck?: FeasibilityCheck
+  evaluation?: Evaluation
+  lock?: ApprovalLock
+  verification?: Verification
+  /** Change-over (CO) date — when the new price / part / source cuts in on the line */
+  coDate?: string
+  /** Demo walkthrough idea 1–6 (one per stage) */
+  showcase?: number
   execution?: Execution
   npdRequestId?: string
   npdStatus?: 'Not raised' | 'ECN raised' | 'Sample submitted' | 'Sample approved' | 'Sample failed'

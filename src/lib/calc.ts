@@ -66,7 +66,7 @@ export function goLiveOf(idea: Idea): string {
 export function bucketFor(route: RouteKey, stage: string): Bucket {
   if (stage === 'Draft') return 'Draft'
   if (stage === 'Dropped' || stage === 'Rejected') return 'Dropped'
-  if (stage === 'Implemented') return 'Implemented'
+  if (stage === 'Implemented' || stage === STAGE.verification) return 'Implemented'
   const stages = ROUTE_STAGES[route] ?? ROUTE_STAGES.Commercial
   const ai = stages.indexOf(STAGE.approval)
   const si = stages.indexOf(stage)
@@ -147,7 +147,8 @@ export function canSeeIdea(user: User, idea: Idea): boolean {
   if (idea.submitterId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
-  if (r.includes('techeval') && idea.techEval && idea.techEval.evaluatorDept.includes(user.department)) return true
+  if (r.includes('techeval') && idea.evaluation && idea.evaluation.dept === user.department) return true
+  if (r.includes('feasibility') && user.commodities.includes(idea.commodity)) return true
   return false
 }
 export const visibleIdeas = (user: User, ideas: Idea[]) => (user ? ideas.filter((i) => canSeeIdea(user, i)) : [])

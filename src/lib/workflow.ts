@@ -168,3 +168,21 @@ export function sourceBreakdown(ideas: Idea[], suppliers: Pick<Supplier, 'code' 
     },
   }
 }
+
+/** Execution started — due dates across the locked timeline: route steps in the first 60 %, the three closing steps after */
+export function milestoneSchedule(startDate: string, endDate: string, names: readonly string[]): string[] {
+  const s = new Date(startDate.slice(0, 10) + 'T00:00:00').getTime()
+  const e = new Date(endDate.slice(0, 10) + 'T00:00:00').getTime()
+  const span = Math.max(30 * 86400000, e - s)
+  const finals = ['First MRN at new price', 'Implementation confirmed', 'Handed for verification']
+  const route = names.filter((n) => !finals.includes(n))
+  const at = (frac: number) => new Date(s + Math.round(span * frac / 86400000) * 86400000)
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  let r = 0
+  return names.map((n) => {
+    const f = finals.indexOf(n)
+    if (f >= 0) return iso(at([0.7, 0.85, 1][f]))
+    r++
+    return iso(at((0.6 * r) / Math.max(1, route.length)))
+  })
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, sourceBreakdown, costFlags } from './workflow'
+import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, sourceBreakdown, costFlags, milestoneSchedule } from './workflow'
 
 describe('evaluation department', () => {
   it('uses the submitter department', () => {
@@ -91,5 +91,16 @@ describe('source breakdown', () => {
     expect(s.external.tier2.count).toBe(1)
     expect(s.external.viaCampaign.count).toBe(1)
     expect(s.internal.byDepartment[0]).toMatchObject({ key: 'R&D', count: 1, value: 100 })
+  })
+})
+
+describe('milestone schedule', () => {
+  it('spreads due dates over the locked timeline and ends on the end date', () => {
+    const names = ['NPD sample approved', 'PAP price approved', 'First MRN at new price', 'Implementation confirmed', 'Handed for verification']
+    const ds = milestoneSchedule('2026-10-01', '2027-04-01', names)
+    expect(ds).toHaveLength(5)
+    expect(ds[4]).toBe('2027-04-01')
+    for (let k = 1; k < ds.length; k++) expect(ds[k] >= ds[k - 1]).toBe(true)
+    expect(ds[0] > '2026-10-01').toBe(true)
   })
 })

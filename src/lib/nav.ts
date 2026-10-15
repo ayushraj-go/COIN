@@ -5,7 +5,7 @@ export type PermKey = 'submit' | 'validate' | 'feasibility' | 'techeval' | 'appr
 export const PERMS: Record<PermKey, RoleKey[]> = {
   submit: ['submitter', 'supplier', 'buyer', 'techeval', 'lead', 'head'],
   validate: ['buyer', 'lead', 'head'],
-  feasibility: ['supplier', 'buyer'],
+  feasibility: ['feasibility', 'buyer', 'lead', 'head'],
   techeval: ['techeval'],
   approve: ['lead', 'head'],
   execute: ['buyer', 'lead', 'head'],
@@ -19,7 +19,7 @@ export const can = (u: User | null | undefined, p: PermKey) => !!u && u.roles.so
 export type Space = 'IN' | 'CO'
 /** spaces: which workspace shows the item (omitted = both); pinned items sit at the bottom of the sidebar in every workspace */
 export interface NavItem { key: string; label: string; path: string; icon: string; roles: RoleKey[]; module?: string; section: string; spaces?: Space[]; pinned?: boolean }
-const ALL: RoleKey[] = ['submitter', 'supplier', 'buyer', 'techeval', 'lead', 'head', 'finance', 'mgmt', 'admin']
+const ALL: RoleKey[] = ['submitter', 'supplier', 'buyer', 'techeval', 'lead', 'head', 'finance', 'mgmt', 'admin', 'feasibility']
 export const NAV: NavItem[] = [
   { key: 'home', label: 'Dashboard', path: '/', icon: 'LayoutDashboard', roles: ALL, module: 'M1', section: 'Overview' },
   { key: 'scope', label: 'Scope & Methodology', path: '/scope', icon: 'BookOpenText', roles: ALL, section: 'Overview' },
@@ -51,5 +51,5 @@ export const spaceForPath = (path: string): Space | null => {
   if (path.startsWith('/npd')) return null
   return 'IN'
 }
-export const ROLE_LABEL: Record<RoleKey, string> = { submitter: 'Submitter', supplier: 'Supplier', buyer: 'Commodity Buyer', techeval: 'Technical Evaluator', lead: 'Commodity Lead', head: 'Sourcing Head', finance: 'Finance Controller', mgmt: 'Management', admin: 'Admin' }
-export const primaryRole = (u: User): RoleKey => (['admin', 'head', 'lead', 'buyer', 'finance', 'mgmt', 'techeval', 'supplier', 'submitter'] as RoleKey[]).find((r) => u.roles.includes(r)) ?? 'submitter'
+export const ROLE_LABEL: Record<RoleKey, string> = { submitter: 'Submitter', supplier: 'Supplier', buyer: 'Commodity Buyer', techeval: 'Technical Evaluator', lead: 'Commodity Lead', head: 'Sourcing Head', finance: 'Finance Controller', mgmt: 'Management', admin: 'Admin', feasibility: 'Feasibility team' }
+export const primaryRole = (u: User): RoleKey => (['admin', 'head', 'lead', 'buyer', 'finance', 'mgmt', 'techeval', 'supplier', 'feasibility', 'submitter'] as RoleKey[]).find((r) => u.roles.includes(r)) ?? 'submitter'

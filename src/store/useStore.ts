@@ -1,16 +1,17 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type {
-  ApprovalRule, Attachment, Campaign, Category, Commodity, EmailLog, EmailPrefs, EmailTemplate, Filters, Idea, LedgerEntry, Lever,
+  ApprovalLock, ApprovalRule, Attachment, Campaign, Category, Commodity, EmailLog, EmailPrefs, EmailTemplate, Evaluation, FeasibilityCheck, Filters, Idea, LedgerEntry, Lever, SupplierCheck,
   Notification, Part, Plant, RoleKey, SavedView, Settings, SlaRule, Supplier, User,
 } from '../lib/types'
 import {
   APPROVAL_RULES_DEFAULT, CATEGORIES_DEFAULT, COMMODITIES_DEFAULT, DEPARTMENTS, DROP_REASONS, EMAIL_TEMPLATES_DEFAULT, LEVERS_DEFAULT,
-  MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE, rndDeptFor,
+  MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
 } from '../lib/masters'
 import { buildSeed, realiseMonth } from '../lib/seed'
+import { addMonthsIso, evalDeptOf, milestoneSchedule, needsSupplierCheck } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
-import { approvalLevels, bucketFor, ideaAnnualised, phaseByQuarter, summarise } from '../lib/calc'
+import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus } from '../lib/types'
 import { OUTREACH_BATCHES_DEFAULT, SUPPLIER_EMAIL_TEMPLATES_DEFAULT, SUPPLIER_RESPONSES_DEFAULT } from '../lib/masters'
 
@@ -89,10 +90,21 @@ interface Actions {
   updateIdea: (id: string, patch: Partial<Idea>, action?: string, remarks?: string) => void
   deleteDraft: (id: string) => void
   advance: (id: string, action: string, remarks?: string) => void
-  validateIdea: (id: string, remarks?: string) => void
-  respondFeasibility: (id: string, r: { feasible: boolean; offeredPrice?: number; leadTimeDays?: number; moq?: number; remarks?: string; onBehalf?: boolean }) => void
-  techEvaluate: (id: string, decision: 'Go' | 'No-go', validationPlan: string, remarks?: string) => void
-  approve: (id: string, remarks?: string) => void
+  /** Stage 2 — four checks; Go → evaluation, No-go → dropped */
+  recordFeasibility: (id: string, c: Omit<FeasibilityCheck, 'by' | 'byDept' | 'at'>) => void
+  /** Stage 3 — save part of the evaluation (cost-benefit, risk) without deciding */
+  saveEvaluation: (id: string, patch: Partial<Omit<Evaluation, 'dept'>>) => void
+  /** Stage 3 — supplier capability email; returns the secure form token */
+  sendSupplierCheck: (id: string, s: { supplierCode?: string; supplierName: string; contactName: string; email: string; item: string; spec: string; requiredBy: string; subject: string; body: string }) => string
+  /** Public supplier form — false when the token is unknown or already answered */
+  respondSupplierCheck: (token: string, r: NonNullable<SupplierCheck['response']>) => boolean
+  skipSupplierCheck: (id: string) => void
+  /** Stage 3 — Recommend → Sourcing approval, Reject → dropped */
+  recordEvaluation: (id: string, decision: 'Recommend' | 'Reject', remarks?: string) => void
+  /** Stage 4 — budget + timeline lock, signed */
+  signLock: (id: string, lock: Omit<ApprovalLock, 'signedAt' | 'signedBy'>) => void
+  /** Stage 4 — approval matrix; the Sourcing Head clears every pending level; the final level needs a signed lock */
+  approve: (id: string, remarks?: string) => boolean
   reject: (id: string, remarks: string) => void
   sendBack: (id: string, remarks: string) => void
   requestInfo: (id: string, remarks: string) => void
@@ -105,7 +117,12 @@ interface Actions {
   updateExecution: (id: string, patch: Partial<NonNullable<Idea['execution']>>, reason?: string) => void
   toggleMilestone: (id: string, milestoneId: string, note?: string) => void
   addExecutionNote: (id: string, text: string) => void
-  markDone: (id: string, effectiveDate: string, approvedPrices: Record<string, number>) => void
+  /** Stage 5 → 6 — effective date (first MRN) + approved price per part; the idea moves to Verification */
+  handOverForVerification: (id: string, effectiveDate: string, approvedPrices: Record<string, number>) => void
+  /** Stage 6 — business side confirms the target was achieved */
+  verifyIdea: (id: string, v: { mrnAtApproved: boolean; financeValidated: boolean; targetAchieved: boolean; remarks?: string; targetAtVerification: number }) => void
+  /** Stage 6 → 5 — verification not passed */
+  returnToExecution: (id: string, reason: string) => void
   dropIdea: (id: string, reason: string, remarks: string) => void
   syncNpdPap: (id: string, patch: Partial<Pick<Idea, 'npdStatus' | 'papStatus'>>) => void
 
@@ -155,7 +172,7 @@ function freshData() {
   return {
     users: USERS_DEFAULT, levers: LEVERS_DEFAULT, categories: CATEGORIES_DEFAULT, commodities: COMMODITIES_DEFAULT, plants: PLANTS_DEFAULT,
     departments: DEPARTMENTS, suppliers: SUPPLIERS_DEFAULT, parts: PARTS_DEFAULT, dropReasons: DROP_REASONS, slaRules: SLA_RULES_DEFAULT,
-    approvalRules: APPROVAL_RULES_DEFAULT, emailTemplates: EMAIL_TEMPLATES_DEFAULT, settings: DEFAULT_SETTINGS, buyerTargets, plantTargets,
+    approvalRules: APPROVAL_RULES_DEFAULT, emailTemplates: EMAIL_TEMPLATES_DEFAULT, settings: { ...DEFAULT_SETTINGS, lastRealisationMonth: s.lastRealisationMonth }, buyerTargets, plantTargets,
     ideas: s.ideas, campaigns: s.campaigns, ledger: s.ledger, notifications: s.notifications, emails: s.emails,
     savedViews: [
       { id: 'sv-1', name: 'High value > ₹ 1 Cr', userId: '*', filters: { minValue: 1e7 }, columns: [] },
@@ -186,7 +203,7 @@ const safeStorage: Storage = {
   },
 }
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
-try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
+try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
 export const useStore = create<Store>()(
   persist(
@@ -206,16 +223,23 @@ export const useStore = create<Store>()(
         set((s) => ({ emails: [{ id: uid('e'), at: now(), to, subject, body, template, attachments }, ...s.emails] }))
       const userEmail = (id: string) => get().users.find((u) => u.id === id)?.email ?? id
 
-      const evaluatorIds = (dept: string) => get().users.filter((u) => u.roles.includes('techeval') && dept.includes(u.department)).map((u) => u.id)
+      /** Who evaluates at stage 3: evaluators of that department, the commodity lead for Sourcing, and the Sourcing Head */
+      const evaluatorIds = (idea: Idea, dept: string) => {
+        const ids = dept === 'Sourcing'
+          ? [commodityOf(idea.commodity)?.leadId].filter(Boolean) as string[]
+          : get().users.filter((u) => u.roles.includes('techeval') && u.department === dept).map((u) => u.id)
+        return [...new Set([...ids, 'u-head'])]
+      }
 
       /** entry side-effects when an idea lands on a stage */
       const onEnterStage = (idea: Idea, stage: string): Idea => {
-        const lever = leverOf(idea.leverId)
         let next = { ...idea }
         if (EVALUATION_STAGES.includes(stage)) {
-          const dept = rndDeptFor(lever.evaluator)
-          next.techEval = { evaluatorDept: dept }
-          for (const uidv of evaluatorIds(dept)) push({ userId: uidv, title: 'R&D approval requested', body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
+          const dept = evalDeptOf(idea.department)
+          const keep = idea.evaluation?.supplier?.status === 'Responded' ? idea.evaluation.supplier : undefined
+          const supplier: SupplierCheck = keep ?? (needsSupplierCheck(ideaAnnualised(idea)) ? { status: 'Not sent' } : { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' })
+          next.evaluation = { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false }
+          for (const uidv of evaluatorIds(idea, dept)) push({ userId: uidv, title: `${dept} evaluation requested`, body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
         }
         if (stage === STAGE.approval) {
           const s = get().settings
@@ -223,21 +247,23 @@ export const useStore = create<Store>()(
           const lead = commodityOf(idea.commodity)?.leadId
           next.approvals = levels.map((l) => ({ level: l, approverId: l === 'Commodity Lead' ? lead : 'u-head' }))
           const first = next.approvals[0]
-          if (first?.approverId) push({ userId: first.approverId, title: 'Pending approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
+          if (first?.approverId) push({ userId: first.approverId, title: 'Pending sourcing approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
         }
         return next
       }
 
+      /** Execution started — dates and milestones come from the signed budget + timeline lock */
       const createExecution = (idea: Idea): Idea => {
         const fy = get().settings.currentFy
-        const start = todayIso()
-        const target = fyEnd(fy)
+        const start = idea.lock?.startDate ?? todayIso()
+        const target = idea.lock?.endDate ?? addMonthsIso(start, 6)
         const annual = ideaAnnualised(idea)
         const tpl = MILESTONE_TEMPLATES[idea.route] ?? MILESTONE_TEMPLATES.Commercial
+        const due = milestoneSchedule(start, target, tpl)
         // NPD sample and PAP price revision are tracked inside "Execution started"
         const npd = tpl.some((m) => m.includes('NPD'))
         const pap = tpl.some((m) => m.includes('PAP'))
-        const span = Math.max(30, (new Date(target).getTime() - new Date(start).getTime()) / 86400000)
+        const goLive = addMonthsIso(start, 1) < target ? addMonthsIso(start, 1) : target
         return {
           ...idea,
           approvedAt: now(),
@@ -247,8 +273,8 @@ export const useStore = create<Store>()(
           ...(pap ? { papRequestId: idea.papRequestId ?? `PAP-${Math.floor(40000 + Math.random() * 9999)}`, papStatus: idea.papStatus ?? 'Raised' } : {}),
           execution: {
             ownerId: idea.buyerId, startDate: start, targetDate: target, originalTargetDate: target,
-            phasing: phaseByQuarter(annual, target, fy), // pre-filled; owner edits
-            milestones: tpl.map((name, k) => ({ id: uid('m'), name, dueDate: addDays(start, Math.round((span * (k + 1)) / tpl.length)) })),
+            phasing: phaseByQuarter(annual, goLive, fy), // pre-filled from the expected first MRN; owner edits
+            milestones: tpl.map((name, k) => ({ id: uid('m'), name, dueDate: due[k] })),
             slippage: [], progress: 0, notes: [], status: 'In Execution',
           },
         }
@@ -375,40 +401,80 @@ export const useStore = create<Store>()(
             return n
           })
         },
-        validateIdea: (id, remarks) => {
-          get().advance(id, 'Team feasibility check completed — baseline confirmed', remarks)
-          get().toast(`${id} cleared team feasibility — sent for R&D approval`)
-        },
-        respondFeasibility: (id, r) => {
+        recordFeasibility: (id, c) => {
           const u = me()
+          const check: FeasibilityCheck = { ...c, by: u.name, byDept: u.department, at: now() }
+          const summary = `Technically ${c.technical === 'Yes' ? 'feasible' : 'not feasible'} · cost ${c.cost.toLowerCase()} · ${c.conflict === 'None' ? 'no duplicate / conflict' : `${c.conflict.toLowerCase()}${c.conflictWith ? ` with ${c.conflictWith}` : ''}`}`
+          patchIdea(id, (i) => ({ ...i, feasibilityCheck: check, activity: [...i.activity, logEntry(`Team feasibility check — ${c.decision}`, { remarks: `${summary}${c.remarks ? ' · ' + c.remarks : ''}` })] }))
+          if (c.decision === 'Go') get().advance(id, 'Team feasibility check — Go', c.remarks)
+          else get().dropIdea(id, 'Not feasible', c.remarks || summary)
+        },
+        saveEvaluation: (id, patch) => {
+          const what = [patch.cbaVerified != null && 'cost-benefit analysis', patch.risks && 'risk assessment'].filter(Boolean).join(' and ')
+          patchIdea(id, (i) => ({
+            ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), ...patch },
+            activity: what ? [...i.activity, logEntry(`Evaluation — ${what} saved`, { remarks: patch.cbaNote ?? patch.riskRemarks })] : i.activity,
+          }))
+        },
+        sendSupplierCheck: (id, sc) => {
+          const u = me()
+          const token = `${id.slice(-8)}-${uid('sc').slice(-6)}`.toLowerCase()
           patchIdea(id, (i) => ({
             ...i,
-            feasibility: { ...(i.feasibility ?? { requestedAt: now(), supplierCode: u.supplierCode ?? '' }), respondedAt: now(), respondedBy: u.name + (r.onBehalf ? ' (on behalf)' : ''), feasible: r.feasible, offeredPrice: r.offeredPrice, leadTimeDays: r.leadTimeDays, moq: r.moq, remarks: r.remarks, onBehalf: r.onBehalf },
-            parts: r.offeredPrice && i.parts.length === 1 ? [{ ...i.parts[0], newPrice: r.offeredPrice }] : i.parts,
-            activity: [...i.activity, logEntry(r.feasible ? 'Feasibility confirmed' : 'Feasibility declined', { remarks: `Offered ₹ ${r.offeredPrice ?? '—'} · lead time ${r.leadTimeDays ?? '—'} d · MOQ ${r.moq ?? '—'}${r.remarks ? ' · ' + r.remarks : ''}` })],
+            evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), supplier: { status: 'Sent', token, ...sc, sentAt: now(), sentBy: u.name } },
+            activity: [...i.activity, logEntry(`Supplier capability request sent to ${sc.supplierName}`, { remarks: sc.email })],
           }))
-          void r
+          email([sc.email], sc.subject, sc.body, 'Supplier capability request')
+          return token
         },
-        techEvaluate: (id, decision, validationPlan, remarks) => {
+        respondSupplierCheck: (token, r) => {
+          const i = get().ideas.find((x) => x.evaluation?.supplier?.token === token)
+          if (!i || i.evaluation!.supplier!.status !== 'Sent') return false
+          const sc = i.evaluation!.supplier!
+          patchIdea(i.id, (x) => ({
+            ...x,
+            evaluation: { ...x.evaluation!, supplier: { ...sc, status: 'Responded', response: r } },
+            activity: [...x.activity, { id: uid('a'), at: now(), userId: 'supplier', userName: `${r.contactName} (${sc.supplierName})`, action: `Supplier capability response — can supply: ${r.canSupply}`, remarks: `Meets spec: ${r.meetsSpec}${r.leadTimeDays ? ` · lead time ${r.leadTimeDays} d` : ''}${r.capacityPerMonth ? ` · capacity ${r.capacityPerMonth}` : ''}` }],
+          }))
+          for (const uidv of evaluatorIds(i, i.evaluation!.dept)) push({ userId: uidv, title: 'Supplier capability response received', body: `${i.id} · ${sc.supplierName} — can supply: ${r.canSupply}`, trigger: 'Supplier response', channel: 'In-app', ideaId: i.id, link: `/ideas/${i.id}`, severity: r.canSupply === 'No' ? 'warning' : 'success' })
+          return true
+        },
+        skipSupplierCheck: (id) => {
+          const i = getIdea(id)
+          if (needsSupplierCheck(ideaAnnualised(i))) return
+          patchIdea(id, (x) => ({ ...x, evaluation: { ...(x.evaluation ?? { dept: evalDeptOf(x.department) }), supplier: { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' } } }))
+        },
+        recordEvaluation: (id, decision, remarks) => {
           const u = me()
-          patchIdea(id, (i) => ({ ...i, techEval: { ...(i.techEval ?? { evaluatorDept: u.department }), decision, validationPlan, at: now(), by: u.name }, activity: [...i.activity, logEntry(`Technical evaluation: ${decision}`, { remarks: validationPlan || remarks })] }))
-          if (decision === 'Go') get().advance(id, 'R&D approved', remarks)
-          else get().reject(id, remarks || 'R&D not approved')
+          patchIdea(id, (i) => ({ ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), decision, remarks, by: u.name, at: now() }, activity: [...i.activity, logEntry(`Evaluation — ${decision === 'Recommend' ? 'recommended for sourcing approval' : 'rejected'}`, { remarks })] }))
+          if (decision === 'Recommend') get().advance(id, `${getIdea(id).evaluation?.dept ?? 'Department'} evaluation — recommended`, remarks)
+          else get().reject(id, remarks || 'Rejected at evaluation')
+        },
+        signLock: (id, lock) => {
+          const u = me()
+          patchIdea(id, (i) => ({ ...i, lock: { ...lock, signedAt: now(), signedBy: u.name }, activity: [...i.activity, logEntry('Budget & timeline lock signed', { remarks: `${lock.timelineMonths} months · target ${inrShort(lock.targetSaving)} · budget ${inrShort(lock.budget)}` })] }))
         },
         approve: (id, remarks) => {
           const u = me()
           const i = getIdea(id)
+          const head = u.roles.includes('head')
           const approvals = [...i.approvals]
-          const k = approvals.findIndex((a) => !a.decision)
-          if (k >= 0) approvals[k] = { ...approvals[k], approverId: u.id, decision: 'Approved', at: now(), remarks }
+          const first = approvals.findIndex((a) => !a.decision)
+          if (first < 0) return false
+          const lastPending = approvals.length - 1 - [...approvals].reverse().findIndex((a) => !a.decision)
+          const finalStep = head || first === lastPending
+          if (finalStep && !i.lock) { get().toast('Sign the budget & timeline lock before the final approval', 'warning'); return false }
+          approvals.forEach((a, k) => { if (!a.decision && (head || k === first)) approvals[k] = { ...a, approverId: u.id, decision: 'Approved', at: now(), remarks } })
           const pending = approvals.find((a) => !a.decision)
-          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`Approved (${approvals[k]?.level ?? 'Approver'})`, { remarks })] }))
+          const levels = approvals.filter((a) => a.approverId === u.id && a.at && a.decision === 'Approved').map((a) => a.level).join(' + ')
+          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`Sourcing approval (${levels || 'Approver'})`, { remarks })] }))
           if (pending) {
-            if (pending.approverId) push({ userId: pending.approverId, title: 'Pending approval', body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+            if (pending.approverId) push({ userId: pending.approverId, title: 'Pending sourcing approval', body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
           } else {
-            get().advance(id, 'Approved', remarks)
-            ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Idea approved', body: `${id} · ${i.title} entered the Execution Hub`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+            get().advance(id, 'Sourcing approval — approved', remarks)
+            ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           }
+          return true
         },
         reject: (id, remarks) => {
           const i = getIdea(id)
@@ -420,7 +486,7 @@ export const useStore = create<Store>()(
         },
         sendBack: (id, remarks) => {
           const i = getIdea(id)
-          // R&D approval and Sourcing approval send an idea back to the Team feasibility check for rework
+          // Evaluation and Sourcing approval send an idea back to the Team feasibility check for rework
           const atStart = i.stage === STAGE.feasibility
           patchIdea(id, (x) => (atStart ? { ...x, infoRequested: true, activity: [...x.activity, logEntry('Sent back to submitter', { remarks })] } : { ...moveTo(x, STAGE.feasibility, 'Sent back to Team feasibility check', remarks), infoRequested: false }))
           push({ userId: i.submitterId, title: 'Idea sent back', body: `${id} · ${remarks}`, trigger: 'Idea sent back / more info requested', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
@@ -443,9 +509,9 @@ export const useStore = create<Store>()(
         },
         moveToStage: (id, stage, remarks) => {
           const i = getIdea(id)
-          if (stage === 'Implemented') { get().markDone(id, todayIso(), Object.fromEntries(i.parts.map((p) => [p.partCode, p.newPrice]))); return }
+          if (stage === STAGE.verification) { get().handOverForVerification(id, i.execution?.effectiveDate ?? todayIso(), Object.fromEntries(i.parts.map((p) => [p.partCode, p.approvedPrice ?? p.newPrice]))); return }
           patchIdea(id, (x) => {
-            let n = moveTo(x, stage, `Moved on Kanban to ${stage}`, remarks)
+            let n = moveTo(x, stage, `Moved on board to ${stage}`, remarks)
             if (bucketFor(x.route, x.stage) === 'Pipeline' && n.bucket === 'In Execution' && !x.execution) n = createExecution(n)
             return n
           })
@@ -488,25 +554,53 @@ export const useStore = create<Store>()(
             const ms = i.execution.milestones.map((m) => (m.id === mid ? { ...m, doneDate: m.doneDate ? undefined : todayIso(), note: note ?? m.note } : m))
             const m = ms.find((x) => x.id === mid)!
             const progress = Math.round((ms.filter((x) => x.doneDate).length / ms.length) * 100)
-            return { ...i, execution: { ...i.execution, milestones: ms, progress }, activity: [...i.activity, logEntry(m.doneDate ? `Milestone done: ${m.name}` : `Milestone reopened: ${m.name}`, { remarks: note })] }
+            // savings count from the first MRN at the new price
+            const firstMrn = m.name === 'First MRN at new price'
+            const effectiveDate = firstMrn ? m.doneDate : i.execution.effectiveDate
+            return { ...i, execution: { ...i.execution, milestones: ms, progress, effectiveDate }, activity: [...i.activity, logEntry(m.doneDate ? `Milestone done: ${m.name}` : `Milestone reopened: ${m.name}`, { remarks: note })] }
           }),
         addExecutionNote: (id, text) => patchIdea(id, (i) => (i.execution ? { ...i, execution: { ...i.execution, notes: [...i.execution.notes, { at: now(), by: me().name, text }] }, activity: [...i.activity, logEntry('Milestone note added', { remarks: text })] } : i)),
-        markDone: (id, effectiveDate, prices) => {
+        handOverForVerification: (id, effectiveDate, prices) => {
+          const u = me()
           patchIdea(id, (i) => {
-            const stages = ROUTE_STAGES[i.route]
-            let n = i.stage === 'Implemented' ? i : moveTo(i, 'Implemented', 'Marked Done — Implemented', `Effective ${effectiveDate}`)
+            let n = i.stage === STAGE.verification ? i : moveTo(i, STAGE.verification, 'Handed for verification', `First MRN at the new price ${effectiveDate}`)
             if (!n.execution) n = createExecution(n)
+            const done = (name: string) => (name === 'First MRN at new price' ? effectiveDate : todayIso())
             n = {
-              ...n, implementedAt: now(), papStatus: 'Price approved', npdStatus: n.npdRequestId ? 'Sample approved' : n.npdStatus,
-              parts: n.parts.map((p) => ({ ...p, approvedPrice: prices[p.partCode] ?? p.newPrice })),
-              execution: { ...n.execution!, status: 'Done', effectiveDate, approvedPrice: Object.values(prices)[0], progress: 100, milestones: n.execution!.milestones.map((m) => ({ ...m, doneDate: m.doneDate ?? effectiveDate })) },
+              ...n, implementedAt: now(), papStatus: n.papRequestId ? 'Price approved' : n.papStatus, npdStatus: n.npdRequestId ? 'Sample approved' : n.npdStatus,
+              parts: n.parts.map((p) => ({ ...p, approvedPrice: prices[p.partCode] ?? p.approvedPrice ?? p.newPrice })),
+              execution: { ...n.execution!, status: 'Done', effectiveDate, approvedPrice: Object.values(prices)[0], progress: 100, milestones: n.execution!.milestones.map((m) => ({ ...m, doneDate: m.doneDate ?? done(m.name) })) },
+              verification: { handedAt: now(), handedBy: u.name },
             }
-            void stages
             return n
           })
           const i = getIdea(id)
-          ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: '🎉 Idea implemented', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+          ;[i.submitterId, i.buyerId, 'u-head'].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           set((s) => ({ celebrate: s.celebrate + 1 }))
+        },
+        verifyIdea: (id, v) => {
+          const u = me()
+          const realised = ideaRealised(get().ledger, id)
+          patchIdea(id, (i) => ({
+            ...i,
+            verification: { ...i.verification, mrnAtApproved: v.mrnAtApproved, financeValidated: v.financeValidated, targetAchieved: v.targetAchieved, remarks: v.remarks, realisedAtVerification: realised, targetAtVerification: v.targetAtVerification, verifiedAt: now(), verifiedBy: u.name, returnedAt: undefined, returnReason: undefined },
+            stageHistory: i.stageHistory.map((h, k) => (k === i.stageHistory.length - 1 && h.stage === STAGE.verification ? { ...h, exitedAt: now(), by: u.name, action: 'Verified', remarks: v.remarks } : h)),
+            activity: [...i.activity, logEntry('Verified — target achieved', { remarks: `Realised ${inrShort(realised)} vs ${inrShort(v.targetAtVerification)} due${v.remarks ? ' · ' + v.remarks : ''}` })],
+          }))
+          const i = getIdea(id)
+          ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Savings verified', body: `${id} · ${i.title}`, trigger: 'Verified', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+        },
+        returnToExecution: (id, reason) => {
+          patchIdea(id, (i) => {
+            const n = moveTo(i, STAGE.execution, 'Returned to execution — verification not passed', reason)
+            return {
+              ...n, bucket: 'In Execution',
+              execution: n.execution ? { ...n.execution, status: 'In Execution', milestones: n.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: undefined } : m)) } : n.execution,
+              verification: { ...i.verification, returnedAt: now(), returnReason: reason },
+            }
+          })
+          const i = getIdea(id)
+          push({ userId: i.ownerId ?? i.buyerId, title: 'Returned to execution', body: `${id} · ${reason}`, trigger: 'Verification', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
         },
         dropIdea: (id, reason, remarks) => {
           const i = getIdea(id)
@@ -681,8 +775,8 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v6',
-      version: 6,
+      name: 'coin-cost-innovation-hub-v7',
+      version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
       // so a demo never crashes on a missing list or setting. Anything that is not an array/object of the right shape is ignored.
@@ -741,5 +835,5 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v6') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v7') void useStore.persist.rehydrate() })
 }
