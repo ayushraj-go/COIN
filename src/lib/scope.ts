@@ -58,33 +58,33 @@ export const PROBLEMS: { problem: string; impact: string; solution: string }[] =
 ]
 
 export const ROLES_INTRO =
-  'COIN has nine roles; one person can hold more than one (a Commodity Lead is also a Submitter), and a user sees only the commodities mapped to them unless the role is organisation-wide.'
+  'Every department (R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR) runs the same five-role ladder — Employee, Team lead, Department lead, Department head, Execution owner — and Finance verifies. Sourcing Head and Admin can act at every stage.'
 
 export const ROLES: { key: string; role: string; who: string; job: string; visibility: string }[] = [
-  { key: 'submitter', role: 'Submitter', who: 'Any employee: R&D, DQA, Quality, Process, Production, Sourcing', job: 'Submits ideas, tracks own ideas, answers queries', visibility: 'Own ideas' },
-  { key: 'supplier', role: 'Supplier', who: 'Registered vendor user from the vendor master', job: 'Submits ideas with gain-share, answers workshop invites, confirms feasibility and offered price', visibility: 'Own ideas and feasibility requests' },
-  { key: 'buyer', role: 'Commodity Buyer', who: 'Sourcing executive owning a commodity', job: 'Validates incoming ideas, confirms baseline, runs supplier campaigns, owns execution', visibility: 'Mapped commodities' },
-  { key: 'techeval', role: 'Technical Evaluator', who: 'R&D, DQA, Quality, Process (by category)', job: 'Technical go / no-go, validation plan', visibility: 'Ideas routed to them' },
-  { key: 'lead', role: 'Commodity Lead', who: 'Senior buyer / commodity manager', job: 'Approves within limit, runs workshops and campaigns, reviews commodity funnel', visibility: 'Mapped commodities' },
-  { key: 'head', role: 'Sourcing Head', who: 'Vertical Head / Head of Sourcing', job: 'Approves above limit, reviews buyers and commodity funnels', visibility: 'All' },
-  { key: 'finance', role: 'Finance Controller', who: 'Finance / Costing', job: 'Reviews realised savings awaiting validation; reads dashboards and MIS', visibility: 'All (read) + validation' },
+  { key: 'submitter', role: 'Employee', who: 'Any employee in the eight departments', job: 'Stage 1 — submits ideas, tracks own ideas, answers queries', visibility: 'Own ideas' },
+  { key: 'teamlead', role: 'Team lead', who: 'One per department (Sourcing: the commodity leads)', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
+  { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check (₹ 5 L and above)', visibility: 'Own department' },
+  { key: 'depthead', role: 'Department head', who: 'Head of each department (Sourcing: Head of Sourcing)', job: 'Stage 4 — <dept> approval: commercial assessment, supplier confirmation, budget + timeline lock, signature', visibility: 'Own department' },
+  { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones, first MRN at the new price, hand-over for verification', visibility: 'Own department' },
+  { key: 'finance', role: 'Finance verifier', who: 'Finance Controller', job: 'Stage 6 — verifies the locked target from MRN; validates realised savings', visibility: 'All' },
+  { key: 'head', role: 'Sourcing Head', who: 'Head of Sourcing', job: 'Acts at every stage (override); Sourcing department head', visibility: 'All' },
+  { key: 'admin', role: 'Admin', who: 'Sourcing Excellence / IT', job: 'Acts at every stage (override); masters, users, rules, demo data', visibility: 'All' },
+  { key: 'supplier', role: 'Supplier', who: 'Registered vendor user from the vendor master', job: 'Submits ideas with gain-share, answers workshop invites and capability checks', visibility: 'Own ideas' },
   { key: 'mgmt', role: 'Management', who: 'CXO, Plant Head, BU Head', job: 'Dashboards and monthly report', visibility: 'All (read only)' },
-  { key: 'admin', role: 'Admin', who: 'Sourcing Excellence / IT', job: 'Masters, users, approval matrix, rules, templates, settings, demo data', visibility: 'All' },
 ]
 
-// Permission matrix (✓ = allowed, — = not allowed) — mirrors PERMS in lib/nav
-export const PERM_COLS = ['Submitter', 'Supplier', 'Buyer', 'Tech Eval', 'Comm. Lead', 'Sourcing Head', 'Finance', 'Mgmt', 'Admin']
+// Permission matrix (✓ = allowed, — = not allowed) — mirrors ideaPerms / PERMS
+export const PERM_COLS = ['Employee', 'Team lead', 'Dept lead', 'Dept head', 'Exec owner', 'Finance', 'Sourcing Head', 'Admin', 'Supplier', 'Mgmt']
 export const PERMISSION_MATRIX: { action: string; key: string; cells: string[] }[] = [
-  { action: 'Submit idea', key: 'submit', cells: ['✓', '✓', '✓', '✓', '✓', '✓', '—', '—', '—'] },
-  { action: 'Validate idea / edit baseline', key: 'validate', cells: ['—', '—', '✓', '—', '✓', '✓', '—', '—', '—'] },
-  { action: 'Confirm feasibility and offered price', key: 'feasibility', cells: ['—', '✓', '✓ (on behalf)', '—', '—', '—', '—', '—', '—'] },
-  { action: 'Technical evaluation', key: 'techeval', cells: ['—', '—', '—', '✓', '—', '—', '—', '—', '—'] },
-  { action: 'Approve (within value slab)', key: 'approve', cells: ['—', '—', '—', '—', '✓', '✓', '—', '—', '—'] },
-  { action: 'Update execution, mark done / drop', key: 'execute', cells: ['—', '—', '✓', '—', '✓', '✓', '—', '—', '—'] },
-  { action: 'Review savings to validate', key: 'financeValidate', cells: ['—', '—', '—', '—', '—', '—', '✓', '—', '—'] },
-  { action: 'Run campaigns / workshops', key: 'campaign', cells: ['—', '—', '✓', '—', '✓', '✓', '—', '—', '✓'] },
-  { action: 'View dashboards and MIS', key: 'view', cells: ['Own', 'Own', 'Commodity', 'Routed', 'Commodity', 'All', 'All', 'All', 'All'] },
-  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '—', '—', '—', '—', '—', '—', '✓'] },
+  { action: 'Submit idea', key: 'submit', cells: ['✓', '✓', '✓', '✓', '✓', '—', '✓', '—', '✓', '—'] },
+  { action: 'Team feasibility check (own department, not own idea)', key: 'feasibility', cells: ['—', '✓', '—', '—', '—', '—', '✓', '✓', '—', '—'] },
+  { action: 'Evaluation — cost-benefit, risk, supplier check', key: 'techeval', cells: ['—', '—', '✓', '—', '—', '—', '✓', '✓', '—', '—'] },
+  { action: 'Approval + budget and timeline lock', key: 'approve', cells: ['—', '—', '—', '✓', '—', '—', '✓', '✓', '—', '—'] },
+  { action: 'Execution — milestones, hand over, drop', key: 'execute', cells: ['—', '—', '—', '—', '✓', '—', '✓', '✓', '—', '—'] },
+  { action: 'Verification of the locked target', key: 'verify', cells: ['—', '—', '—', '—', '—', '✓', '✓', '✓', '—', '—'] },
+  { action: 'Run campaigns / workshops', key: 'campaign', cells: ['—', 'Sourcing', '—', 'Sourcing', 'Sourcing', '—', '✓', '✓', '—', '—'] },
+  { action: 'View dashboards and MIS', key: 'view', cells: ['Own', 'Department', 'Department', 'Department', 'Department', 'All', 'All', 'All', 'Own', 'All'] },
+  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '—', '—', '—', '—', '—', '✓', '—', '—'] },
 ]
 
 export const METHOD_INTRO =

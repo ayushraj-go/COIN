@@ -260,7 +260,7 @@ export default function Scope() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const myCol = me ? ['submitter', 'supplier', 'buyer', 'techeval', 'lead', 'head', 'finance', 'mgmt', 'admin'].indexOf(primaryRole(me)) : -1
+  const myCol = me ? ['submitter', 'teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin', 'supplier', 'mgmt'].indexOf(primaryRole(me)) : -1
   // KPI groups keep their A–F order, with IN-only groups (B, F) after the CO and shared ones
   const kpiGroups = [...new Set(KPIS.map((k) => k.group))].sort((a, b) => Number(KPI_GROUP_SPACE[a[0]] === 'IN') - Number(KPI_GROUP_SPACE[b[0]] === 'IN') || a.localeCompare(b)).filter((g) => iv(KPI_GROUP_SPACE[g[0]] ?? 'Both'))
   const kpiShown = KPIS.filter((k) => kpiGroups.includes(k.group)).length

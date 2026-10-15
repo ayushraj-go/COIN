@@ -2,7 +2,7 @@
 
 **In-app name: Cost Innovation Hub.** This is a front-end-only demo for Amber Enterprises India Ltd., built from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
 
-- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v7`).
+- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v8`).
 - **Port 8742.** Uses `--strictPort`, so it won't quietly move to 5173 or another common port.
 
 ## Run
@@ -17,34 +17,49 @@ To serve a production build: `npm run build`, then `npm run preview` (also on po
 
 ## Demo logins
 
-Every persona uses the password **`coin@2026`**. The login page's quick demo tiles (Sourcing Head, Admin) both sign in as the Sourcing Head, who can act on every stage.
+Every persona uses the password **`coin@2026`**. On the login page pick a **department**, then one of its five roles; the
+cross-functional row has the Finance verifier, Sourcing Head, Admin, Management and a Supplier. The user menu's
+**Switch demo persona** uses the same picker. You can also sign in with the email or employee ID (for example `AEL-03108`).
 
-| Role | User | Email |
-|---|---|---|
-| Sourcing Head | Girish Saluja | girish.saluja@ambergroupindia.com |
-| Commodity Lead (Metals) | Sanjay Kapoor | sanjay.kapoor@ambergroupindia.com |
-| Commodity Buyer (Fasteners & Steel) | Arjun Mehta | arjun.mehta@ambergroupindia.com |
-| Technical Evaluator (R&D) | Dr. Priya Nair | dr.priya.nair@ambergroupindia.com |
-| Finance Controller | Meera Iyer | meera.iyer@ambergroupindia.com |
-| Management | Rajesh Khanna | rajesh.khanna@ambergroupindia.com |
-| Submitter (R&D) | Neha Verma | neha.verma@ambergroupindia.com |
-| Supplier (Sunrise Fasteners) | Rakesh Gupta | rakesh.gupta@sunrisefasteners.in |
-| Admin | Nikhil Agarwal | nikhil.agarwal@ambergroupindia.com |
+| Department | Employee | Team lead | Department lead | Department head | Execution owner |
+|---|---|---|---|---|---|
+| R&D | Neha Verma | Arvind Rao | Dr. Priya Nair | Dr. Sameer Kulkarni | Rahul Jain |
+| DQA | Tanvi Gupta | Pooja Nambiar | Amit Saxena | Rajiv Bhalla | Sandeep Rawat |
+| Quality | Farah Khan | Mohit Arora | Ritu Malhotra | Anil Deshmukh | Kavya Reddy |
+| Process | Harish Menon | Nitin Chawla | Karan Bhatia | Manoj Pillai | Siddharth Bose |
+| Production | Vivek Chauhan | Gurmeet Singh | Deepika Sharma | Suresh Yadav | Ravi Teja |
+| Finance | Ankita Jain | Prakash Iyer | Shalini Gupta | Vinod Agarwal | Rohit Kapoor |
+| Sourcing | Aditi Sharma | commodity leads (Sanjay Kapoor, Anita Sharma, Deepak Joshi) | Ashok Menon | Girish Saluja | commodity buyers |
+| HR | Simran Kaur | Varun Malhotra | Neelam Saxena | Lata Krishnan | Imtiaz Ali |
 
-You can also sign in with the employee ID (for example `AEL-03108`). To restore the original seed data, use **User menu → Reset demo data**.
+Cross-functional: **Meera Iyer** (Finance verifier — stage 6), **Girish Saluja** (Sourcing Head — can act at every stage),
+**Nikhil Agarwal** (Admin — can act at every stage), **Rajesh Khanna** (Management), **Rakesh Gupta** (Supplier).
+Emails follow `first.last@ambergroupindia.com`. To restore the original seed data, use **User menu → Reset demo data**.
 
 ## Six-stage workflow (every idea)
 
-| # | Stage | Workspace | What happens |
-|---|---|---|---|
-| 1 | Idea submitted | IN | Submission form (steps A–E) |
-| 2 | Team feasibility check | IN | Feasibility team: technically feasible? cost valid? duplicate / conflict? Go / No-go |
-| 3 | *Dept* evaluation (submitter's department, e.g. R&D evaluation) | IN | Detailed cost-benefit, risk assessment, supplier capability check (email + public form, no Amber data; skipped below ₹ 5 L) |
-| 4 | Sourcing approval | IN | Commercial assessment, supplier alignment, signed budget + timeline lock (target = annualised × months ÷ 12) |
-| 5 | Execution started | CO | Execution Hub: NPD / PAP milestones, CO date, first MRN at the new price, plan vs actual from MRN |
-| 6 | Verification | CO | Business side checks MRN at the approved price, Finance validation and the locked target → Verified |
+The department is the submitter's department (supplier ideas go to Sourcing). Each stage is done by one role of that
+department; a team lead never clears their own idea (the department lead does).
+
+| # | Stage | Workspace | Who | What happens |
+|---|---|---|---|---|
+| 1 | Idea submitted | IN | Employee | Submission form (steps A–E) |
+| 2 | Team feasibility check | IN | Team lead | Technically feasible? cost valid? duplicate / conflict? Go / No-go |
+| 3 | *Dept* evaluation (e.g. R&D evaluation) | IN | Department lead | Cost-benefit, risk assessment, supplier capability check (email + public form, no Amber data; skipped below ₹ 5 L) |
+| 4 | *Dept* approval (e.g. R&D approval) | IN | Department head | Commercial assessment, supplier alignment, signed budget + timeline lock (target = annualised × months ÷ 12) |
+| 5 | Execution started | CO | Execution owner | Execution Hub: NPD / PAP milestones, CO date, first MRN at the new price, plan vs actual from MRN |
+| 6 | Verification | CO | Finance verifier | MRN at the approved price, Finance validation and the locked target → Verified |
+
+**My queue** (`/queue`) lists the ideas waiting for the signed-in person, with how long each has waited and its SLA
+state; every dashboard opens with the top of that queue. Sourcing Head and Admin also get an **All pending** tab.
 
 A dropped or rejected idea stays dropped — a fresh attempt is a new idea. The Home page shows a **six-stage walkthrough**: one demo idea at each stage with every form filled in up to that stage.
+
+## Colour themes
+
+Every colour comes from one palette (`src/lib/theme.ts`): eight palettes generate full OKLCH ramps written to the
+Tailwind colour variables. **Indigo Twilight** is the default; the palette button in the header switches live and the
+choice is kept per browser.
 
 ## Workspaces and modules
 

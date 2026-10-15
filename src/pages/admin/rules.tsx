@@ -4,12 +4,50 @@ import { Card, Badge, Button, Icon, Toggle, Segmented, Modal, DataTable, Field, 
 import { useStore } from '../../store/useStore'
 import { approvalLevels, ideaAnnualised } from '../../lib/calc'
 import { LAKH } from '../../lib/masters'
+import { DEPARTMENTS, ladderOf } from '../../lib/workflow'
 import { APPROVAL_NOTE, APPROVAL_MATRIX_DOC, NOTIF_TRIGGERS, NOTIF_FOOTNOTE, NOTIF_INTRO, NFRS, DECISIONS, REALISATION_CYCLE } from '../../lib/scope'
 import { fmtDateTime, fmtDate, fyMonths, fyLabel, monthLabel, monthLong, thirdWorkingDay, addMonthsYm, inrShort, fyEnd, fyStart, ymOf, todayIso } from '../../lib/format'
 import type { ApprovalRule, EmailTemplate, SlaRule } from '../../lib/types'
 import { SectionIntro, useRO } from './common'
 
 const nowUndo = (msg: string, undo: () => void) => useStore.getState().toast(msg, 'success', undo)
+
+/** Stages 2–5 run on each department's ladder; Finance verifies (stage 6); Sourcing Head and Admin can act anywhere */
+function LadderCard() {
+  const users = useStore((s) => s.users)
+  const name = (id?: string) => users.find((u) => u.id === id)?.name ?? '—'
+  const fin = users.find((u) => u.roles.includes('finance'))
+  return (
+    <Card className="rounded-2xl" title="Department role ladder — who acts at each stage" icon="GitBranch" pad={false}
+      subtitle="Stage 4 is approved by the head of the idea's department (one level). Sourcing: commodity leads are team leads and commodity buyers execute.">
+      <div className="overflow-x-auto">
+        <table className="tbl">
+          <thead><tr><th>Department</th><th>2 · Team feasibility check</th><th>3 · Evaluation</th><th>4 · Approval + lock</th><th>5 · Execution</th></tr></thead>
+          <tbody>
+            {DEPARTMENTS.map((d) => {
+              const l = ladderOf(d, '', users)
+              const many = (role: string) => users.filter((u) => u.department === d && u.roles.includes(role as never)).map((u) => u.name)
+              return (
+                <tr key={d}>
+                  <td className="font-semibold text-ink">{d}</td>
+                  <td>{d === 'Sourcing' ? many('teamlead').join(', ') : name(l.teamLead)}</td>
+                  <td>{name(l.deptLead)}</td>
+                  <td className="font-medium text-ink">{name(l.deptHead)}</td>
+                  <td>{d === 'Sourcing' ? `${many('execowner').length} commodity buyers` : name(l.execOwner)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-5 py-3 border-t border-line text-[12px] text-ink-2 flex flex-wrap gap-x-5 gap-y-1">
+        <span><b className="text-ink">6 · Verification:</b> {fin?.name ?? 'Finance'} (Finance verifier)</span>
+        <span><b className="text-ink">Override:</b> Sourcing Head and Admin can act at every stage</span>
+        <span><b className="text-ink">Own idea:</b> a team lead never clears their own idea — the department lead does</span>
+      </div>
+    </Card>
+  )
+}
 
 // ─── Approval matrix ──────────────────────────────────────────────────────────
 export function ApprovalAdmin() {
@@ -44,59 +82,7 @@ export function ApprovalAdmin() {
         <Icon name="Scale" size={16} className="text-gold-600 mt-0.5" />
         <div className="text-[12.5px] text-ink-2"><b className="text-ink">{APPROVAL_NOTE}</b> {DECISIONS.find((d) => d.n === 4)?.decision} — proposed: {DECISIONS.find((d) => d.n === 4)?.proposed}.</div>
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        <Card className="xl:col-span-7 rounded-2xl" title="Approval matrix (configurable)" icon="GitBranch" subtitle="Value slab decides the approver chain; the investment rule adds the Sourcing Head">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Field label="₹ X — value threshold" hint="Above this, Commodity Lead → Sourcing Head">
-              <div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted text-[12.5px]">₹</span><input className="input pl-6 pr-14 num" type="number" min={1} disabled={ro} value={x} onChange={(e) => setX(Number(e.target.value))} /><span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-muted">lakh</span></div>
-            </Field>
-            <Field label="₹ Y — investment threshold" hint="One-time investment above this adds the Sourcing Head">
-              <div className="relative"><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted text-[12.5px]">₹</span><input className="input pl-6 pr-14 num" type="number" min={1} disabled={ro} value={y} onChange={(e) => setY(Number(e.target.value))} /><span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-muted">lakh</span></div>
-            </Field>
-            <Field label="Re-approval above" hint="Changes after approval need a reason; re-approval above this %">
-              <div className="relative"><input className="input pr-8 num" type="number" min={0} max={100} disabled={ro} value={re} onChange={(e) => setRe(Number(e.target.value))} /><span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-muted">%</span></div>
-            </Field>
-          </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="tbl">
-              <thead><tr><th>Rule</th><th>Condition</th><th>Approver chain</th><th style={{ textAlign: 'right' }}>Threshold</th><th /></tr></thead>
-              <tbody>
-                {rules.map((r) => (
-                  <tr key={r.id} className={cn(!ro && 'clickable')} onClick={() => !ro && setEdit(r)}>
-                    <td className="font-mono text-[11.5px] text-muted">{r.id}</td>
-                    <td className="font-medium text-ink">{fill(r.condition, r)}</td>
-                    <td><span className="flex items-center gap-1 flex-wrap">{r.approver.split(/→|\+/).map((a) => a.trim()).filter(Boolean).map((a, k, arr) => <React.Fragment key={a}><Badge color={a.includes('Head') ? 'var(--color-brand-600)' : 'var(--color-accent-600)'}>{a}</Badge>{k < arr.length - 1 && <Icon name="ArrowRight" size={12} className="text-muted" />}</React.Fragment>)}{r.approver.startsWith('+') && <span className="text-[11px] text-muted">added</span>}</span></td>
-                    <td className="num font-semibold" style={{ textAlign: 'right' }}>₹ {r.kind === 'value' ? x : y} lakh</td>
-                    <td>{!ro && <Icon name="PencilLine" size={14} className="text-muted" />}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-2 text-[11.5px] text-muted">Scope text: {APPROVAL_MATRIX_DOC.map(([a, b]) => `${a}: ${b}`).join(' · ')}</div>
-          {!ro && (
-            <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
-              <span className="text-[12px] text-muted">{atApproval.length} ideas at Approval · {needHead(x, y)} would need the Sourcing Head (now {needHead(settings.xThresholdLakh, settings.yThresholdLakh)})</span>
-              <div className="flex gap-2"><Button size="sm" variant="ghost" disabled={!dirty} onClick={() => { setX(settings.xThresholdLakh); setY(settings.yThresholdLakh); setRe(settings.reapprovalPct) }}>Discard</Button><Button size="sm" variant="primary" icon="Save" disabled={!dirty || !valid} onClick={save}>Save matrix</Button></div>
-            </div>
-          )}
-        </Card>
-        <Card className="xl:col-span-5 rounded-2xl" title="Approval simulator" icon="FlaskConical" subtitle="Who approves an idea of this size?">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Annualised impact (₹ lakh)"><input className="input num" type="number" min={0} value={simA} onChange={(e) => setSimA(Number(e.target.value))} /></Field>
-            <Field label="One-time investment (₹ lakh)"><input className="input num" type="number" min={0} value={simI} onChange={(e) => setSimI(Number(e.target.value))} /></Field>
-          </div>
-          <div className="mt-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3">
-            <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-2">Approver chain</div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {chain.map((c, k) => <React.Fragment key={c}>{k > 0 && <Icon name="ArrowRight" size={14} className="text-brand-400" />}<span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white border border-brand-200 text-[12.5px] font-semibold text-ink"><Icon name={c === 'Sourcing Head' ? 'Crown' : 'UserCheck'} size={14} className="text-brand-600" />{c}</span></React.Fragment>)}
-            </div>
-            <div className="text-[11.5px] text-muted mt-2">
-              {simA * LAKH > x * LAKH ? `₹ ${simA} lakh is above ₹ X (${x} lakh)` : `₹ ${simA} lakh is within ₹ X (${x} lakh)`}{simI > y ? ` · investment ₹ ${simI} lakh is above ₹ Y (${y} lakh)` : ''}. SLA at Approval: 3 working days per level.
-            </div>
-          </div>
-        </Card>
-      </div>
+      <LadderCard />
       <Modal open={!!edit} onClose={() => setEdit(null)} icon="GitBranch" title={`Edit rule ${edit?.id ?? ''}`} size="sm"
         footer={<><Button onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" icon="Save" disabled={!edit?.condition.trim() || !edit?.approver.trim()} onClick={() => { const prev = useStore.getState().approvalRules; upsert('approvalRules', edit); nowUndo(`Rule ${edit!.id} updated`, () => useStore.setState({ approvalRules: prev })); setEdit(null) }}>Save rule</Button></>}>
         {edit && (

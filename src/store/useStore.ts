@@ -596,7 +596,7 @@ export const useStore = create<Store>()(
             return n
           })
           const i = getIdea(id)
-          ;[i.submitterId, i.buyerId, 'u-head'].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+          ;[...new Set([i.submitterId, i.ownerId ?? i.buyerId, stageAssignee(i, STAGE.verification, get().users) ?? 'u-fin'])].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           set((s) => ({ celebrate: s.celebrate + 1 }))
         },
         verifyIdea: (id, v) => {

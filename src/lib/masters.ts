@@ -354,8 +354,8 @@ export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
 
 // SLA per workflow stage (Section 12 values, mapped onto the six-stage flow)
 export const SLA_RULES_DEFAULT: SlaRule[] = [
-  { stage: STAGE.feasibility, slaDays: 5, reminderDay: 4, escalateTo: 'Commodity Lead', escalateDay: 6 },
-  { stage: STAGE.evaluation, slaDays: 10, reminderDay: 8, escalateTo: 'Department head + Commodity Lead', escalateDay: 11 },
+  { stage: STAGE.feasibility, slaDays: 5, reminderDay: 4, escalateTo: 'Department lead', escalateDay: 6 },
+  { stage: STAGE.evaluation, slaDays: 10, reminderDay: 8, escalateTo: 'Department head', escalateDay: 11 },
   { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Sourcing Head', escalateDay: 4 },
   ...SLA_DEFAULTS.filter((r) => r.stage === 'Finance validation').map((r) => ({ ...r })),
 ]
