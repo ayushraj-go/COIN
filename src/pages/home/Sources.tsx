@@ -71,7 +71,7 @@ export function SourcesCard({ ideas, mode, fy, className }: { ideas: Idea[]; mod
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="h-8 w-8 rounded-[10px] grid place-items-center bg-brand-50 text-brand-700 shrink-0"><Icon name="GitFork" size={15} /></span>
             <div className="min-w-0">
-              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">Where the {mode === 'IN' ? 'value' : 'savings'} come from
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">{mode === 'IN' ? 'Where the value comes from' : 'Where the savings come from'}
                 <InfoTip title="Internal vs external">Internal = ideas raised inside Amber (by commodity team, department and employee). External = ideas from suppliers, split by tier and by campaign. {mode === 'IN' ? 'Values are annualised impact.' : 'Values are MRN-realised savings for ideas in execution or implemented.'}</InfoTip>
               </h3>
               <p className="text-[11.5px] text-muted"><b className="text-ink-2 num">{s.internal.count + s.external.count}</b> ideas · <b className="text-ink-2 num">{money(total)}</b> {unit}</p>

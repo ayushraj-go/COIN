@@ -17,6 +17,7 @@ import Npd from './pages/Npd'
 import SupplierCheck from './pages/SupplierCheck'
 import SupplierForm from './pages/SupplierForm'
 import Proof from './pages/Proof'
+import Queue from './pages/Queue'
 
 function Protected({ children }: { children: JSX.Element }) {
   const userId = useStore((s) => s.userId)
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/campaigns/:id" element={<CampaignPage />} />
           <Route path="/execution" element={<ExecutionHub />} />
           <Route path="/proof" element={<Proof />} />
+          <Route path="/queue" element={<Queue />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/:key" element={<Reports />} />
           <Route path="/admin" element={<Admin />} />

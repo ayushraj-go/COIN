@@ -23,6 +23,7 @@ const ALL: RoleKey[] = ['submitter', 'supplier', 'buyer', 'lead', 'head', 'finan
 const LADDER: RoleKey[] = ['teamlead', 'deptlead', 'depthead', 'execowner']
 export const NAV: NavItem[] = [
   { key: 'home', label: 'Dashboard', path: '/', icon: 'LayoutDashboard', roles: ALL, module: 'M1', section: 'Overview' },
+  { key: 'queue', label: 'My queue', path: '/queue', icon: 'Inbox', roles: ['teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin'], section: 'Overview' },
   { key: 'scope', label: 'Scope & Methodology', path: '/scope', icon: 'BookOpenText', roles: ALL, section: 'Overview' },
   // IN — Innovation Network: ideas up to approval
   { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin', ...LADDER], module: 'M2', section: 'Ideas', spaces: ['IN'] },
@@ -45,12 +46,12 @@ export const navFor = (u: User | null) => (u ? NAV.filter((n) => n.roles.some((r
 /** Items for a workspace. Before a workspace is chosen only Home (the CO / IN chooser) plus the pinned items are offered */
 export const navForSpace = (u: User | null, space: Space | null) => {
   const all = navFor(u)
-  if (!space) return all.filter((n) => n.key === 'home' || n.key === 'scope' || n.pinned).map((n) => (n.key === 'home' ? { ...n, label: 'Home', icon: 'House' } : n))
+  if (!space) return all.filter((n) => n.key === 'home' || n.key === 'queue' || n.key === 'scope' || n.pinned).map((n) => (n.key === 'home' ? { ...n, label: 'Home', icon: 'House' } : n))
   return all.filter((n) => n.pinned || !n.spaces || n.spaces.includes(space))
 }
 /** Which workspace a deep link belongs to (used when a page is opened before a workspace is chosen) */
 export const spaceForPath = (path: string): Space | null => {
-  if (path === '/' || path.startsWith('/scope') || path.startsWith('/reports')) return null
+  if (path === '/' || path.startsWith('/scope') || path.startsWith('/reports') || path.startsWith('/queue')) return null
   if (path.startsWith('/execution') || path.startsWith('/proof')) return 'CO'
   if (path.startsWith('/npd')) return null
   return 'IN'

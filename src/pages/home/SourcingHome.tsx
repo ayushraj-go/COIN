@@ -13,6 +13,7 @@ import { SlaWatchCard } from './MyActions'
 import { InKpis } from './Kpis'
 import { SourcesCard } from './Sources'
 import { Leaderboard } from './Leaderboard'
+import { QueuePeek } from '../queue/QueuePeek'
 
 export type SourcingVariant = 'sourcing' | 'finance' | 'mgmt'
 
@@ -43,6 +44,7 @@ export default function SourcingHome({ variant }: { variant: SourcingVariant }) 
 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
+          <Reveal className="col-span-12"><QueuePeek /></Reveal>
           <Reveal className="col-span-12"><InKpis d={d} /></Reveal>
           <Reveal className="col-span-12"><SourcesCard ideas={d.active.filter((i) => i.bucket !== 'Dropped')} mode="IN" fy={d.fy} /></Reveal>
         </RevealGrid>

@@ -13,6 +13,7 @@ import { useVisibleIdeas } from '../lib/hooks'
 import IdeaDrawer from '../pages/IdeaDrawer'
 import { AmberMark, AmberWordmark } from './Logo'
 import { ThemePicker } from './ThemePicker'
+import { useMyQueue } from '../pages/queue/useQueue'
 import { paletteByKey, usePalette } from '../lib/theme'
 
 function Logo({ collapsed, tone }: { collapsed: boolean; tone?: 'light' | 'dark' }) {
@@ -36,7 +37,7 @@ const SPACE_META = {
   IN: { code: 'IN', name: 'Innovation Network', sub: 'Ideas, suppliers, approvals' },
 } as const
 
-function SideLink({ i, collapsed }: { i: ReturnType<typeof navForSpace>[number]; collapsed: boolean }) {
+function SideLink({ i, collapsed, badge }: { i: ReturnType<typeof navForSpace>[number]; collapsed: boolean; badge?: number }) {
   return (
     <NavLink to={i.path} end={i.path === '/'} title={collapsed ? i.label : undefined}
       className={({ isActive }) => cn('group relative flex items-center gap-2.5 h-9 [@media(max-height:760px)]:h-8 rounded-lg text-[13px] transition-colors mb-0.5', collapsed ? 'justify-center px-0' : 'px-2.5',
@@ -46,6 +47,7 @@ function SideLink({ i, collapsed }: { i: ReturnType<typeof navForSpace>[number];
           {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[var(--sb-indicator)]" />}
           <Icon name={i.icon} size={16} strokeWidth={isActive ? 2.2 : 1.8} className={cn('shrink-0', isActive ? 'text-[var(--sb-active-fg)]' : 'text-[var(--sb-icon)]')} />
           {!collapsed && <span className="flex-1 truncate">{i.label}</span>}
+          {!!badge && <span className={cn('min-w-[20px] h-5 px-1.5 rounded-full text-[10.5px] font-bold grid place-items-center num bg-[var(--sb-indicator)] text-white', collapsed && 'absolute -top-1 -right-1 min-w-[16px] h-4 px-1 text-[9.5px]')}>{badge > 99 ? '99+' : badge}</span>}
         </>
       )}
     </NavLink>
@@ -64,6 +66,7 @@ function Sidebar() {
   const pinned = items.filter((i) => i.pinned)
   const sections = [...new Set(main.map((i) => i.section))]
   const meta = space ? SPACE_META[space] : null
+  const queue = useMyQueue()
   return (
     <aside className={cn('hidden md:flex flex-col transition-[width] duration-300 shrink-0 relative z-20 overflow-hidden border-r', collapsed ? 'w-[68px]' : 'w-[232px]')}
       style={{ background: 'var(--sb-bg)', borderColor: 'var(--sb-border)' }}>
@@ -84,7 +87,7 @@ function Sidebar() {
           <div key={sec} className={cn(si > 0 && 'mt-3 [@media(max-height:760px)]:mt-2')}>
             {!collapsed && <div className="px-2.5 mb-1 text-[10.5px] font-semibold uppercase tracking-[.12em] text-[var(--sb-muted)]">{sec}</div>}
             {collapsed && si > 0 && <div className="mx-3 mb-2 h-px bg-[var(--sb-border)]" />}
-            {main.filter((i) => i.section === sec).map((i) => <SideLink key={i.key} i={i} collapsed={collapsed} />)}
+            {main.filter((i) => i.section === sec).map((i) => <SideLink key={i.key} i={i} collapsed={collapsed} badge={i.key === 'queue' ? queue.mine.length : undefined} />)}
           </div>
         ))}
         {!space && (

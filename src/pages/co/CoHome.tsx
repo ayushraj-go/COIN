@@ -9,6 +9,7 @@ import { useScopeLabel } from '../home/cards'
 import { useCoData } from './data'
 import { CoKpis, HealthCard, PipelineCard } from './DashboardCards'
 import { SourcesCard } from '../home/Sources'
+import { QueuePeek } from '../queue/QueuePeek'
 import { PlanVsActualBlock, portfolioPlan } from '../idea/PlanVsActual'
 import { Badge, Card } from '../../components/ui'
 import { useStore } from '../../store/useStore'
@@ -33,6 +34,7 @@ export default function CoHome() {
 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
+          <Reveal className="col-span-12"><QueuePeek /></Reveal>
           <Reveal className="col-span-12"><CoKpis c={c} /></Reveal>
           <Reveal className="col-span-12"><SourcesCard ideas={c.d.ideas.filter((i) => i.bucket === 'In Execution' || i.bucket === 'Implemented')} mode="CO" fy={c.fy} /></Reveal>
           <Reveal className="col-span-12"><PortfolioPlanCard ideas={c.d.ideas} /></Reveal>
