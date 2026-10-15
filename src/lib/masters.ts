@@ -145,39 +145,93 @@ const u = (id: string, name: string, employeeId: string, roles: User['roles'], d
   id, name, employeeId, email: `${name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/\.$/, '')}@ambergroupindia.com`, password: pw, roles, department, plant, designation, commodities, avatarColor: COLORS[ci++ % COLORS.length], active: true, ...extra,
 })
 
-/** Feasibility team (stage 2): commodity buyers and leads plus one member from each department */
-const FEASIBILITY_TEAM = ['u-buyer1', 'u-buyer2', 'u-buyer3', 'u-buyer4', 'u-buyer5', 'u-buyer6', 'u-buyer7', 'u-lead1', 'u-lead2', 'u-lead3', 'u-sub1', 'u-sub2', 'u-sub3', 'u-sub4', 'u-sub5']
+/** Demo people — every department has the five-role ladder: Employee (submitter), Team lead, Department lead,
+ *  Department head and Execution owner. Sourcing uses its commodity leads as team leads and its buyers as execution owners. */
 export const USERS_DEFAULT: User[] = [
+  // R&D
   u('u-sub1', 'Neha Verma', 'AEL-20417', ['submitter'], 'R&D', 'Senior Engineer, R&D', [], 'RJP'),
-  u('u-sup1', 'Rakesh Gupta', 'V10021', ['supplier'], 'Supplier', 'Key Account Manager, Sunrise Fasteners Pvt Ltd', ['FAS'], 'RJP', { supplierCode: 'V10021', email: 'rakesh.gupta@sunrisefasteners.in' }),
-  u('u-buyer1', 'Arjun Mehta', 'AEL-11873', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Fasteners & Steel', ['FAS', 'STL'], 'RJP'),
-  u('u-eval1', 'Dr. Priya Nair', 'AEL-09331', ['techeval', 'submitter'], 'R&D', 'Chief Engineer, R&D', [], 'RJP'),
-  u('u-lead1', 'Sanjay Kapoor', 'AEL-07215', ['lead', 'submitter'], 'Sourcing', 'Commodity Lead — Metals', ['CUT', 'ALU', 'STL', 'FAS'], 'RJP'),
-  u('u-head', 'Girish Saluja', 'AEL-03108', ['head', 'submitter'], 'Sourcing', 'Head of Sourcing', [], 'NDA'),
-  u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — Costing', [], 'NDA'),
+  u('u-rd-tl', 'Arvind Rao', 'AEL-15203', ['teamlead', 'submitter'], 'R&D', 'Team Lead — Thermal Systems, R&D', [], 'RJP'),
+  u('u-eval1', 'Dr. Priya Nair', 'AEL-09331', ['deptlead', 'submitter'], 'R&D', 'Chief Engineer, R&D', [], 'RJP'),
+  u('u-rd-head', 'Dr. Sameer Kulkarni', 'AEL-04187', ['depthead', 'submitter'], 'R&D', 'Head of R&D', [], 'NDA'),
+  u('u-rd-exec', 'Rahul Jain', 'AEL-18822', ['execowner', 'submitter'], 'R&D', 'Project Engineer — R&D implementation', [], 'RJP'),
+  // DQA
+  u('u-sub5', 'Tanvi Gupta', 'AEL-20744', ['submitter'], 'DQA', 'DQA Engineer', [], 'RJP'),
+  u('u-dqa-tl', 'Pooja Nambiar', 'AEL-15318', ['teamlead', 'submitter'], 'DQA', 'Team Lead, DQA Lab', [], 'RJP'),
+  u('u-eval2', 'Amit Saxena', 'AEL-09876', ['deptlead', 'submitter'], 'DQA', 'Manager, DQA', [], 'RJP'),
+  u('u-dqa-head', 'Rajiv Bhalla', 'AEL-04290', ['depthead', 'submitter'], 'DQA', 'Head of DQA', [], 'NDA'),
+  u('u-dqa-exec', 'Sandeep Rawat', 'AEL-18901', ['execowner', 'submitter'], 'DQA', 'DQA Engineer — validation owner', [], 'RJP'),
+  // Quality
+  u('u-sub3', 'Farah Khan', 'AEL-20631', ['submitter'], 'Quality', 'Quality Engineer', [], 'SRC'),
+  u('u-qa-tl', 'Mohit Arora', 'AEL-15420', ['teamlead', 'submitter'], 'Quality', 'Team Lead, Supplier Quality', [], 'DDN'),
+  u('u-eval3', 'Ritu Malhotra', 'AEL-10021', ['deptlead', 'submitter'], 'Quality', 'Manager, Quality', [], 'DDN'),
+  u('u-qa-head', 'Anil Deshmukh', 'AEL-04355', ['depthead', 'submitter'], 'Quality', 'Head of Quality', [], 'NDA'),
+  u('u-qa-exec', 'Kavya Reddy', 'AEL-18977', ['execowner', 'submitter'], 'Quality', 'Quality Engineer — implementation owner', [], 'SRC'),
+  // Process
+  u('u-sub4', 'Harish Menon', 'AEL-20702', ['submitter'], 'Process', 'Process Engineer', [], 'PUN'),
+  u('u-pe-tl', 'Nitin Chawla', 'AEL-15511', ['teamlead', 'submitter'], 'Process', 'Team Lead, Process Engineering', [], 'JHJ'),
+  u('u-eval4', 'Karan Bhatia', 'AEL-10288', ['deptlead', 'submitter'], 'Process', 'Manager, Process Engineering', [], 'JHJ'),
+  u('u-pe-head', 'Manoj Pillai', 'AEL-04412', ['depthead', 'submitter'], 'Process', 'Head of Process Engineering', [], 'NDA'),
+  u('u-pe-exec', 'Siddharth Bose', 'AEL-19033', ['execowner', 'submitter'], 'Process', 'Process Engineer — line changes', [], 'PUN'),
+  // Production
+  u('u-sub2', 'Vivek Chauhan', 'AEL-20588', ['submitter'], 'Production', 'Shift Engineer, Production', [], 'JHJ'),
+  u('u-pr-tl', 'Gurmeet Singh', 'AEL-15602', ['teamlead', 'submitter'], 'Production', 'Shift Lead, Production', [], 'RJP'),
+  u('u-pr-lead', 'Deepika Sharma', 'AEL-10377', ['deptlead', 'submitter'], 'Production', 'Manager, Production Planning', [], 'RJP'),
+  u('u-eval5', 'Suresh Yadav', 'AEL-10412', ['depthead', 'submitter'], 'Production', 'Production Head, Rajpura', [], 'RJP'),
+  u('u-pr-exec', 'Ravi Teja', 'AEL-19108', ['execowner', 'submitter'], 'Production', 'Production Engineer — implementation', [], 'SRC'),
+  // Finance (Meera Iyer is the Finance verifier for stage 6)
+  u('u-fi-emp', 'Ankita Jain', 'AEL-20815', ['submitter'], 'Finance', 'Executive, Costing', [], 'NDA'),
+  u('u-fi-tl', 'Prakash Iyer', 'AEL-15688', ['teamlead', 'submitter'], 'Finance', 'Team Lead, Costing', [], 'NDA'),
+  u('u-fi-lead', 'Shalini Gupta', 'AEL-10466', ['deptlead', 'submitter'], 'Finance', 'Manager, Finance', [], 'NDA'),
+  u('u-fi-head', 'Vinod Agarwal', 'AEL-03377', ['depthead', 'submitter'], 'Finance', 'Head of Finance', [], 'NDA'),
+  u('u-fi-exec', 'Rohit Kapoor', 'AEL-19177', ['execowner', 'submitter'], 'Finance', 'Finance Executive — implementation owner', [], 'NDA'),
+  u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — savings verification', [], 'NDA'),
+  // Sourcing — commodity leads are the team leads, commodity buyers the execution owners
+  u('u-so-emp', 'Aditi Sharma', 'AEL-20877', ['submitter'], 'Sourcing', 'Executive, Sourcing', [], 'NDA'),
+  u('u-lead1', 'Sanjay Kapoor', 'AEL-07215', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Metals', ['CUT', 'ALU', 'STL', 'FAS'], 'RJP'),
+  u('u-lead2', 'Anita Sharma', 'AEL-07544', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Electricals', ['CMP', 'PCB', 'MOT', 'HAR'], 'NDA'),
+  u('u-lead3', 'Deepak Joshi', 'AEL-07698', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Plastics, Packing & Indirect', ['PLM', 'RES', 'COR', 'EPS', 'FRT', 'MRO', 'FAC'], 'DDN'),
+  u('u-so-lead', 'Ashok Menon', 'AEL-06120', ['deptlead', 'submitter'], 'Sourcing', 'Senior Manager, Sourcing', [], 'NDA'),
+  u('u-head', 'Girish Saluja', 'AEL-03108', ['head', 'depthead', 'submitter'], 'Sourcing', 'Head of Sourcing', [], 'NDA'),
+  u('u-buyer1', 'Arjun Mehta', 'AEL-11873', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Fasteners & Steel', ['FAS', 'STL'], 'RJP'),
+  u('u-buyer2', 'Kavita Rao', 'AEL-11902', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Copper & Aluminium', ['CUT', 'ALU'], 'DDN'),
+  u('u-buyer3', 'Rohan Desai', 'AEL-12011', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Compressor & Motors', ['CMP', 'MOT'], 'SRC'),
+  u('u-buyer4', 'Sneha Kulkarni', 'AEL-12167', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — PCB & Harness', ['PCB', 'HAR'], 'NDA'),
+  u('u-buyer5', 'Imran Sheikh', 'AEL-12230', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Plastics', ['PLM', 'RES'], 'DDN'),
+  u('u-buyer6', 'Pooja Bansal', 'AEL-12388', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Packing', ['COR', 'EPS'], 'JHJ'),
+  u('u-buyer7', 'Manish Tiwari', 'AEL-12415', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Indirect', ['FRT', 'MRO', 'FAC'], 'NDA'),
+  // HR
+  u('u-hr-emp', 'Simran Kaur', 'AEL-20932', ['submitter'], 'HR', 'Executive, HR', [], 'NDA'),
+  u('u-hr-tl', 'Varun Malhotra', 'AEL-15744', ['teamlead', 'submitter'], 'HR', 'Team Lead, HR Operations', [], 'NDA'),
+  u('u-hr-lead', 'Neelam Saxena', 'AEL-10533', ['deptlead', 'submitter'], 'HR', 'Manager, HR', [], 'NDA'),
+  u('u-hr-head', 'Lata Krishnan', 'AEL-03455', ['depthead', 'submitter'], 'HR', 'Head of HR', [], 'NDA'),
+  u('u-hr-exec', 'Imtiaz Ali', 'AEL-19260', ['execowner', 'submitter'], 'HR', 'HR Executive — admin and facilities', [], 'RJP'),
+  // cross-functional
   u('u-mgmt', 'Rajesh Khanna', 'AEL-00112', ['mgmt'], 'Management', 'Chief Operating Officer', [], 'NDA'),
   u('u-admin', 'Nikhil Agarwal', 'AEL-12440', ['admin'], 'Sourcing Excellence', 'Manager, Sourcing Excellence', [], 'NDA'),
-  // additional buyers & leads
-  u('u-buyer2', 'Kavita Rao', 'AEL-11902', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Copper & Aluminium', ['CUT', 'ALU'], 'DDN'),
-  u('u-buyer3', 'Rohan Desai', 'AEL-12011', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Compressor & Motors', ['CMP', 'MOT'], 'SRC'),
-  u('u-buyer4', 'Sneha Kulkarni', 'AEL-12167', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — PCB & Harness', ['PCB', 'HAR'], 'NDA'),
-  u('u-buyer5', 'Imran Sheikh', 'AEL-12230', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Plastics', ['PLM', 'RES'], 'DDN'),
-  u('u-buyer6', 'Pooja Bansal', 'AEL-12388', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Packing', ['COR', 'EPS'], 'JHJ'),
-  u('u-buyer7', 'Manish Tiwari', 'AEL-12415', ['buyer', 'submitter'], 'Sourcing', 'Commodity Buyer — Indirect', ['FRT', 'MRO', 'FAC'], 'NDA'),
-  u('u-lead2', 'Anita Sharma', 'AEL-07544', ['lead', 'submitter'], 'Sourcing', 'Commodity Lead — Electricals', ['CMP', 'PCB', 'MOT', 'HAR'], 'NDA'),
-  u('u-lead3', 'Deepak Joshi', 'AEL-07698', ['lead', 'submitter'], 'Sourcing', 'Commodity Lead — Plastics, Packing & Indirect', ['PLM', 'RES', 'COR', 'EPS', 'FRT', 'MRO', 'FAC'], 'DDN'),
-  u('u-eval2', 'Amit Saxena', 'AEL-09876', ['techeval', 'submitter'], 'DQA', 'Manager, DQA', [], 'RJP'),
-  u('u-eval3', 'Ritu Malhotra', 'AEL-10021', ['techeval', 'submitter'], 'Quality', 'Manager, Quality', [], 'DDN'),
-  u('u-eval4', 'Karan Bhatia', 'AEL-10288', ['techeval', 'submitter'], 'Process', 'Manager, Process Engineering', [], 'JHJ'),
-  u('u-eval5', 'Suresh Yadav', 'AEL-10412', ['techeval', 'submitter'], 'Production', 'Production Head, Rajpura', [], 'RJP'),
-  u('u-sub2', 'Vivek Chauhan', 'AEL-20588', ['submitter'], 'Production', 'Shift Engineer, Production', [], 'JHJ'),
-  u('u-sub3', 'Farah Khan', 'AEL-20631', ['submitter'], 'Quality', 'Quality Engineer', [], 'SRC'),
-  u('u-sub4', 'Harish Menon', 'AEL-20702', ['submitter'], 'Process', 'Process Engineer', [], 'PUN'),
-  u('u-sub5', 'Tanvi Gupta', 'AEL-20744', ['submitter'], 'DQA', 'DQA Engineer', [], 'RJP'),
+  // suppliers
+  u('u-sup1', 'Rakesh Gupta', 'V10021', ['supplier'], 'Supplier', 'Key Account Manager, Sunrise Fasteners Pvt Ltd', ['FAS'], 'RJP', { supplierCode: 'V10021', email: 'rakesh.gupta@sunrisefasteners.in' }),
   u('u-sup2', 'Lakshmi Narayan', 'V10007', ['supplier'], 'Supplier', 'Sales Head, Coolmax Compressors India', ['CMP'], 'SRC', { supplierCode: 'V10007', email: 'lakshmi@coolmaxindia.com' }),
   u('u-sup3', 'Gurpreet Sandhu', 'V10005', ['supplier'], 'Supplier', 'Director, Shakti Steel Processors', ['STL'], 'RJP', { supplierCode: 'V10005', email: 'gurpreet@shaktisteel.in' }),
   u('u-sup4', 'Ankit Jain', 'V10009', ['supplier'], 'Supplier', 'Business Head, Circuitek Electronics', ['PCB'], 'NDA', { supplierCode: 'V10009', email: 'ankit.jain@circuitek.in' }),
-].map((x) => (FEASIBILITY_TEAM.includes(x.id) ? { ...x, roles: [...x.roles, 'feasibility' as const] } : x))
+]
+
+/** The five ladder roles every department has, in workflow order, with what each does */
+export const LADDER_ROLES = [
+  { key: 'submitter', label: 'Employee', duty: 'Submits ideas — stage 1' },
+  { key: 'teamlead', label: 'Team lead', duty: 'Team feasibility check — stage 2' },
+  { key: 'deptlead', label: 'Department lead', duty: 'Evaluation: cost-benefit, risk, supplier check — stage 3' },
+  { key: 'depthead', label: 'Department head', duty: 'Approval: budget + timeline lock, signature — stage 4' },
+  { key: 'execowner', label: 'Execution owner', duty: 'Execution: milestones, first MRN, hand-over — stage 5' },
+] as const
+
+/** Cross-functional demo accounts shown beside the department ladder */
+export const CROSS_LOGINS: { userId: string; role: string; blurb: string }[] = [
+  { userId: 'u-fin', role: 'Finance verifier', blurb: 'Verifies locked targets from MRN — stage 6' },
+  { userId: 'u-head', role: 'Sourcing Head', blurb: 'Acts at every stage · Sourcing department head' },
+  { userId: 'u-admin', role: 'Admin', blurb: 'Acts at every stage · masters and users' },
+  { userId: 'u-mgmt', role: 'Management', blurb: 'Dashboards and the monthly report' },
+  { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · ideas and workshops' },
+]
 
 // Demo login tiles — one per role (hard-coded, password coin@2026)
 export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [

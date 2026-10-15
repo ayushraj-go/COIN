@@ -147,9 +147,6 @@ export function canSeeIdea(user: User, idea: Idea): boolean {
   if (idea.submitterId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
-  if (r.includes('techeval') && idea.evaluation && idea.evaluation.dept === user.department) return true
-  // feasibility team: their commodities, and — for department members without a commodity — every idea waiting for the check
-  if (r.includes('feasibility') && (user.commodities.includes(idea.commodity) || (!user.commodities.length && idea.stage === 'Team feasibility check'))) return true
   return false
 }
 export const visibleIdeas = (user: User, ideas: Idea[]) => (user ? ideas.filter((i) => canSeeIdea(user, i)) : [])

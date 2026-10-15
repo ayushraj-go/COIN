@@ -227,7 +227,7 @@ export const useStore = create<Store>()(
       const evaluatorIds = (idea: Idea, dept: string) => {
         const ids = dept === 'Sourcing'
           ? [commodityOf(idea.commodity)?.leadId].filter(Boolean) as string[]
-          : get().users.filter((u) => u.roles.includes('techeval') && u.department === dept).map((u) => u.id)
+          : get().users.filter((u) => u.roles.includes('deptlead') && u.department === dept).map((u) => u.id)
         return [...new Set([...ids, 'u-head'])]
       }
 

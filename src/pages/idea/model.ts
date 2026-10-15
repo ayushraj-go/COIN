@@ -192,7 +192,7 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || (can(me, 'feasibility') && (scope || me.commodities.length === 0) && idea.submitterId !== me.id))
   // stage 3 — the submitter's department evaluates; Sourcing evaluations by the commodity lead / buyer; the Sourcing Head always
   const dept = idea.evaluation?.dept
-  const evaluate = pipeline && evalStage && (head || (hasRole(me, 'techeval') && me.department === dept) || (dept === 'Sourcing' && hasRole(me, 'lead', 'buyer') && scope))
+  const evaluate = pipeline && evalStage && (head || (hasRole(me, 'deptlead') && me.department === dept) || (dept === 'Sourcing' && hasRole(me, 'lead', 'buyer') && scope))
   // stage 4 — approval matrix
   const approve = pipeline && stage === STAGE.approval && can(me, 'approve') && !!pending &&
     (head || pending.approverId === me.id || (pending.level === 'Commodity Lead' && hasRole(me, 'lead') && scope))

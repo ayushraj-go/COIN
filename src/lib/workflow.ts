@@ -1,14 +1,39 @@
 // COIN six-stage workflow — pure rules (no store, no React), unit-tested in workflow.test.ts.
 // Idea submitted → Team feasibility check → <dept> evaluation → Sourcing approval → Execution started → Verification
-import type { Idea, Part, RiskItem, RiskLevel, Supplier } from './types'
+import type { Idea, Part, RiskItem, RiskLevel, RoleKey, Supplier, User } from './types'
 import { addMonthsYm, ymOf } from './format'
+import { STAGE } from './masters'
 
 /** Below this annualised saving the supplier capability check is skipped */
 export const SUPPLIER_CHECK_MIN = 5_00_000
 /** Stands in for the secure supplier-form link until the request is sent */
 export const SUPPLIER_LINK_PLACEHOLDER = '[secure form link]'
 /** Departments that run their own evaluation; every other department (Sourcing, Supplier, Management…) maps to Sourcing */
-export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance'] as const
+export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'HR'] as const
+/** The 8 departments with the five-role ladder (Employee, Team lead, Department lead, Department head, Execution owner) */
+export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'] as const
+
+export interface Ladder { dept: string; teamLead?: string; deptLead?: string; deptHead?: string; execOwner?: string; verifier?: string }
+/** Who holds each ladder role for a department; inside Sourcing the holder mapped to the idea's commodity wins */
+export function ladderOf(dept: string, commodity: string, users: User[]): Ladder {
+  const pick = (role: RoleKey) => {
+    const holders = users.filter((u) => u.active !== false && u.department === dept && u.roles.includes(role))
+    return (holders.find((u) => u.commodities.includes(commodity)) ?? holders[0])?.id
+  }
+  return { dept, teamLead: pick('teamlead'), deptLead: pick('deptlead'), deptHead: pick('depthead'), execOwner: pick('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
+}
+/** The department whose ladder runs this idea: the evaluation's department once set, else the submitter's (mapped) */
+export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept: string } }) => idea.evaluation?.dept ?? evalDeptOf(idea.department)
+/** The person expected to act at `stage` — used by permissions, "waiting on", queues, notifications and the seed */
+export function stageAssignee(idea: Idea, stage: string, users: User[]): string | undefined {
+  const l = ladderOf(ideaDept(idea), idea.commodity, users)
+  if (stage === STAGE.feasibility) return l.teamLead && l.teamLead !== idea.submitterId ? l.teamLead : l.deptLead
+  if (stage === STAGE.evaluation) return l.deptLead
+  if (stage === STAGE.approval) return l.deptHead
+  if (stage === STAGE.execution) return idea.ownerId ?? l.execOwner
+  if (stage === STAGE.verification) return l.verifier
+  return undefined
+}
 
 export function evalDeptOf(department?: string): string {
   return department && (EVAL_DEPTS as readonly string[]).includes(department) ? department : 'Sourcing'

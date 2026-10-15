@@ -59,7 +59,7 @@ export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useSt
     }
     if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the team's query`, { urgency: 3.5 })
     if (i.stage === STAGE.feasibility && ((isBuyer && (i.buyerId === me.id || me.commodities.includes(i.commodity))) || (isLead && me.commodities.includes(i.commodity)))) push('validate', i, `${i.id} · ${i.submitterName} · team feasibility check`)
-    if (EVALUATION_STAGES.includes(i.stage) && i.evaluation && !i.evaluation.decision && ((r.includes('techeval') && i.evaluation.dept === me.department) || (i.evaluation.dept === 'Sourcing' && (isLead || isBuyer) && me.commodities.includes(i.commodity)) || isHead)) push('evaluate', i, `${i.id} · ${i.evaluation.dept} evaluation · cost-benefit, risk, supplier check`)
+    if (EVALUATION_STAGES.includes(i.stage) && i.evaluation && !i.evaluation.decision && ((r.includes('deptlead') && i.evaluation.dept === me.department) || (i.evaluation.dept === 'Sourcing' && (isLead || isBuyer) && me.commodities.includes(i.commodity)) || isHead)) push('evaluate', i, `${i.id} · ${i.evaluation.dept} evaluation · cost-benefit, risk, supplier check`)
     if ((isLead || isHead) && i.stage === STAGE.approval && !!firstPending(i) && (firstPending(i)!.approverId === me.id || isHead)) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
     if ((isBuyer || isLead || isHead) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
       const mineExec = isHead || (isLead && me.commodities.includes(i.commodity)) || (i.ownerId ?? i.buyerId) === me.id
