@@ -97,7 +97,7 @@ export const MILESTONE_TEMPLATES: Record<RouteKey, string[]> = {
   'To be confirmed': ['PAP revision request raised', 'PAP price approved', ...FINAL_MILESTONES],
 }
 
-export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Sourcing']
+export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR']
 export const EVIDENCE_TAGS = ['Trial', 'Quote', 'Benchmark', 'Drawing']
 
 export const PLANTS_DEFAULT: Plant[] = [

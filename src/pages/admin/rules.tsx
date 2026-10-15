@@ -78,10 +78,6 @@ export function ApprovalAdmin() {
   const fill = (s: string, r: ApprovalRule) => s.replace('₹ X lakh', `₹ ${r.kind === 'value' ? x : y} lakh`).replace('₹ Y lakh', `₹ ${y} lakh`)
   return (
     <div className="grid gap-3">
-      <div className="flex items-start gap-2.5 rounded-2xl border border-gold-200 bg-gold-50/70 px-4 py-3">
-        <Icon name="Scale" size={16} className="text-gold-600 mt-0.5" />
-        <div className="text-[12.5px] text-ink-2"><b className="text-ink">{APPROVAL_NOTE}</b> {DECISIONS.find((d) => d.n === 4)?.decision} — proposed: {DECISIONS.find((d) => d.n === 4)?.proposed}.</div>
-      </div>
       <LadderCard />
       <Modal open={!!edit} onClose={() => setEdit(null)} icon="GitBranch" title={`Edit rule ${edit?.id ?? ''}`} size="sm"
         footer={<><Button onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" icon="Save" disabled={!edit?.condition.trim() || !edit?.approver.trim()} onClick={() => { const prev = useStore.getState().approvalRules; upsert('approvalRules', edit); nowUndo(`Rule ${edit!.id} updated`, () => useStore.setState({ approvalRules: prev })); setEdit(null) }}>Save rule</Button></>}>

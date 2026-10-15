@@ -83,7 +83,7 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       </Shell>
 
       {/* Stage 4 */}
-      <Shell n={4} title={STAGE.approval} icon="Stamp" tone={lock ? GREEN : at(STAGE.approval) ? ORANGE : GREY}
+      <Shell n={4} title={stageLabel(idea, STAGE.approval)} icon="Stamp" tone={lock ? GREEN : at(STAGE.approval) ? ORANGE : GREY}
         status={<Badge color={lock ? GREEN : at(STAGE.approval) ? ORANGE : GREY}>{lock && idea.approvedAt ? 'Approved · locked' : lock ? 'Lock signed' : at(STAGE.approval) ? 'Awaiting approval' : 'Pending'}</Badge>}
         action={p.approve ? <Button size="sm" variant="primary" icon="Signature" onClick={() => setOpen('appr')}>{lock ? 'Approve' : 'Sign lock & approve'}</Button> : undefined}>
         {lock ? (
