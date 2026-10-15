@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { buildSeed } from './seed'
 import { STAGE, WORKFLOW_STAGES } from './masters'
-import { planVsActual } from './workflow'
+import { ladderOf, planVsActual } from './workflow'
+import { USERS_DEFAULT } from './masters'
 
 const seed = buildSeed()
 const show = (n: number) => seed.ideas.find((i) => i.showcase === n)!
@@ -55,5 +56,31 @@ describe('reset restores the same demo data', () => {
     const again = buildSeed()
     expect(again.ideas.map((i) => i.id)).toEqual(seed.ideas.map((i) => i.id))
     expect(again.ideas.find((i) => i.showcase === 5)?.id).toBe(show(5).id)
+  })
+})
+
+describe('department ladder authors every stage', () => {
+  const name = (id?: string) => USERS_DEFAULT.find((u) => u.id === id)?.name
+  it('feasibility by the team lead (department lead on their own idea), evaluation by the department lead', () => {
+    for (const i of seed.ideas.filter((x) => x.feasibilityCheck && x.evaluation)) {
+      const l = ladderOf(i.evaluation!.dept, i.commodity, USERS_DEFAULT)
+      expect(i.feasibilityCheck!.by, i.id).toBe(name(l.teamLead === i.submitterId ? l.deptLead : l.teamLead))
+      if (i.evaluation!.decision === 'Recommend') expect(i.evaluation!.by, i.id).toBe(name(l.deptLead))
+    }
+  })
+  it('the department head approves and signs; the department execution owner runs execution; Finance verifies', () => {
+    const locked = seed.ideas.filter((x) => x.lock)
+    expect(locked.length).toBeGreaterThan(20)
+    for (const i of locked) {
+      const l = ladderOf(i.evaluation!.dept, i.commodity, USERS_DEFAULT)
+      expect(i.approvals.map((a) => a.level), i.id).toEqual([`${i.evaluation!.dept} head`])
+      expect(i.lock!.signedBy, i.id).toBe(name(l.deptHead))
+      if (i.execution) expect(i.ownerId, i.id).toBe(l.execOwner)
+      if (i.verification?.verifiedAt) expect(i.verification.verifiedBy, i.id).toBe('Meera Iyer')
+    }
+  })
+  it('ideas come from all 8 departments, and the walkthrough spans at least three', () => {
+    expect(new Set(seed.ideas.map((i) => i.evaluation?.dept).filter(Boolean)).size).toBe(8)
+    expect(new Set([1, 2, 3, 4, 5, 6].map((n) => show(n).evaluation?.dept ?? show(n).department)).size).toBeGreaterThanOrEqual(3)
   })
 })

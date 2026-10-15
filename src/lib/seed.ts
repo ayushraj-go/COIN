@@ -1,8 +1,8 @@
 import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User } from './types'
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
-import { approvalLevels, bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, lockTarget, milestoneSchedule, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
+import { addMonthsIso, evalDeptOf, ladderOf, lockTarget, milestoneSchedule, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -111,7 +111,10 @@ const PROPOSED: Record<string, string> = {
 const ALT_SUPPLIER_NEW = ['Metro Precision Components', 'Ganga Industrial Works', 'Deccan Engineering Co.', 'Bharat Alloy Castings', 'Shree Balaji Polymers', 'Unique Pack Solutions']
 
 const users = USERS_DEFAULT
-const submitterPool = ['u-sub1', 'u-sub2', 'u-sub3', 'u-sub4', 'u-sub5', 'u-eval1', 'u-eval2', 'u-eval3', 'u-eval4', 'u-eval5']
+// employees and leads from every department raise ideas; indirect spend (freight, MRO, facilities) leans to HR and Finance
+const submitterPool = ['u-sub1', 'u-sub2', 'u-sub3', 'u-sub4', 'u-sub5', 'u-fi-emp', 'u-hr-emp', 'u-so-emp', 'u-eval1', 'u-eval2', 'u-eval3', 'u-eval4', 'u-rd-tl', 'u-qa-tl', 'u-pe-tl', 'u-pr-lead', 'u-fi-tl', 'u-hr-tl']
+const INDIRECT = ['FRT', 'MRO', 'FAC']
+const HR_FIN = ['u-hr-emp', 'u-hr-tl', 'u-fi-emp', 'u-fi-tl']
 const userById = (id: string) => users.find((u) => u.id === id)!
 
 function supName(code: string) { return SUPPLIERS_DEFAULT.find((s) => s.code === code)?.name ?? code }
@@ -152,8 +155,11 @@ function evaluatorFor(evaluator: string) {
 
 type Target = 'Draft' | 'Pipeline' | 'In Execution' | 'Implemented' | 'Dropped' | 'Rejected'
 
-/** Evaluator for the submitter's department (stage 3); Sourcing ideas are evaluated by the commodity lead */
-const EVALUATOR_BY_DEPT: Record<string, string> = { 'R&D': 'u-eval1', DQA: 'u-eval2', Quality: 'u-eval3', Process: 'u-eval4', Production: 'u-eval5', Finance: 'u-fin' }
+/** The department ladder for an idea: team lead (department lead on their own idea), department lead, head, execution owner */
+function ladderFor(dept: string, commodity: string, submitterId: string) {
+  const l = ladderOf(dept, commodity, users)
+  return { feas: (l.teamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead)!, evaluator: l.deptLead!, head: l.deptHead!, exec: l.execOwner!, verifier: l.verifier ?? 'u-fin' }
+}
 const LEVEL_FRAC: Record<RiskLevel, [number, number]> = { Low: [0, 0.015], Medium: [0.015, 0.05], High: [0.05, 0.1] }
 function makeRisks(annual: number, levels?: RiskLevel[]): RiskItem[] {
   return RISK_FACTORS.map((f, k) => {
@@ -186,7 +192,7 @@ function buildIdea(opts: {
   const plant = chosen[0]?.plant ?? pick(PLANTS_DEFAULT).id
 
   const supplierSub = opts.supplierCode ? users.find((u) => u.supplierCode === opts.supplierCode) : undefined
-  const submitterId = opts.submitterId ?? supplierSub?.id ?? (chance(0.45) ? c.buyerId : chance(0.2) ? c.leadId : pick(submitterPool))
+  const submitterId = opts.submitterId ?? supplierSub?.id ?? (INDIRECT.includes(c.code) && chance(0.55) ? pick(HR_FIN) : chance(0.35) ? c.buyerId : chance(0.15) ? c.leadId : pick(submitterPool))
   const sub = userById(submitterId)
   const partName = chosen[0]?.description ?? c.name
   const altSup = SUPPLIERS_DEFAULT.find((s) => s.commodities.includes(c.code) && s.code !== chosen[0]?.supplierCode)
@@ -254,7 +260,8 @@ function buildIdea(opts: {
   else finalIdx = ri(0, routeStages.length - 2)
 
   const evalDept = evalDeptOf(sub.department)
-  const evaluatorId = EVALUATOR_BY_DEPT[evalDept] ?? c.leadId
+  const lad = ladderFor(evalDept, c.code, submitterId)
+  const evaluatorId = lad.evaluator
   let cursor = createdAt
   const lead = c.leadId
   for (let s = 0; s <= finalIdx; s++) {
@@ -262,7 +269,7 @@ function buildIdea(opts: {
     const enteredAt = dt(cursor, 10 + (s % 6), 15)
     const isLast = s === finalIdx
     const dur = t === 'Pipeline' && isLast ? 0 : stage === STAGE.approval ? ri(1, 4) : stage === STAGE.evaluation ? ri(3, 10) : stage === STAGE.execution ? ri(20, 60) : ri(2, 7)
-    const who = stage === STAGE.approval ? lead : stage === STAGE.evaluation ? evaluatorId : c.buyerId
+    const who = stage === STAGE.approval ? lad.head : stage === STAGE.evaluation ? evaluatorId : stage === STAGE.feasibility ? lad.feas : lad.exec
     idea.stageHistory.push({ stage, enteredAt })
     if (!isLast) {
       const exit = addDays(cursor, dur)
@@ -271,7 +278,7 @@ function buildIdea(opts: {
       h.by = userById(who).name
       h.action = stage === STAGE.approval ? 'Approved · lock signed' : stage === STAGE.evaluation ? 'Recommended' : stage === STAGE.feasibility ? 'Go' : stage === STAGE.execution ? 'Handed for verification' : 'Completed'
       // the Execution started → Verification step is logged as the hand-over with its own date below
-      if (stage !== STAGE.execution) log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Team feasibility check — Go' : stage === STAGE.evaluation ? `${evalDept} evaluation — recommended` : 'Sourcing approval — approved', { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
+      if (stage !== STAGE.execution) log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Team feasibility check — Go' : stage === STAGE.evaluation ? `${evalDept} evaluation — recommended` : `${evalDept} approval — approved`, { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
       if (stage === STAGE.approval) idea.approvedAt = dt(exit, 16)
       cursor = exit
     }
@@ -303,7 +310,7 @@ function buildIdea(opts: {
       technical: passed || chance(0.5) ? 'Yes' : 'No', cost: passed ? 'Valid' : 'Not valid', costNote: passed ? 'Baseline matches LBP; new price within the quote' : 'Baseline above latest LBP; quote to be refreshed',
       conflict: 'None', decision: passed ? 'Go' : 'No-go', departments: ['Sourcing', ...(extra.length ? extra : ['R&D'])],
       remarks: passed ? 'Feasible; baseline and volume confirmed.' : 'Not feasible at the quoted cost.',
-      by: userById(c.buyerId).name, byDept: 'Sourcing', at: idea.stageHistory[0].exitedAt ?? dt(cursor, 15),
+      by: userById(lad.feas).name, byDept: evalDept, at: idea.stageHistory[0].exitedAt ?? dt(cursor, 15),
     }
   }
 
@@ -333,8 +340,8 @@ function buildIdea(opts: {
   }
 
   // approvals
-  const needsHead = annual > 50 * LAKH || idea.oneTimeInvestment > 25 * LAKH
-  idea.approvals = [{ level: 'Commodity Lead', approverId: lead }, ...(needsHead ? [{ level: 'Sourcing Head', approverId: 'u-head' }] : [])]
+  // stage 4 — one approval level: the head of the idea's department
+  idea.approvals = [{ level: `${evalDept} head`, approverId: lad.head }]
   if (idea.approvedAt) idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: idea.approvedAt, remarks: 'Approved — lock signed.' }))
 
   idea.bucket = bucketFor(route, cur)
@@ -345,7 +352,7 @@ function buildIdea(opts: {
     const months = pick([3, 6, 6, 6, 9, 12])
     const leadMonths = route === 'Technical' || route === 'Supplier change' ? 2 : 1
     const startDate = firstOfMonth(addMonthsIso(approvedDay, leadMonths))
-    const signer = needsHead ? 'u-head' : lead
+    const signer = lad.head
     idea.lock = {
       commercialOk: true, supplierAligned: idea.evaluation?.supplier?.status === 'Responded' ? 'Confirmed' : idea.evaluation?.supplier?.status === 'Skipped' ? 'Skipped' : 'Not confirmed',
       budget: idea.oneTimeInvestment || Math.round((annual * 0.02) / 1000) * 1000, timelineMonths: months, startDate, endDate: addMonthsIso(startDate, months),
@@ -388,7 +395,7 @@ function buildIdea(opts: {
       effectiveDate = ms.find((m) => m.name === 'First MRN at new price')?.doneDate
     }
     const exec: Execution = {
-      ownerId: c.buyerId, startDate: approvedDay, targetDate, originalTargetDate: targetDate,
+      ownerId: lad.exec, startDate: approvedDay, targetDate, originalTargetDate: targetDate,
       phasing: phaseByQuarter(annual, L.startDate < '2026-04-01' ? '2026-04-01' : L.startDate, FY), milestones: ms, slippage: [],
       progress: t === 'Implemented' ? 100 : Math.round((ms.filter((m) => m.doneDate).length / ms.length) * 100),
       notes: [], status: t === 'Implemented' ? 'Done' : t === 'Dropped' ? 'Dropped' : 'In Execution', effectiveDate,
@@ -397,10 +404,10 @@ function buildIdea(opts: {
     if (t === 'In Execution' && chance(0.18)) {
       const orig = addDays(targetDate, -ri(30, 75))
       exec.originalTargetDate = orig
-      exec.slippage.push({ at: dt(addDays(orig, -5) < TODAY ? addDays(orig, -5) : addDays(TODAY, -ri(3, 20))), by: userById(c.buyerId).name, oldDate: orig, newDate: targetDate, reason: pick(['NPD sample re-submission required', 'Supplier tooling delayed', 'PAP approval pending with plant finance', 'Customer / OEM approval awaited']) })
+      exec.slippage.push({ at: dt(addDays(orig, -5) < TODAY ? addDays(orig, -5) : addDays(TODAY, -ri(3, 20))), by: userById(lad.exec).name, oldDate: orig, newDate: targetDate, reason: pick(['NPD sample re-submission required', 'Supplier tooling delayed', 'PAP approval pending with plant finance', 'Customer / OEM approval awaited']) })
     }
     idea.execution = exec
-    idea.ownerId = c.buyerId
+    idea.ownerId = lad.exec
     idea.coDate = effectiveDate ?? L.startDate
     // NPD sample and PAP price revision are milestones inside "Execution started"
     const npdMs = ms.find((m) => m.name.includes('NPD sample'))
@@ -422,9 +429,9 @@ function buildIdea(opts: {
       idea.verification = { handedAt: dt(handedAt!, 15), handedBy: userById(c.buyerId).name }
       const verifiedOn = addDays(handedAt!, ri(3, 25))
       if (chance(0.6) && verifiedOn < TODAY) {
-        idea.verification = { ...idea.verification, verifiedAt: dt(verifiedOn, 12), verifiedBy: 'Girish Saluja', mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price; savings on plan for the period.' }
+        idea.verification = { ...idea.verification, verifiedAt: dt(verifiedOn, 12), verifiedBy: userById(lad.verifier).name, mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price; savings on plan for the period.' }
         const vH = idea.stageHistory.find((h) => h.stage === STAGE.verification)
-        if (vH) Object.assign(vH, { exitedAt: dt(verifiedOn, 12), by: 'Girish Saluja', action: 'Verified' })
+        if (vH) Object.assign(vH, { exitedAt: dt(verifiedOn, 12), by: userById(lad.verifier).name, action: 'Verified' })
         log(dt(verifiedOn, 12), 'u-head', 'Verified — target achieved')
       }
     }
@@ -541,7 +548,7 @@ function buildShowcase(): Idea[] {
     { n: 2, commodity: 'STL', leverId: 'L12', submitterId: 'u-sub3', title: 'Cut the condenser side bracket from a drawing-nominal blank',
       current: 'The condenser side bracket is cut from an oversize blank; about 6 % offcut goes to scrap.', proposed: 'Correct the blank to drawing nominal and nest two brackets per strip.',
       evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: '3400031187', newPrice: 38.2, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
-    { n: 3, commodity: 'ALU', leverId: 'L11', submitterId: 'u-eval1', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
+    { n: 3, commodity: 'ALU', leverId: 'L11', submitterId: 'u-sub4', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
       current: 'Indoor coils use 0.105 mm blue-coated fin stock.', proposed: 'Move to 0.100 mm hydrophilic fin stock with the same heat-transfer performance at a lower gauge.',
       evidence: 'Thermal performance test on a 1.5 TR coil passed at the R&D lab; vendor quote attached.', partCode: '3300021019', newPrice: 316, volume: 600000, investment: 0, months: 6, alt: 'V10003', risks: ['Medium', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '120 MT per month', lead: 30, price: 0, certs: 'IATF 16949 · ISO 14001', remarks: 'Hydrophilic 0.100 mm grade is in regular production; trial coils in 3 weeks.' } },
@@ -549,7 +556,7 @@ function buildShowcase(): Idea[] {
       current: 'The indoor display PCB assembly is single-sourced; the price has not moved in 18 months.', proposed: 'Develop an alternate source on the same drawing; split volume 60 / 40 after PPAP.',
       evidence: 'Capability audit and quote completed; sample lot planned.', partCode: '3600050118', newPrice: 184.4, volume: 1500000, investment: 4 * LAKH, months: 6, alt: 'V10009', risks: ['Medium', 'Low', 'Medium', 'Medium', 'Low'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '180 k assemblies per month', lead: 45, certs: 'IATF 16949 · IPC-A-610 class 2', remarks: 'SMT line capacity reserved from December.' } },
-    { n: 5, commodity: 'CUT', leverId: 'L09', submitterId: 'u-sub4', title: 'Shorter hairpin bend leg length on 7 mm coils',
+    { n: 5, commodity: 'CUT', leverId: 'L09', submitterId: 'u-sub2', title: 'Shorter hairpin bend leg length on 7 mm coils',
       current: 'Pre-formed hairpin bends carry 4 mm extra leg length that is trimmed after expansion.', proposed: 'Order hairpins at the trimmed length; the supplier passes on the copper saving.',
       evidence: 'Expansion trial on line 3 passed; no leak at 45 bar.', partCode: '3200011277', newPrice: 14.5, volume: 8000000, investment: 2 * LAKH, months: 3, alt: 'V10001', risks: ['Low', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '900 k pieces per month', lead: 21, certs: 'IATF 16949', remarks: 'Can supply trimmed-length hairpins from the existing die set.' } },
@@ -593,7 +600,8 @@ function buildShowcase(): Idea[] {
     idea.proposedSupplier = lever.route === 'Supplier change' && altSup ? { code: altSup.code, name: altSup.name, isNew: false } : undefined
     const annual = ideaAnnualised(idea)
     const evalDept = evalDeptOf(idea.department)
-    const evaluatorId = EVALUATOR_BY_DEPT[evalDept] ?? c.leadId
+    const lad = ladderFor(evalDept, c.code, sp.submitterId)
+    const evaluatorId = lad.evaluator
     const name = (u: string) => userById(u).name
     const act: Idea['activity'] = []
     const log = (at: string, userId: string, action: string, extra: Partial<Idea['activity'][0]> = {}) => act.push({ id: `a-${act.length}-${id}`, at, userId, userName: userId === 'supplier' ? `${altSup?.contactName} (${altSup?.name})` : name(userId), action, ...extra })
@@ -604,9 +612,9 @@ function buildShowcase(): Idea[] {
 
     // Stage 2 — team feasibility check
     if (sp.n >= 2) {
-      idea.feasibilityCheck = { technical: 'Yes', technicalNote: 'Fits the current process; no new tooling beyond what the idea lists.', cost: 'Valid', costNote: `Baseline matches LBP; ${((1 - sp.newPrice / baseline) * 100).toFixed(1)} % saving is within the quote.`, conflict: 'None', decision: 'Go', departments: ['Sourcing', evalDept === 'Sourcing' ? 'Finance' : evalDept, 'Production'], remarks: 'Feasible — send for evaluation.', by: name(c.buyerId), byDept: 'Sourcing', at: dt(D.feas, 16) }
-      log(dt(D.feas, 16), c.buyerId, 'Team feasibility check — Go', { remarks: 'Technically feasible · cost valid · no duplicate / conflict' })
-      close(dt(D.feas, 16), c.buyerId, 'Go', STAGE.evaluation)
+      idea.feasibilityCheck = { technical: 'Yes', technicalNote: 'Fits the current process; no new tooling beyond what the idea lists.', cost: 'Valid', costNote: `Baseline matches LBP; ${((1 - sp.newPrice / baseline) * 100).toFixed(1)} % saving is within the quote.`, conflict: 'None', decision: 'Go', departments: ['Sourcing', evalDept === 'Sourcing' ? 'Finance' : evalDept, 'Production'], remarks: 'Feasible — send for evaluation.', by: name(lad.feas), byDept: evalDept, at: dt(D.feas, 16) }
+      log(dt(D.feas, 16), lad.feas, 'Team feasibility check — Go', { remarks: 'Technically feasible · cost valid · no duplicate / conflict' })
+      close(dt(D.feas, 16), lad.feas, 'Go', STAGE.evaluation)
       const skipped = !needsSupplierCheck(annual)
       idea.evaluation = { dept: evalDept, cbaVerified: false, supplier: skipped ? { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' } : { status: 'Not sent' } }
     }
@@ -627,16 +635,15 @@ function buildShowcase(): Idea[] {
       log(dt(D.eval, 16), evaluatorId, `${evalDept} evaluation — recommended`, { field: 'stage', oldValue: STAGE.evaluation, newValue: STAGE.approval })
       close(dt(D.eval, 16), evaluatorId, 'Recommended', STAGE.approval)
     }
-    // Stage 4 — sourcing approval + signed lock
-    const levels = approvalLevels(annual, sp.investment, 50, 25)
-    idea.approvals = levels.map((l) => ({ level: l, approverId: l === 'Commodity Lead' ? c.leadId : 'u-head' }))
+    // Stage 4 — <dept> approval by the department head + signed lock
+    idea.approvals = [{ level: `${evalDept} head`, approverId: lad.head }]
     if (sp.n >= 4) {
-      const signer = levels.includes('Sourcing Head') ? 'u-head' : c.leadId
+      const signer = lad.head
       idea.lock = { commercialOk: true, supplierAligned: idea.evaluation?.supplier?.status === 'Responded' ? 'Confirmed' : 'Skipped', budget: sp.investment || 50_000, timelineMonths: sp.months, startDate: D.start, endDate: addMonthsIso(D.start, sp.months), targetSaving: lockTarget(annual, sp.months), signatureName: name(signer), signedAt: dt(D.approved, 15), signedBy: name(signer) }
-      idea.approvals = idea.approvals.map((a) => ({ ...a, approverId: signer === 'u-head' ? 'u-head' : a.approverId, decision: 'Approved' as const, at: dt(D.approved, 16), remarks: 'Approved — budget and timeline locked.' }))
+      idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: dt(D.approved, 16), remarks: 'Approved — budget and timeline locked.' }))
       idea.approvedAt = dt(D.approved, 16)
       log(dt(D.approved, 15), signer, 'Budget & timeline lock signed', { remarks: `${sp.months} months · target ${(idea.lock.targetSaving / LAKH).toFixed(1)} L` })
-      log(dt(D.approved, 16), signer, 'Sourcing approval — approved', { field: 'stage', oldValue: STAGE.approval, newValue: STAGE.execution })
+      log(dt(D.approved, 16), signer, `${evalDept} approval — approved`, { field: 'stage', oldValue: STAGE.approval, newValue: STAGE.execution })
       close(dt(D.approved, 16), signer, 'Approved · lock signed', STAGE.execution)
       // Stage 5 — execution started
       const L = idea.lock
@@ -649,11 +656,11 @@ function buildShowcase(): Idea[] {
       } else ms.forEach((m) => { if (m.dueDate < TODAY && !FINAL.includes(m.name)) m.doneDate = m.dueDate })
       const effectiveDate = sp.n >= 5 ? L.startDate : undefined
       idea.execution = {
-        ownerId: c.buyerId, startDate: D.approved, targetDate: L.endDate, originalTargetDate: L.endDate, phasing: phaseByQuarter(annual, L.startDate < '2026-04-01' ? '2026-04-01' : L.startDate, FY),
-        milestones: ms, slippage: [], progress: Math.round((ms.filter((m) => m.doneDate).length / ms.length) * 100), notes: [{ at: dt(addDays(D.approved, 2), 11), by: name(c.buyerId), text: 'Kick-off held with the supplier; NPD and PAP owners named.' }],
+        ownerId: lad.exec, startDate: D.approved, targetDate: L.endDate, originalTargetDate: L.endDate, phasing: phaseByQuarter(annual, L.startDate < '2026-04-01' ? '2026-04-01' : L.startDate, FY),
+        milestones: ms, slippage: [], progress: Math.round((ms.filter((m) => m.doneDate).length / ms.length) * 100), notes: [{ at: dt(addDays(D.approved, 2), 11), by: name(lad.exec), text: 'Kick-off held with the supplier; NPD and PAP owners named.' }],
         status: sp.n >= 5 ? 'Done' : 'In Execution', effectiveDate, approvedPrice: sp.n >= 5 ? sp.newPrice : undefined,
       }
-      idea.ownerId = c.buyerId
+      idea.ownerId = lad.exec
       idea.locked = true
       idea.coDate = L.startDate
       if (tpl.some((m) => m.includes('NPD'))) { idea.npdRequestId = `NPD-ECN-${26500 + sp.n}`; idea.npdStatus = sp.n >= 5 ? 'Sample approved' : 'ECN raised' }
@@ -662,15 +669,15 @@ function buildShowcase(): Idea[] {
     // Stage 6 — verification
     if (sp.n >= 5) {
       idea.implementedAt = dt(D.handed, 15)
-      idea.verification = { handedAt: dt(D.handed, 15), handedBy: name(c.buyerId) }
-      log(dt(idea.lock!.startDate, 12), c.buyerId, 'Milestone done: First MRN at new price')
-      log(dt(D.handed, 15), c.buyerId, 'Handed for verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${idea.lock!.startDate}` })
-      close(dt(D.handed, 15), c.buyerId, 'Handed for verification', STAGE.verification)
+      idea.verification = { handedAt: dt(D.handed, 15), handedBy: name(lad.exec) }
+      log(dt(idea.lock!.startDate, 12), lad.exec, 'Milestone done: First MRN at new price')
+      log(dt(D.handed, 15), lad.exec, 'Handed for verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${idea.lock!.startDate}` })
+      close(dt(D.handed, 15), lad.exec, 'Handed for verification', STAGE.verification)
     }
     if (sp.n === 6) {
-      idea.verification = { ...idea.verification, verifiedAt: dt(D.verified, 12), verifiedBy: 'Girish Saluja', mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price for every month; target for the locked period achieved.' }
-      Object.assign(hist[hist.length - 1], { exitedAt: dt(D.verified, 12), by: 'Girish Saluja', action: 'Verified' })
-      log(dt(D.verified, 12), 'u-head', 'Verified — target achieved')
+      idea.verification = { ...idea.verification, verifiedAt: dt(D.verified, 12), verifiedBy: name(lad.verifier), mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price for every month; target for the locked period achieved.' }
+      Object.assign(hist[hist.length - 1], { exitedAt: dt(D.verified, 12), by: name(lad.verifier), action: 'Verified' })
+      log(dt(D.verified, 12), lad.verifier, 'Verified — target achieved')
     }
     idea.stageHistory = hist
     idea.activity = act
@@ -755,7 +762,7 @@ export function seedNotifications(ideas: Idea[]): Notification[] {
   const pipe = ideas.filter((i) => i.stage === STAGE.feasibility)
   for (const i of pipe.slice(0, 12)) push(i.buyerId, `New idea in ${i.commodity}`, `${i.id} · ${i.title}`, 'Idea submitted in my commodity', 'info', i.id, ri(1, 70))
   for (const i of ideas.filter((x) => x.stage === STAGE.approval).slice(0, 10)) i.approvals.forEach((a) => a.approverId && push(a.approverId, 'Pending approval', `${i.id} · ${i.title}`, 'Pending approval', 'warning', i.id, ri(1, 40)))
-  for (const i of ideas.filter((x) => x.stage === STAGE.evaluation).slice(0, 10)) push(EVALUATOR_BY_DEPT[i.evaluation?.dept ?? ''] ?? 'u-head', `${i.evaluation?.dept ?? 'Department'} evaluation requested`, `${i.id} · ${i.title}`, 'Technical evaluation requested', 'info', i.id, ri(2, 90))
+  for (const i of ideas.filter((x) => x.stage === STAGE.evaluation).slice(0, 10)) push(ladderOf(i.evaluation?.dept ?? 'Sourcing', i.commodity, users).deptLead ?? 'u-head', `${i.evaluation?.dept ?? 'Department'} evaluation requested`, `${i.id} · ${i.title}`, 'Technical evaluation requested', 'info', i.id, ri(2, 90))
   push('u-sup1', 'Workshop invitation', 'Fasteners supplier improvement workshop · 08 Oct 2026, Rajpura', 'Workshop invitation', 'info', undefined, 330)
   push('u-fin', 'Savings to validate', 'August 2026 realisation posted — entries awaiting Finance validation', 'Savings to validate', 'warning', undefined, 20)
   push('u-lead1', 'Price leakage detected', 'MRN price above approved new price on 2 parts in Metals (Aug 2026)', 'Price leakage detected', 'danger', undefined, 26)
