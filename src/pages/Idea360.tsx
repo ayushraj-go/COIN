@@ -11,7 +11,8 @@ import { ActionBar } from './idea/ActionBar'
 import { CurrentStageSla, StageTracker } from './idea/StageTracker'
 import { ValueCard } from './idea/ValueCard'
 import { PartsTable } from './idea/PartsTable'
-import { ApprovalsPanel, DetailsCard, ExecutionSummary, FeasibilityPanel, IdeaMetaChips, KeyFacts, LinkedRequests, TechEvalPanel } from './idea/Panels'
+import { DetailsCard, ExecutionSummary, IdeaMetaChips, KeyFacts, LinkedRequests } from './idea/Panels'
+import { StagePanels } from './idea/StagePanels'
 import { Attachments } from './idea/Attachments'
 import { Comments } from './idea/Comments'
 import { ActivityLog } from './idea/ActivityLog'
@@ -55,7 +56,7 @@ function HeaderCard({ idea }: { idea: Idea }) {
             <span className="inline-flex items-center gap-1.5 min-w-0">Submitted by {idea.isSupplierSubmission ? <span className="font-semibold text-ink-2">{idea.submitterName}</span> : <UserChip userId={idea.submitterId} size={20} />}<span>· {idea.department} · {fmtDate((idea.submittedAt ?? idea.createdAt)?.slice(0, 10))}</span></span>
             <span className="inline-flex items-center gap-1.5">Buyer <UserChip userId={idea.buyerId} size={20} /></span>
             {idea.ownerId && idea.ownerId !== idea.buyerId && <span className="inline-flex items-center gap-1.5">Owner <UserChip userId={idea.ownerId} size={20} /></span>}
-            <span className="inline-flex items-center gap-1"><Icon name="Route" size={12} />{stagesOf(idea).length} stages · {idea.route} route</span>
+            <span className="inline-flex items-center gap-1"><Icon name="Route" size={12} />{stagesOf(idea).length + 1} stages · {idea.route} route</span>
           </div>
         </div>
         <div className="lg:w-[280px] shrink-0 rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-gold-50 p-3.5">
@@ -162,20 +163,17 @@ export default function Idea360() {
 
       <HeaderCard idea={idea} />
 
-      <Card title="Stage tracker" icon="Route" subtitle={`${idea.route} route · ${stagesOf(idea).join(' → ')}`} actions={<CurrentStageSla idea={idea} />}>
+      <Card title="Stage tracker" icon="Route" subtitle={`Six stages · ${idea.route} route · stages 1–4 in Innovation Network, 5–6 in Cost Optimisation`} actions={<CurrentStageSla idea={idea} />}>
         <StageTracker idea={idea} />
       </Card>
+
+      {idea.stage !== 'Draft' && <StagePanels idea={idea} />}
 
       <PartsTable idea={idea} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 items-start">
         <div className="xl:col-span-8 space-y-3 min-w-0">
           <DetailsCard idea={idea} />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <FeasibilityPanel idea={idea} />
-            <TechEvalPanel idea={idea} />
-            <ApprovalsPanel idea={idea} />
-          </div>
           {idea.execution && <ExecutionSummary idea={idea} />}
           <Attachments idea={idea} />
         </div>

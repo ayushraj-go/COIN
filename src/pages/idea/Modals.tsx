@@ -5,7 +5,7 @@ import { useStore } from '../../store/useStore'
 import { Button, Field, Icon, Modal, Money, Segmented, SourceTag, Avatar, cn } from '../../components/ui'
 import { ideaAnnualised, ideaCommitted, partAnnualised } from '../../lib/calc'
 import { inrPrice, inrShort, monthLong, num, sum, todayIso } from '../../lib/format'
-import { stagesOf, withUndo, BASELINE_TAG, VOLUME_TAG } from './model'
+import { withUndo, BASELINE_TAG, VOLUME_TAG } from './model'
 
 const t = () => useStore.getState().toast
 
@@ -49,33 +49,29 @@ export function DropModal({ idea, open, onClose }: { idea: Idea; open: boolean; 
   )
 }
 
-// ─── Mark Done (effective date + approved new price per part) ────────────────
-const defaultApproved = (idea: Idea, p: IdeaPart) => {
-  if (p.approvedPrice != null) return p.approvedPrice
-  if (idea.parts.length === 1 && idea.feasibility?.offeredPrice) return idea.feasibility.offeredPrice
-  return p.newPrice
-}
+// ─── Hand over for verification (first MRN date + approved new price per part) ─
+const defaultApproved = (p: IdeaPart) => p.approvedPrice ?? p.newPrice
 export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
-  const markDone = useStore((s) => s.markDone)
+  const handOver = useStore((s) => s.handOverForVerification)
   const [date, setDate] = useState(todayIso())
   const [prices, setPrices] = useState<Record<string, string>>({})
   useEffect(() => {
-    if (open) { setDate(todayIso()); setPrices(Object.fromEntries(idea.parts.map((p) => [p.partCode, String(defaultApproved(idea, p))]))) }
+    if (open) { setDate(idea.execution?.effectiveDate ?? todayIso()); setPrices(Object.fromEntries(idea.parts.map((p) => [p.partCode, String(defaultApproved(p))]))) }
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const papApproved = idea.papStatus === 'Price approved'
   const parsed = Object.fromEntries(idea.parts.map((p) => [p.partCode, Number(prices[p.partCode])]))
   const valid = !!date && idea.parts.every((p) => Number(prices[p.partCode]) > 0)
   const approvedAnnual = idea.parts.length ? sum(idea.parts.map((p) => (p.baselinePrice - (parsed[p.partCode] || 0)) * p.annualVolume)) : ideaAnnualised(idea)
   const submit = () => {
-    markDone(idea.id, date, parsed)
-    t()(`${idea.id} marked Implemented — ${inrShort(approvedAnnual)} annualised at approved price`, 'success')
+    handOver(idea.id, date, parsed)
+    t()(`${idea.id} implemented and handed for verification — ${inrShort(approvedAnnual)} annualised at the approved price`, 'success')
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Mark Done — Implemented" subtitle={`${idea.id} · ${idea.title}`} icon="CircleCheckBig" size="lg"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="success" icon="CircleCheckBig" disabled={!valid} onClick={submit}>Mark Done</Button></>}>
+    <Modal open={open} onClose={onClose} title="Hand over for verification" subtitle={`${idea.id} · ${idea.title}`} icon="PackageCheck" size="lg"
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="success" icon="PackageCheck" disabled={!valid} onClick={submit}>Hand over</Button></>}>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <Field label="Effective date" required hint="Realisation counts MRN received from this date.">
+        <Field label="First MRN at the new price" required hint="Effective date — MRN savings count from this date.">
           <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <div className="sm:col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 flex items-center justify-between gap-3">
@@ -115,84 +111,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
       ) : (
         <div className="rounded-lg bg-slate-50 border border-line p-3 text-[12.5px] text-muted">Open idea without part codes — the estimate of {inrShort(ideaAnnualised(idea))} is carried as the implemented value.</div>
       )}
-      <p className="text-[11.5px] text-muted mt-3 flex items-start gap-1.5"><Icon name="Info" size={13} className="shrink-0 mt-px" />Mark Done needs the effective date and the approved new price (auto-pulled from PAP when linked). Approved values are locked after this step.</p>
-    </Modal>
-  )
-}
-
-// ─── Feasibility (supplier, or buyer on behalf) ───────────────────────────────
-export function FeasibilityModal({ idea, open, onClose, onBehalf }: { idea: Idea; open: boolean; onClose: () => void; onBehalf: boolean }) {
-  const respond = useStore((s) => s.respondFeasibility)
-  const suppliers = useStore((s) => s.suppliers)
-  const [feasible, setFeasible] = useState('yes')
-  const [price, setPrice] = useState('')
-  const [lead, setLead] = useState('')
-  const [moq, setMoq] = useState('')
-  const [remarks, setRemarks] = useState('')
-  useEffect(() => { if (open) { setFeasible('yes'); setPrice(idea.parts[0] ? String(idea.parts[0].newPrice) : ''); setLead('30'); setMoq(''); setRemarks('') } }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
-  const supCode = idea.feasibility?.supplierCode ?? idea.proposedSupplier?.code ?? idea.supplierCode
-  const sup = suppliers.find((s) => s.code === supCode)
-  const yes = feasible === 'yes'
-  const valid = yes ? (idea.parts.length === 0 || Number(price) > 0) && Number(lead) > 0 : !!remarks.trim()
-  const stages = stagesOf(idea)
-  const next = stages[stages.indexOf(idea.stage) + 1]
-  const submit = () => {
-    const payload = { feasible: yes, offeredPrice: price ? Number(price) : undefined, leadTimeDays: lead ? Number(lead) : undefined, moq: moq ? Number(moq) : undefined, remarks: remarks.trim() || undefined, onBehalf }
-    if (yes) withUndo(idea.id, () => respond(idea.id, payload), `Feasibility confirmed${onBehalf ? ' on behalf of supplier' : ''} — ${idea.id} moved to ${next}`)
-    else { respond(idea.id, payload); t()(`${idea.id} dropped — supplier not feasible`, 'warning') }
-    onClose()
-  }
-  return (
-    <Modal open={open} onClose={onClose} title={onBehalf ? 'Respond feasibility on behalf of supplier' : 'Respond to feasibility request'} subtitle={`${idea.id} · ${sup ? `${sup.name} (${sup.code})` : supCode ?? 'Supplier'}`} icon="ClipboardCheck" size="md"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={yes ? 'primary' : 'danger'} icon={yes ? 'Send' : 'CircleX'} disabled={!valid} onClick={submit}>{yes ? 'Confirm feasibility' : 'Decline — not feasible'}</Button></>}>
-      <div className="space-y-3">
-        <Segmented value={feasible} onChange={setFeasible} options={[{ key: 'yes', label: 'Feasible', icon: 'CircleCheck' }, { key: 'no', label: 'Not feasible', icon: 'CircleX' }]} />
-        {yes && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Field label={`Offered price (₹${idea.parts[0] ? ' / ' + idea.parts[0].uom : ''})`} required={idea.parts.length > 0} tag={idea.parts[0] ? <SourceTag>Baseline {inrPrice(idea.parts[0].baselinePrice)}</SourceTag> : undefined}>
-              <input type="number" step="0.01" className="input num" value={price} onChange={(e) => setPrice(e.target.value)} />
-            </Field>
-            <Field label="Lead time (days)" required><input type="number" className="input num" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
-            <Field label="MOQ"><input type="number" className="input num" value={moq} onChange={(e) => setMoq(e.target.value)} placeholder="e.g. 5000" /></Field>
-          </div>
-        )}
-        <Field label="Remarks" required={!yes} hint={yes ? undefined : 'Mandatory — the idea is dropped with reason “Supplier not feasible”.'}>
-          <textarea className="input" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={yes ? 'Validity of price, conditions…' : 'Why is the change not feasible?'} />
-        </Field>
-        {onBehalf && <p className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Info" size={13} />Logged as “on behalf” of the supplier in the audit trail.</p>}
-      </div>
-    </Modal>
-  )
-}
-
-// ─── Technical evaluation (go / no-go + validation plan) ──────────────────────
-export function TechEvalModal({ idea, open, onClose, initial }: { idea: Idea; open: boolean; onClose: () => void; initial: 'Go' | 'No-go' }) {
-  const techEvaluate = useStore((s) => s.techEvaluate)
-  const [decision, setDecision] = useState<string>(initial)
-  const [plan, setPlan] = useState('')
-  const [remarks, setRemarks] = useState('')
-  useEffect(() => { if (open) { setDecision(initial); setPlan(''); setRemarks('') } }, [open, initial])
-  const go = decision === 'Go'
-  const valid = go ? !!plan.trim() : !!remarks.trim()
-  const stages = stagesOf(idea)
-  const next = stages[stages.indexOf(idea.stage) + 1]
-  const submit = () => {
-    if (go) withUndo(idea.id, () => techEvaluate(idea.id, 'Go', plan.trim(), remarks.trim() || undefined), `R&D approved — ${idea.id} sent for ${next}`)
-    else { techEvaluate(idea.id, 'No-go', plan.trim(), remarks.trim()); t()(`${idea.id} rejected at R&D approval — dropped`, 'warning') }
-    onClose()
-  }
-  return (
-    <Modal open={open} onClose={onClose} title="R&D approval" subtitle={`${idea.id} · ${idea.techEval?.evaluatorDept ?? 'R&D'} · ${idea.stage}`} icon="FlaskConical" size="md"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant={go ? 'success' : 'danger'} icon={go ? 'CircleCheck' : 'CircleX'} disabled={!valid} onClick={submit}>{go ? 'Approve' : 'Reject'}</Button></>}>
-      <div className="space-y-3">
-        <Segmented value={decision} onChange={setDecision} options={[{ key: 'Go', label: 'Approve', icon: 'CircleCheck' }, { key: 'No-go', label: 'Reject', icon: 'CircleX' }]} />
-        <Field label="Validation plan" required={go} hint="Lab tests, pilot build, field audit — carried into the NPD sample milestone of Execution started.">
-          <textarea className="input" rows={3} value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. Salt spray 240 h + thermal cycling; 200-unit pilot build; field audit after 30 days" />
-        </Field>
-        <Field label="Remarks" required={!go} hint={go ? undefined : 'Mandatory on a rejection — the idea is dropped for good (use Send back for rework instead).'}>
-          <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={go ? 'Optional remarks' : 'Why is the change not acceptable?'} />
-        </Field>
-      </div>
+      <p className="text-[11.5px] text-muted mt-3 flex items-start gap-1.5"><Icon name="Info" size={13} className="shrink-0 mt-px" />Hand-over closes Execution started: first MRN, implementation confirmed and hand-over milestones are ticked, approved prices are locked, and the business side verifies the savings in Verification.</p>
     </Modal>
   )
 }

@@ -5,6 +5,8 @@ import { addMonthsYm, ymOf } from './format'
 
 /** Below this annualised saving the supplier capability check is skipped */
 export const SUPPLIER_CHECK_MIN = 5_00_000
+/** Stands in for the secure supplier-form link until the request is sent */
+export const SUPPLIER_LINK_PLACEHOLDER = '[secure form link]'
 /** Departments that run their own evaluation; every other department (Sourcing, Supplier, Management…) maps to Sourcing */
 export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance'] as const
 
@@ -18,6 +20,14 @@ export function stageLabel(idea: { department?: string; evaluation?: { dept?: st
   return `${idea.evaluation?.dept ?? evalDeptOf(idea.department)} evaluation`
 }
 
+/** Generic specification text for supplier capability requests — never Amber prices, volumes or part codes */
+export const SUPPLIER_SPEC_BY_GROUP: Record<string, string> = {
+  Commercial: 'As per current drawing and quality plan; supply in standard packing to Amber plants',
+  'Supply base': 'Same drawing and specification as current supply; PPAP and first-article inspection required',
+  Engineering: 'Revised drawing to be shared after NDA; validation by sample trial and salt-spray / thermal cycling',
+  'Logistics & packing': 'Packing / lane specification as per Amber standard; trial run before award',
+  Operational: 'Service / process specification as per scope document; site visit before award',
+}
 export const needsSupplierCheck = (annual: number) => annual >= SUPPLIER_CHECK_MIN
 
 /** Team feasibility check — reasons the entered cost may not be valid */

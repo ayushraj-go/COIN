@@ -2,7 +2,7 @@ import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notifi
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { approvalLevels, bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, lockTarget, milestoneSchedule, needsSupplierCheck, planVsActual, supplierCapabilityEmail } from './workflow'
+import { addMonthsIso, evalDeptOf, lockTarget, milestoneSchedule, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -154,14 +154,6 @@ type Target = 'Draft' | 'Pipeline' | 'In Execution' | 'Implemented' | 'Dropped' 
 
 /** Evaluator for the submitter's department (stage 3); Sourcing ideas are evaluated by the commodity lead */
 const EVALUATOR_BY_DEPT: Record<string, string> = { 'R&D': 'u-eval1', DQA: 'u-eval2', Quality: 'u-eval3', Process: 'u-eval4', Production: 'u-eval5', Finance: 'u-fin' }
-/** Generic specification text for supplier capability requests — never Amber prices, volumes or part codes */
-const SPEC_BY_GROUP: Record<string, string> = {
-  Commercial: 'As per current drawing and quality plan; supply in standard packing to Amber plants',
-  'Supply base': 'Same drawing and specification as current supply; PPAP and first-article inspection required',
-  Engineering: 'Revised drawing to be shared after NDA; validation by sample trial and salt-spray / thermal cycling',
-  'Logistics & packing': 'Packing / lane specification as per Amber standard; trial run before award',
-  Operational: 'Service / process specification as per scope document; site visit before award',
-}
 const LEVEL_FRAC: Record<RiskLevel, [number, number]> = { Low: [0, 0.015], Medium: [0.015, 0.05], High: [0.05, 0.1] }
 function makeRisks(annual: number, levels?: RiskLevel[]): RiskItem[] {
   return RISK_FACTORS.map((f, k) => {
@@ -327,7 +319,7 @@ function buildIdea(opts: {
       const sentDay = addDays(entered, 1) < TODAY ? addDays(entered, 1) : addDays(TODAY, -1)
       if (state === 'Not sent' || !alt) supplier = { status: 'Not sent' }
       else {
-        supplier = capabilityRequest(id, seq, alt, chosen[0]?.description ?? c.name.split(' (')[0], SPEC_BY_GROUP[lever.group], addDays(createdAt, 120), dt(sentDay, 11), userById(evaluatorId).name)
+        supplier = capabilityRequest(id, seq, alt, chosen[0]?.description ?? c.name.split(' (')[0], SUPPLIER_SPEC_BY_GROUP[lever.group], addDays(createdAt, 120), dt(sentDay, 11), userById(evaluatorId).name)
         if (state === 'Responded') supplier = { ...supplier, status: 'Responded', response: { canSupply: chance(0.8) ? 'Yes' : 'Partly', meetsSpec: chance(0.8) ? 'Yes' : 'With deviation', capacityPerMonth: `${ri(2, 20) * 10} ${chosen[0]?.uom === 'Kg' ? 'MT' : 'k Nos'} per month`, leadTimeDays: ri(21, 75), certifications: 'IATF 16949 · ISO 14001', remarks: 'Can start trial lots within 4 weeks of PO.', contactName: alt.contactName, respondedAt: dt(addDays(sentDay, ri(1, 3)), 15) } }
       }
     }
@@ -621,7 +613,7 @@ function buildShowcase(): Idea[] {
     // Stage 3 — evaluation completed
     if (sp.n >= 3 && altSup && sp.response) {
       const sentDay = addDays(D.feas, 3), respDay = addDays(D.feas, 6)
-      const req = capabilityRequest(id, idea.seq, altSup, part.description, SPEC_BY_GROUP[lever.group], addMonthsIso(D.eval, 3), dt(sentDay, 11), name(evaluatorId))
+      const req = capabilityRequest(id, idea.seq, altSup, part.description, SUPPLIER_SPEC_BY_GROUP[lever.group], addMonthsIso(D.eval, 3), dt(sentDay, 11), name(evaluatorId))
       const r = sp.response
       idea.evaluation = {
         dept: evalDept, cbaVerified: true, cbaNote: 'Part-wise saving, payback and phasing verified against LBP and MRN FY26.',

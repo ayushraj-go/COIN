@@ -12,6 +12,7 @@ import { ValueCard } from './idea/ValueCard'
 import { PartsTable } from './idea/PartsTable'
 import { IdeaMetaChips, KeyFacts, LinkedRequests } from './idea/Panels'
 import { ActivityLog } from './idea/ActivityLog'
+import { StagePanels } from './idea/StagePanels'
 
 export default function IdeaDrawer() {
   const id = useStore((s) => s.drawerIdeaId)
@@ -76,9 +77,10 @@ export default function IdeaDrawer() {
               </div>
             )}
 
-            <Card title="Stage tracker" icon="Route" subtitle={`${stagesOf(idea).length} stages`} actions={<CurrentStageSla idea={idea} />}>
+            <Card title="Stage tracker" icon="Route" subtitle="Six stages" actions={<CurrentStageSla idea={idea} />}>
               <StageTracker idea={idea} compact />
             </Card>
+            {idea.stage !== 'Draft' && <StagePanels idea={idea} compact />}
             <ValueCard idea={idea} compact />
             <PartsTable idea={idea} compact />
             <Card title="Key details" icon="FileText">

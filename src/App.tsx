@@ -14,6 +14,8 @@ import Reports from './pages/Reports'
 import Admin from './pages/Admin'
 import Scope from './pages/Scope'
 import Npd from './pages/Npd'
+import SupplierCheck from './pages/SupplierCheck'
+import SupplierForm from './pages/SupplierForm'
 
 function Protected({ children }: { children: JSX.Element }) {
   const userId = useStore((s) => s.userId)
@@ -27,11 +29,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* public supplier capability form — opened from the emailed link, no login */}
+        <Route path="/supplier-form/:token" element={<SupplierForm />} />
         <Route element={<Protected><AppShell /></Protected>}>
           <Route path="/" element={<Home />} />
           <Route path="/ideas" element={<IdeaRegister mode="all" />} />
           <Route path="/my-ideas" element={<IdeaRegister mode="mine" />} />
           <Route path="/ideas/:id" element={<Idea360 />} />
+          <Route path="/ideas/:id/supplier-check" element={<SupplierCheck />} />
           <Route path="/submit" element={<SubmitIdea />} />
           <Route path="/feasibility" element={<Navigate to="/my-ideas" replace />} />
           <Route path="/workshops" element={<Workshops />} />

@@ -1,53 +1,38 @@
-// Contextual action bar — actions by role & stage, negative actions need remarks (Section 8, M5).
+// Contextual action bar — the stage form for the signed-in user's role, plus send back / request info / reassign / drop.
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Button, Icon, RemarksModal, cn } from '../../components/ui'
-import { STAGE, STAGE_SHORT } from '../../lib/masters'
-import { ideaPerms, stagesOf, useCtx, waitingOn, withUndo } from './model'
-import { DropModal, FeasibilityModal, MarkDoneModal, ReassignModal, TechEvalModal } from './Modals'
+import { STAGE } from '../../lib/masters'
+import { stageLabel } from '../../lib/workflow'
+import { ideaPerms, useCtx, waitingOn, withUndo } from './model'
+import { DropModal, MarkDoneModal, ReassignModal } from './Modals'
+import { EvaluationModal, FeasibilityCheckModal, SourcingApprovalModal, VerificationModal } from './StageForms'
 
-type ModalKey = null | 'validate' | 'feasibility' | 'feasibilityBehalf' | 'go' | 'nogo' | 'approve' | 'reject' | 'sendBack' | 'requestInfo' | 'reassign' | 'drop' | 'done' | 'advance'
+type ModalKey = null | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'reassign' | 'drop' | 'done'
 
 export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: boolean; className?: string }) {
   const me = useMe()
   const ctx = useCtx()
   const nav = useNavigate()
-  const advance = useStore((s) => s.advance)
-  const approve = useStore((s) => s.approve)
-  const reject = useStore((s) => s.reject)
   const sendBack = useStore((s) => s.sendBack)
   const requestInfo = useStore((s) => s.requestInfo)
-  const toast = useStore((s) => s.toast)
   const [modal, setModal] = useState<ModalKey>(null)
   const p = ideaPerms(me, idea)
   const close = () => setModal(null)
   const size = compact ? 'sm' : 'md'
-  const stages = stagesOf(idea)
-  const idx = stages.indexOf(idea.stage)
-  const next = idx >= 0 ? stages[idx + 1] : undefined
-  // R&D approval and Sourcing approval send an idea back to the Team feasibility check
-  const prev = idx > 0 ? STAGE.feasibility : null
-  const pending = idea.approvals.filter((a) => !a.decision)
+  const atStart = idea.stage === STAGE.feasibility
 
   const primary: ReactNode[] = []
   const secondary: ReactNode[] = []
   if (p.continueDraft) primary.push(<Button key="draft" size={size} variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>)
-  if (p.validate) primary.push(<Button key="val" size={size} variant="primary" icon="BadgeCheck" onClick={() => setModal('validate')}>Confirm feasibility</Button>)
-  if (p.feasibility) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feasibility')}>Respond to feasibility</Button>)
-  if (p.feasibilityOnBehalf) primary.push(<Button key="feasb" size={size} variant="outline" icon="ClipboardCheck" onClick={() => setModal('feasibilityBehalf')}>Respond feasibility on behalf</Button>)
-  if (p.techeval) {
-    primary.push(<Button key="go" size={size} variant="success" icon="CircleCheck" onClick={() => setModal('go')}>R&D approve</Button>)
-    primary.push(<Button key="nogo" size={size} variant="danger" icon="CircleX" onClick={() => setModal('nogo')}>R&D reject</Button>)
-  }
-  if (p.approve) {
-    primary.push(<Button key="appr" size={size} variant="success" icon="Stamp" onClick={() => setModal('approve')}>Sourcing approve{pending.length > 1 ? ` (${pending[0].level})` : ''}</Button>)
-    primary.push(<Button key="rej" size={size} variant="danger" icon="CircleX" onClick={() => setModal('reject')}>Reject</Button>)
-  }
-  if (p.advance) primary.push(<Button key="adv" size={size} variant="primary" icon="ArrowRight" onClick={() => setModal('advance')}>Move to {STAGE_SHORT[p.advance] ?? p.advance}</Button>)
-  if (p.markDone) primary.push(<Button key="done" size={size} variant="success" icon="CircleCheckBig" onClick={() => setModal('done')}>Mark Done</Button>)
-  if (p.sendBack) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back</Button>)
+  if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Team feasibility check</Button>)
+  if (p.evaluate) primary.push(<Button key="eval" size={size} variant="primary" icon="FlaskConical" onClick={() => setModal('eval')}>{stageLabel(idea, STAGE.evaluation)}</Button>)
+  if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? 'Sourcing approval' : 'Sign lock & approve'}</Button>)
+  if (p.handOver) primary.push(<Button key="done" size={size} variant="success" icon="PackageCheck" onClick={() => setModal('done')}>Hand over for verification</Button>)
+  if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
+  if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back</Button>)
   if (p.requestInfo) secondary.push(<Button key="ri" size={size} variant="secondary" icon="MessageCircleQuestion" onClick={() => setModal('requestInfo')}>Request info</Button>)
   if (p.reassign) secondary.push(<Button key="ra" size={size} variant="secondary" icon="UserRoundCog" onClick={() => setModal('reassign')}>Reassign</Button>)
   if (p.drop) secondary.push(<Button key="dr" size={size} variant="danger" icon="Ban" onClick={() => setModal('drop')}>Drop</Button>)
@@ -73,25 +58,16 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
       )}
 
       {/* ── dialogs ── */}
-      <RemarksModal open={modal === 'validate'} onClose={close} required={false} icon="BadgeCheck" confirmLabel="Confirm feasibility"
-        title="Team feasibility check" subtitle={`Confirms the idea is feasible with baseline (LBP) and volume (MRN FY26), then sends ${idea.id} for ${next ?? 'the next stage'}.`} placeholder="Optional remarks for the submitter"
-        onConfirm={(r) => withUndo(idea.id, () => advance(idea.id, 'Team feasibility check completed — baseline confirmed', r || undefined), `${idea.id} cleared team feasibility — sent for ${next}`)} />
-      <RemarksModal open={modal === 'approve'} onClose={close} required={false} icon="Stamp" variant="success" confirmLabel="Approve"
-        title={`Sourcing approval — ${pending[0]?.level ?? 'Approver'}`} subtitle={pending.length > 1 ? `After your approval the idea goes to ${pending[1].level} (approval matrix).` : 'Final sourcing approval — execution starts with an owner and a 31 March due date.'}
-        onConfirm={(r) => withUndo(idea.id, () => approve(idea.id, r || undefined), pending.length > 1 ? `Approved at ${pending[0].level} level — pending ${pending[1].level}` : `${idea.id} approved — execution started`)} />
-      <RemarksModal open={modal === 'reject'} onClose={close} variant="danger" icon="CircleX" confirmLabel="Reject" title="Reject idea" subtitle="Remarks are mandatory and shared with the submitter and the team. A rejected idea is dropped for good — it can never be reopened; a fresh attempt needs a new idea."
-        onConfirm={(r) => { reject(idea.id, r); toast(`${idea.id} rejected`, 'warning') }} />
-      <RemarksModal open={modal === 'sendBack'} onClose={close} variant="danger" icon="Undo2" confirmLabel="Send back" title="Send back"
-        subtitle={prev ? `Returns ${idea.id} to ${prev}.` : `Returns ${idea.id} to the submitter for rework.`}
-        onConfirm={(r) => withUndo(idea.id, () => sendBack(idea.id, r), prev ? `${idea.id} sent back to ${prev}` : `${idea.id} returned to ${idea.submitterName}`, { type: 'warning' })} />
+      <FeasibilityCheckModal idea={idea} open={modal === 'feas'} onClose={close} />
+      <EvaluationModal idea={idea} open={modal === 'eval'} onClose={close} />
+      <SourcingApprovalModal idea={idea} open={modal === 'appr'} onClose={close} />
+      <VerificationModal idea={idea} open={modal === 'verify'} onClose={close} />
+      <RemarksModal open={modal === 'sendBack'} onClose={close} variant="danger" icon="Undo2" confirmLabel="Send back" title="Send back to the Team feasibility check"
+        subtitle={`${idea.id} returns to the Team feasibility check for rework; the evaluation restarts after it is cleared again.`}
+        onConfirm={(r) => withUndo(idea.id, () => sendBack(idea.id, r), `${idea.id} sent back to the Team feasibility check`, { type: 'warning' })} />
       <RemarksModal open={modal === 'requestInfo'} onClose={close} icon="MessageCircleQuestion" confirmLabel="Request info" title="Request more information"
         subtitle={`${idea.submitterName} is notified and @mentioned in the comments.`} placeholder="What do you need from the submitter?"
         onConfirm={(r) => withUndo(idea.id, () => requestInfo(idea.id, r), `More information requested from ${idea.submitterName}`, { type: 'info' })} />
-      <RemarksModal open={modal === 'advance'} onClose={close} required={false} icon="ArrowRight" confirmLabel={`Move to ${p.advance ? STAGE_SHORT[p.advance] ?? p.advance : ''}`}
-        title={`Move to ${p.advance ?? ''}`} subtitle={`${idea.id} leaves ${idea.stage}.`}
-        onConfirm={(r) => p.advance && withUndo(idea.id, () => advance(idea.id, `Moved to ${p.advance}`, r || undefined), `${idea.id} moved to ${p.advance}`)} />
-      <FeasibilityModal idea={idea} open={modal === 'feasibility' || modal === 'feasibilityBehalf'} onBehalf={modal === 'feasibilityBehalf'} onClose={close} />
-      <TechEvalModal idea={idea} open={modal === 'go' || modal === 'nogo'} initial={modal === 'nogo' ? 'No-go' : 'Go'} onClose={close} />
       <ReassignModal idea={idea} open={modal === 'reassign'} onClose={close} />
       <DropModal idea={idea} open={modal === 'drop'} onClose={close} />
       <MarkDoneModal idea={idea} open={modal === 'done'} onClose={close} />

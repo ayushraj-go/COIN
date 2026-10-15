@@ -89,12 +89,12 @@ export function MilestoneNoteModal({ idea, open, onClose, milestoneId }: { idea:
   )
 }
 
-// ─── Mark Done: effective date + approved new price per part (auto-pulled from PAP when linked) ─
+// ─── Hand over for verification: first MRN date + approved new price per part (auto-pulled from PAP when linked) ─
 export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; open: boolean; onClose: () => void; fy: string }) {
   const [date, setDate] = useState(todayIso())
   const [prices, setPrices] = useState<Record<string, string>>({})
   useEffect(() => {
-    if (open && idea) { setDate(todayIso()); setPrices(Object.fromEntries(idea.parts.map((p) => [p.partCode, String(p.approvedPrice ?? p.newPrice)]))) }
+    if (open && idea) { setDate(idea.execution?.effectiveDate ?? todayIso()); setPrices(Object.fromEntries(idea.parts.map((p) => [p.partCode, String(p.approvedPrice ?? p.newPrice)]))) }
   }, [open, idea])
   const linked = !!idea?.papRequestId
   const approvedParts = useMemo(() => (idea ? idea.parts.map((p) => ({ ...p, approvedPrice: Number(prices[p.partCode]) || p.newPrice })) : []), [idea, prices])
@@ -104,16 +104,16 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
   const carry = carryOver(annual, date, fy)
   const valid = !!date && date >= idea.execution.startDate && approvedParts.every((p) => Number(prices[p.partCode]) > 0)
   const save = () => {
-    useStore.getState().markDone(idea.id, date, Object.fromEntries(approvedParts.map((p) => [p.partCode, p.approvedPrice!])))
-    toast(`${idea.id} marked Done — Implemented, effective ${fmtDate(date)}. Realisation starts with the next MRN run.`, 'success')
+    useStore.getState().handOverForVerification(idea.id, date, Object.fromEntries(approvedParts.map((p) => [p.partCode, p.approvedPrice!])))
+    toast(`${idea.id} handed for verification — first MRN at the new price ${fmtDate(date)}. The business side now verifies the savings.`, 'success')
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Mark Done — Implemented" subtitle={`${idea.id} · ${idea.title}`} icon="PartyPopper" size="lg"
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="success" icon="CircleCheck" disabled={!valid} onClick={save}>Mark Done</Button></>}>
+    <Modal open={open} onClose={onClose} title="Hand over for verification" subtitle={`${idea.id} · ${idea.title}`} icon="PackageCheck" size="lg"
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="success" icon="PackageCheck" disabled={!valid} onClick={save}>Hand over</Button></>}>
       <div className="grid gap-4">
         <div className="grid sm:grid-cols-3 gap-3">
-          <Field label="Effective date" required hint={`Not before the start date (${fmtDate(idea.execution.startDate)}). Realised saving counts MRNs after this date.`}>
+          <Field label="First MRN at the new price" required hint={`Effective date — not before the start date (${fmtDate(idea.execution.startDate)}). Realised saving counts MRNs from this date.`}>
             <input type="date" className="input" value={date} min={idea.execution.startDate} onChange={(e) => setDate(e.target.value)} />
           </Field>
           <Field label="Linked PAP request" tag={linked ? <SourceTag color="#0f9f6e">Linked</SourceTag> : <SourceTag color="#94a3b8">Not linked</SourceTag>}>

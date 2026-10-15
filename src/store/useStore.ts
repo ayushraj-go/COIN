@@ -9,7 +9,7 @@ import {
   MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
 } from '../lib/masters'
 import { buildSeed, realiseMonth } from '../lib/seed'
-import { addMonthsIso, evalDeptOf, milestoneSchedule, needsSupplierCheck } from '../lib/workflow'
+import { addMonthsIso, evalDeptOf, milestoneSchedule, needsSupplierCheck, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
 import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus } from '../lib/types'
@@ -421,12 +421,15 @@ export const useStore = create<Store>()(
         sendSupplierCheck: (id, sc) => {
           const u = me()
           const token = `${id.slice(-8)}-${uid('sc').slice(-6)}`.toLowerCase()
+          // the secure form link is filled in once the token exists
+          const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/supplier-form/${token}`
+          const body = sc.body.replace(SUPPLIER_LINK_PLACEHOLDER, link)
           patchIdea(id, (i) => ({
             ...i,
-            evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), supplier: { status: 'Sent', token, ...sc, sentAt: now(), sentBy: u.name } },
+            evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), supplier: { status: 'Sent', token, ...sc, body, sentAt: now(), sentBy: u.name } },
             activity: [...i.activity, logEntry(`Supplier capability request sent to ${sc.supplierName}`, { remarks: sc.email })],
           }))
-          email([sc.email], sc.subject, sc.body, 'Supplier capability request')
+          email([sc.email], sc.subject, body, 'Supplier capability request')
           return token
         },
         respondSupplierCheck: (token, r) => {
