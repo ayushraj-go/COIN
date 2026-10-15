@@ -199,7 +199,7 @@ function WorkshopCampaignPage() {
                     <CartesianGrid horizontal={false} stroke="#eceef6" />
                     <XAxis type="number" tickFormatter={(v) => inrShort(v, 0)} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={124} tick={<YTick max={19} />} axisLine={false} tickLine={false} />
-                    <RTooltip cursor={{ fill: 'rgb(36 89 224 / .05)' }} content={({ active, payload }) => {
+                    <RTooltip cursor={{ fill: 'rgb(27 49 111 / .05)' }} content={({ active, payload }) => {
                       if (!active || !payload?.length) return null
                       const d = payload[0].payload as (typeof byLever)[number]
                       return (

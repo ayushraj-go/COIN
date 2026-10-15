@@ -217,8 +217,8 @@ export function bridgeData(ctx: Ctx) {
   const rows = [
     { key: 'realised', label: ctx.fv ? 'Realised (validated)' : 'Realised', base: 0, value: R, color: '#0f9f6e', drill: { bucket: 'Implemented' } as Record<string, string> },
     { key: 'committed', label: 'Committed (remaining)', base: R, value: C, color: '#ec8a1c', drill: { bucket: 'In Execution' } as Record<string, string> },
-    { key: 'pipeline', label: 'Pipeline', base: RC, value: P, color: '#3b74f2', drill: { bucket: 'Pipeline' } as Record<string, string> },
-    { key: 'total', label: 'Total tracked', base: 0, value: total, color: '#2459e0', drill: {} as Record<string, string> },
+    { key: 'pipeline', label: 'Pipeline', base: RC, value: P, color: '#36509a', drill: { bucket: 'Pipeline' } as Record<string, string> },
+    { key: 'total', label: 'Total tracked', base: 0, value: total, color: '#223c86', drill: {} as Record<string, string> },
   ]
   return { rows, R, C, P, RC, total }
 }

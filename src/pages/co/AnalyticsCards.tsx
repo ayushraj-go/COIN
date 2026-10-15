@@ -14,7 +14,7 @@ import { coValue, type CoData } from './data'
 const EXEC = BUCKET_STYLE['In Execution']
 const IMPL = BUCKET_STYLE.Implemented
 const RISK = '#e0364f'
-const FIN = { validated: '#0b8a77', pending: '#7fdcc6', queried: '#f2b04c', cumulative: '#2459e0' }
+const FIN = { validated: '#0b8a77', pending: '#7fdcc6', queried: '#f2b04c', cumulative: '#223c86' }
 
 /** Ledger rows of hard-saving ideas in scope (realisation is counted on hard savings only) */
 function useHardLedger(c: CoData) {

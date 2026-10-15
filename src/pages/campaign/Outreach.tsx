@@ -42,7 +42,7 @@ export function EmailPreview({ from, to, subject, body, clamp, fit, className }:
 
 // ─── Supplier responses (from the Supplier Portal) ────────────────────────────
 export const RESPONSE_STATUSES: SupplierResponseStatus[] = ['New', 'Under review', 'Converted to idea', 'Closed']
-export const STATUS_COLOR: Record<SupplierResponseStatus, string> = { New: '#2459e0', 'Under review': '#b7791f', 'Converted to idea': '#14ab92', Closed: '#66758f' }
+export const STATUS_COLOR: Record<SupplierResponseStatus, string> = { New: '#223c86', 'Under review': '#b7791f', 'Converted to idea': '#14ab92', Closed: '#66758f' }
 const STATUS_TONE: Record<SupplierResponseStatus, PillTone> = { New: 'blue', 'Under review': 'amber', 'Converted to idea': 'teal', Closed: 'muted' }
 export const TYPE_STYLE: Record<SupplierResponseType, { color: string; icon: string }> = {
   Idea: { color: '#0b8a77', icon: 'Lightbulb' },

@@ -16,7 +16,7 @@ function fileIcon(a: Attachment): [string, string] {
   if (isImage(a)) return ['FileImage', '#7c3aed']
   if (n.endsWith('.pdf')) return ['FileText', '#e0364f']
   if (/\.(xlsx?|csv)$/.test(n)) return ['FileSpreadsheet', '#0f9f6e']
-  if (/\.(docx?|txt)$/.test(n)) return ['FileText', '#4470d6']
+  if (/\.(docx?|txt)$/.test(n)) return ['FileText', '#2f4a9a']
   if (/\.(zip|rar|7z)$/.test(n)) return ['FileArchive', '#ec8a1c']
   if (/\.(dwg|dxf|step|stp|igs)$/.test(n)) return ['FileCode2', '#0d9488']
   return ['File', '#64748b']

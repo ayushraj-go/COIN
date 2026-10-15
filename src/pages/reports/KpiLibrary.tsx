@@ -19,7 +19,7 @@ interface BRow { key: string; label: string; value: number; display: string; dri
 interface Head { v: number; kind: 'money' | 'pct' | 'count' | 'days'; digits?: number; sub?: React.ReactNode; color?: string; display?: string }
 interface KDef { id: string; head: (ctx: Ctx, sm: Summary, n: number, space: Space) => Head; rows: (ctx: Ctx, dim: string, sm: Summary, n: number, space: Space) => BRow[]; max?: (rows: BRow[]) => number; marker?: number; asc?: boolean; extra?: (ctx: Ctx) => React.ReactNode }
 
-const GROUP_COLOR: Record<string, string> = { A: '#475569', B: '#0891b2', C: '#7c3aed', D: '#ec8a1c', E: '#bf8f3f', F: '#0d9488' }
+const GROUP_COLOR: Record<string, string> = { A: '#475569', B: '#0891b2', C: '#7c3aed', D: '#ec8a1c', E: '#b8142a', F: '#0d9488' }
 const GROUP_NOTE: Record<string, string> = {
   A: 'Savings in the pipeline, in execution and realised',
   B: 'How ideas move through the funnel', C: 'How fast ideas move', D: 'How reliably approved ideas deliver', E: 'Where the savings come from', F: 'How wide the innovation network is',
@@ -76,7 +76,7 @@ const DEFS: KDef[] = [
     id: 'A2', head: (ctx, sm) => { const spend = ctx.scopeCommodities.reduce((a, c) => a + c.addressableSpend, 0); return { v: safeDiv(sm.realised, spend) * 100, kind: 'pct', digits: 3, sub: <>{inrShort(sm.realised)} of {inrBig(spend)} addressable spend</> } },
     rows: (ctx, dim) => byParts(ctx, dim, (p) => { const spend = dim === 'Commodity' ? ctx.commodities.find((c) => c.code === p.key)?.addressableSpend ?? 0 : ctx.scopeCommodities.filter((c) => c.categoryId === p.key).reduce((a, c) => a + c.addressableSpend, 0); return safeDiv(realisedOf(ctx, p.ideas), spend) * 100 }, (v) => pct(v, 3)),
   },
-  { id: 'A3', head: (_c, sm) => ({ v: sm.pipeline, kind: 'money', color: '#3b74f2', sub: <>{sm.counts.Pipeline} ideas in Pipeline</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => pipelineOf(p.ideas), money).map((r) => ({ ...r, drill: { ...r.drill, bucket: 'Pipeline' } })) },
+  { id: 'A3', head: (_c, sm) => ({ v: sm.pipeline, kind: 'money', color: '#36509a', sub: <>{sm.counts.Pipeline} ideas in Pipeline</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => pipelineOf(p.ideas), money).map((r) => ({ ...r, drill: { ...r.drill, bucket: 'Pipeline' } })) },
   {
     id: 'A4', head: (ctx, sm) => ({ v: committedExec(ctx, ctx.all), kind: 'money', color: '#ec8a1c', sub: <>incl. implemented ideas: {inrShort(sm.committed)}</> }),
     rows: (ctx, dim) => {

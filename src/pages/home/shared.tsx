@@ -229,7 +229,7 @@ export function HomeSkeleton({ variant = 'dashboard' }: { variant?: 'dashboard' 
 }
 
 /** Compact KPI tile for people homes */
-export function MiniStat({ label, value, sub, icon, color = '#2f5bc6', onClick, tip }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: string; color?: string; onClick?: () => void; tip?: React.ReactNode }) {
+export function MiniStat({ label, value, sub, icon, color = '#223c86', onClick, tip }: { label: string; value: React.ReactNode; sub?: React.ReactNode; icon: string; color?: string; onClick?: () => void; tip?: React.ReactNode }) {
   return (
     <div onClick={onClick} className={cn('card p-4 relative overflow-hidden min-w-0 transition-colors', onClick && 'cursor-pointer hover:border-[#d0d5dd]')}>
       <div className="flex items-center gap-1.5">

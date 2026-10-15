@@ -878,7 +878,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
 function PageHeader2({ draftId, draftStatus, onCancel, onSave, allOpen, onToggleAll }: { draftId: string | null; draftStatus: React.ReactNode; onCancel: () => void; onSave: () => void; allOpen: boolean; onToggleAll: () => void }) {
   return (
     <PageHeader icon="CirclePlus" title="Submit Idea" fit
-      badge={draftId ? <Badge color="#64748b" icon="FileClock">{draftId}</Badge> : <Badge color="#4470d6" dot>New idea</Badge>}
+      badge={draftId ? <Badge color="#64748b" icon="FileClock">{draftId}</Badge> : <Badge color="#2f4a9a" dot>New idea</Badge>}
       subtitle="Fill the steps in order — each one folds away when complete — while the savings summary on the right recalculates as you type"
       actions={<>
         <span className="hidden sm:inline-flex mr-1">{draftStatus}</span>

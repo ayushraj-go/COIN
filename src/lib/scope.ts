@@ -30,7 +30,7 @@ export const PURPOSE = [
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
   { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub · Implemented ideas · NPD master · realised savings, Finance validation and price leakage', icon: 'Calculator', color: '#0f9f8a' },
-  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · NPD master · Admin & Masters', icon: 'Network', color: '#2459e0' },
+  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · NPD master · Admin & Masters', icon: 'Network', color: '#223c86' },
 ]
 export const WORKSPACE_NOTE =
   'After login every user sees the four status cards (Pipeline, In Execution, Implemented, Dropped) and chooses a workspace. The sidebar shows only that workspace\'s pages: Scope & Methodology sits at the top under Overview, MIS is pinned at the bottom, and the workspace badge in the sidebar header switches between CO and IN.'

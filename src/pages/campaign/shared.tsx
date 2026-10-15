@@ -7,13 +7,13 @@ import { fmtDate, inrShort, nowIso, sum, todayIso, uid } from '../../lib/format'
 import { Avatar, Badge, Button, Field, Icon, Modal, Segmented, SourceTag, cn } from '../../components/ui'
 import { Pager, usePaged } from './kit'
 
-export const PRIMARY = '#2459e0'
-export const GOLD = '#bf8f3f'
+export const PRIMARY = '#223c86'
+export const GOLD = '#b8142a'
 export type AttendanceStatus = Campaign['attendance'][string]
 export const ATTENDANCE: AttendanceStatus[] = ['Invited', 'Accepted', 'Declined', 'Attended']
 export const ATT_STYLE: Record<AttendanceStatus, { color: string; icon: string }> = {
   Invited: { color: '#64748b', icon: 'MailQuestion' },
-  Accepted: { color: '#3b74f2', icon: 'CalendarCheck' },
+  Accepted: { color: '#36509a', icon: 'CalendarCheck' },
   Declined: { color: '#e0364f', icon: 'CalendarX' },
   Attended: { color: '#0f9f6e', icon: 'UserCheck' },
 }

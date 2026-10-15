@@ -16,10 +16,10 @@ const stagesOf = (key: string) => Object.keys(STAGE_SLA_KEY).filter((s) => STAGE
 
 export type ActionKind = 'validate' | 'feasibility' | 'evaluate' | 'approve' | 'savings' | 'overdue' | 'info' | 'draft' | 'sla'
 export const ACTION_META: Record<ActionKind, { label: string; icon: string; color: string }> = {
-  validate: { label: 'Feasibility check', icon: 'UsersRound', color: '#4470d6' },
+  validate: { label: 'Feasibility check', icon: 'UsersRound', color: '#2f4a9a' },
   feasibility: { label: 'Feasibility', icon: 'Factory', color: '#0d9488' },
   evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: '#4f46e5' },
-  approve: { label: 'Sourcing approval', icon: 'Stamp', color: '#2f5bc6' },
+  approve: { label: 'Sourcing approval', icon: 'Stamp', color: '#223c86' },
   savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: '#0f9f6e' },
   overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: '#e0364f' },
   info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: '#ec8a1c' },
@@ -196,7 +196,7 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
       title={<span className="flex items-center gap-1.5">{title}<InfoTip title="My actions">Everything waiting on you, sorted by SLA urgency (escalated → breached → due). Click an item to review it in the side panel without leaving the page.</InfoTip></span>}
       subtitle={items.length ? `${items.length} open${breached ? ` · ${breached} beyond SLA / overdue` : ''}` : 'Nothing pending'}
       icon="Inbox"
-      actions={items.length ? <Badge color={breached ? '#e0364f' : '#4470d6'} dot>{items.length}</Badge> : undefined}>
+      actions={items.length ? <Badge color={breached ? '#e0364f' : '#2f4a9a'} dot>{items.length}</Badge> : undefined}>
       {kinds.length > 1 && (
         <div className="flex flex-wrap gap-1.5 pb-2 shrink-0">
           <Chip active={kind === 'all'} onClick={() => setKind('all')}>All {items.length}</Chip>

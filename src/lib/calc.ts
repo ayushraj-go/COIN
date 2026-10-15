@@ -74,7 +74,7 @@ export function bucketFor(route: RouteKey, stage: string): Bucket {
 }
 export const BUCKET_STYLE: Record<Bucket, { color: string; soft: string; text: string; label: string }> = {
   Draft: { color: '#94a3b8', soft: '#f6f7fb', text: '#475569', label: 'Draft' },
-  Pipeline: { color: '#4470d6', soft: '#eef3ff', text: '#2a4fcf', label: 'Pipeline' },
+  Pipeline: { color: '#2f4a9a', soft: '#eef1f8', text: '#1b316f', label: 'Pipeline' },
   'In Execution': { color: '#ec8a1c', soft: '#fff6ea', text: '#b35f0c', label: 'In Execution' },
   Implemented: { color: '#14ab92', soft: '#ecfdf9', text: '#0d6e61', label: 'Implemented' },
   Dropped: { color: '#6b7280', soft: '#f3f4f6', text: '#4b5563', label: 'Dropped' },

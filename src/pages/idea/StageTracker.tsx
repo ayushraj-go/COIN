@@ -103,7 +103,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
       <div className="hidden sm:block overflow-x-auto no-scrollbar pb-1">
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>
           <div className="absolute h-[3px] rounded-full bg-slate-100" style={{ top: compact ? 13 : 15, left: `calc(100% / ${n} / 2)`, right: `calc(100% / ${n} / 2)` }}>
-            <motion.div className="h-full rounded-full origin-left" style={{ background: 'linear-gradient(90deg, #4470d6, #ec8a1c 70%, #0f9f6e)' }}
+            <motion.div className="h-full rounded-full origin-left" style={{ background: 'linear-gradient(90deg, #2f4a9a, #ec8a1c 70%, #0f9f6e)' }}
               initial={{ scaleX: 0 }} animate={{ scaleX: progress }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
           </div>
           {nodes.map((node, k) => (

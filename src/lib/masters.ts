@@ -138,7 +138,7 @@ export const COMMODITIES_DEFAULT: Commodity[] = [
   { code: 'FAC', name: 'Facility & utilities', categoryId: 'SRV', target: 1.5 * CR, buyerId: 'u-buyer7', leadId: 'u-lead3', addressableSpend: 210 * CR },
 ]
 
-const COLORS = ['#bf8f3f', '#4470d6', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea']
+const COLORS = ['#b8142a', '#2f4a9a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea']
 const pw = 'coin@2026'
 let ci = 0
 const u = (id: string, name: string, employeeId: string, roles: User['roles'], department: User['department'], designation: string, commodities: string[], plant = 'RJP', extra: Partial<User> = {}): User => ({

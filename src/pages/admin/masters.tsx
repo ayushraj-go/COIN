@@ -17,7 +17,7 @@ const EVALUATORS = ['—', 'R&D', 'DQA', 'Quality', 'Process', 'Production', 'R&
 const NPD = ['No', 'Yes', 'Yes (supplier qualification)', 'Trial only', 'To be confirmed']
 const ALL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Sourcing', 'Finance', 'Management', 'Sourcing Excellence', 'Supplier']
 const ROLE_KEYS = Object.keys(ROLE_LABEL) as RoleKey[]
-const AVATAR = ['#2f5bc6', '#4470d6', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#bf8f3f']
+const AVATAR = ['#223c86', '#2f4a9a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#b8142a']
 const opt = (a: string[]): [string, string][] => a.map((x) => [x, x])
 
 function useLookups() {
@@ -46,7 +46,7 @@ export function CategoryAdmin() {
       columns={[
         { key: 'id', label: 'Code', render: (c) => <span className="font-mono font-semibold text-brand-700">{c.id}</span> },
         { key: 'name', label: 'Commodity group', render: (c) => <span className="font-semibold text-ink">{c.name}</span> },
-        { key: 'buyingType', label: 'Buying type', render: (c) => <Badge color={c.buyingType === 'Direct' ? '#2f5bc6' : '#bf8f3f'}>{c.buyingType}</Badge> },
+        { key: 'buyingType', label: 'Buying type', render: (c) => <Badge color={c.buyingType === 'Direct' ? '#223c86' : '#b8142a'}>{c.buyingType}</Badge> },
         { key: 'commodities', label: 'Commodities', value: (c) => commodities.filter((x) => x.categoryId === c.id).map((x) => x.name).join(', '), render: (c) => <span className="text-ink-2">{commodities.filter((x) => x.categoryId === c.id).map((x) => x.code).join(' · ') || '—'}</span> },
         { key: 'ideas', label: 'Ideas', align: 'right', value: (c) => ideas.filter((i) => i.categoryId === c.id).length },
       ]} />
@@ -212,7 +212,7 @@ export function RouteAdmin() {
         const open = ideas.filter((i) => i.route === r && (i.bucket === 'Pipeline' || i.bucket === 'In Execution')).length
         const approvers = [...new Set(ls.map((l) => rndDeptFor(l.evaluator)))]
         return (
-          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="#bf8f3f">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ? `Scope document: ${doc.stages}` : 'Route to be defined by Sourcing'} icon="Route"
+          <Card key={r} className="rounded-2xl" title={<span className="flex items-center gap-2">{r} route{r === 'To be confirmed' && <Badge color="#b8142a">Decision 1 — Strategic masking</Badge>}</span>} subtitle={doc?.stages ? `Scope document: ${doc.stages}` : 'Route to be defined by Sourcing'} icon="Route"
             actions={<span className="text-[11.5px] text-muted">{ls.length} levers · {open} open ideas</span>}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Categories on this route</div><div className="flex flex-wrap gap-1.5">{ls.length ? ls.map((l) => <LeverChip key={l.id} leverId={l.id} />) : <span className="text-[12px] text-muted">No category mapped</span>}</div></div>
@@ -282,7 +282,7 @@ export function PlantAdmin() {
       columns={[
         { key: 'id', label: 'Code', render: (p) => <span className="font-mono font-semibold text-brand-700">{p.id}</span> },
         { key: 'name', label: 'Plant', render: (p) => <span className="font-semibold">{p.name}</span> },
-        { key: 'bu', label: 'BU', render: (p) => <Badge color="#bf8f3f">{p.bu}</Badge> },
+        { key: 'bu', label: 'BU', render: (p) => <Badge color="#b8142a">{p.bu}</Badge> },
         { key: 'users', label: 'Users', align: 'right', value: (p) => users.filter((u) => u.plant === p.id).length },
         { key: 'ideas', label: 'Ideas', align: 'right', value: (p) => ideas.filter((i) => i.plant === p.id).length },
       ]} />
@@ -349,8 +349,8 @@ export function UserAdmin() {
           { key: 'name', label: 'User', value: (u) => u.name, render: (u) => <span className="flex items-center gap-2 min-w-0"><Avatar name={u.name} color={u.avatarColor} size={26} /><span className="min-w-0"><span className="block text-[12.5px] font-semibold text-ink truncate">{u.name}</span><span className="block text-[11px] text-muted truncate max-w-[220px]">{u.designation}</span></span></span> },
           { key: 'employeeId', label: 'Employee ID', render: (u) => <span className="font-mono text-[11.5px]">{u.employeeId}</span> },
           { key: 'email', label: 'Email', render: (u) => <span className="text-ink-2">{u.email}</span> },
-          { key: 'roles', label: 'Roles', value: (u) => u.roles.map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} color={r === 'admin' ? '#bf8f3f' : r === 'head' ? '#2f5bc6' : r === 'supplier' ? '#0d9488' : '#475569'}>{ROLE_LABEL[r]}</Badge>)}</span> },
-          { key: 'commodities', label: 'Commodities', value: (u) => u.commodities.join(', '), render: (u) => <span className="text-[11.5px] text-ink-2">{u.commodities.length ? u.commodities.join(' · ') : u.roles.some((r) => ['head', 'finance', 'mgmt', 'admin'].includes(r)) ? <Badge color="#2f5bc6">All (org-wide)</Badge> : '—'}</span> },
+          { key: 'roles', label: 'Roles', value: (u) => u.roles.map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} color={r === 'admin' ? '#b8142a' : r === 'head' ? '#223c86' : r === 'supplier' ? '#0d9488' : '#475569'}>{ROLE_LABEL[r]}</Badge>)}</span> },
+          { key: 'commodities', label: 'Commodities', value: (u) => u.commodities.join(', '), render: (u) => <span className="text-[11.5px] text-ink-2">{u.commodities.length ? u.commodities.join(' · ') : u.roles.some((r) => ['head', 'finance', 'mgmt', 'admin'].includes(r)) ? <Badge color="#223c86">All (org-wide)</Badge> : '—'}</span> },
           { key: 'department', label: 'Department' },
           { key: 'plant', label: 'Plant', value: (u) => plants.find((p) => p.id === u.plant)?.name ?? u.plant },
           { key: 'active', label: 'Active', value: (u) => (u.active ? 'Active' : 'Inactive'), render: (u) => <span onClick={(e) => { e.stopPropagation(); toggle(u) }}><Toggle checked={u.active} onChange={() => undefined} disabled={ro} /></span> },

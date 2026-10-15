@@ -1,50 +1,50 @@
 @import "tailwindcss";
 
-/* COIN design tokens — "Slate, Azure & Teal"
-   Neutral slate canvas, a calm azure primary with soft blue gradients, a fresh teal accent for savings and highlights. */
+/* COIN design tokens — "Amber navy, white & red"
+   White canvas, Amber navy primary, Amber red accent (from the Amber logo); status colours keep their meaning. */
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* primary — azure blue */
-  --color-brand-50: #f1f4fb;
-  --color-brand-100: #e0e7f5;
-  --color-brand-200: #c5d3ee;
-  --color-brand-300: #9cb3e3;
-  --color-brand-400: #6b8fdc;
-  --color-brand-500: #4470d6;
-  --color-brand-600: #2f5bc6;
-  --color-brand-700: #2748a6;
-  --color-brand-800: #1e3d99;
-  --color-brand-900: #1e3778;
+  /* primary — Amber navy */
+  --color-brand-50: #f2f4fa;
+  --color-brand-100: #e1e6f2;
+  --color-brand-200: #c3cde6;
+  --color-brand-300: #95a6d2;
+  --color-brand-400: #5f76b6;
+  --color-brand-500: #36509a;
+  --color-brand-600: #223c86;
+  --color-brand-700: #1b316f;
+  --color-brand-800: #172a5c;
+  --color-brand-900: #13234b;
 
-  /* accent — fresh teal (savings, positive values, secondary highlights) */
-  --color-accent-50: #ecfdf9;
-  --color-accent-100: #d0f7ee;
-  --color-accent-200: #a4eedc;
-  --color-accent-300: #6cdec6;
-  --color-accent-400: #33c6aa;
-  --color-accent-500: #14ab92;
-  --color-accent-600: #0b8a77;
-  --color-accent-700: #0d6e61;
+  /* accent — Amber red (brand highlights, CO workspace) */
+  --color-accent-50: #fff1f2;
+  --color-accent-100: #ffe0e3;
+  --color-accent-200: #fdbcc3;
+  --color-accent-300: #f8919c;
+  --color-accent-400: #ee5866;
+  --color-accent-500: #d7192d;
+  --color-accent-600: #b8142a;
+  --color-accent-700: #961226;
 
-  /* legacy gold scale (kept for existing references) */
-  --color-gold-50: #fcf8f0;
-  --color-gold-100: #f7eedb;
-  --color-gold-200: #eedcb3;
-  --color-gold-300: #e2c283;
-  --color-gold-400: #d4a85a;
-  --color-gold-500: #bf8f3f;
-  --color-gold-600: #a07433;
-  --color-gold-700: #7f5b2b;
+  /* neutral steel (replaces the old gold accents) */
+  --color-gold-50: #f4f6fa;
+  --color-gold-100: #e8ecf4;
+  --color-gold-200: #d3dbe9;
+  --color-gold-300: #b0bdd5;
+  --color-gold-400: #8496b8;
+  --color-gold-500: #5f7298;
+  --color-gold-600: #4a5b7d;
+  --color-gold-700: #384663;
 
   /* Amber corporate red — logo mark only */
   --color-amber-red: #d7192d;
 
   /* semantic stage palette (jewel tones) */
-  --color-pipeline: #4470d6;
-  --color-pipeline-soft: #f0f3fa;
+  --color-pipeline: #2f4a9a;
+  --color-pipeline-soft: #eef1f8;
   --color-exec: #ec8a1c;
   --color-exec-soft: #fff6ea;
   --color-done: #14ab92;
@@ -80,8 +80,8 @@
 html, body, #root { height: 100%; }
 body {
   background:
-    radial-gradient(1100px 420px at 70% -120px, rgb(207 219 242 / .45), transparent 70%),
-    radial-gradient(700px 360px at 0% 0%, rgb(214 240 232 / .40), transparent 70%),
+    radial-gradient(1100px 420px at 70% -120px, rgb(203 212 236 / .50), transparent 70%),
+    radial-gradient(700px 360px at 0% 0%, rgb(250 222 226 / .32), transparent 70%),
     var(--color-canvas);
   background-attachment: fixed;
   color: var(--color-ink);
@@ -94,7 +94,7 @@ body {
   font-feature-settings: "tnum", "cv11";
 }
 h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.015em; }
-::selection { background: rgb(59 116 242 / .18); color: var(--color-ink); }
+::selection { background: rgb(27 49 111 / .16); color: var(--color-ink); }
 
 /* faint dot lattice over the canvas — gives the workspace texture without noise */
 .canvas-texture { display: none; }
@@ -102,25 +102,29 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 /* frosted glass surfaces */
 .glass { background: rgb(255 255 255 / .70); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgb(255 255 255 / .75); }
 .glass-strong { background: rgb(255 255 255 / .82); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border: 1px solid rgb(255 255 255 / .9); }
-.text-gradient { background: linear-gradient(100deg, #2459e0 0%, #7a5cf0 45%, #d4a85a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.text-gradient-blue { background: linear-gradient(100deg, #2e389c, #2459e0 55%, #7a5cf0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.text-gradient { background: linear-gradient(100deg, #1b316f 0%, #2f4a9a 55%, #d7192d 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.text-gradient-blue { background: linear-gradient(100deg, #13234b, #1b316f 55%, #2f4a9a); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .text-gradient-gold { background: linear-gradient(100deg, #f3d9a0 0%, #d4a85a 50%, #f7e7c1 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .text-title { color: var(--color-ink); }
-.bg-brand-grad { background: linear-gradient(135deg, #4470d6 0%, #2f5bc6 60%, #2850b0 100%); }
-/* blue → teal hero band for headers and feature cards */
-.bg-hero { background: linear-gradient(120deg, #2850b0 0%, #2f5bc6 38%, #2a7cb8 72%, #14a08a 100%); }
+.bg-brand-grad { background: linear-gradient(135deg, #2f4a9a 0%, #1b316f 60%, #13234b 100%); }
+/* navy hero band with an Amber red glow — headers and the highlighted KPI tile */
+.bg-hero { background: radial-gradient(120% 140% at 100% 0%, rgb(215 25 45 / .38), transparent 55%), linear-gradient(120deg, #13234b 0%, #1b316f 55%, #2a428f 100%); }
+/* Amber red band (CO workspace) */
+.bg-red-grad { background: linear-gradient(135deg, #e3303f 0%, #d7192d 45%, #a8122a 100%); }
 /* soft tints used behind KPI tiles and section headers */
 .bg-soft-blue { background: linear-gradient(180deg, #f4f6fb 0%, #ffffff 100%); }
-.bg-soft-teal { background: linear-gradient(180deg, #effcf8 0%, #ffffff 100%); }
-.text-brand-grad { background: linear-gradient(100deg, #2850b0, #2f5bc6 45%, #14a08a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bg-soft-teal { background: linear-gradient(180deg, #fff3f4 0%, #ffffff 100%); }
+.text-brand-grad { background: linear-gradient(100deg, #13234b, #1b316f 45%, #d7192d); -webkit-background-clip: text; background-clip: text; color: transparent; }
 @keyframes float-y { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 @keyframes orbit-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
 @keyframes pulse-ring { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(2.4); opacity: 0 } }
 @keyframes dash-flow { to { stroke-dashoffset: -40 } }
+@keyframes coin-spin { 0%, 80%, 100% { transform: rotateY(0deg) } 90% { transform: rotateY(180deg) } }
+.coin-spin { animation: coin-spin 9s ease-in-out infinite; transform-style: preserve-3d; }
 @keyframes aurora { 0%, 100% { transform: translate3d(0, 0, 0) scale(1) } 50% { transform: translate3d(3%, -4%, 0) scale(1.08) } }
 .float-y { animation: float-y 6s ease-in-out infinite; }
 .aurora { animation: aurora 16s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .float-y, .aurora, .animate-\[spin_6s_linear_infinite\] { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .float-y, .aurora, .coin-spin, .animate-\[spin_6s_linear_infinite\] { animation: none !important; } }
 
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 

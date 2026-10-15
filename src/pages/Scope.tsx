@@ -47,7 +47,7 @@ const SECTIONS: { id: string; title: string; icon: string; space: DocSpace }[] =
 const inView = (view: View, space: DocSpace | string) => view === 'All' || space === 'Both' || space === view
 /** Section numbers for the current view (sections hidden in this view are absent) */
 const NumCtx = createContext<Record<string, string>>({})
-const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: '#0f9f8a' }, IN: { label: 'IN', color: '#2459e0' }, Both: { label: 'CO · IN', color: '#64748b' } }
+const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: '#0f9f8a' }, IN: { label: 'IN', color: '#223c86' }, Both: { label: 'CO · IN', color: '#64748b' } }
 const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Innovation Network (IN)', All: 'both workspaces (CO and IN)' }
 // KPI groups and reports by workspace (CO first in every listing)
 const KPI_GROUP_SPACE: Record<string, DocSpace> = { A: 'Both', B: 'IN', C: 'Both', D: 'CO', E: 'Both', F: 'IN' }
@@ -273,7 +273,7 @@ export default function Scope() {
   const decisionNow: Record<number, React.ReactNode> = {
     1: <Badge color="#64748b">Route: To be confirmed</Badge>,
     2: <Badge color={settings.financeValidation ? '#0f9f6e' : '#64748b'} icon={settings.financeValidation ? 'ShieldCheck' : 'ShieldOff'}>{settings.financeValidation ? 'On' : 'Off'}</Badge>,
-    4: <Badge color="#2459e0">X = ₹ {settings.xThresholdLakh} lakh</Badge>,
+    4: <Badge color="#223c86">X = ₹ {settings.xThresholdLakh} lakh</Badge>,
     9: <Badge color={settings.leaderboardVisible ? '#0f9f6e' : '#64748b'}>{settings.leaderboardVisible ? 'Visible · top 10 per quarter' : 'Hidden'}</Badge>,
     10: <Badge color={slaChanged ? '#ec8a1c' : '#0f9f6e'}>{slaChanged ? 'Customised in Admin' : 'As proposed'}</Badge>,
   }
@@ -290,7 +290,7 @@ export default function Scope() {
   return (
     <div>
       <PageHeader icon="BookOpenText" title="Scope & Methodology" subtitle={`Describes ${VIEW_LABEL[view]} · ${DOC_META.date} · ${DOC_META.author}`}
-        badge={<Badge color="#bf8f3f" icon="FileBadge">{DOC_META.version} · {DOC_META.status}</Badge>}
+        badge={<Badge color="#b8142a" icon="FileBadge">{DOC_META.version} · {DOC_META.status}</Badge>}
         actions={<><span className="no-print"><Segmented size="sm" value={view} onChange={(k) => { setView(k as View); setActive('doc') }} options={[{ key: 'CO', label: 'CO' }, { key: 'IN', label: 'IN' }, { key: 'All', label: 'All' }]} /></span><Button icon="Printer" onClick={() => window.print()}>Print</Button><Button variant="primary" icon="LayoutDashboard" onClick={() => nav('/')}>Open dashboard</Button></>} />
 
       <div className="grid lg:grid-cols-[252px_minmax(0,1fr)] gap-4 items-start">
@@ -299,7 +299,7 @@ export default function Scope() {
           <nav className="card p-2 shadow-[0_12px_32px_-24px_rgb(36_89_224/.45)]">
             <div className="px-2 pt-1.5 pb-2">
               <div className="text-[10.5px] font-bold uppercase tracking-[.12em] text-muted">Contents</div>
-              <ProgressBar value={progress} height={3} color="#2459e0" className="mt-2" />
+              <ProgressBar value={progress} height={3} color="#223c86" className="mt-2" />
             </div>
             {shown.map((s) => {
               const on = active === s.id
@@ -326,8 +326,8 @@ export default function Scope() {
 
           {/* Document */}
           <section id="doc" data-scope-section className="card scroll-mt-4 relative overflow-hidden p-5 md:p-6">
-            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #2459e0, #6d9bff 55%, #bf8f3f)' }} />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(600px 260px at 100% 0%, rgb(36 89 224 / .07), transparent 60%), radial-gradient(420px 220px at 0% 100%, rgb(184 137 63 / .08), transparent 60%)' }} />
+            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #223c86, #6d9bff 55%, #b8142a)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(600px 260px at 100% 0%, rgb(27 49 111 / .07), transparent 60%), radial-gradient(420px 220px at 0% 100%, rgb(184 137 63 / .08), transparent 60%)' }} />
             <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px] [&>*]:min-w-0">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-[.14em] text-brand-700">Scope of Work</div>
@@ -370,7 +370,7 @@ export default function Scope() {
           {/* 3 */}
           <Section id="s3" intro={ROLES_INTRO}>
             <DocTable head={['Role', 'Who at Amber', 'Primary job in COIN', 'Data visibility']} widths={['17%', '28%', '33%']}
-              rows={ROLES.map((r) => [<span className="flex items-center gap-2">{r.role}{me?.roles.includes(r.key as any) && <Badge color="#2459e0">You</Badge>}</span>, r.who, r.job, <Badge color="#475569">{r.visibility}</Badge>])} />
+              rows={ROLES.map((r) => [<span className="flex items-center gap-2">{r.role}{me?.roles.includes(r.key as any) && <Badge color="#223c86">You</Badge>}</span>, r.who, r.job, <Badge color="#475569">{r.visibility}</Badge>])} />
             <Sub title="Permission matrix (✓ = allowed, — = not allowed)" icon="KeyRound" aside={me && <span className="text-[11.5px] text-muted">Your column: <b className="text-brand-700">{ROLE_LABEL[primaryRole(me)]}</b></span>}>
               <div className="overflow-x-auto rounded-xl border border-line">
                 <table className="w-full border-separate border-spacing-0 text-[12.5px]">
@@ -549,7 +549,7 @@ export default function Scope() {
             <div className="max-w-[760px]">
               <Sub title="Approval matrix (configurable)" icon="Stamp">
                 <DocTable head={['Annualised impact', 'Approver', 'Current setting']} dense
-                  rows={APPROVAL_MATRIX_DOC.map(([a, b], k) => [a, b, <Badge color="#2459e0">{k === 0 ? `≤ ₹ ${settings.xThresholdLakh} lakh` : `> ₹ ${settings.xThresholdLakh} lakh`}</Badge>])} />
+                  rows={APPROVAL_MATRIX_DOC.map(([a, b], k) => [a, b, <Badge color="#223c86">{k === 0 ? `≤ ₹ ${settings.xThresholdLakh} lakh` : `> ₹ ${settings.xThresholdLakh} lakh`}</Badge>])} />
                 <div className="mt-2"><Callout tone="gold" icon="Info">{APPROVAL_NOTE} This build uses X = ₹ {settings.xThresholdLakh} lakh ({inrShort(settings.xThresholdLakh * LAKH)}), editable in Admin & Masters.</Callout></div>
               </Sub>
             </div>
@@ -559,8 +559,8 @@ export default function Scope() {
           <Section id="s7" intro={FORM_INTRO}>
             <Callout tone="info" icon="PanelsTopLeft">{FORM_LAYOUT}</Callout>
             <div className="flex flex-wrap gap-1.5">
-              {[...new Set(FORM_FIELDS.map((f) => f.card))].map((c) => <Badge key={c} color="#2459e0">{c} · {FORM_FIELDS.filter((f) => f.card === c).length}</Badge>)}
-              <Badge color="#bf8f3f" icon="WandSparkles">{FORM_FIELDS.filter((f) => /Auto|Calculated/.test(f.type)).length} auto-filled or calculated</Badge>
+              {[...new Set(FORM_FIELDS.map((f) => f.card))].map((c) => <Badge key={c} color="#223c86">{c} · {FORM_FIELDS.filter((f) => f.card === c).length}</Badge>)}
+              <Badge color="#b8142a" icon="WandSparkles">{FORM_FIELDS.filter((f) => /Auto|Calculated/.test(f.type)).length} auto-filled or calculated</Badge>
             </div>
             <DocTable head={['#', 'Step', 'Field', 'Type', 'Req.', 'Source / behaviour']} widths={['4%', '14%', '20%', '13%', '10%']} dense
               rows={FORM_FIELDS.map((f) => [
@@ -615,7 +615,7 @@ export default function Scope() {
           <Section id="s11" intro={DASHBOARDS_INTRO}>
             <Sub title="Dashboards" icon="LayoutDashboard">
               <DocTable head={['Workspace', 'View', 'Who', 'What it shows']} widths={['10%', '15%', '22%']} dense
-                rows={DASHBOARDS.filter((d) => d.space === 'Entry' || iv(d.space)).map((d) => [<Badge color={d.space === 'CO' ? '#0f9f8a' : d.space === 'IN' ? '#2459e0' : '#475569'}>{d.space}</Badge>, <span className="font-semibold text-ink">{d.view}</span>, <span className="text-[12px]">{d.who}</span>, d.contents])} />
+                rows={DASHBOARDS.filter((d) => d.space === 'Entry' || iv(d.space)).map((d) => [<Badge color={d.space === 'CO' ? '#0f9f8a' : d.space === 'IN' ? '#223c86' : '#475569'}>{d.space}</Badge>, <span className="font-semibold text-ink">{d.view}</span>, <span className="text-[12px]">{d.who}</span>, d.contents])} />
             </Sub>
             <P>{REPORTS_INTRO}</P>
             <DocTable head={['#', 'Report', 'Audience', 'Key visuals', 'Frequency', '']} widths={['4%', '19%', '17%', undefined, '11%', '8%']} dense
@@ -631,7 +631,7 @@ export default function Scope() {
           <Section id="s12" intro={NOTIF_INTRO}>
             <Sub title="Emails sent by COIN" icon="Mail">
               <DocTable head={['Email', 'Recipient', 'Channel', 'When']} widths={['24%', '24%', '22%']} dense
-                rows={NOTIF_TRIGGERS.filter((t) => iv(t.space)).map((t) => [t.trigger, t.recipient, <Badge color="#2459e0" icon="Mail">{t.channel}</Badge>, t.timing])} />
+                rows={NOTIF_TRIGGERS.filter((t) => iv(t.space)).map((t) => [t.trigger, t.recipient, <Badge color="#223c86" icon="Mail">{t.channel}</Badge>, t.timing])} />
             </Sub>
             <Sub title="Reminders and escalations on screen" icon="AlarmClock"><Bullets items={REMINDERS_ON_SCREEN.filter((r) => iv(r.space)).map((r) => r.text)} /></Sub>
             <Sub title="Stage SLAs (defaults, configurable)" icon="Timer" aside={slaChanged ? <Badge color="#ec8a1c">Customised in Admin</Badge> : <Badge color="#0f9f6e">In force as proposed</Badge>}>
@@ -650,7 +650,7 @@ export default function Scope() {
           <Section id="s13" intro={INTEGRATION_INTRO}>
             <DocTable head={['System', 'Data exchanged', 'Direction', 'Used for']} widths={['20%', '30%', '14%']} dense
               rows={coFirst(INTEGRATIONS.filter((i) => iv(i.space)), (i) => i.space).map((i) => [i.system, i.data,
-                <Badge color={i.direction === 'Into COIN' ? '#0f9f6e' : i.direction === 'Out of COIN' ? '#2459e0' : '#bf8f3f'} icon={i.direction === 'Into COIN' ? 'ArrowDownToLine' : i.direction === 'Out of COIN' ? 'ArrowUpFromLine' : 'ArrowLeftRight'}>{i.direction}</Badge>, i.use])} />
+                <Badge color={i.direction === 'Into COIN' ? '#0f9f6e' : i.direction === 'Out of COIN' ? '#223c86' : '#b8142a'} icon={i.direction === 'Into COIN' ? 'ArrowDownToLine' : i.direction === 'Out of COIN' ? 'ArrowUpFromLine' : 'ArrowLeftRight'}>{i.direction}</Badge>, i.use])} />
             <Callout tone="success" icon="FileSpreadsheet" title="Fallback">{INTEGRATION_FALLBACK}</Callout>
           </Section>
 

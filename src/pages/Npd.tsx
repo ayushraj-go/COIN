@@ -161,7 +161,7 @@ export default function Npd() {
               <thead><tr><th>Code</th><th>Commodity</th><th>Corporate SPOC</th><th>Testing (perf / rel)</th><th>Plant and DQA SPOCs</th></tr></thead>
               <tbody>
                 {shown.map((r) => (
-                  <tr key={r.id} className={cn('clickable', r.id === sel.id && '!bg-[#f6f8fb] [&>td:first-child]:shadow-[inset_2px_0_0_#2459e0]')} onClick={() => setSelId(r.id)}>
+                  <tr key={r.id} className={cn('clickable', r.id === sel.id && '!bg-[#f6f8fb] [&>td:first-child]:shadow-[inset_2px_0_0_#223c86]')} onClick={() => setSelId(r.id)}>
                     <td>{r.code ? <span className="font-mono text-[12px] font-semibold text-ink">{r.code}</span> : <span className="text-[11px] text-muted italic">no code</span>}</td>
                     <td className="truncate"><span className="text-ink font-medium" title={r.name}>{nice(r.name)}</span></td>
                     <td className="truncate">{r.spoc.corporate ? <span className="inline-flex items-center gap-1.5 min-w-0"><Avatar name={r.spoc.corporate} color={avColor(r.spoc.corporate)} size={20} /><span className="truncate">{r.spoc.corporate}</span></span> : <span className="text-[12px] text-[#98a2b3]">Not assigned</span>}</td>

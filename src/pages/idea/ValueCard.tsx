@@ -71,7 +71,7 @@ export function ValueCard({ idea, compact }: { idea: Idea; compact?: boolean }) 
     <Card title="Value" subtitle={compact ? undefined : `${idea.savingsType} saving · ${counts ? 'counts as hard savings' : 'reported separately from hard savings'}`} icon="IndianRupee"
       actions={idea.locked ? <Tooltip content="Approved values are locked; changes after approval need a change reason and re-approval above the set %."><span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded px-1.5 h-5"><Icon name="Lock" size={11} />Locked</span></Tooltip> : undefined}>
       <div className={cn('grid gap-2', 'grid-cols-1 min-[420px]:grid-cols-3')}>
-        <Figure label="Estimated" value={v.est} color="#4470d6" formula="(P(baseline) − P(new)) × Q(last FY MRN)" tip="Annualised impact at the estimated new price."
+        <Figure label="Estimated" value={v.est} color="#2f4a9a" formula="(P(baseline) − P(new)) × Q(last FY MRN)" tip="Annualised impact at the estimated new price."
           sub={idea.scope === 'Open' ? 'Estimate for open idea' : `${v.pct.toFixed(1)}% on baseline spend`} />
         <Figure label="Approved" value={v.appr} muted={idea.bucket === 'Dropped' ? 'Not approved' : 'Pending approval'} color="#ec8a1c" formula="(P(baseline) − P(approved)) × Q(last FY MRN)" tip="Uses the approved revised price where available."
           sub={v.appr != null ? (idea.approvedAt ? `Approved ${fmtDate(idea.approvedAt.slice(0, 10))}` : 'At approved price') : undefined} />
@@ -82,7 +82,7 @@ export function ValueCard({ idea, compact }: { idea: Idea; compact?: boolean }) 
       {!compact && (
         <div className="mt-3 space-y-1.5">
           {[
-            { k: 'Estimated', val: v.est, c: '#4470d6' },
+            { k: 'Estimated', val: v.est, c: '#2f4a9a' },
             { k: 'Approved', val: v.appr ?? 0, c: '#ec8a1c' },
             { k: 'Realised', val: v.realised, c: '#0f9f6e' },
           ].map((b) => (

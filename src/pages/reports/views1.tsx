@@ -124,7 +124,7 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
     <div className="grid gap-3">
       <KpiStrip items={[
         { label: 'Ideas submitted', value: ctx.ideas.length, money: false, icon: 'Lightbulb', color: '#1e3a5f', formula: kf('B1').formula, sub: `${inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised` },
-        { label: 'Pipeline value', value: s.pipeline, icon: 'Filter', color: '#3b74f2', formula: kf('A3').formula, sub: `${s.counts.Pipeline} ideas in pipeline`, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Pipeline value', value: s.pipeline, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, sub: `${s.counts.Pipeline} ideas in pipeline`, onClick: () => drill({ bucket: 'Pipeline' }) },
         { label: 'Conversion rate', value: conv, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', formula: kf('B2').formula, sub: `${d.steps[3].n} of ${d.steps[0].n} implemented` },
         { label: 'Dropped', value: s.counts.Dropped, money: false, icon: 'CircleX', color: '#6b7280', formula: kf('B3').formula, sub: `${inrShort(s.values.Dropped)} annualised`, onClick: () => drill({ bucket: 'Dropped' }) },
       ]} />
@@ -147,7 +147,7 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
               return (
                 <button key={st.step} onClick={() => list.show(`${st.step} ideas`, st.ideas)} className="w-full flex items-center gap-2 group">
                   <span className="w-[78px] text-[11.5px] text-muted text-left shrink-0">{st.step}</span>
-                  <span className="flex-1 flex justify-center"><span className="h-6 rounded-md grid place-items-center text-[11.5px] font-bold text-white transition group-hover:brightness-110" style={{ width: `${Math.max(14, (st.n / maxStep) * 100)}%`, background: ['#64748b', '#4470d6', '#ec8a1c', '#14ab92'][k] }}>{st.n}</span></span>
+                  <span className="flex-1 flex justify-center"><span className="h-6 rounded-md grid place-items-center text-[11.5px] font-bold text-white transition group-hover:brightness-110" style={{ width: `${Math.max(14, (st.n / maxStep) * 100)}%`, background: ['#64748b', '#2f4a9a', '#ec8a1c', '#14ab92'][k] }}>{st.n}</span></span>
                   <span className="w-[46px] text-right text-[11px] font-semibold num text-ink-2">{k ? pct(c, 0) : ''}</span>
                 </button>
               )
@@ -198,8 +198,8 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
       <KpiStrip items={[
         { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: b.R, icon: 'BadgeIndianRupee', color: '#0f9f6e', formula: kf('A5').formula, onClick: () => drill({ bucket: 'Implemented' }) },
         { label: 'Committed (remaining)', value: b.C, icon: 'Rocket', color: '#ec8a1c', formula: kf('A4').formula, onClick: () => drill({ bucket: 'In Execution' }) },
-        { label: 'Pipeline', value: b.P, icon: 'Filter', color: '#3b74f2', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
-        { label: 'Total tracked', value: b.total, icon: 'Sigma', color: '#2459e0', formula: 'Realised + remaining committed + pipeline' },
+        { label: 'Pipeline', value: b.P, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Total tracked', value: b.total, icon: 'Sigma', color: '#223c86', formula: 'Realised + remaining committed + pipeline' },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-8" title="Savings bridge" icon="ChartColumnStacked" subtitle="Waterfall: realised → committed → pipeline → total tracked">
@@ -256,7 +256,7 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
                       <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden flex">
                         <div style={{ width: `${(r.realised / maxTotal) * 100}%`, background: '#0f9f6e' }} />
                         <div style={{ width: `${(r.remaining / maxTotal) * 100}%`, background: '#ec8a1c' }} />
-                        <div style={{ width: `${(r.pipeline / maxTotal) * 100}%`, background: '#3b74f2' }} />
+                        <div style={{ width: `${(r.pipeline / maxTotal) * 100}%`, background: '#36509a' }} />
                       </div>
                     </td>
                   </tr>
@@ -265,7 +265,7 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
             </tbody>
           </table>
         </div>
-        <Legend className="mt-2" items={[{ label: 'Realised', color: '#0f9f6e' }, { label: 'Committed (remaining)', color: '#ec8a1c' }, { label: 'Pipeline', color: '#3b74f2' }]} />
+        <Legend className="mt-2" items={[{ label: 'Realised', color: '#0f9f6e' }, { label: 'Committed (remaining)', color: '#ec8a1c' }, { label: 'Pipeline', color: '#36509a' }]} />
       </Card>
       {list.el}
     </div>
@@ -371,7 +371,7 @@ function CommodityIN({ ctx }: { ctx: Ctx }) {
       <KpiStrip items={[
         { label: 'Commodities', value: rows.length, money: false, icon: 'Boxes', color: '#1e3a5f', sub: `${rows.filter((r) => r.submitted > 0).length} with ideas` },
         { label: 'Ideas submitted', value: totalSub, money: false, icon: 'Lightbulb', color: '#1e3a5f', formula: kf('B1').formula },
-        { label: 'Pipeline value', value: ctx.sum.pipeline, icon: 'Filter', color: '#3b74f2', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
+        { label: 'Pipeline value', value: ctx.sum.pipeline, icon: 'Filter', color: '#36509a', formula: kf('A3').formula, onClick: () => drill({ bucket: 'Pipeline' }) },
         { label: 'Conversion rate', value: totalSub ? (totalImpl / totalSub) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', formula: kf('B2').formula, sub: `${totalImpl} of ${totalSub} ideas` },
         { label: 'Ideas beyond SLA', value: rows.reduce((a, r) => a + r.breaches, 0), money: false, icon: 'Siren', color: '#e0364f', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
       ]} />
@@ -443,7 +443,7 @@ export function BuyerReport({ ctx, space = 'CO' }: { ctx: Ctx; space?: Space }) 
   ]
   const bars = co
     ? [{ k: 'realised', label: 'Realised', color: '#0f9f6e' }, { k: 'committed', label: 'Committed', color: '#ec8a1c' }]
-    : [{ k: 'pipeline', label: 'Pipeline value', color: '#4470d6' }]
+    : [{ k: 'pipeline', label: 'Pipeline value', color: '#2f4a9a' }]
   const maxBar = Math.max(1, ...rows.map((r) => bars.reduce((a, b) => a + (r as any)[b.k], 0)))
   const tiles = (r: R): [string, string, string, (() => void)?][] => co ? [
     ['Realised', inrShort(r.realised), '#0b7a55'],
@@ -539,7 +539,7 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
       <KpiStrip items={[
         { label: 'Suppliers with ideas', value: rows.filter((r) => r.ideas > 0).length, money: false, icon: 'Factory', color: '#0d9488' },
         { label: 'Supplier-submitted ideas', value: own, money: false, icon: 'Lightbulb', color: '#7c3aed', onClick: () => list.show('Supplier-submitted ideas', ctx.ideas.filter((i) => i.isSupplierSubmission)), tip: 'Ideas submitted by suppliers through the Supplier Workspace' },
-        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: '#3b74f2', tip: 'Σ annualised impact of ideas linked to each supplier' },
+        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: '#36509a', tip: 'Σ annualised impact of ideas linked to each supplier' },
         { label: 'Avg gain-share offered', value: gs.length ? gs.reduce((a, r) => a + r.gainShare, 0) / gs.length : 0, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: '#ec8a1c', tip: 'Gain-share % offered to Amber on supplier submissions (captured as a field only)' },
         { label: 'Supplier participation', value: rows.filter((r) => r.supplierSubmitted > 0).length, money: false, icon: 'Users', color: '#0d9488', tip: 'Suppliers who submitted at least one idea through the Supplier Workspace', sub: 'submitted ≥ 1 idea' },
       ]} />
@@ -645,7 +645,7 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
         </Card>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-7" title="Structural share trend" icon="TrendingUp" subtitle="(VA/VE + material + localisation) ÷ total realised, month by month" actions={<Legend items={[{ label: 'Structural', color: '#4f46e5' }, { label: 'Other categories', color: '#cbd5e1' }, { label: 'Cumulative share', color: '#bf8f3f' }]} />}>
+        <Card className="lg:col-span-7" title="Structural share trend" icon="TrendingUp" subtitle="(VA/VE + material + localisation) ÷ total realised, month by month" actions={<Legend items={[{ label: 'Structural', color: '#4f46e5' }, { label: 'Other categories', color: '#cbd5e1' }, { label: 'Cumulative share', color: '#b8142a' }]} />}>
           <ChartBox height={250}>
             <ComposedChart data={d.trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />
@@ -656,7 +656,7 @@ export function LeverReport({ ctx }: { ctx: Ctx }) {
               <Bar yAxisId="v" dataKey="structural" name="Structural" stackId="s" fill="#4f46e5" />
               <Bar yAxisId="v" dataKey="other" name="Other categories" stackId="s" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
               <Line yAxisId="p" dataKey="share" name="Month share" stroke="#4f46e5" strokeDasharray="4 3" dot={{ r: 2.5 }} />
-              <Line yAxisId="p" dataKey="cumShare" name="Cumulative share" stroke="#bf8f3f" strokeWidth={2} dot={{ r: 3 }} />
+              <Line yAxisId="p" dataKey="cumShare" name="Cumulative share" stroke="#b8142a" strokeWidth={2} dot={{ r: 3 }} />
             </ComposedChart>
           </ChartBox>
           <SectionNote icon="Lightbulb" tone="blue">{STRUCTURAL_NOTE}</SectionNote>

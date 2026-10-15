@@ -45,7 +45,7 @@ export function ExecutionReport({ ctx }: { ctx: Ctx }) {
     <div className="grid gap-3">
       <KpiStrip items={[
         { label: 'In execution', value: d.inExec.length, money: false, icon: 'Rocket', color: '#ec8a1c', sub: `${inrShort(d.committed)} committed`, onClick: () => drill({ bucket: 'In Execution' }) },
-        { label: 'Due this month', value: d.due.length, money: false, icon: 'CalendarClock', color: '#3b74f2', sub: inrShort(d.due.reduce((a, x) => a + x.committed, 0)), onClick: () => list.show(`Due in ${monthLong(d.ym)}`, d.due.map((x) => x.idea)) },
+        { label: 'Due this month', value: d.due.length, money: false, icon: 'CalendarClock', color: '#36509a', sub: inrShort(d.due.reduce((a, x) => a + x.committed, 0)), onClick: () => list.show(`Due in ${monthLong(d.ym)}`, d.due.map((x) => x.idea)) },
         { label: 'Overdue', value: d.overdue.length, money: false, icon: 'Clock3', color: '#e0364f', sub: inrShort(d.overdue.reduce((a, x) => a + x.committed, 0)), formula: kf('D2').formula, onClick: () => drill({ health: 'Delayed' }) },
         { label: 'At risk', value: d.atRisk.length, money: false, icon: 'TriangleAlert', color: '#ec8a1c', sub: 'milestone overdue', onClick: () => drill({ health: 'At risk' }) },
         { label: 'Done this month', value: d.doneMonth.length, money: false, icon: 'CircleCheck', color: '#0f9f6e', sub: inrShort(d.doneMonth.reduce((a, i) => a + ideaAnnualised(i), 0)), onClick: () => list.show(`Implemented in ${monthLong(d.ym)}`, d.doneMonth) },
@@ -67,7 +67,7 @@ export function ExecutionReport({ ctx }: { ctx: Ctx }) {
             })}
           </div>
         </Card>
-        <Card className="lg:col-span-9" title="Execution timeline" icon="GanttChart" subtitle={`Each idea as a bar from start to due date · milestones as dots · ${ctx.fy}`} actions={<Legend items={[{ label: 'On track', color: '#0f9f6e' }, { label: 'At risk', color: '#ec8a1c' }, { label: 'Delayed', color: '#e0364f' }, { label: 'Today', color: '#2459e0', dashed: true }]} />}>
+        <Card className="lg:col-span-9" title="Execution timeline" icon="GanttChart" subtitle={`Each idea as a bar from start to due date · milestones as dots · ${ctx.fy}`} actions={<Legend items={[{ label: 'On track', color: '#0f9f6e' }, { label: 'At risk', color: '#ec8a1c' }, { label: 'Delayed', color: '#e0364f' }, { label: 'Today', color: '#223c86', dashed: true }]} />}>
           <div className="flex text-[10.5px] font-bold uppercase tracking-wide text-muted pl-[232px] mb-1">
             {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => <div key={q} className="flex-1 border-l border-slate-200 pl-1.5">{q} · {QUARTER_MONTHS[q]}</div>)}
           </div>
@@ -121,7 +121,7 @@ export function DropsReport({ ctx }: { ctx: Ctx }) {
         { label: 'Dropped ideas', value: d.dropped.length, money: false, icon: 'CircleX', color: '#6b7280', onClick: () => drill({ bucket: 'Dropped' }) },
         { label: 'Drop rate', value: d.rate, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#e0364f', formula: kf('B3').formula, sub: `${d.dropped.length} of ${ctx.ideas.length} submitted` },
         { label: 'Value dropped', value: d.value, icon: 'BadgeIndianRupee', color: '#6b7280', tip: 'Σ annualised impact of dropped ideas; the committed value is removed from committed savings' },
-        { label: 'Top reason', value: d.byReason[0]?.count ?? 0, money: false, icon: 'ListOrdered', color: '#2459e0', sub: d.byReason[0]?.reason ?? '—', onClick: () => d.byReason[0] && drill({ bucket: 'Dropped', dropReason: d.byReason[0].reason }) },
+        { label: 'Top reason', value: d.byReason[0]?.count ?? 0, money: false, icon: 'ListOrdered', color: '#223c86', sub: d.byReason[0]?.reason ?? '—', onClick: () => d.byReason[0] && drill({ bucket: 'Dropped', dropReason: d.byReason[0].reason }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-8" title="Month-wise drops by reason" icon="ChartColumnStacked" subtitle={`Counted in the month of the drop · ${ctx.fy}`}>
@@ -197,7 +197,7 @@ export function AgeingReport({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Open ideas with an SLA', value: d.rows.length, money: false, icon: 'Timer', color: '#3b74f2' },
+        { label: 'Open ideas with an SLA', value: d.rows.length, money: false, icon: 'Timer', color: '#36509a' },
         { label: 'Within SLA', value: cnt('ok'), money: false, icon: 'CircleCheck', color: '#0f9f6e' },
         { label: 'Reminder due', value: cnt('due'), money: false, icon: 'AlarmClock', color: '#ec8a1c' },
         { label: 'Beyond SLA', value: cnt('breach') + cnt('escalated'), money: false, icon: 'Siren', color: '#e0364f', formula: kf('B4').formula, onClick: () => drill({ sla: 'breach' }) },
@@ -295,7 +295,7 @@ export function CampaignReport({ ctx }: { ctx: Ctx }) {
     <div className="grid gap-3">
       <KpiStrip items={[
         { label: 'Campaigns & workshops', value: rows.length, money: false, icon: 'Megaphone', color: '#db2777', sub: `${rows.filter((r) => r.status === 'Live').length} live` },
-        { label: 'Ideas from campaigns', value: ideas, money: false, icon: 'Lightbulb', color: '#3b74f2', formula: kf('F2').formula },
+        { label: 'Ideas from campaigns', value: ideas, money: false, icon: 'Lightbulb', color: '#36509a', formula: kf('F2').formula },
         { label: 'Idea yield per campaign', value: rows.length ? ideas / rows.length : 0, money: false, digits: 1, icon: 'Sprout', color: '#0d9488' },
         { label: 'Campaign value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: '#7c3aed' },
         { label: 'Conversion', value: ideas ? (impl / ideas) * 100 : 0, money: false, suffix: '%', digits: 1, icon: 'Percent', color: '#0f9f6e', sub: `${impl} implemented` },
@@ -456,7 +456,7 @@ export function ClosureReport({ ctx }: { ctx: Ctx }) {
         { label: `Committed in ${ctx.fy}`, value: d.inFy, icon: 'Rocket', color: '#ec8a1c', formula: kf('A4').formula },
         { label: 'Implemented ideas', value: s.counts.Implemented, money: false, icon: 'CircleCheck', color: '#0f9f6e', onClick: () => drill({ bucket: 'Implemented' }) },
         { label: `Carry-over into ${d.next}`, value: d.carry, icon: 'CalendarArrowUp', color: '#4f46e5', formula: kf('A9').formula },
-        { label: `Open ideas rolling to ${d.next}`, value: d.rollIn.length, money: false, icon: 'Repeat', color: '#3b74f2', sub: 'Pipeline + due date beyond 31 March', onClick: () => list.show(`Open ideas rolling into ${d.next}`, d.rollIn) },
+        { label: `Open ideas rolling to ${d.next}`, value: d.rollIn.length, money: false, icon: 'Repeat', color: '#36509a', sub: 'Pipeline + due date beyond 31 March', onClick: () => list.show(`Open ideas rolling into ${d.next}`, d.rollIn) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-7" title="In-FY committed vs carry-over by commodity" icon="ChartColumnStacked" subtitle={`Carry-over = annualised impact falling beyond ${fmtDate(d.fyEnd)}`} actions={<Legend items={[{ label: `Committed in ${ctx.fy}`, color: '#ec8a1c' }, { label: `Carry-over to ${d.next}`, color: '#4f46e5' }]} />}>

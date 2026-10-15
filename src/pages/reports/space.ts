@@ -7,7 +7,7 @@ export type Space = 'IN' | 'CO'
 export const SPACE_ORDER: Space[] = ['CO', 'IN']
 export const SPACE_META: Record<Space, { name: string; color: string; tagline: string }> = {
   CO: { name: 'Cost Optimisation', color: '#0f9f8a', tagline: 'Execution and realisation: implementation, due dates and slippage, realised savings from MRN, Finance validation, price leakage' },
-  IN: { name: 'Innovation Network', color: '#2459e0', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
+  IN: { name: 'Innovation Network', color: '#223c86', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
 }
 
 export interface MisReport {

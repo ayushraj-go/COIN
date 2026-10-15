@@ -46,7 +46,7 @@ export default function EvaluatorHome() {
         <RevealGrid className="h-full grid grid-cols-12 gap-3 xl:grid-rows-[auto_minmax(0,1fr)]">
           <Reveal className="col-span-12">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-              <MiniStat label="Awaiting evaluation" icon="FlaskConical" color="#2f5bc6" value={awaiting.length} sub={<>{inrShort(sum(awaiting.map((a) => ideaAnnualised(a.i))))} annualised at stake</>} />
+              <MiniStat label="Awaiting evaluation" icon="FlaskConical" color="#223c86" value={awaiting.length} sub={<>{inrShort(sum(awaiting.map((a) => ideaAnnualised(a.i))))} annualised at stake</>} />
               <MiniStat label="Beyond SLA" icon="Siren" color={breached ? '#e0364f' : '#0f9f6e'} value={breached} sub={rule ? `SLA ${rule.slaDays} working days · escalation day ${rule.escalateDay}` : 'Stage SLA'} />
               <MiniStat label="Evaluated by me" icon="ClipboardCheck" color="#0d9488" value={evaluated.length} sub={`${evaluated.filter((i) => i.evaluation!.decision === 'Recommend').length} recommended · ${evaluated.filter((i) => i.evaluation!.decision === 'Reject').length} rejected`} />
               <MiniStat label="Go rate" icon="CircleCheckBig" color="#0f9f6e" value={evaluated.length ? pct(goRate, 0) : '—'} sub="Go ÷ evaluated" />
@@ -59,7 +59,7 @@ export default function EvaluatorHome() {
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Inbox"
               title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting {me.department} evaluation<InfoTip title="Evaluation">Cost-benefit analysis, risk assessment and supplier capability check, then recommend, reject or send back to the Team feasibility check. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
               subtitle="Sorted by SLA urgency · click to review in the side panel"
-              actions={awaiting.length ? <Badge color={breached ? '#e0364f' : '#4470d6'} dot>{awaiting.length}</Badge> : undefined}>
+              actions={awaiting.length ? <Badge color={breached ? '#e0364f' : '#2f4a9a'} dot>{awaiting.length}</Badge> : undefined}>
               <div ref={awRef} className="flex-1 min-h-0 overflow-hidden">
                 {awaiting.length ? awaiting.slice(0, awRows).map(({ i, sla }) => {
                   const lever = levers.find((l) => l.id === i.leverId)

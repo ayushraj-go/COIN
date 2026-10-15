@@ -13,7 +13,7 @@ import { SubmitCta } from './SubmitterHome'
 import { useFitHeight, useRowsFit } from './fit'
 
 const ATT_STYLE: Record<string, { color: string; icon: string }> = {
-  Invited: { color: '#4470d6', icon: 'MailOpen' },
+  Invited: { color: '#2f4a9a', icon: 'MailOpen' },
   Accepted: { color: '#0f9f6e', icon: 'CircleCheck' },
   Declined: { color: '#6b7280', icon: 'CircleX' },
   Attended: { color: '#7c3aed', icon: 'BadgeCheck' },
@@ -66,7 +66,7 @@ export default function SupplierHome() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 h-full [&>*]:h-full">
               <MiniStat label="Workshop invites" icon="Presentation" color="#7c3aed" value={invites.length} sub={awaitingReply.length ? `${awaitingReply.length} awaiting your reply` : 'All invitations answered'} onClick={() => nav('/workshops')} />
               <MiniStat label="Under review" icon="ClipboardCheck" color="#ec8a1c" value={underReview.length} sub={underReview.length ? 'Feasibility, R&D or sourcing approval' : 'Nothing awaiting review'} onClick={() => nav('/my-ideas')} />
-              <MiniStat label="My ideas" icon="Lightbulb" color="#4470d6" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
+              <MiniStat label="My ideas" icon="Lightbulb" color="#2f4a9a" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
               <MiniStat label="Gain-share offered" icon="Handshake" color="#0d9488" value={gs.length ? `${gsAvg.toFixed(1)}%` : '—'} sub={gs.length ? `avg on ${gs.length} ideas · ≈ ${inrShort(gsValue)} / yr` : 'Offer gain-share when you submit'} tip={<InfoTip title="Gain-share offered to Amber">{payoutNote}</InfoTip>} />
             </div>
           </Reveal>

@@ -67,7 +67,7 @@ export function Card({ title, subtitle, actions, children, className, bodyClass,
 }
 
 /** Magic-UI style spotlight card — radial glow follows the cursor */
-export function SpotlightCard({ children, className, color = 'rgb(36 89 224 / .10)', onClick }: { children: React.ReactNode; className?: string; color?: string; onClick?: () => void }) {
+export function SpotlightCard({ children, className, color = 'rgb(27 49 111 / .10)', onClick }: { children: React.ReactNode; className?: string; color?: string; onClick?: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   return (
     <div
@@ -90,7 +90,7 @@ export function SpotlightCard({ children, className, color = 'rgb(36 89 224 / .1
 export function BorderBeam({ className }: { className?: string }) {
   return (
     <div className={cn('pointer-events-none absolute inset-0 rounded-[inherit] [mask:linear-gradient(#000,#000)_content-box,linear-gradient(#000,#000)] [mask-composite:exclude] p-px', className)}>
-      <div className="absolute -inset-[100%] animate-[spin_6s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 290deg, #a6b3ff 320deg, #4470d6 340deg, #d4a85a 355deg, transparent 360deg)' }} />
+      <div className="absolute -inset-[100%] animate-[spin_6s_linear_infinite]" style={{ background: 'conic-gradient(from 0deg, transparent 0 290deg, #a6b3ff 320deg, #2f4a9a 340deg, #e35a67 355deg, transparent 360deg)' }} />
     </div>
   )
 }
@@ -170,7 +170,7 @@ export function AgeBadge({ days }: { days: number }) {
 }
 
 // ─── Avatars ──────────────────────────────────────────────────────────────────
-export function Avatar({ name, color = '#2f5bc6', size = 28, ring }: { name: string; color?: string; size?: number; ring?: boolean }) {
+export function Avatar({ name, color = '#223c86', size = 28, ring }: { name: string; color?: string; size?: number; ring?: boolean }) {
   return (
     <span className={cn('inline-grid place-items-center rounded-full font-bold text-white shrink-0 select-none', ring && 'ring-2 ring-white')} style={{ width: size, height: size, fontSize: size * 0.38, background: `linear-gradient(135deg, ${color}, ${color}cc)` }} title={name}>
       {initials(name)}
@@ -213,7 +213,7 @@ export function InfoTip({ title, formula, children }: { title?: string; formula?
 }
 
 // ─── KPI cards with sparklines & count-up ─────────────────────────────────────
-export function Sparkline({ data, color = '#2f5bc6', height = 28, width = 96, fill = true }: { data: number[]; color?: string; height?: number; width?: number; fill?: boolean }) {
+export function Sparkline({ data, color = '#223c86', height = 28, width = 96, fill = true }: { data: number[]; color?: string; height?: number; width?: number; fill?: boolean }) {
   if (!data?.length) return null
   const max = Math.max(...data), min = Math.min(...data)
   const pts = data.map((v, i) => [(i / Math.max(1, data.length - 1)) * width, height - 2 - ((v - min) / (max - min || 1)) * (height - 4)])
@@ -245,7 +245,7 @@ export function Count({ value, className, suffix, digits = 0 }: { value: number;
   return <span className={cn('num', className)}><NumberFlow value={Number.isFinite(value) ? value : 0} format={{ minimumFractionDigits: digits, maximumFractionDigits: digits }} locales="en-IN" />{suffix}</span>
 }
 
-export function KpiCard({ label, value, money = true, suffix, digits, sub, delta, spark, color = '#2f5bc6', icon, tip, formula, onClick, active, className }: {
+export function KpiCard({ label, value, money = true, suffix, digits, sub, delta, spark, color = '#223c86', icon, tip, formula, onClick, active, className }: {
   label: string; value: number; money?: boolean; suffix?: string; digits?: number; sub?: React.ReactNode; delta?: number; spark?: number[]; color?: string; icon?: string; tip?: string; formula?: string; onClick?: () => void; active?: boolean; className?: string
 }) {
   return (
@@ -306,7 +306,7 @@ export function Gauge({ value, max, marker, label, sub, size = 220, color = '#0f
   )
 }
 
-export function ProgressBar({ value, color = '#2f5bc6', height = 6, className, bg = '#eceef6' }: { value: number; color?: string; height?: number; className?: string; bg?: string }) {
+export function ProgressBar({ value, color = '#223c86', height = 6, className, bg = '#eceef6' }: { value: number; color?: string; height?: number; className?: string; bg?: string }) {
   return (
     <div className={cn('w-full rounded-full overflow-hidden', className)} style={{ height, background: bg }}>
       <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(100, value))}%` }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} className="h-full rounded-full" style={{ background: color }} />
@@ -370,7 +370,7 @@ export function Field({ label, required, hint, children, className, tag, error }
     </div>
   )
 }
-export function SourceTag({ children, color = '#a07433' }: { children: React.ReactNode; color?: string }) {
+export function SourceTag({ children, color = '#961226' }: { children: React.ReactNode; color?: string }) {
   return <span className="text-[10.5px] font-medium px-1.5 py-px rounded whitespace-nowrap" style={{ color, background: `${color}14` }}>{children}</span>
 }
 

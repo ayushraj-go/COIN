@@ -61,7 +61,7 @@ function Sidebar() {
   const meta = space ? SPACE_META[space] : null
   return (
     <aside className={cn('hidden md:flex flex-col transition-[width] duration-300 shrink-0 relative z-20 overflow-hidden shadow-[1px_0_0_rgb(47_91_198/.10),8px_0_28px_-20px_rgb(47_91_198/.45)]', collapsed ? 'w-[68px]' : 'w-[228px]')}
-      style={{ background: 'linear-gradient(172deg, #e6ebf5 0%, #eef1f7 34%, #edf2f5 62%, #ddefe9 100%)' }}>
+      style={{ background: 'linear-gradient(172deg, #e7ebf5 0%, #eef1f7 38%, #f2f2f6 68%, #f6e8eb 100%)' }}>
       {/* depth: soft colour orbs + fine dot texture */}
       <div className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-brand-300/20 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 top-1/3 h-48 w-48 rounded-full bg-[#9aa7c7]/15 blur-3xl" />
@@ -256,7 +256,7 @@ function UserMenu() {
                   <div className="text-[11px] text-muted truncate">{me.employeeId} · {me.department} · {me.email}</div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="#2f5bc6">{ROLE_LABEL[r]}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="#223c86">{ROLE_LABEL[r]}</Badge>)}</div>
               <div className="border-t border-line my-1" />
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
               <div>
@@ -285,7 +285,7 @@ function UserMenu() {
 
 function Toasts() {
   const { toasts, dismissToast } = useStore()
-  const style = { success: ['CircleCheck', '#0f9f6e'], error: ['CircleX', '#e0364f'], info: ['Info', '#4470d6'], warning: ['TriangleAlert', '#ec8a1c'] } as const
+  const style = { success: ['CircleCheck', '#0f9f6e'], error: ['CircleX', '#e0364f'], info: ['Info', '#2f4a9a'], warning: ['TriangleAlert', '#ec8a1c'] } as const
   return (
     <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 w-[360px] max-w-[92vw]">
       <AnimatePresence>
@@ -327,7 +327,7 @@ function Celebration() {
   useEffect(() => {
     if (n === prev.current) return
     prev.current = n
-    const colors = ['#2f5bc6', '#d4a85a', '#0f9f6e', '#7b8cfb', '#d7192d']
+    const colors = ['#223c86', '#e35a67', '#0f9f6e', '#7b8cfb', '#d7192d']
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors, scalar: 0.9 })
     setTimeout(() => confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors }), 180)
     setTimeout(() => confetti({ particleCount: 50, angle: 120, spread: 55, origin: { x: 1 }, colors }), 300)
@@ -349,7 +349,7 @@ export default function AppShell() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <header className="relative h-14 shrink-0 backdrop-blur-md flex items-center gap-3 px-3 md:px-6 z-10" style={{ background: 'linear-gradient(90deg, rgb(255 255 255 / .92), rgb(246 248 251 / .92) 60%, rgb(238 249 246 / .92))' }}>
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, rgb(47 91 198 / .22), rgb(20 171 146 / .35), rgb(47 91 198 / .06))' }} />
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px" style={{ background: 'linear-gradient(90deg, rgb(27 49 111 / .22), rgb(20 171 146 / .35), rgb(27 49 111 / .06))' }} />
           <MobileNav />
           <button onClick={() => setSearchOpen(true)} className="group flex items-center gap-2 h-9 w-full max-w-[380px] px-3 rounded-lg bg-white border border-line hover:border-[#d0d5dd] text-[#98a2b3] text-[13px] transition-colors">
             <Icon name="Search" size={15} />

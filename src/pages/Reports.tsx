@@ -158,7 +158,7 @@ function ReportDetail({ rkey }: { rkey: string }) {
       </div>
       <div className="mb-5 flex items-center gap-4">
         <FilterBar className="flex-1" />
-        {month && <span className="shrink-0"><Badge color="#bf8f3f" icon="CalendarDays">Month: {monthLong(month)}</Badge></span>}
+        {month && <span className="shrink-0"><Badge color="#b8142a" icon="CalendarDays">Month: {monthLong(month)}</Badge></span>}
         <span className="shrink-0 whitespace-nowrap text-[11.5px] text-muted hidden 2xl:inline pr-1.5">{ctx.ideas.length} ideas in scope · exports use these filters</span>
       </div>
       {!ready ? <SkeletonGrid rows={2} /> : <View ctx={ctx} month={month} space={eff} />}

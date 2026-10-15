@@ -27,7 +27,7 @@ export function IdeaMetaChips({ idea, className }: { idea: Idea; className?: str
       {idea.isSupplierSubmission && <Badge color="#0d9488" icon="Factory">Supplier idea · {idea.supplierCode}</Badge>}
       {campaign && (
         <Link to={`/campaigns/${campaign.id}`} onClick={() => useStore.getState().openIdea(null)} className="inline-flex">
-          <Badge color="#2f5bc6" icon="Megaphone" className="hover:brightness-95">{campaign.name}</Badge>
+          <Badge color="#223c86" icon="Megaphone" className="hover:brightness-95">{campaign.name}</Badge>
         </Link>
       )}
     </div>
@@ -152,8 +152,8 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
 }
 
 // ─── Linked NPD / PAP requests (status synced) ───────────────────────────────
-const NPD_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', 'ECN raised': '#4470d6', 'Sample submitted': '#ec8a1c', 'Sample approved': '#0f9f6e', 'Sample failed': '#e0364f' }
-const PAP_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', Raised: '#4470d6', 'Price approved': '#0f9f6e', Rejected: '#e0364f' }
+const NPD_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', 'ECN raised': '#2f4a9a', 'Sample submitted': '#ec8a1c', 'Sample approved': '#0f9f6e', 'Sample failed': '#e0364f' }
+const PAP_COLOR: Record<string, string> = { 'Not raised': '#94a3b8', Raised: '#2f4a9a', 'Price approved': '#0f9f6e', Rejected: '#e0364f' }
 export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolean }) {
   const me = useMe()
   const syncNpdPap = useStore((s) => s.syncNpdPap)

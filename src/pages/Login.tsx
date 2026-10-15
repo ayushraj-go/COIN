@@ -18,9 +18,9 @@ function Backdrop() {
         className="absolute inset-0"
         style={{
           background: [
-            'radial-gradient(60% 55% at 12% 8%, rgb(59 116 242 / .085), transparent 70%)',
+            'radial-gradient(60% 55% at 12% 8%, rgb(34 60 134 / .085), transparent 70%)',
             'radial-gradient(45% 50% at 96% 4%, rgb(20 171 146 / .07), transparent 70%)',
-            'radial-gradient(50% 55% at 88% 100%, rgb(59 116 242 / .06), transparent 70%)',
+            'radial-gradient(50% 55% at 88% 100%, rgb(34 60 134 / .06), transparent 70%)',
             'radial-gradient(45% 45% at 0% 100%, rgb(20 171 146 / .055), transparent 70%)',
             'linear-gradient(180deg, rgb(255 255 255 / .7), rgb(255 255 255 / 0) 40%)',
           ].join(','),
@@ -63,12 +63,12 @@ function Globe() {
           <stop offset="55%" stopColor="#f3f5f8" />
           <stop offset="100%" stopColor="#dde3ec" />
         </radialGradient>
-        <linearGradient id="lg-arc" x1="0" x2="1"><stop offset="0%" stopColor="#14ab92" /><stop offset="100%" stopColor="#3b74f2" /></linearGradient>
+        <linearGradient id="lg-arc" x1="0" x2="1"><stop offset="0%" stopColor="#14ab92" /><stop offset="100%" stopColor="#36509a" /></linearGradient>
         <clipPath id="lg-clip"><circle r={r} /></clipPath>
       </defs>
       <g style={{ transformOrigin: '0 0', animation: 'orbit-spin 80s linear infinite' }}>
         <circle r={r + 52} fill="none" stroke="#0f1b33" strokeOpacity=".12" strokeDasharray="2 8" />
-        <circle cx={r + 52} cy={0} r={3.5} fill="#3b74f2" opacity=".8" />
+        <circle cx={r + 52} cy={0} r={3.5} fill="#36509a" opacity=".8" />
         <circle cx={-(r + 52)} cy={0} r={3} fill="#14ab92" />
       </g>
       <ellipse rx={r + 28} ry={(r + 28) * 0.3} transform="rotate(-18)" fill="none" stroke="#0f1b33" strokeOpacity=".08" />
@@ -85,8 +85,8 @@ function Globe() {
       </g>
       {nodes.map(([x, y], i) => (
         <g key={i} transform={`translate(${x},${y})`}>
-          <circle r={8} fill={i % 2 ? '#3b74f2' : '#14ab92'} opacity=".25" style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: `pulse-ring 3s ${i * 0.35}s ease-out infinite` }} />
-          <circle r={3.4} fill="#ffffff" stroke={i % 2 ? '#2459e0' : '#0b8a77'} strokeWidth="1.5" />
+          <circle r={8} fill={i % 2 ? '#36509a' : '#14ab92'} opacity=".25" style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: `pulse-ring 3s ${i * 0.35}s ease-out infinite` }} />
+          <circle r={3.4} fill="#ffffff" stroke={i % 2 ? '#223c86' : '#0b8a77'} strokeWidth="1.5" />
         </g>
       ))}
     </svg>

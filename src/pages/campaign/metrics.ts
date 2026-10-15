@@ -5,7 +5,7 @@ import { OUTREACH_KINDS, ROUTE_STAGES, STAGE } from '../../lib/masters'
 import { addDays } from '../../lib/format'
 
 /** Theme colours for charts (match Tailwind brand / accent tokens) */
-export const C_SENT = '#2459e0' // brand-600
+export const C_SENT = '#223c86' // brand-600
 export const C_DELIVERED = '#5e93fb' // brand-400
 export const C_OPENED = '#93b8ff' // brand-300
 export const C_REPLY = '#14ab92' // accent-500

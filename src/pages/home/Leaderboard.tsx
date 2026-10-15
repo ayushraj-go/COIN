@@ -9,7 +9,7 @@ import { Avatar, Button, Card, EmptyState, Icon, InfoTip, ProgressBar, Segmented
 import { useFy } from './shared'
 
 type Q = 'Q1' | 'Q2' | 'Q3' | 'Q4'
-const MEDAL = ['#bf8f3f', '#94a3b8', '#b45309']
+const MEDAL = ['#b8142a', '#94a3b8', '#b45309']
 
 interface Row { userId: string; name: string; dept: string; color: string; ideas: number; value: number; implemented: number; maxIdea: number; supplier: boolean; campaign: number }
 
@@ -71,7 +71,7 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
             if (r.implemented) badges.push({ icon: 'BadgeCheck', label: `${r.implemented} implemented`, color: '#0f9f6e' })
             if (r.maxIdea >= 1e7) badges.push({ icon: 'Gem', label: `Big bet · single idea ${inrShort(r.maxIdea)}`, color: '#7c3aed' })
             if (r.supplier) badges.push({ icon: 'Factory', label: 'Supplier partner', color: '#0d9488' })
-            if (r.campaign) badges.push({ icon: 'Megaphone', label: `${r.campaign} via campaign / workshop`, color: '#2f5bc6' })
+            if (r.campaign) badges.push({ icon: 'Megaphone', label: `${r.campaign} via campaign / workshop`, color: '#223c86' })
             if (r.ideas >= 5) badges.push({ icon: 'Flame', label: `${r.ideas} ideas this quarter`, color: '#ec8a1c' })
             return (
               <div key={r.userId} className={cn('flex items-center gap-2 py-1 px-1.5 rounded-lg', isMe ? 'bg-brand-50/70 ring-1 ring-brand-200' : 'hover:bg-slate-50')}>

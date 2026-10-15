@@ -24,7 +24,7 @@ function iconFor(a: ActivityEntry): [string, string] {
   if (s.includes('attachment')) return ['Paperclip', '#7c3aed']
   if (s.includes('reassign') || s.includes('owner')) return ['UserRoundCog', '#0284c7']
   if (s.includes('synced')) return ['RefreshCw', '#0d9488']
-  if (a.field === 'stage') return ['ArrowRight', '#4470d6']
+  if (a.field === 'stage') return ['ArrowRight', '#2f4a9a']
   return ['Dot', '#64748b']
 }
 /** Display labels: the execution "target date" is shown as the due date (stored action/field text is unchanged). */

@@ -24,9 +24,9 @@ export const moneyTick = (v: number) => {
   return `${s}₹${Math.round(a).toLocaleString('en-IN')}`
 }
 export const pctTick = (v: number) => `${Math.round(v)}%`
-export const CURSOR = { fill: 'rgb(36 89 224 / .06)' }
+export const CURSOR = { fill: 'rgb(27 49 111 / .06)' }
 
-export const PALETTE = ['#2459e0', '#bf8f3f', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea', '#64748b']
+export const PALETTE = ['#223c86', '#b8142a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea', '#64748b']
 
 /** Custom white rounded tooltip */
 export function ChartTip({ active, payload, label, fmt, title, hint = 'Click to open the ideas behind it', hide = [] as string[] }: any) {
@@ -116,7 +116,7 @@ export function filterText(f: Filters, lookups: { plants: { id: string; name: st
 }
 
 // ─── Mini visuals (library previews, KPI tiles) ───────────────────────────────
-export function MiniBars({ data, color = '#2459e0', height = 44, width = 150, colors, gap = 3 }: { data: number[]; color?: string; height?: number; width?: number; colors?: string[]; gap?: number }) {
+export function MiniBars({ data, color = '#223c86', height = 44, width = 150, colors, gap = 3 }: { data: number[]; color?: string; height?: number; width?: number; colors?: string[]; gap?: number }) {
   const max = Math.max(1e-9, ...data.map((d) => Math.abs(d)))
   const n = Math.max(1, data.length)
   const bw = Math.max(2, (width - gap * (n - 1)) / n)
@@ -163,7 +163,7 @@ export function MiniDonut({ parts, size = 56, stroke = 9, label }: { parts: { v:
 }
 
 /** Horizontal meter row used in scorecards and KPI breakdowns */
-export function MeterRow({ label, value, display, max, color = '#2459e0', onClick, sub, marker }: { label: React.ReactNode; value: number; display: React.ReactNode; max: number; color?: string; onClick?: () => void; sub?: React.ReactNode; marker?: number }) {
+export function MeterRow({ label, value, display, max, color = '#223c86', onClick, sub, marker }: { label: React.ReactNode; value: number; display: React.ReactNode; max: number; color?: string; onClick?: () => void; sub?: React.ReactNode; marker?: number }) {
   const w = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
   return (
     <button type="button" onClick={onClick} disabled={!onClick} className={cn('w-full text-left group rounded-md px-1 -mx-1 py-[3px]', onClick && 'hover:bg-slate-50 cursor-pointer')}>
@@ -190,4 +190,4 @@ export const pdfText = (v: any) => String(v ?? '')
   .replace(/Σ\s?/g, 'Sum ').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/×/g, 'x').replace(/→/g, '->').replace(/[−–—]/g, '-')
   .replace(/…/g, '...').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/÷/g, '/')
 
-export const FREQ_STYLE: Record<string, string> = { Live: '#0f9f6e', 'Live / monthly': '#0d9488', Monthly: '#3b74f2', Weekly: '#7c3aed', Quarterly: '#ec8a1c', Annual: '#bf8f3f', 'Per campaign': '#db2777' }
+export const FREQ_STYLE: Record<string, string> = { Live: '#0f9f6e', 'Live / monthly': '#0d9488', Monthly: '#36509a', Weekly: '#7c3aed', Quarterly: '#ec8a1c', Annual: '#b8142a', 'Per campaign': '#db2777' }

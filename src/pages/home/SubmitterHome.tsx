@@ -56,7 +56,7 @@ export function OpenCampaigns({ className, supplierCode }: { className?: string;
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge color={c.type === 'Workshop' ? '#7c3aed' : '#0284c7'} icon={c.type === 'Workshop' ? 'Presentation' : 'Megaphone'}>{c.type}</Badge>
-                      {invited && <Badge color="#2f5bc6" icon="MailCheck">Invited</Badge>}
+                      {invited && <Badge color="#223c86" icon="MailCheck">Invited</Badge>}
                       <span className="text-[11px] text-muted font-mono">{c.id}</span>
                     </div>
                     <div className="text-[13px] font-semibold text-ink mt-1 truncate">{c.name}</div>

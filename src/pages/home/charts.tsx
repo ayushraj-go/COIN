@@ -16,7 +16,7 @@ import { AXIS_TICK, BucketFilterChip, ChartTip, DrillModal, GRID_STROKE, drillUr
 const kpiTip = (id: string) => { const k = KPIS.find((x) => x.id === id)!; return <InfoTip title={`${k.id} · ${k.kpi}`} formula={k.formula}>Cut by: {k.cut}</InfoTip> }
 
 // ─── Savings trend by month ───────────────────────────────────────────────────
-const TREND_COLORS = { realised: '#4ade80', validated: '#0b7a55', cumulative: '#2f5bc6' }
+const TREND_COLORS = { realised: '#4ade80', validated: '#0b7a55', cumulative: '#223c86' }
 
 export function TrendCard({ d, className, height = 262 }: { d: HomeData; className?: string; height?: number }) {
   const fv = useStore((s) => s.settings.financeValidation)
@@ -58,7 +58,7 @@ export function TrendCard({ d, className, height = 262 }: { d: HomeData; classNa
             {showRef && <ReferenceLine yAxisId="c" x={lrmLabel} stroke="#cbd5e1" strokeDasharray="2 3" label={{ value: 'Last realisation run', position: 'insideTopLeft', fontSize: 10, fill: '#94a3b8' }} />}
             <Bar yAxisId="m" dataKey="realised" name="Realised (month)" fill="url(#homeTrRealised)" radius={[4, 4, 0, 0]} maxBarSize={16} className="cursor-pointer" />
             <Bar yAxisId="m" dataKey="validated" name="Finance validated (month)" fill="url(#homeTrValidated)" radius={[4, 4, 0, 0]} maxBarSize={16} className="cursor-pointer" />
-            <Line yAxisId="c" type="monotone" dataKey="cumulative" name={fv ? 'Cumulative validated' : 'Cumulative realised'} stroke={TREND_COLORS.cumulative} strokeWidth={2.2} dot={{ r: 2.5, fill: '#2f5bc6' }} activeDot={{ r: 4 }} />
+            <Line yAxisId="c" type="monotone" dataKey="cumulative" name={fv ? 'Cumulative validated' : 'Cumulative realised'} stroke={TREND_COLORS.cumulative} strokeWidth={2.2} dot={{ r: 2.5, fill: '#223c86' }} activeDot={{ r: 4 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
