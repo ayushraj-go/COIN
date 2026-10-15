@@ -23,5 +23,6 @@ describe('colour themes', () => {
   it('unknown keys fall back to the default palette', () => {
     expect(paletteByKey('nope').key).toBe(DEFAULT_PALETTE)
     expect(PALETTES.length).toBeGreaterThanOrEqual(6)
+    expect(DEFAULT_PALETTE).toBe('indigo') // Indigo Twilight — chosen by Ayush
   })
 })

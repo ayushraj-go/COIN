@@ -92,7 +92,7 @@ export const PALETTES: Palette[] = [
     brand: '#173a8a', accent: '#e11d2e', neutral: '#64748b', success: '#059669', warning: '#d97706', danger: '#dc2626',
     cats: ['#0d9488', '#0284c7', '#4f46e5', '#7c3aed', '#db2777'], canvas: '#ffffff', sidebar: 'light', sidebarBg: '#fbfcfd' },
 ]
-export const DEFAULT_PALETTE = 'amber-navy'
+export const DEFAULT_PALETTE = 'indigo'
 
 /** Tailwind colour families and which palette colour drives each */
 const FAMILIES: [string[], (p: Palette) => string][] = [
