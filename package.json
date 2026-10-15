@@ -7,7 +7,8 @@
     "dev": "vite --port 8742 --strictPort",
     "dev:lan": "vite --port 8742 --strictPort --host",
     "build": "vite build",
-    "preview": "vite preview --port 8742 --strictPort"
+    "preview": "vite preview --port 8742 --strictPort",
+    "test": "vitest run"
   },
   "dependencies": {
     "@number-flow/react": "^0.6.2",
@@ -32,6 +33,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^2.1.9"
   }
 }

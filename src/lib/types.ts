@@ -62,6 +62,7 @@ export interface Supplier {
   contactName: string
   city: string
   spend: number // last FY spend ₹
+  tier?: 'Tier 1' | 'Tier 2'
 }
 
 export interface Part {
@@ -113,6 +114,9 @@ export interface StageHistory {
   action?: string
   remarks?: string
 }
+
+export type RiskLevel = 'Low' | 'Medium' | 'High'
+export interface RiskItem { key: string; label: string; level: RiskLevel; costAtRisk: number; note?: string }
 
 export interface Comment { id: string; at: string; userId: string; userName: string; text: string; mentions: string[] }
 
