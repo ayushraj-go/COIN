@@ -1,5 +1,5 @@
-// M8 — Execution Hub (Section 9): every approved idea with an owner, dates, quarter phasing, milestones, reminders,
-// Done / Drop and a slippage log. Table ↔ quarter timeline.
+// M8 — Execution Hub · TRACE (stages 5–6 in Cost Optimisation): every approved idea with owner, locked timeline, milestones,
+// plan vs actual, CO date and MRN link, hand-over for verification, verification, drop and slippage log. Table ↔ quarter timeline.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore, useMe, hasRole } from '../store/useStore'
@@ -17,9 +17,13 @@ import { FilterBar } from '../components/FilterBar'
 import { MenuItem, MiniHead, Popover, ReassignModal, nextReminder, snapshot, toast } from './exec/shared'
 import { DropModal, LinkedEditor, MarkDoneModal, MilestoneNoteModal, PhasingEditor, ProgressModal, TargetDateModal, npdColor, papColor } from './exec/ExecModals'
 import { ExecTimeline, TimelineLegend } from './exec/Timeline'
+import { STAGE } from '../lib/masters'
+import { PlanVsActualBlock, useIdeaPlan } from './idea/PlanVsActual'
+import { VerificationModal } from './idea/StageForms'
 
 type Kpi = 'all' | 'due' | 'overdue' | 'risk' | 'done' | 'dropped'
-type ModalState = { kind: 'progress' | 'note' | 'done' | 'drop' | 'reassign' | 'target'; id: string; date?: string; to?: string; milestoneId?: string } | null
+type ModalState = { kind: 'progress' | 'note' | 'done' | 'drop' | 'reassign' | 'target' | 'verify'; id: string; date?: string; to?: string; milestoneId?: string } | null
+type Phase = 'execution' | 'verification' | 'verified'
 type PopState = { kind: 'phasing' | 'linked' | 'menu'; id: string; el: HTMLElement } | null
 const QS = ['Q1', 'Q2', 'Q3', 'Q4'] as const
 /** The execution "target date" is a deadline — shown as the due date. COIN has no savings target / landing. */
@@ -45,6 +49,7 @@ export default function ExecutionHub() {
   const ready = useWarmup(320)
 
   const [kpi, setKpi] = useState<Kpi>('all')
+  const [phase, setPhase] = useState<Phase>('execution')
   const [view, setView] = useState<'table' | 'timeline'>('table')
   const [params] = useSearchParams()
   const [q, setQ] = useState(params.get('q') ?? '')
@@ -72,18 +77,21 @@ export default function ExecutionHub() {
     due: active.filter((i) => ymOf(i.execution!.targetDate) === ym && i.execution!.targetDate >= t),
     overdue: active.filter((i) => i.execution!.targetDate < t),
     risk: active.filter((i) => healthOf(i) === 'At risk'),
-    done: hub.filter((i) => i.execution!.status === 'Done' && ymOf(i.implementedAt ?? i.execution!.effectiveDate ?? '') === ym),
+    done: hub.filter((i) => i.execution!.status === 'Done' && ymOf(i.verification?.handedAt ?? i.implementedAt ?? i.execution!.effectiveDate ?? '') === ym),
     dropped: hub.filter((i) => i.execution!.status === 'Dropped' && ymOf(i.droppedAt ?? '') === ym),
   }), [active, hub, ym, t])
   const cm = (list: Idea[]) => sum(list.map((i) => ideaCommitted(i, fy)))
   const committedHard = sum(active.filter(isHard).map((i) => ideaCommitted(i, fy)))
 
   const ownerOptions = useMemo(() => users.filter((u) => u.active && (u.roles.includes('buyer') || u.roles.includes('lead'))), [users])
+  const awaiting = useMemo(() => hub.filter((i) => i.stage === STAGE.verification && !i.verification?.verifiedAt), [hub])
+  const verified = useMemo(() => hub.filter((i) => !!i.verification?.verifiedAt), [hub])
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
-    return sets[kpi].filter((i) => (owner === 'All' || i.execution!.ownerId === owner) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.includes(k))))
+    const base = phase === 'verification' ? awaiting : phase === 'verified' ? verified : sets[kpi]
+    return base.filter((i) => (owner === 'All' || i.execution!.ownerId === owner) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.includes(k))))
       .sort((a, b) => (a.execution!.targetDate < b.execution!.targetDate ? -1 : a.execution!.targetDate > b.execution!.targetDate ? 1 : 0))
-  }, [sets, kpi, owner, q])
+  }, [sets, kpi, owner, q, phase, awaiting, verified])
 
   // price leakage for these ideas (Section 9)
   const hubIds = useMemo(() => new Set(hub.map((i) => i.id)), [hub])
@@ -103,6 +111,8 @@ export default function ExecutionHub() {
 
   const toggleMs = (i: Idea, mid: string) => {
     const m = i.execution!.milestones.find((x) => x.id === mid)!
+    // the hand-over milestone closes Execution started — capture first MRN date and approved prices
+    if (m.name === 'Handed for verification' && !m.doneDate) { setModal({ kind: 'done', id: i.id }); return }
     const undo = snapshot([i.id])
     useStore.getState().toggleMilestone(i.id, mid)
     toast(m.doneDate ? `Milestone reopened: ${m.name}` : `Milestone done: ${m.name}`, 'success', undo)
@@ -131,14 +141,14 @@ export default function ExecutionHub() {
     { k: 'due', label: 'Due this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: '#4470d6', tip: 'Due date falls later this month.' },
     { k: 'overdue', label: 'Overdue', value: sets.overdue.length, sub: <>{inrShort(cm(sets.overdue))} overdue</>, icon: 'Clock3', color: '#e0364f', tip: 'Due date passed — health Delayed. Owner and Commodity Lead are emailed the day after, then weekly.', formula: 'Overdue value = ₹ committed on ideas past due date' },
     { k: 'risk', label: 'At risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: '#ec8a1c', tip: 'At least one milestone is past its due date while the due date is still ahead.' },
-    { k: 'done', label: 'Done this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} annualised</>, icon: 'CircleCheck', color: '#0f9f6e', tip: 'Marked Done — Implemented this month with an effective date and approved price.' },
+    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} annualised · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: '#0f9f6e', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
     { k: 'dropped', label: 'Dropped this month', value: sets.dropped.length, sub: <>{inrShort(sum(sets.dropped.map((i) => removedCommitted(i, fy))))} removed</>, icon: 'Ban', color: '#6b7280', tip: 'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.' },
   ]
 
   return (
     <div>
-      <PageHeader icon="Rocket" title="Execution Hub" badge={<Badge color="#2f5bc6">M8</Badge>}
-        subtitle="Approved ideas with owner, dates, quarter phasing, milestones, reminders, Done / Drop and slippage log"
+      <PageHeader icon="Rocket" title="Execution Hub" badge={<Badge color="#1b316f">TRACE</Badge>}
+        subtitle="Transition-linked Realisation of Actual CI Evidence — Execution started → Verification, with plan vs actual from MRN"
         actions={<>
           <Tooltip content={<div className="grid gap-1"><div>{dueWording(EXECUTION_INTRO)}</div>{EXECUTION_RECORD.map(([k, v]) => <div key={k}><b>{dueWording(k)}:</b> {dueWording(v)}</div>)}</div>}><span className="inline-flex items-center gap-1 text-[12px] text-muted cursor-help"><Icon name="Info" size={13} />Execution record rules</span></Tooltip>
           <Button icon="FileSpreadsheet" onClick={doExport}>Export</Button>
@@ -185,6 +195,7 @@ export default function ExecutionHub() {
           <Card pad={false} className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3.5 pb-3 border-b border-line">
               <div className="flex items-center gap-2 flex-wrap">
+                <Segmented value={phase} onChange={(k) => { setPhase(k as Phase); setKpi('all') }} options={[{ key: 'execution', label: `5 · Execution started (${active.length})`, icon: 'Rocket' }, { key: 'verification', label: `6 · Verification (${awaiting.length})`, icon: 'ShieldQuestion' }, { key: 'verified', label: `Verified (${verified.length})`, icon: 'ShieldCheck' }]} />
                 <Segmented value={view} onChange={(k) => setView(k as any)} options={[{ key: 'table', label: 'Table', icon: 'Table2' }, { key: 'timeline', label: 'Quarter timeline', icon: 'ChartGantt' }]} />
                 {kpi !== 'all' && (
                   <span className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-brand-50 border border-brand-200 text-[12px] font-semibold text-brand-700">
@@ -285,7 +296,7 @@ export default function ExecutionHub() {
                                 <ProgressBar value={ex.progress} color={hcol} height={5} />
                               </button>
                             </td>
-                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? <Badge color="#0f9f6e" icon="CircleCheck">Done</Badge> : <Badge color="#6b7280" icon="Ban">Dropped</Badge>}</td>
+                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="#0f9f6e" icon="ShieldCheck">Verified</Badge> : <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="#ec8a1c" icon="ShieldQuestion">Verify</Badge></button>) : <Badge color="#6b7280" icon="Ban">Dropped</Badge>}</td>
                             <td className="max-[1700px]:hidden">
                               {status === 'In Execution' ? (
                                 <div className="leading-tight"><div className={cn('text-[12.5px] font-semibold num', nr.cadence === 'Due date passed' && 'text-red-600')}>{fmtDateShort(nr.date)}</div><div className="text-[10.5px] text-muted">{nr.cadence}</div></div>
@@ -328,9 +339,9 @@ export default function ExecutionHub() {
                 </table>
                 {!list.length && (
                   <EmptyState icon={kpi === 'done' ? 'PartyPopper' : 'Rocket'}
-                    title={kpi === 'all' ? 'No approved ideas in execution yet' : kpi === 'done' ? `Nothing marked Done in ${monthLong(ym)} yet` : kpi === 'dropped' ? `No drops in ${monthLong(ym)}` : 'No ideas in this view'}
+                    title={phase === 'verification' ? 'Nothing awaiting verification' : phase === 'verified' ? 'No verified ideas yet' : kpi === 'all' ? 'No approved ideas in execution yet' : kpi === 'done' ? `Nothing marked Done in ${monthLong(ym)} yet` : kpi === 'dropped' ? `No drops in ${monthLong(ym)}` : 'No ideas in this view'}
                     desc={kpi === 'all' ? 'Every approved idea enters the Execution Hub with an owner, a start date and a due date of 31 March.' : 'Clear the KPI filter to see every idea in execution.'}
-                    action={kpi === 'all' ? <Button size="sm" icon="Table2" onClick={() => nav('/ideas?stage=Approval')}>Open ideas in approval</Button> : <Button size="sm" onClick={() => setKpi('all')}>Show all in execution</Button>} />
+                    action={kpi === 'all' ? <Button size="sm" icon="Table2" onClick={() => nav('/ideas?stage=approval')}>Open ideas in sourcing approval</Button> : <Button size="sm" onClick={() => setKpi('all')}>Show all in execution</Button>} />
                 )}
               </div>
             )}
@@ -356,7 +367,8 @@ export default function ExecutionHub() {
             <div className="px-2.5 pt-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted truncate">{pIdea.id}</div>
             <MenuItem icon="Activity" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'progress', id: pIdea.id }) }}>Update progress</MenuItem>
             <MenuItem icon="StickyNote" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'note', id: pIdea.id }) }}>Add milestone note</MenuItem>
-            <MenuItem icon="CircleCheck" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'done', id: pIdea.id }) }}>Mark Done</MenuItem>
+            <MenuItem icon="PackageCheck" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'done', id: pIdea.id }) }}>Hand over for verification</MenuItem>
+            {pIdea.stage === STAGE.verification && !pIdea.verification?.verifiedAt && <MenuItem icon="ShieldCheck" onClick={() => { setPop(null); setModal({ kind: 'verify', id: pIdea.id }) }}>Verify savings</MenuItem>}
             <MenuItem icon="UserRoundCog" disabled={!editable(pIdea) || !canReassign} hint={!canReassign ? 'Reassignable by Commodity Lead' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassign && <span className="text-[10.5px] text-muted ml-1">(Lead)</span>}</MenuItem>
             <div className="h-px bg-line my-1" />
             <MenuItem icon="Ban" danger disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'drop', id: pIdea.id }) }}>Drop</MenuItem>
@@ -371,6 +383,7 @@ export default function ExecutionHub() {
       <MilestoneNoteModal idea={mIdea} open={modal?.kind === 'note'} milestoneId={modal?.milestoneId} onClose={() => setModal(null)} />
       <MarkDoneModal idea={mIdea} open={modal?.kind === 'done'} fy={fy} onClose={() => setModal(null)} />
       <DropModal idea={mIdea} open={modal?.kind === 'drop'} fy={fy} onClose={() => setModal(null)} />
+      {mIdea && <VerificationModal idea={mIdea} open={modal?.kind === 'verify'} onClose={() => setModal(null)} />}
       <TargetDateModal idea={mIdea} newDate={modal?.date ?? ''} open={modal?.kind === 'target'} fy={fy} onClose={() => setModal(null)} />
       <ReassignModal open={modal?.kind === 'reassign'} onClose={() => setModal(null)} title={`Reassign ${mIdea?.id ?? ''}`} subtitle="Idea owner — Commodity Buyer by default; reassignable by Commodity Lead"
         candidates={ownerOptions} currentId={mIdea?.execution?.ownerId} defaultTo={modal?.to}
@@ -394,6 +407,8 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
   const add = () => { if (!text.trim()) return; const undo = snapshot([idea.id]); useStore.getState().addExecutionNote(idea.id, text.trim()); setText(''); toast('Note added', 'success', undo) }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-3">
+      <PlanCard idea={idea} />
+      <CoCard idea={idea} editable={editable} />
       <div className="card p-3">
         <MiniHead icon="ListChecks" right={<span className="text-[11px] text-muted">generated from the {idea.route} route</span>}>Milestones</MiniHead>
         <div className="grid grid-cols-1 gap-1">
@@ -453,6 +468,41 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
   )
 }
 
+/** Plan vs actual for the locked target (stage 4 lock) — MRN-based actuals */
+function PlanCard({ idea }: { idea: Idea }) {
+  const p = useIdeaPlan(idea)
+  return (
+    <div className="card p-3 lg:col-span-2">
+      <MiniHead icon="ChartLine" right={<span className="text-[11px] text-muted">{idea.lock ? `${idea.lock.timelineMonths} months from ${fmtDate(idea.lock.startDate)}` : 'No lock'}</span>}>Plan vs actual</MiniHead>
+      {p ? <PlanVsActualBlock p={p} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at Sourcing approval.</div>}
+    </div>
+  )
+}
+
+/** CO date, MRN link and NPD / PAP status */
+function CoCard({ idea, editable }: { idea: Idea; editable: boolean }) {
+  const [co, setCo] = useState(idea.coDate ?? '')
+  useEffect(() => setCo(idea.coDate ?? ''), [idea.coDate])
+  const save = (v: string) => { if (!v || v === idea.coDate) return; const undo = snapshot([idea.id]); useStore.getState().updateIdea(idea.id, { coDate: v }, 'Change-over (CO) date set', `CO date ${v}`); toast(`CO date set to ${fmtDate(v)}`, 'success', undo) }
+  const first = idea.execution?.milestones.find((m) => m.name === 'First MRN at new price')
+  return (
+    <div className="card p-3 flex flex-col gap-2">
+      <MiniHead icon="Workflow">Change-over & MRN</MiniHead>
+      <label className="grid gap-1 text-[12px]"><span className="text-muted">CO date (new price / part cuts in)</span>
+        <input type="date" disabled={!editable} className="input !h-8 text-[12.5px]" value={co} onChange={(e) => setCo(e.target.value)} onBlur={(e) => save(e.target.value)} />
+      </label>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+        <span className="text-muted">First MRN at new price</span><b className="text-right num">{first?.doneDate ? fmtDate(first.doneDate) : `due ${fmtDate(first?.dueDate)}`}</b>
+        <span className="text-muted">NPD</span><b className="text-right">{idea.npdRequestId ? `${idea.npdRequestId} · ${idea.npdStatus}` : 'n/a'}</b>
+        <span className="text-muted">PAP</span><b className="text-right">{idea.papRequestId ? `${idea.papRequestId} · ${idea.papStatus}` : 'n/a'}</b>
+      </div>
+      <div className="mt-auto rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1.5 text-[11.5px] text-muted flex items-start gap-1.5">
+        <Icon name="Link2" size={13} className="shrink-0 mt-px" /><span><b className="text-ink-2">MRN link</b> — ERP MRN feed is a future link; until then actuals come from the monthly MRN upload / realisation run.</span>
+      </div>
+    </div>
+  )
+}
+
 function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; className?: string }) {
   const openIdea = useStore((s) => s.openIdea)
   const rows = hub.filter((i) => i.execution!.status !== 'In Execution')
@@ -461,8 +511,8 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
   const done = hub.filter((i) => i.execution!.status === 'Done')
   const dropped = hub.filter((i) => i.execution!.status === 'Dropped')
   return (
-    <Card title="Recently done / dropped" icon="History" className={className}
-      subtitle={`${done.length} implemented · ${dropped.length} dropped from execution in ${fy}`}>
+    <Card title="Recently handed over / dropped" icon="History" className={className}
+      subtitle={`${done.length} handed for verification · ${dropped.length} dropped from execution in ${fy}`}>
       <div className="grid grid-cols-1 gap-1">
         {rows.map(({ i, at }) => {
           const isDone = i.execution!.status === 'Done'
@@ -472,7 +522,7 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2"><span className="font-mono text-[11px] text-muted">{i.id}</span><span className="text-[11px] text-muted">· {fmtDate(at.slice(0, 10))}</span></div>
                 <div className="text-[12.5px] font-semibold text-ink truncate">{i.title}</div>
-                <div className="text-[11.5px] text-muted truncate">{isDone ? `Effective ${fmtDate(i.execution!.effectiveDate)} · approved price locked` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
+                <div className="text-[11.5px] text-muted truncate">{isDone ? `First MRN ${fmtDate(i.execution!.effectiveDate)} · ${i.verification?.verifiedAt ? `verified ${fmtDate(i.verification.verifiedAt.slice(0, 10))}` : 'awaiting verification'}` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
               </div>
               <div className="text-right shrink-0">
                 {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">annualised</div></>
