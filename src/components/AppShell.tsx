@@ -342,8 +342,8 @@ export default function AppShell() {
   const space = useStore((s) => s.space)
   const setSpace = useStore((s) => s.setSpace)
   useEffect(() => { mainRef.current?.scrollTo({ top: 0 }) }, [loc.pathname])
-  // A deep link into an IN page (notification, e-mail, bookmark) enters the IN workspace directly
-  useEffect(() => { if (!space) { const sp = spaceForPath(loc.pathname); if (sp) setSpace(sp) } }, [space, loc.pathname, setSpace])
+  // A deep link enters its workspace directly; CO-only pages (Execution Hub, Savings proof) always switch to CO
+  useEffect(() => { const sp = spaceForPath(loc.pathname); if (sp === 'CO' && space !== 'CO') setSpace('CO'); else if (!space && sp) setSpace(sp) }, [space, loc.pathname, setSpace])
   return (
     <div className="h-full flex overflow-hidden">
       <Sidebar />

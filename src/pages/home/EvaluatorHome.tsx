@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import { EVALUATION_STAGES, LEVER_GROUP_STYLE } from '../../lib/masters'
+import { stageLabel } from '../../lib/workflow'
 import { BUCKET_STYLE, ideaAnnualised, slaStatus } from '../../lib/calc'
 import { fmtDate, inrShort, pct, sum, workingDaysBetween } from '../../lib/format'
 import { Badge, Button, Card, EmptyState, Icon, InfoTip, LeverChip, SlaPill, useWarmup } from '../../components/ui'
@@ -15,24 +16,24 @@ export default function EvaluatorHome() {
   const { ideas, slaRules, levers, openIdea } = useStore()
   const nav = useNavigate()
   const drill = useDrill()
-  const rule = slaRules.find((r) => r.stage === 'R&D approval')
+  const rule = slaRules.find((r) => r.stage === 'Evaluation')
   const [fitRef, fitH] = useFitHeight()
 
   const awaiting = useMemo(() => ideas
-    .filter((i) => EVALUATION_STAGES.includes(i.stage) && i.techEval && !i.techEval.decision && i.techEval.evaluatorDept.includes(me.department))
+    .filter((i) => EVALUATION_STAGES.includes(i.stage) && i.evaluation && !i.evaluation.decision && i.evaluation.dept === me.department)
     .map((i) => ({ i, sla: slaStatus(i, slaRules) }))
     .sort((a, b) => (SLA_RANK[b.sla.state] ?? 0) - (SLA_RANK[a.sla.state] ?? 0) || a.sla.left - b.sla.left), [ideas, slaRules, me.department])
-  const evaluated = useMemo(() => ideas.filter((i) => i.techEval?.decision && i.techEval.by === me.name).sort((a, b) => (b.techEval!.at ?? '').localeCompare(a.techEval!.at ?? '')), [ideas, me.name])
+  const evaluated = useMemo(() => ideas.filter((i) => i.evaluation?.decision && i.evaluation.by === me.name).sort((a, b) => (b.evaluation!.at ?? '').localeCompare(a.evaluation!.at ?? '')), [ideas, me.name])
   const mine = ideas.filter((i) => i.submitterId === me.id && i.stage !== 'Draft')
   const [awRef, awRows] = useRowsFit(58, 5, 2, awaiting.length)
   const [evRef, evRows] = useRowsFit(50, 7, 2, evaluated.length)
   const [mineRef, mineRows] = useRowsFit(50, 5, 1, mine.length)
   const breached = awaiting.filter((a) => a.sla.state === 'breach' || a.sla.state === 'escalated').length
-  const goRate = evaluated.length ? (evaluated.filter((i) => i.techEval!.decision === 'Go').length / evaluated.length) * 100 : 0
+  const goRate = evaluated.length ? (evaluated.filter((i) => i.evaluation!.decision === 'Recommend').length / evaluated.length) * 100 : 0
   const turnaround = (() => {
     const days = evaluated.map((i) => {
       const h = i.stageHistory.find((x) => EVALUATION_STAGES.includes(x.stage))
-      return h && i.techEval?.at ? workingDaysBetween(h.enteredAt.slice(0, 10), i.techEval.at.slice(0, 10)) : null
+      return h && i.evaluation?.at ? workingDaysBetween(h.enteredAt.slice(0, 10), i.evaluation.at.slice(0, 10)) : null
     }).filter((x): x is number => x != null)
     return days.length ? sum(days) / days.length : 0
   })()
@@ -47,7 +48,7 @@ export default function EvaluatorHome() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
               <MiniStat label="Awaiting evaluation" icon="FlaskConical" color="#2f5bc6" value={awaiting.length} sub={<>{inrShort(sum(awaiting.map((a) => ideaAnnualised(a.i))))} annualised at stake</>} />
               <MiniStat label="Beyond SLA" icon="Siren" color={breached ? '#e0364f' : '#0f9f6e'} value={breached} sub={rule ? `SLA ${rule.slaDays} working days · escalation day ${rule.escalateDay}` : 'Stage SLA'} />
-              <MiniStat label="Evaluated by me" icon="ClipboardCheck" color="#0d9488" value={evaluated.length} sub={`${evaluated.filter((i) => i.techEval!.decision === 'Go').length} go · ${evaluated.filter((i) => i.techEval!.decision === 'No-go').length} no-go`} />
+              <MiniStat label="Evaluated by me" icon="ClipboardCheck" color="#0d9488" value={evaluated.length} sub={`${evaluated.filter((i) => i.evaluation!.decision === 'Recommend').length} recommended · ${evaluated.filter((i) => i.evaluation!.decision === 'Reject').length} rejected`} />
               <MiniStat label="Go rate" icon="CircleCheckBig" color="#0f9f6e" value={evaluated.length ? pct(goRate, 0) : '—'} sub="Go ÷ evaluated" />
               <MiniStat label="Avg turnaround" icon="Timer" color="#ec8a1c" value={turnaround ? `${turnaround.toFixed(1)} d` : '—'} sub="Working days, stage entry → decision" tip={<InfoTip title="C3 · Stage bottleneck" formula="Avg days per stage (R&D, NPD sample, PAP)">Measured on your decisions.</InfoTip>} />
             </div>
@@ -56,7 +57,7 @@ export default function EvaluatorHome() {
           {/* Awaiting evaluation — the main queue */}
           <Reveal className="col-span-12 xl:col-span-5 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Inbox"
-              title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting R&D approval<InfoTip title="R&D approval">Approve with a validation plan, reject, or send back to the Team feasibility check. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
+              title={<span className="flex items-center gap-1.5">Routed to {me.department} — awaiting {me.department} evaluation<InfoTip title="Evaluation">Cost-benefit analysis, risk assessment and supplier capability check, then recommend, reject or send back to the Team feasibility check. Reminder on day {rule?.reminderDay ?? 8}; escalation to {rule?.escalateTo ?? "Evaluator's HOD + Commodity Lead"} on day {rule?.escalateDay ?? 11}.</InfoTip></span>}
               subtitle="Sorted by SLA urgency · click to review in the side panel"
               actions={awaiting.length ? <Badge color={breached ? '#e0364f' : '#4470d6'} dot>{awaiting.length}</Badge> : undefined}>
               <div ref={awRef} className="flex-1 min-h-0 overflow-hidden">
@@ -64,7 +65,7 @@ export default function EvaluatorHome() {
                   const lever = levers.find((l) => l.id === i.leverId)
                   const g = lever ? LEVER_GROUP_STYLE[lever.group] : null
                   return (
-                    <button key={i.id} onClick={() => openIdea(i.id)} title={`${i.techEval!.evaluatorDept} · ${sla.working} working days in stage`} className="group w-full h-[58px] grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
+                    <button key={i.id} onClick={() => openIdea(i.id)} title={`${i.evaluation!.dept} evaluation · ${sla.working} working days in stage`} className="group w-full h-[58px] grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
                       <span className="h-9 w-9 rounded-xl grid place-items-center shrink-0" style={{ background: g?.soft, color: g?.color }}><Icon name={lever?.icon ?? 'FlaskConical'} size={16} /></span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-2 min-w-0"><span className="font-mono text-[10.5px] text-muted shrink-0">{i.id}</span><span className="text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{i.title}</span></span>
@@ -94,10 +95,10 @@ export default function EvaluatorHome() {
               <div ref={evRef} className="flex-1 min-h-0 overflow-hidden">
                 {evaluated.length ? evaluated.slice(0, evRows).map((i) => (
                   <button key={i.id} onClick={() => openIdea(i.id)} className="group w-full h-[50px] flex items-center gap-2.5 border-b border-slate-100 last:border-0 text-left hover:bg-slate-50 rounded-lg px-1.5 -mx-1.5">
-                    <Badge color={i.techEval!.decision === 'Go' ? '#0f9f6e' : '#e0364f'} icon={i.techEval!.decision === 'Go' ? 'Check' : 'X'}>{i.techEval!.decision}</Badge>
+                    <Badge color={i.evaluation!.decision === 'Recommend' ? '#0f9f6e' : '#e0364f'} icon={i.evaluation!.decision === 'Recommend' ? 'Check' : 'X'}>{i.evaluation!.decision === 'Recommend' ? 'Recommended' : 'Rejected'}</Badge>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{i.title}</span>
-                      <span className="flex items-center gap-2 mt-0.5 min-w-0"><StageTrackerMini idea={i} className="shrink-0" /><span className="text-[11px] text-muted truncate">{i.stage} · {fmtDate(i.techEval!.at?.slice(0, 10))}</span></span>
+                      <span className="flex items-center gap-2 mt-0.5 min-w-0"><StageTrackerMini idea={i} className="shrink-0" /><span className="text-[11px] text-muted truncate">{stageLabel(i, i.stage)} · {fmtDate(i.evaluation!.at?.slice(0, 10))}</span></span>
                     </span>
                     <span className="text-[12px] font-bold text-ink num shrink-0">{inrShort(ideaAnnualised(i))}</span>
                   </button>

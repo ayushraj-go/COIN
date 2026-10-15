@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import type { Bucket, Filters, Idea, SlaRule } from '../../lib/types'
 import { TRACKER_STAGES } from '../../lib/masters'
+import { stageLabel } from '../../lib/workflow'
 import { BUCKET_STYLE, bucketFor, ideaAnnualised } from '../../lib/calc'
 import { fmtDate, fyOf, inrShort, quarterOf, QUARTER_MONTHS, sum, todayIso, workingDaysBetween } from '../../lib/format'
 import { ROLE_LABEL, primaryRole } from '../../lib/nav'
@@ -137,7 +138,7 @@ export function StageTrackerMini({ idea, className }: { idea: Idea; className?: 
   const dropped = idea.bucket === 'Dropped'
   const ref = dropped ? idea.dropStage ?? stages[1] : idea.stage
   const cur = idea.stage === 'Draft' ? -1 : stages.indexOf(ref)
-  const label = idea.stage === 'Draft' ? 'Draft — not yet submitted' : dropped ? `${idea.stage} at ${ref}` : `${idea.stage} · step ${cur + 1} of ${stages.length}`
+  const label = idea.stage === 'Draft' ? 'Draft — not yet submitted' : dropped ? `${idea.stage} at ${stageLabel(idea, ref)}` : `${stageLabel(idea, idea.stage)} · step ${cur + 1} of ${stages.length}`
   return (
     <div className={cn('flex items-center gap-[3px]', className)} title={label}>
       {stages.map((s, k) => {
@@ -186,7 +187,7 @@ export function DrillModal({ open, onClose, title, subtitle, ideas, valueFn, val
                   <span className="font-mono text-[11px] text-muted shrink-0">{i.id}</span>
                   <span className="text-[12.5px] font-semibold text-ink truncate">{i.title}</span>
                 </span>
-                <span className="flex items-center gap-2 mt-1 flex-wrap"><StageBadge stage={i.stage} bucket={i.bucket} /><LeverChip leverId={i.leverId} compact /></span>
+                <span className="flex items-center gap-2 mt-1 flex-wrap"><StageBadge stage={i.stage} bucket={i.bucket} idea={i} /><LeverChip leverId={i.leverId} compact /></span>
               </span>
               <span className="text-[13px] font-bold text-ink num text-right">{inrShort(val(i))}</span>
             </button>

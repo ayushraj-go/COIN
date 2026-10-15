@@ -246,7 +246,7 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
       { key: 'commodity', label: 'Commodity', value: (r) => r.commodityName, render: (r) => <span className="text-[12.5px]" title={r.commodityName}>{r.commodityName.split(' (')[0]}</span> },
       { key: 'lever', label: 'Category', value: (r) => r.leverName, render: (r) => <LeverChip leverId={r.idea.leverId} /> },
       { key: 'route', label: 'Route', hidden: true, value: (r) => r.idea.route, render: (r) => <span className="inline-flex items-center gap-1 text-[12px] text-ink-2"><Icon name={ROUTE_ICON[r.idea.route]} size={12} className="text-muted" />{r.idea.route}</span> },
-      { key: 'stage', label: 'Stage', value: (r) => r.idea.stage, render: (r) => <StageBadge stage={r.idea.stage} bucket={r.idea.bucket} /> },
+      { key: 'stage', label: 'Stage', value: (r) => r.idea.stage, render: (r) => <StageBadge stage={r.idea.stage} bucket={r.idea.bucket} idea={r.idea} /> },
       { key: 'bucket', label: 'Bucket', hidden: true, value: (r) => r.idea.bucket, render: (r) => <BucketBadge bucket={r.idea.bucket} /> },
       { key: 'annual', label: 'Annualised impact', exportLabel: 'Annualised impact (₹)', align: 'right', value: (r) => Math.round(r.annual),
         render: (r) => <span className={cn('num font-semibold', r.annual < 0 ? 'text-red-600' : 'text-ink')}>{inrShort(r.annual)}{r.idea.scope === 'Open' && <span className="ml-1 text-[9.5px] font-bold text-amber-600">EST.</span>}</span> },

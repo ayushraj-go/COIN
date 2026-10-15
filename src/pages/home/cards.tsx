@@ -119,7 +119,7 @@ export function TopIdeasCard({ d, sel, onClear, className }: { d: HomeData; sel:
                     <span className="text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{i.title}</span>
                   </span>
                   <span className="flex items-center gap-2 mt-1 min-w-0 overflow-hidden">
-                    <StageBadge stage={i.stage} bucket={i.bucket} />
+                    <StageBadge stage={i.stage} bucket={i.bucket} idea={i} />
                     <span className="hidden sm:inline-flex"><LeverChip leverId={i.leverId} compact /></span>
                     {i.savingsType !== 'Hard' && <SavingsTypeBadge type={i.savingsType} />}
                   </span>

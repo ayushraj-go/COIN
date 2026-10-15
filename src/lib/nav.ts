@@ -31,8 +31,10 @@ export const NAV: NavItem[] = [
   { key: 'campaigns', label: 'Campaigns', path: '/campaigns', icon: 'Megaphone', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M7', section: 'Network', spaces: ['IN'] },
   { key: 'admin', label: 'Admin & Masters', path: '/admin', icon: 'Settings2', roles: ['admin'], module: 'M12', section: 'System', spaces: ['IN'] },
   // CO — Cost Optimisation: implementation after approval
-  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M8', section: 'Implementation', spaces: ['IN'] },
-  { key: 'implemented', label: 'Implemented ideas', path: '/ideas?bucket=Implemented', icon: 'CircleCheckBig', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin'], section: 'Implementation', spaces: ['CO'] },
+  // CO — stages 5–6: Execution started (TRACE) and Verification, with part-wise savings proof (PROOF)
+  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M8', section: 'Implementation', spaces: ['CO'] },
+  { key: 'proof', label: 'Savings proof', path: '/proof', icon: 'BadgeIndianRupee', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin'], module: 'M9', section: 'Implementation', spaces: ['CO'] },
+  { key: 'implemented', label: 'Verification', path: '/ideas?bucket=Implemented', icon: 'ShieldCheck', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin'], section: 'Implementation', spaces: ['CO'] },
   // NPD development master (read-only, synced from VMS) — both workspaces
   { key: 'npd', label: 'NPD master', path: '/npd', icon: 'FlaskConical', roles: ['buyer', 'lead', 'head', 'techeval', 'finance', 'mgmt', 'admin'], section: 'Masters' },
   // pinned at the bottom in every workspace (Scope & Methodology sits at the top under Overview)
@@ -48,6 +50,7 @@ export const navForSpace = (u: User | null, space: Space | null) => {
 /** Which workspace a deep link belongs to (used when a page is opened before a workspace is chosen) */
 export const spaceForPath = (path: string): Space | null => {
   if (path === '/' || path.startsWith('/scope') || path.startsWith('/reports')) return null
+  if (path.startsWith('/execution') || path.startsWith('/proof')) return 'CO'
   if (path.startsWith('/npd')) return null
   return 'IN'
 }

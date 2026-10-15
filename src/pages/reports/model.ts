@@ -167,8 +167,8 @@ export function stageOwner(ctx: Ctx, i: Idea): { key: string; label: string } {
   const st = i.stage
   if (FEASIBILITY_STAGES.includes(st)) return { key: i.buyerId, label: `${nameOf(ctx, i.buyerId)} (team feasibility)` }
   if (EVALUATION_STAGES.includes(st)) {
-    const d = i.techEval?.evaluatorDept ?? 'R&D'
-    return { key: `dept:${d}`, label: `${d} (R&D approval)` }
+    const d = i.evaluation?.dept ?? 'Sourcing'
+    return { key: `dept:${d}`, label: `${d} (evaluation)` }
   }
   if (st === STAGE.approval) {
     const a = i.approvals.find((x) => !x.decision)

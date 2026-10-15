@@ -18,7 +18,7 @@ export type ActionKind = 'validate' | 'feasibility' | 'evaluate' | 'approve' | '
 export const ACTION_META: Record<ActionKind, { label: string; icon: string; color: string }> = {
   validate: { label: 'Feasibility check', icon: 'UsersRound', color: '#4470d6' },
   feasibility: { label: 'Feasibility', icon: 'Factory', color: '#0d9488' },
-  evaluate: { label: 'R&D approval', icon: 'FlaskConical', color: '#4f46e5' },
+  evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: '#4f46e5' },
   approve: { label: 'Sourcing approval', icon: 'Stamp', color: '#2f5bc6' },
   savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: '#0f9f6e' },
   overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: '#e0364f' },
@@ -59,7 +59,7 @@ export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useSt
     }
     if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the team's query`, { urgency: 3.5 })
     if (i.stage === STAGE.feasibility && ((isBuyer && (i.buyerId === me.id || me.commodities.includes(i.commodity))) || (isLead && me.commodities.includes(i.commodity)))) push('validate', i, `${i.id} · ${i.submitterName} · team feasibility check`)
-    if (EVALUATION_STAGES.includes(i.stage) && i.techEval && !i.techEval.decision && ((r.includes('techeval') && i.techEval.evaluatorDept.includes(me.department)) || isHead)) push('evaluate', i, `${i.id} · R&D approval · approve or reject + validation plan`)
+    if (EVALUATION_STAGES.includes(i.stage) && i.evaluation && !i.evaluation.decision && ((r.includes('techeval') && i.evaluation.dept === me.department) || (i.evaluation.dept === 'Sourcing' && (isLead || isBuyer) && me.commodities.includes(i.commodity)) || isHead)) push('evaluate', i, `${i.id} · ${i.evaluation.dept} evaluation · cost-benefit, risk, supplier check`)
     if ((isLead || isHead) && i.stage === STAGE.approval && !!firstPending(i) && (firstPending(i)!.approverId === me.id || isHead)) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
     if ((isBuyer || isLead || isHead) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
       const mineExec = isHead || (isLead && me.commodities.includes(i.commodity)) || (i.ownerId ?? i.buyerId) === me.id

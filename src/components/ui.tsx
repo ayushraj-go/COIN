@@ -4,7 +4,8 @@ import clsx from 'clsx'
 import * as Icons from 'lucide-react'
 import NumberFlow from '@number-flow/react'
 import { motion, AnimatePresence } from 'motion/react'
-import type { Bucket, Health } from '../lib/types'
+import type { Bucket, Health, Idea } from '../lib/types'
+import { stageLabel } from '../lib/workflow'
 import { BUCKET_STYLE, HEALTH_STYLE } from '../lib/calc'
 import { LEVER_GROUP_STYLE } from '../lib/masters'
 import { useStore } from '../store/useStore'
@@ -136,9 +137,11 @@ export function Badge({ children, color = '#64748b', soft, className, dot, icon 
 }
 export const BucketBadge = ({ bucket }: { bucket: Bucket }) => { const s = BUCKET_STYLE[bucket]; return <Badge color={s.color} soft={s.soft} dot>{s.label}</Badge> }
 export const HealthBadge = ({ health }: { health: Health }) => { const s = HEALTH_STYLE[health]; return <Badge color={s.color} soft={s.soft} icon={health === 'On track' ? 'CircleCheck' : health === 'At risk' ? 'TriangleAlert' : 'Clock3'}>{health}</Badge> }
-export function StageBadge({ stage, bucket }: { stage: string; bucket: Bucket }) {
+/** Stage dot + name; pass the idea to show "<dept> evaluation" and "Verified" */
+export function StageBadge({ stage, bucket, idea }: { stage: string; bucket: Bucket; idea?: Pick<Idea, 'department' | 'evaluation' | 'verification'> }) {
   const s = BUCKET_STYLE[bucket]
-  return <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-2"><span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />{stage}</span>
+  const label = idea ? (stage === 'Verification' && idea.verification?.verifiedAt ? 'Verified' : stageLabel(idea, stage)) : stage
+  return <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-2"><span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />{label}</span>
 }
 export function LeverChip({ leverId, compact }: { leverId: string; compact?: boolean }) {
   const lever = useStore((s) => s.levers.find((l) => l.id === leverId))

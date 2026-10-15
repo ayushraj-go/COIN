@@ -95,6 +95,8 @@ export function KanbanBoard({ rows, draftCount = 0 }: { rows: IdeaRow[]; draftCo
       if (res.same) return
       setShake((s) => ({ id: r.id, n: s.n + 1 }))
       toast(res.reason, 'error')
+      // a stage form is missing — open the idea so it can be filled in
+      if (/^Open the idea|^Sign the budget|^Record the first MRN/.test(res.reason)) useStore.getState().openIdea(r.idea.id)
       return
     }
     if (res.kind === 'drop') setDropFor(r.idea)

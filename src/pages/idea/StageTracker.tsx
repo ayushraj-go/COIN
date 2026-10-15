@@ -1,4 +1,4 @@
-// Live stage tracker — the six workflow stages (Idea submitted → … → Implemented) with dates, who acted and remarks (Section 14).
+// Live stage tracker — the six workflow stages (Idea submitted → … → Verification) with dates, who acted and remarks (Section 14).
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import type { Idea } from '../../lib/types'
@@ -6,6 +6,7 @@ import { useStore } from '../../store/useStore'
 import { AgeBadge, Icon, SlaPill, Tooltip, cn } from '../../components/ui'
 import { BUCKET_STYLE, bucketFor, slaStatus, stageAgeDays } from '../../lib/calc'
 import { STAGE, STAGE_SHORT } from '../../lib/masters'
+import { stageLabel } from '../../lib/workflow'
 import { daysBetween, fmtDate, todayIso } from '../../lib/format'
 import { stagesOf } from './model'
 
@@ -24,18 +25,20 @@ function buildNodes(idea: Idea): TNode[] {
     enteredAt: draft ? idea.createdAt : idea.submittedAt ?? idea.createdAt, by: idea.submitterName, action: draft ? 'Draft saved' : 'Idea submitted',
     color: draft ? BUCKET_STYLE.Draft.color : BUCKET_STYLE.Pipeline.color,
   }]
+  const verified = !!idea.verification?.verifiedAt
   stages.forEach((s, k) => {
     const h = hist(s)
     let state: NodeState
-    if (idea.stage === 'Implemented') state = 'done'
+    if (verified || idea.stage === 'Implemented') state = 'done'
     else if (terminal) state = k < ci ? 'done' : k === ci ? 'failed' : 'skipped'
     else state = k < ci ? 'done' : k === ci ? 'current' : 'future'
     if (state === 'done' && !h) state = 'bypassed'
     const bucket = bucketFor(idea.route, s)
-    const exit = s === 'Implemented' ? undefined : h?.exitedAt
+    const exit = h?.exitedAt
+    const label = stageLabel(idea, s)
     nodes.push({
-      key: s, label: s, short: STAGE_SHORT[s] ?? s, state, enteredAt: s === 'Implemented' ? idea.execution?.effectiveDate ?? idea.implementedAt ?? h?.enteredAt : h?.enteredAt, exitedAt: exit,
-      by: h?.by, action: s === 'Implemented' && idea.stage === 'Implemented' ? 'Marked Done' : h?.action, remarks: h?.remarks, color: BUCKET_STYLE[bucket].color,
+      key: s, label: s === STAGE.verification && verified ? 'Verified' : label, short: s === STAGE.verification && verified ? 'Verified' : (STAGE_SHORT[label] ?? label), state, enteredAt: h?.enteredAt, exitedAt: exit,
+      by: h?.by, action: s === STAGE.verification && state === 'current' ? 'Awaiting business verification' : h?.action, remarks: h?.remarks, color: BUCKET_STYLE[bucket].color,
     })
   })
   if (terminal) {
@@ -88,7 +91,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
   const nodes = useMemo(() => buildNodes(idea), [idea])
   const sla = slaStatus(idea, slaRules)
   const age = stageAgeDays(idea)
-  const live = idea.bucket === 'Pipeline' || idea.bucket === 'In Execution' || idea.bucket === 'Draft'
+  const live = idea.bucket === 'Pipeline' || idea.bucket === 'In Execution' || idea.bucket === 'Draft' || (idea.stage === STAGE.verification && !idea.verification?.verifiedAt)
   const lastReached = nodes.reduce((a, n, k) => (n.state === 'done' || n.state === 'current' || n.state === 'failed' || n.state === 'terminal' || n.state === 'bypassed' ? k : a), 0)
   const progress = nodes.length > 1 ? lastReached / (nodes.length - 1) : 0
   const minW = compact ? 74 : 104

@@ -41,7 +41,7 @@ function HeaderCard({ idea }: { idea: Idea }) {
           <div className="flex flex-wrap items-center gap-2">
             <IdChip id={idea.id} />
             <BucketBadge bucket={idea.bucket} />
-            <span className="inline-flex items-center h-[22px] px-2 rounded-full border border-line bg-white"><StageBadge stage={idea.stage} bucket={idea.bucket} /></span>
+            <span className="inline-flex items-center h-[22px] px-2 rounded-full border border-line bg-white"><StageBadge stage={idea.stage} bucket={idea.bucket} idea={idea} /></span>
             {idea.locked && (
               <Tooltip content="Data integrity: approved values are locked; changes after approval need a change reason and re-approval above the set %.">
                 <Badge color="#0f172a" soft="#f1f5f9" icon="Lock">Approved values are locked</Badge>

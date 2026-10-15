@@ -77,7 +77,7 @@ export function TrendCard({ d, className, height = 262 }: { d: HomeData; classNa
 interface Step { key: string; label: string; stages: string[]; bucket: Exclude<Bucket, 'Draft'>; icon: string }
 const STEPS: Step[] = [
   { key: 'feasibility', label: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
-  { key: 'rnd', label: STAGE.rnd, stages: [STAGE.rnd], bucket: 'Pipeline', icon: 'FlaskConical' },
+  { key: 'evaluation', label: 'Evaluation', stages: [STAGE.evaluation], bucket: 'Pipeline', icon: 'FlaskConical' },
   { key: 'approval', label: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
   { key: 'execution', label: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
   { key: 'implemented', label: 'Implemented', stages: ['Implemented'], bucket: 'Implemented', icon: 'CircleCheckBig' },

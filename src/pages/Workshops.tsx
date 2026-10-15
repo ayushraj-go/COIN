@@ -141,7 +141,7 @@ export default function Workshops() {
                                     <span className="ml-auto text-[11.5px] font-semibold num">{inrShort(ideaAnnualised(i))}</span>
                                   </div>
                                   <div className="text-[12.5px] font-medium text-ink truncate">{i.title}</div>
-                                  <div className="flex items-center justify-between gap-2 mt-0.5"><StageBadge stage={i.stage} bucket={i.bucket} /><BucketBadge bucket={i.bucket} /></div>
+                                  <div className="flex items-center justify-between gap-2 mt-0.5"><StageBadge stage={i.stage} bucket={i.bucket} idea={i} /><BucketBadge bucket={i.bucket} /></div>
                                 </button>
                               ))}
                             </div>

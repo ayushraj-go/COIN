@@ -32,7 +32,7 @@ export function ideaColumns(ctx: Ctx, extra: Column<Idea>[] = []): Column<Idea>[
     { key: 'title', label: 'Title', render: (i) => <span className="block max-w-[320px] truncate font-medium text-ink" title={i.title}>{i.title}</span> },
     { key: 'commodity', label: 'Commodity', value: (i) => commodityName(ctx, i.commodity) },
     { key: 'lever', label: 'Category', value: (i) => ctx.levers.find((l) => l.id === i.leverId)?.name, render: (i) => <LeverChip leverId={i.leverId} /> },
-    { key: 'stage', label: 'Stage', value: (i) => i.stage, render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} /> },
+    { key: 'stage', label: 'Stage', value: (i) => i.stage, render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} idea={i} /> },
     ...extra,
   ]
 }

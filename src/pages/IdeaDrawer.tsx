@@ -5,7 +5,7 @@ import { useMe, useStore } from '../store/useStore'
 import { BUCKET_STYLE, canSeeIdea, ideaAnnualised, ideaSavingPct } from '../lib/calc'
 import { BucketBadge, Button, Card, Drawer, EmptyState, Icon, Money, StageBadge, UserChip } from '../components/ui'
 import { fmtDate } from '../lib/format'
-import { stagesOf } from './idea/model'
+import { stageText, stagesOf } from './idea/model'
 import { ActionBar } from './idea/ActionBar'
 import { CurrentStageSla, StageTracker } from './idea/StageTracker'
 import { ValueCard } from './idea/ValueCard'
@@ -34,7 +34,7 @@ export default function IdeaDrawer() {
   return (
     <Drawer open={!!id && !!idea} onClose={close} width={720}
       title={idea ? <span className="flex items-center gap-2 min-w-0"><span className="font-mono text-[13.5px] tracking-tight">{idea.id}</span><BucketBadge bucket={idea.bucket} /></span> : ''}
-      subtitle={idea ? `${idea.stage} · ${idea.route} route` : ''}
+      subtitle={idea ? `${stageText(idea)} · ${idea.route} route` : ''}
       actions={idea && allowed ? <Button size="sm" variant="outline" icon="Maximize2" onClick={() => openFull()}>Open full page</Button> : undefined}>
       {idea && !allowed && (
         <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Visibility follows your role and commodity mapping." />
@@ -48,7 +48,7 @@ export default function IdeaDrawer() {
               <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <StageBadge stage={idea.stage} bucket={idea.bucket} />
+                    <StageBadge stage={idea.stage} bucket={idea.bucket} idea={idea} />
                     {idea.locked && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 rounded px-1.5 h-5"><Icon name="Lock" size={11} />Approved values are locked</span>}
                     {idea.infoRequested && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 rounded px-1.5 h-5"><Icon name="MessageCircleQuestion" size={11} />More info requested</span>}
                   </div>

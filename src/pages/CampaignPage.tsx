@@ -98,7 +98,7 @@ function WorkshopCampaignPage() {
     { key: 'title', label: 'Title', render: (i) => <span className="block max-w-[170px] truncate text-ink" title={i.title}>{i.title}</span>, value: (i) => i.title },
     { key: 'submitter', label: 'Submitted by', render: (i) => <span className="block leading-tight"><span className="block truncate max-w-[120px]">{i.submitterName}</span>{i.isSupplierSubmission && <span className="block text-[11px] text-muted">Supplier</span>}</span>, value: (i) => i.submitterName },
     { key: 'lever', label: 'Lever', render: (i) => <LeverChip leverId={i.leverId} compact />, value: (i) => levers.find((l) => l.id === i.leverId)?.name },
-    { key: 'stage', label: 'Stage', render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} />, value: (i) => i.stage },
+    { key: 'stage', label: 'Stage', render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} idea={i} />, value: (i) => i.stage },
     { key: 'value', label: 'Annualised', align: 'right', render: (i) => <span className="num font-semibold" style={{ color: i.bucket === 'Dropped' ? '#6b7280' : undefined }}>{inrShort(ideaAnnualised(i))}</span>, value: (i) => ideaAnnualised(i) },
   ]
 

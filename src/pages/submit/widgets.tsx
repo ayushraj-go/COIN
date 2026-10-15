@@ -89,7 +89,7 @@ export function RouteStrip({ route, compact }: { route: RouteKey; compact?: bool
   return (
     <div className="flex flex-wrap items-center gap-1">
       {stages.map((s, i) => {
-        const tone = s === STAGE.approval ? 'bg-brand-50 text-brand-700 border-brand-200' : s === STAGE.rnd ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : s === STAGE.execution || s === STAGE.implemented ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
+        const tone = s === STAGE.approval ? 'bg-brand-50 text-brand-700 border-brand-200' : s === STAGE.evaluation ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : s === STAGE.execution || s === STAGE.verification ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
         return (
           <React.Fragment key={s}>
             <Tooltip content={<><div className="font-semibold">Step {i + 1}</div>{s}</>}>
