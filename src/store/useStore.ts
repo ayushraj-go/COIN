@@ -255,15 +255,17 @@ export const useStore = create<Store>()(
       /** Execution started — dates and milestones come from the signed budget + timeline lock */
       const createExecution = (idea: Idea): Idea => {
         const fy = get().settings.currentFy
-        const start = idea.lock?.startDate ?? todayIso()
-        const target = idea.lock?.endDate ?? addMonthsIso(start, 6)
+        const start = todayIso()
+        // savings period from the lock: start = expected first MRN at the new price
+        const savingsStart = idea.lock?.startDate ?? addMonthsIso(start, 1)
+        const target = idea.lock?.endDate ?? addMonthsIso(savingsStart, 6)
         const annual = ideaAnnualised(idea)
         const tpl = MILESTONE_TEMPLATES[idea.route] ?? MILESTONE_TEMPLATES.Commercial
-        const due = milestoneSchedule(start, target, tpl)
+        const due = milestoneSchedule(start, savingsStart, target, tpl)
         // NPD sample and PAP price revision are tracked inside "Execution started"
         const npd = tpl.some((m) => m.includes('NPD'))
         const pap = tpl.some((m) => m.includes('PAP'))
-        const goLive = addMonthsIso(start, 1) < target ? addMonthsIso(start, 1) : target
+        const goLive = savingsStart
         return {
           ...idea,
           approvedAt: now(),

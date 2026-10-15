@@ -95,12 +95,14 @@ describe('source breakdown', () => {
 })
 
 describe('milestone schedule', () => {
-  it('spreads due dates over the locked timeline and ends on the end date', () => {
+  it('route steps before the savings start, first MRN on it, verification hand-over at the end', () => {
     const names = ['NPD sample approved', 'PAP price approved', 'First MRN at new price', 'Implementation confirmed', 'Handed for verification']
-    const ds = milestoneSchedule('2026-10-01', '2027-04-01', names)
+    const ds = milestoneSchedule('2026-09-10', '2026-11-01', '2027-05-01', names)
     expect(ds).toHaveLength(5)
-    expect(ds[4]).toBe('2027-04-01')
+    expect(ds[0] > '2026-09-10' && ds[1] < '2026-11-01').toBe(true)
+    expect(ds[2]).toBe('2026-11-01')
+    expect(ds[3]).toBe('2026-12-01')
+    expect(ds[4]).toBe('2027-05-01')
     for (let k = 1; k < ds.length; k++) expect(ds[k] >= ds[k - 1]).toBe(true)
-    expect(ds[0] > '2026-10-01').toBe(true)
   })
 })
