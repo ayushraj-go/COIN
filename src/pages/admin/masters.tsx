@@ -184,7 +184,7 @@ export function RouteAdmin() {
   return (
     <div className="grid gap-3">
       <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same six-stage workflow; the submitter's department runs the evaluation (stage 3), and the route decides which milestones Execution started carries.</SectionIntro>
-      <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — six stages for every idea" subtitle="Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented"
+      <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — six stages for every idea" subtitle="Idea submitted → Team feasibility check → R&D approval → <dept> approval → Execution started → Implemented"
         actions={<span className="text-[11.5px] text-muted">{ideas.filter((i) => i.bucket === 'Pipeline' || i.bucket === 'In Execution').length} open ideas</span>}>
         <div className="overflow-x-auto pb-1">
           <div className="flex items-stretch min-w-max">

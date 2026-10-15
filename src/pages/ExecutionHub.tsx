@@ -475,7 +475,7 @@ function PlanCard({ idea }: { idea: Idea }) {
   return (
     <div className="card p-3 lg:col-span-2">
       <MiniHead icon="ChartLine" right={<span className="text-[11px] text-muted">{idea.lock ? `${idea.lock.timelineMonths} months from ${fmtDate(idea.lock.startDate)}` : 'No lock'}</span>}>Plan vs actual</MiniHead>
-      {p ? <PlanVsActualBlock p={p} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at Sourcing approval.</div>}
+      {p ? <PlanVsActualBlock p={p} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at the department approval.</div>}
     </div>
   )
 }

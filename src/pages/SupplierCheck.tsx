@@ -73,7 +73,7 @@ export default function SupplierCheck() {
         actions={<Button size="sm" icon="FlaskConical" onClick={() => nav(`/ideas/${idea.id}`)}>Back to the idea</Button>} />
 
       {!needsSupplierCheck(annual) || sc?.status === 'Skipped' ? (
-        <Card><EmptyState icon="SkipForward" title="Skipped — below the minimum saving threshold" desc={`Annualised ${inrShort(annual)} is below ${inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to Sourcing approval without a supplier capability check.`} /></Card>
+        <Card><EmptyState icon="SkipForward" title="Skipped — below the minimum saving threshold" desc={`Annualised ${inrShort(annual)} is below ${inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to approval without a supplier capability check.`} /></Card>
       ) : sc?.status === 'Sent' || sc?.status === 'Responded' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-4 items-start">
           <Card title={sc.status === 'Responded' ? 'Supplier response' : 'Waiting for the supplier'} icon={sc.status === 'Responded' ? 'MailCheck' : 'MailQuestion'}

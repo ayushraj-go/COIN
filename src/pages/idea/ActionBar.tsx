@@ -29,7 +29,7 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   if (p.continueDraft) primary.push(<Button key="draft" size={size} variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>)
   if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Team feasibility check</Button>)
   if (p.evaluate) primary.push(<Button key="eval" size={size} variant="primary" icon="FlaskConical" onClick={() => setModal('eval')}>{stageLabel(idea, STAGE.evaluation)}</Button>)
-  if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? 'Sourcing approval' : 'Sign lock & approve'}</Button>)
+  if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? stageLabel(idea, STAGE.approval) : 'Sign lock & approve'}</Button>)
   if (p.handOver) primary.push(<Button key="done" size={size} variant="success" icon="PackageCheck" onClick={() => setModal('done')}>Hand over for verification</Button>)
   if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
   if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back</Button>)

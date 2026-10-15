@@ -71,7 +71,7 @@ export default function SupplierHome() {
             </div>
           </Reveal>
           <Reveal className="col-span-12 xl:col-span-4">
-            <SubmitCta title="Bring your next idea to Amber" desc="Submit with a gain-share offer and its validity, then track it through Team feasibility check, R&D approval and Sourcing approval to PAP price revision and first MRN." campaignHint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} />
+            <SubmitCta title="Bring your next idea to Amber" desc="Submit with a gain-share offer and its validity, then track it through Team feasibility check, R&D approval and department approval to PAP price revision and first MRN." campaignHint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} />
           </Reveal>
 
           {/* Row 2 — three equal columns: my ideas · workshop invites · my ideas by stage */}
@@ -158,7 +158,7 @@ export default function SupplierHome() {
 
           <Reveal className="col-span-12 xl:col-span-4 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Workflow"
-              title={<span className="flex items-center gap-1.5">My ideas by stage<InfoTip title="Six-stage workflow">Every idea moves through the same six stages: Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented. A dropped idea stays dropped; to try again, submit a new idea.</InfoTip></span>}
+              title={<span className="flex items-center gap-1.5">My ideas by stage<InfoTip title="Six-stage workflow">Every idea moves through the same six stages: Idea submitted → Team feasibility check → R&D approval → department approval → Execution started → Implemented. A dropped idea stays dropped; to try again, submit a new idea.</InfoTip></span>}
               subtitle={`${ownSubmitted.length} submitted · ${dropped.length} dropped`}
               actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>My Ideas</Button>}>
               <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-1">

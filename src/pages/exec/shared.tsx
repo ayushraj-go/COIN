@@ -39,7 +39,7 @@ export function snapshot(ideaIds: string[] = [], ledgerIds: string[] = []) {
 }
 export const toast = (msg: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', undo?: () => void) => useStore.getState().toast(msg, type, undo)
 
-// ─── Stage strip (Idea submitted → Team feasibility check → <dept> evaluation → Sourcing approval → Execution started → Verificatted) ─
+// ─── Stage strip (Idea submitted → Team feasibility check → <dept> evaluation → <dept> approval → Execution started → Verificatted) ─
 export function RouteStrip({ route, stage, compact }: { route: RouteKey; stage: string; compact?: boolean }) {
   const stages = TRACKER_STAGES
   void route

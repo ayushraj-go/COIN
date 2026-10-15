@@ -19,7 +19,7 @@ export const ACTION_META: Record<ActionKind, { label: string; icon: string; colo
   validate: { label: 'Feasibility check', icon: 'UsersRound', color: 'var(--color-brand-500)' },
   feasibility: { label: 'Feasibility', icon: 'Factory', color: 'var(--color-teal-600)' },
   evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: 'var(--color-indigo-600)' },
-  approve: { label: 'Sourcing approval', icon: 'Stamp', color: 'var(--color-brand-600)' },
+  approve: { label: 'Department approval', icon: 'Stamp', color: 'var(--color-brand-600)' },
   savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)' },
   overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: 'var(--color-rose-600)' },
   info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: 'var(--color-orange-400)' },

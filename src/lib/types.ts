@@ -215,7 +215,7 @@ export interface Evaluation {
   at?: string
 }
 
-/** Stage 4 — Sourcing approval: commercial assessment, supplier alignment, signed budget + timeline lock */
+/** Stage 4 — <dept> approval: commercial assessment, supplier alignment, signed budget + timeline lock */
 export interface ApprovalLock {
   commercialOk: boolean
   supplierAligned: 'Confirmed' | 'Skipped' | 'Not confirmed'

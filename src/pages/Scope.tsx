@@ -517,7 +517,7 @@ export default function Scope() {
                   )
                 })}
               </div>
-              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check: technical feasibility, cost validity, duplicate / conflict, Go / No-go. Evaluation by the submitter's department: cost-benefit analysis, risk assessment and a supplier capability check (skipped below ₹ 5 L). Sourcing approval signs the budget + timeline lock. Execution started carries NPD sample, PAP price, first MRN at the new price and the hand-over; Verification confirms the locked target from MRN. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
+              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check: technical feasibility, cost validity, duplicate / conflict, Go / No-go. Evaluation by the submitter's department: cost-benefit analysis, risk assessment and a supplier capability check (skipped below ₹ 5 L). The department head signs the budget + timeline lock. Execution started carries NPD sample, PAP price, first MRN at the new price and the hand-over; Verification confirms the locked target from MRN. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
             </div>
             <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mt-1">Routes as written in the scope document</div>
             <div className="grid gap-2.5">

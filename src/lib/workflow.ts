@@ -1,5 +1,5 @@
 // COIN six-stage workflow — pure rules (no store, no React), unit-tested in workflow.test.ts.
-// Idea submitted → Team feasibility check → <dept> evaluation → Sourcing approval → Execution started → Verification
+// Idea submitted → Team feasibility check → <dept> evaluation → <dept> approval → Execution started → Verification
 import type { Idea, Part, RiskItem, RiskLevel, RoleKey, Supplier, User } from './types'
 import { addMonthsYm, ymOf } from './format'
 import { STAGE } from './masters'
@@ -41,8 +41,8 @@ export function evalDeptOf(department?: string): string {
 
 /** Display name of a stage for one idea: "Evaluation" becomes "<dept> evaluation" */
 export function stageLabel(idea: { department?: string; evaluation?: { dept?: string } }, stage: string): string {
-  if (stage !== 'Evaluation') return stage
-  return `${idea.evaluation?.dept ?? evalDeptOf(idea.department)} evaluation`
+  if (stage !== 'Evaluation' && stage !== 'Approval') return stage
+  return `${idea.evaluation?.dept ?? evalDeptOf(idea.department)} ${stage === 'Approval' ? 'approval' : 'evaluation'}`
 }
 
 /** Generic specification text for supplier capability requests — never Amber prices, volumes or part codes */

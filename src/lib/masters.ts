@@ -36,21 +36,21 @@ export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string
 }
 
 // COIN workflow — every idea, on every route, runs the same six stages:
-// Idea submitted → Team feasibility check → <dept> evaluation → Sourcing approval → Execution started → Verification.
+// Idea submitted → Team feasibility check → <dept> evaluation → <dept> approval → Execution started → Verification.
 // Stages 1–4 live in IN (Innovation Network), 5–6 in CO (Cost Optimisation). The evaluation stage is stored as
-// "Evaluation" and shown as "<submitter's department> evaluation" (see stageLabel in workflow.ts).
+// "Evaluation" / "Approval" and shown as "<department> evaluation" / "<department> approval" (see stageLabel in workflow.ts).
 export const STAGE = {
   submitted: 'Idea submitted',
   feasibility: 'Team feasibility check',
   evaluation: 'Evaluation',
-  approval: 'Sourcing approval',
+  approval: 'Approval',
   execution: 'Execution started',
   verification: 'Verification',
 } as const
 /** Stages an idea moves through after submission (the tracker adds "Idea submitted" in front) */
 export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval, STAGE.execution, STAGE.verification]
 export const TRACKER_STAGES: string[] = [STAGE.submitted, ...WORKFLOW_STAGES]
-/** IN = stages up to Sourcing approval; CO = Execution started and Verification */
+/** IN = stages up to the department approval; CO = Execution started and Verification */
 export const IN_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval]
 export const CO_STAGE_NAMES: string[] = [STAGE.execution, STAGE.verification]
 export const ROUTE_STAGES: Record<RouteKey, string[]> = {

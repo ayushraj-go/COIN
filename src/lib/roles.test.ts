@@ -40,3 +40,53 @@ describe('role ladder', () => {
     expect(stageAssignee(idea({ ownerId: 'u-qa-exec' }), STAGE.execution, USERS_DEFAULT)).toBe('u-qa-exec')
   })
 })
+
+import { ideaPerms } from '../pages/idea/model'
+import { canSeeIdea } from './calc'
+import { stageLabel } from './workflow'
+const U = (id: string) => USERS_DEFAULT.find((u) => u.id === id)!
+const at = (stage: string, o: Record<string, unknown> = {}) => idea(<Record<string, unknown>>{
+  stage, bucket: stage === STAGE.execution ? 'In Execution' : stage === STAGE.verification ? 'Implemented' : 'Pipeline',
+  approvals: [{ level: 'R&D head', approverId: 'u-rd-head' }], execution: { status: 'In Execution', milestones: [] }, evaluation: { dept: 'R&D' }, lock: undefined, ...o,
+})
+
+describe('who may act', () => {
+  it('each role acts only at its own stage, in its own department', () => {
+    expect(ideaPerms(U('u-rd-tl'), at(STAGE.feasibility)).feasibilityCheck).toBe(true)
+    expect(ideaPerms(U('u-hr-tl'), at(STAGE.feasibility)).feasibilityCheck).toBe(false)
+    expect(ideaPerms(U('u-rd-tl'), at(STAGE.evaluation)).evaluate).toBe(false)
+    expect(ideaPerms(U('u-eval1'), at(STAGE.evaluation)).evaluate).toBe(true)
+    expect(ideaPerms(U('u-hr-lead'), at(STAGE.evaluation)).evaluate).toBe(false)
+    expect(ideaPerms(U('u-rd-head'), at(STAGE.approval)).approve).toBe(true)
+    expect(ideaPerms(U('u-qa-head'), at(STAGE.approval)).approve).toBe(false)
+    expect(ideaPerms(U('u-rd-exec'), at(STAGE.execution)).handOver).toBe(true)
+    expect(ideaPerms(U('u-hr-exec'), at(STAGE.execution)).handOver).toBe(false)
+    expect(ideaPerms(U('u-fin'), at(STAGE.verification)).verify).toBe(true)
+    expect(ideaPerms(U('u-rd-head'), at(STAGE.verification)).verify).toBe(false)
+  })
+  it('a team lead cannot clear their own idea — the department lead does it instead', () => {
+    const own = at(STAGE.feasibility, { submitterId: 'u-rd-tl' })
+    expect(ideaPerms(U('u-rd-tl'), own).feasibilityCheck).toBe(false)
+    expect(ideaPerms(U('u-eval1'), own).feasibilityCheck).toBe(true)
+  })
+  it('employees never act; Sourcing Head and Admin override every stage', () => {
+    for (const s of [STAGE.feasibility, STAGE.evaluation, STAGE.approval]) {
+      const p = ideaPerms(U('u-sub1'), at(s, { submitterId: 'u-sub4' }))
+      expect(p.feasibilityCheck || p.evaluate || p.approve).toBe(false)
+      for (const o of ['u-head', 'u-admin']) { const q = ideaPerms(U(o), at(s)); expect(q.feasibilityCheck || q.evaluate || q.approve, `${o} ${s}`).toBe(true) }
+    }
+    expect(ideaPerms(U('u-admin'), at(STAGE.execution)).handOver).toBe(true)
+    expect(ideaPerms(U('u-admin'), at(STAGE.verification)).verify).toBe(true)
+  })
+  it('department roles see their department; employees only their own ideas', () => {
+    expect(canSeeIdea(U('u-rd-tl'), at(STAGE.evaluation))).toBe(true)
+    expect(canSeeIdea(U('u-rd-exec'), at(STAGE.execution))).toBe(true)
+    expect(canSeeIdea(U('u-hr-tl'), at(STAGE.evaluation))).toBe(false)
+    expect(canSeeIdea(U('u-sub4'), at(STAGE.evaluation))).toBe(false)
+  })
+  it('stage 4 is stored as Approval and shown with the department name', () => {
+    expect(STAGE.approval).toBe('Approval')
+    expect(stageLabel(at(STAGE.approval), STAGE.approval)).toBe('R&D approval')
+    expect(stageLabel(at(STAGE.evaluation, { evaluation: { dept: 'HR' } }), STAGE.evaluation)).toBe('HR evaluation')
+  })
+})

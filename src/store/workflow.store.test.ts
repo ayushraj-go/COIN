@@ -63,10 +63,12 @@ describe('feasibility team (review #4)', () => {
     expect(ideaPerms(user('u-sub1'), s1).feasibilityCheck).toBe(false)
     expect(ideaPerms(user('u-head'), s1).feasibilityCheck).toBe(true)
   })
-  it('department feasibility members can see ideas waiting for the feasibility check', () => {
-    const s1 = show(1)
-    expect(canSeeIdea(user('u-sub3'), s1)).toBe(true)
-    expect(ideaPerms(user('u-sub3'), s1).feasibilityCheck).toBe(true)
+  it("the team lead of the submitter's department does the check; other departments neither see nor act", () => {
+    const s1 = show(1) // R&D idea
+    expect(canSeeIdea(user('u-rd-tl'), s1)).toBe(true)
+    expect(ideaPerms(user('u-rd-tl'), s1).feasibilityCheck).toBe(true)
+    expect(canSeeIdea(user('u-sub3'), s1)).toBe(false)
+    expect(ideaPerms(user('u-sub3'), s1).feasibilityCheck).toBe(false)
   })
 })
 
@@ -92,5 +94,28 @@ describe('verification uses MRN inside the lock window (review minor #10, regrad
     expect(all).toBeGreaterThan(inWindow) // S6 keeps realising after its 3-month lock
     st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: 1 })
     expect(Math.round(idea(id).verification!.realisedAtVerification!)).toBe(Math.round(inWindow))
+  })
+})
+
+describe('department approval and execution owner (department ladder)', () => {
+  it('a recommended idea waits on its own department head, who approves; execution goes to the department execution owner', () => {
+    const s2 = show(2)
+    const dept = s2.evaluation!.dept
+    expect(dept).not.toBe('Sourcing')
+    const head = st().users.find((u) => u.department === dept && u.roles.includes('depthead'))!
+    const exec = st().users.find((u) => u.department === dept && u.roles.includes('execowner'))!
+    st().recordEvaluation(s2.id, 'Recommend', 'ok')
+    const a = idea(s2.id)
+    expect(a.stage).toBe(STAGE.approval)
+    expect(a.approvals).toEqual([{ level: `${dept} head`, approverId: head.id }])
+    expect(st().notifications.some((n) => n.userId === head.id && n.ideaId === s2.id)).toBe(true)
+    st().loginAs(head.id)
+    signValidLock(s2.id)
+    expect(st().approve(s2.id)).toBe(true)
+    const b = idea(s2.id)
+    expect(b.stage).toBe(STAGE.execution)
+    expect(b.approvals[0]).toMatchObject({ decision: 'Approved', approverId: head.id })
+    expect(b.ownerId).toBe(exec.id)
+    expect(b.execution?.ownerId).toBe(exec.id)
   })
 })

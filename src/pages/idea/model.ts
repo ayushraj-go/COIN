@@ -2,8 +2,8 @@
 import { useMemo } from 'react'
 import { useStore, hasRole } from '../../store/useStore'
 import type { Bucket, Campaign, Category, Commodity, Health, Idea, IdeaPart, Lever, LeverGroup, Plant, RouteKey, SlaRule, Supplier, User } from '../../lib/types'
-import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY } from '../../lib/masters'
-import { stageLabel } from '../../lib/workflow'
+import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY, USERS_DEFAULT } from '../../lib/masters'
+import { stageLabel, ideaDept, stageAssignee } from '../../lib/workflow'
 import { can } from '../../lib/nav'
 import { healthOf, ideaAnnualised, leverGroupOf, partAnnualised, savingPct, savingPerUnit, slaStatus, stageAgeDays } from '../../lib/calc'
 import { fmtDate, inrShort, nowIso, uid } from '../../lib/format'
@@ -12,7 +12,7 @@ import { exportExcel } from '../../lib/export'
 // ─── Stage groups (Kanban columns) ────────────────────────────────────────────
 export interface StageGroup { key: string; label: string; short: string; stages: string[]; bucket: Bucket; icon: string }
 // One column per workflow stage — the same six stages for every idea (Idea submitted is the entry event).
-// Team feasibility check → Evaluation → Sourcing approval live in IN; Execution started and Verification in CO.
+// Team feasibility check → <dept> evaluation → <dept> approval live in IN; Execution started and Verification in CO.
 export const STAGE_GROUPS: StageGroup[] = [
   { key: 'feasibility', label: STAGE.feasibility, short: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
   { key: 'evaluation', label: 'Evaluation', short: 'Evaluation', stages: [STAGE.evaluation], bucket: 'Pipeline', icon: 'FlaskConical' },
@@ -166,6 +166,8 @@ export function valueLabel(key: string, raw: string, ctx: Ctx): string {
 }
 
 // ─── Permissions (Section 3 matrix, applied per idea + stage) ────────────────
+/** live user list (admin edits included); the seed's users before the store exists */
+const usersNow = () => useStore.getState().users ?? USERS_DEFAULT
 export function inScope(me: User | null | undefined, idea: Idea) {
   if (!me) return false
   if (hasRole(me, 'head')) return true
@@ -182,30 +184,31 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const stage = idea.stage
   const pipeline = idea.bucket === 'Pipeline'
   const exec = idea.bucket === 'In Execution'
-  const head = hasRole(me, 'head')
+  // Sourcing Head and Admin can act at every stage; everyone else only at their own stage, for their own department
+  const head = hasRole(me, 'head', 'admin')
   const scope = inScope(me, idea)
   const validator = can(me, 'validate') && scope
   const evalStage = EVALUATION_STAGES.includes(stage)
-  const pending = idea.approvals.find((a) => !a.decision)
-  // stage 2 — feasibility team: commodity buyers / leads in scope, department members (no commodity mapping) on any idea
-  // — never on your own idea (the Sourcing Head can act everywhere)
-  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || (can(me, 'feasibility') && (scope || me.commodities.length === 0) && idea.submitterId !== me.id))
-  // stage 3 — the submitter's department evaluates; Sourcing evaluations by the commodity lead / buyer; the Sourcing Head always
-  const dept = idea.evaluation?.dept
-  const evaluate = pipeline && evalStage && (head || (hasRole(me, 'deptlead') && me.department === dept) || (dept === 'Sourcing' && hasRole(me, 'lead', 'buyer') && scope))
-  // stage 4 — approval matrix
-  const approve = pipeline && stage === STAGE.approval && can(me, 'approve') && !!pending &&
-    (head || pending.approverId === me.id || (pending.level === 'Commodity Lead' && hasRole(me, 'lead') && scope))
+  const dept = ideaDept(idea)
+  const inDept = me.department === dept
+  // stage 2 — the team lead of the submitter's department, never on their own idea (then the department lead steps in)
+  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) &&
+    (head || (hasRole(me, 'teamlead') && inDept && idea.submitterId !== me.id) || stageAssignee(idea, stage, usersNow()) === me.id)
+  // stage 3 — the department lead; stage 4 — the department head
+  const evaluate = pipeline && evalStage && (head || (hasRole(me, 'deptlead') && inDept))
+  const approve = pipeline && stage === STAGE.approval && idea.approvals.some((a) => !a.decision) && (head || (hasRole(me, 'depthead') && inDept))
   const actor = feasibilityCheck || evaluate || approve
-  const executor = (can(me, 'execute') && scope) || head
+  // stage 5 — the department's execution owner, or whoever the execution was reassigned to
+  const executor = head || idea.ownerId === me.id || (hasRole(me, 'execowner') && inDept)
   return {
     feasibilityCheck, evaluate, approve,
     sendBack: pipeline && actor,
     requestInfo: pipeline && actor,
-    reassign: (pipeline && validator) || (exec && can(me, 'approve') && scope),
+    reassign: (pipeline && (validator || head)) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
     drop: (pipeline || exec) && executor,
     handOver: exec && executor && idea.execution?.status === 'In Execution',
-    verify: stage === STAGE.verification && !idea.verification?.verifiedAt && (head || hasRole(me, 'finance') || (can(me, 'approve') && scope)),
+    // stage 6 — Finance verifies the locked target
+    verify: stage === STAGE.verification && !idea.verification?.verifiedAt && (head || hasRole(me, 'finance')),
     override: pipeline && validator && !idea.locked,
     sync: executor && idea.bucket !== 'Dropped',
     continueDraft: stage === 'Draft' && idea.submitterId === me.id,
@@ -219,21 +222,21 @@ export function waitingOn(idea: Idea, ctx: Ctx): string {
   const s = idea.stage
   if (s === 'Draft') return 'Draft — not yet submitted'
   if (s === 'Dropped' || s === 'Rejected') return `${s} at ${idea.dropStage ? stageLabel(idea, idea.dropStage) : '—'} · ${idea.dropReason ?? ''} — closed for good`
-  if (FEASIBILITY_STAGES.includes(s)) return `Awaiting team feasibility check · ${userNameOf(ctx, idea.buyerId)}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
+  const who = (st: string) => userNameOf(ctx, stageAssignee(idea, st, usersNow()))
+  if (FEASIBILITY_STAGES.includes(s)) return `Awaiting team feasibility check · ${who(s)}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
   if (EVALUATION_STAGES.includes(s)) {
     const sc = idea.evaluation?.supplier?.status
-    return `Awaiting ${stageLabel(idea, s)} · cost-benefit, risk${sc === 'Skipped' ? ' (supplier check skipped < ₹ 5 L)' : sc === 'Sent' ? ' · supplier form sent' : sc === 'Responded' ? ' · supplier responded' : ', supplier check'}`
+    return `Awaiting ${stageLabel(idea, s)} · ${who(s)} · cost-benefit, risk${sc === 'Skipped' ? ' (supplier check skipped < ₹ 5 L)' : sc === 'Sent' ? ' · supplier form sent' : sc === 'Responded' ? ' · supplier responded' : ', supplier check'}`
   }
   if (s === STAGE.approval) {
-    const p = idea.approvals.find((a) => !a.decision)
-    return `${p ? `Awaiting sourcing approval — ${p.level} · ${userNameOf(ctx, p.approverId)}` : 'Awaiting sourcing approval'}${idea.lock ? ' · lock signed' : ' · budget & timeline lock to sign'}`
+    return `Awaiting ${stageLabel(idea, s)} · ${who(s)}${idea.lock ? ' · lock signed' : ' · budget & timeline lock to sign'}`
   }
   if (s === STAGE.verification || s === 'Implemented') {
     const v = idea.verification
-    return v?.verifiedAt ? `Verified ${fmtDate(v.verifiedAt.slice(0, 10))} by ${v.verifiedBy}` : `Handed for verification${v?.handedAt ? ` ${fmtDate(v.handedAt.slice(0, 10))}` : ''} · awaiting business verification`
+    return v?.verifiedAt ? `Verified ${fmtDate(v.verifiedAt.slice(0, 10))} by ${v.verifiedBy}` : `Handed for verification${v?.handedAt ? ` ${fmtDate(v.handedAt.slice(0, 10))}` : ''} · awaiting Finance verification · ${who(STAGE.verification)}`
   }
   const nextMs = idea.execution?.milestones.find((m) => !m.doneDate)
-  return `Execution started · owner ${userNameOf(ctx, idea.ownerId ?? idea.buyerId)}${nextMs ? ` · next: ${nextMs.name}` : ''}`
+  return `Execution started · owner ${who(STAGE.execution)}${nextMs ? ` · next: ${nextMs.name}` : ''}`
 }
 
 // ─── Kanban move rules (permission-checked) ──────────────────────────────────
@@ -266,10 +269,10 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   if (ti > ci) {
     if (ci <= stages.indexOf(STAGE.feasibility) && ti > stages.indexOf(STAGE.feasibility) && idea.feasibilityCheck?.decision !== 'Go') return { ok: false, reason: 'Open the idea and complete the Team feasibility check (Go / No-go) first' }
     if (ci <= stages.indexOf(STAGE.evaluation) && ti > stages.indexOf(STAGE.evaluation) && idea.evaluation?.decision !== 'Recommend') return { ok: false, reason: `Open the idea and complete the ${stageLabel(idea, STAGE.evaluation)} (cost-benefit, risk, supplier check) first` }
-    if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the budget & timeline lock and approve in Sourcing approval before execution can start' }
+    if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the budget & timeline lock and approve in department approval before execution can start' }
   }
   if (ti > ai && ci <= ai) {
-    if (!can(me, 'approve')) return { ok: false, reason: 'Moving past Sourcing approval needs Commodity Lead or Sourcing Head approval rights' }
+    if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: `Moving past ${stageLabel(idea, STAGE.approval)} needs the department head (or the Sourcing Head / Admin)` }
   } else if (ti <= ai) {
     if (!can(me, 'validate') && !can(me, 'feasibility')) return { ok: false, reason: 'IN moves need feasibility team rights (Commodity Lead, Sourcing Head or the feasibility team)' }
   } else if (!can(me, 'execute')) return { ok: false, reason: 'Execution moves need Buyer, Commodity Lead or Sourcing Head rights' }

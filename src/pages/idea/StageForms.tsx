@@ -1,5 +1,5 @@
 // Stage forms of the six-stage workflow:
-// 2 Team feasibility check · 3 <dept> evaluation (cost-benefit, risk, supplier capability) · 4 Sourcing approval (signed lock) · 6 Verification
+// 2 Team feasibility check · 3 <dept> evaluation (cost-benefit, risk, supplier capability) · 4 <dept> approval (signed lock) · 6 Verification
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { ApprovalLock, Idea, RiskItem, RiskLevel } from '../../lib/types'
@@ -180,7 +180,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialTab = 'cba' }
   const saveRisk = () => { useStore.getState().saveEvaluation(idea.id, { risks, riskRemarks: riskRemarks.trim() || undefined }); toast()(`Risk assessment saved — overall ${overallRisk(risks)}, ${inrShort(riskTotal(risks))} at risk`) }
   const decide = (d: 'Recommend' | 'Reject') => {
     useStore.getState().recordEvaluation(idea.id, d, remarks.trim() || undefined)
-    toast()(d === 'Recommend' ? `${idea.id} recommended — sent for Sourcing approval` : `${idea.id} rejected at ${deptLabel} — dropped for good`, d === 'Recommend' ? 'success' : 'warning')
+    toast()(d === 'Recommend' ? `${idea.id} recommended — sent for ${stageLabel(idea, STAGE.approval)}` : `${idea.id} rejected at ${deptLabel} — dropped for good`, d === 'Recommend' ? 'success' : 'warning')
     onClose()
   }
   const sendBack = () => { useStore.getState().sendBack(idea.id, remarks.trim()); toast()(`${idea.id} sent back to the Team feasibility check`, 'warning'); onClose() }
@@ -397,7 +397,7 @@ export function SignaturePad({ onChange, height = 120 }: { onChange: (dataUrl: s
   )
 }
 
-// ─── Stage 4 — Sourcing approval: commercial assessment, supplier alignment, signed budget + timeline lock ──
+// ─── Stage 4 — <dept> approval: commercial assessment, supplier alignment, signed budget + timeline lock ──
 export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const me = useMe()
   const users = useStore((s) => s.users)
@@ -435,10 +435,10 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
     if (ok) toast()(finalStep ? `${idea.id} approved — execution started in Cost Optimisation` : `Approved at ${pending[0]?.level} — pending ${pending[1]?.level}`, 'success')
     onClose()
   }
-  const rejectNow = () => { useStore.getState().reject(idea.id, remarks.trim()); toast()(`${idea.id} rejected at Sourcing approval — dropped for good`, 'warning'); onClose() }
+  const rejectNow = () => { useStore.getState().reject(idea.id, remarks.trim()); toast()(`${idea.id} rejected at ${stageLabel(idea, STAGE.approval)} — dropped for good`, 'warning'); onClose() }
   const r = ev?.risks ?? []
   return (
-    <Modal open={open} onClose={onClose} size="xl" icon="Stamp" title="Sourcing approval" subtitle={`${idea.id} · ${idea.title}`}
+    <Modal open={open} onClose={onClose} size="xl" icon="Stamp" title={stageLabel(idea, STAGE.approval)} subtitle={`${idea.id} · ${idea.title}`}
       footer={rejecting ? <>
         <Button onClick={() => setRejecting(false)}>Back</Button>
         <Button variant="danger" icon="CircleX" disabled={!remarks.trim()} onClick={rejectNow}>Reject — drop for good</Button>

@@ -9,7 +9,7 @@ import {
   MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
 } from '../lib/masters'
 import { buildSeed, realiseMonth } from '../lib/seed'
-import { addMonthsIso, evalDeptOf, inLockWindow, lockTarget, milestoneSchedule, needsSupplierCheck, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsSupplierCheck, stageAssignee, stageLabel, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
 import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus } from '../lib/types'
@@ -99,11 +99,11 @@ interface Actions {
   /** Public supplier form — false when the token is unknown or already answered */
   respondSupplierCheck: (token: string, r: NonNullable<SupplierCheck['response']>) => boolean
   skipSupplierCheck: (id: string) => void
-  /** Stage 3 — Recommend → Sourcing approval, Reject → dropped */
+  /** Stage 3 — Recommend → department approval, Reject → dropped */
   recordEvaluation: (id: string, decision: 'Recommend' | 'Reject', remarks?: string) => void
   /** Stage 4 — budget + timeline lock, signed */
   signLock: (id: string, lock: Omit<ApprovalLock, 'signedAt' | 'signedBy'>) => void
-  /** Stage 4 — approval matrix; the Sourcing Head clears every pending level; the final level needs a signed lock */
+  /** Stage 4 — the department head approves (Sourcing Head / Admin as override); needs a signed, current lock */
   approve: (id: string, remarks?: string) => boolean
   reject: (id: string, remarks: string) => void
   sendBack: (id: string, remarks: string) => void
@@ -203,7 +203,7 @@ const safeStorage: Storage = {
   },
 }
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
-try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
+try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
 export const useStore = create<Store>()(
   persist(
@@ -223,13 +223,8 @@ export const useStore = create<Store>()(
         set((s) => ({ emails: [{ id: uid('e'), at: now(), to, subject, body, template, attachments }, ...s.emails] }))
       const userEmail = (id: string) => get().users.find((u) => u.id === id)?.email ?? id
 
-      /** Who evaluates at stage 3: evaluators of that department, the commodity lead for Sourcing, and the Sourcing Head */
-      const evaluatorIds = (idea: Idea, dept: string) => {
-        const ids = dept === 'Sourcing'
-          ? [commodityOf(idea.commodity)?.leadId].filter(Boolean) as string[]
-          : get().users.filter((u) => u.roles.includes('deptlead') && u.department === dept).map((u) => u.id)
-        return [...new Set([...ids, 'u-head'])]
-      }
+      /** Who evaluates at stage 3: the department lead of the idea's department */
+      const evaluatorIds = (idea: Idea, dept: string) => [ladderOf(dept, idea.commodity, get().users).deptLead].filter(Boolean) as string[]
 
       /** entry side-effects when an idea lands on a stage */
       const onEnterStage = (idea: Idea, stage: string): Idea => {
@@ -242,12 +237,11 @@ export const useStore = create<Store>()(
           for (const uidv of evaluatorIds(idea, dept)) push({ userId: uidv, title: `${dept} evaluation requested`, body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
         }
         if (stage === STAGE.approval) {
-          const s = get().settings
-          const levels = approvalLevels(ideaAnnualised(idea), idea.oneTimeInvestment, s.xThresholdLakh, s.yThresholdLakh)
-          const lead = commodityOf(idea.commodity)?.leadId
-          next.approvals = levels.map((l) => ({ level: l, approverId: l === 'Commodity Lead' ? lead : 'u-head' }))
-          const first = next.approvals[0]
-          if (first?.approverId) push({ userId: first.approverId, title: 'Pending sourcing approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
+          // one approval level: the head of the idea's department (Sourcing Head / Admin can still act as override)
+          const dept = next.evaluation?.dept ?? evalDeptOf(idea.department)
+          const headId = ladderOf(dept, idea.commodity, get().users).deptHead
+          next.approvals = [{ level: `${dept} head`, approverId: headId }]
+          if (headId) push({ userId: headId, title: `Pending ${dept} approval`, body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
         }
         return next
       }
@@ -269,12 +263,12 @@ export const useStore = create<Store>()(
         return {
           ...idea,
           approvedAt: now(),
-          ownerId: idea.buyerId,
+          ownerId: stageAssignee(idea, STAGE.execution, get().users) ?? idea.buyerId,
           locked: true,
           ...(npd ? { npdRequestId: idea.npdRequestId ?? `NPD-ECN-${Math.floor(26000 + Math.random() * 999)}`, npdStatus: idea.npdStatus ?? 'ECN raised' } : {}),
           ...(pap ? { papRequestId: idea.papRequestId ?? `PAP-${Math.floor(40000 + Math.random() * 9999)}`, papStatus: idea.papStatus ?? 'Raised' } : {}),
           execution: {
-            ownerId: idea.buyerId, startDate: start, targetDate: target, originalTargetDate: target,
+            ownerId: stageAssignee(idea, STAGE.execution, get().users) ?? idea.buyerId, startDate: start, targetDate: target, originalTargetDate: target,
             phasing: phaseByQuarter(annual, goLive, fy), // pre-filled from the expected first MRN; owner edits
             milestones: tpl.map((name, k) => ({ id: uid('m'), name, dueDate: due[k] })),
             slippage: [], progress: 0, notes: [], status: 'In Execution',
@@ -399,7 +393,8 @@ export const useStore = create<Store>()(
             })
           }
           set((st) => ({ ideas: [idea, ...st.ideas.filter((i) => i.id !== existingId)] }))
-          push({ userId: commodity.buyerId, title: `New idea in ${commodity.name}`, body: `${id} · ${idea.title}`, trigger: 'Idea submitted in my commodity', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
+          const teamLead = stageAssignee({ ...idea, id, submitterId: idea.submitterId ?? me().id } as Idea, STAGE.feasibility, get().users)
+          if (teamLead) push({ userId: teamLead, title: 'Team feasibility check requested', body: `${id} · ${idea.title}`, trigger: 'Idea submitted in my commodity', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
           email([userEmail(commodity.buyerId)], `COIN · New idea ${id} in ${commodity.name}`, idea.title, 'Idea submitted')
           if (idea.campaignId) idea = { ...idea }
           return id
@@ -482,7 +477,7 @@ export const useStore = create<Store>()(
         approve: (id, remarks) => {
           const u = me()
           const i = getIdea(id)
-          const head = u.roles.includes('head')
+          const head = u.roles.includes('head') || u.roles.includes('admin')
           const approvals = [...i.approvals]
           const first = approvals.findIndex((a) => !a.decision)
           if (first < 0) return false
@@ -493,11 +488,11 @@ export const useStore = create<Store>()(
           approvals.forEach((a, k) => { if (!a.decision && (head || k === first)) approvals[k] = { ...a, approverId: u.id, decision: 'Approved', at: now(), remarks } })
           const pending = approvals.find((a) => !a.decision)
           const levels = approvals.filter((a) => a.approverId === u.id && a.at && a.decision === 'Approved').map((a) => a.level).join(' + ')
-          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`Sourcing approval (${levels || 'Approver'})`, { remarks })] }))
+          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`${stageLabel(i, STAGE.approval)} (${levels || 'Approver'})${head && u.id !== i.approvals[0]?.approverId ? ' — acting as override' : ''}`, { remarks })] }))
           if (pending) {
-            if (pending.approverId) push({ userId: pending.approverId, title: 'Pending sourcing approval', body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+            if (pending.approverId) push({ userId: pending.approverId, title: `Pending ${stageLabel(i, STAGE.approval)}`, body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
           } else {
-            get().advance(id, 'Sourcing approval — approved', remarks)
+            get().advance(id, `${stageLabel(i, STAGE.approval)} — approved`, remarks)
             ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           }
           return true
@@ -512,7 +507,7 @@ export const useStore = create<Store>()(
         },
         sendBack: (id, remarks) => {
           const i = getIdea(id)
-          // Evaluation and Sourcing approval send an idea back to the Team feasibility check for rework
+          // Evaluation and department approval send an idea back to the Team feasibility check for rework
           const atStart = i.stage === STAGE.feasibility
           patchIdea(id, (x) => (atStart ? { ...x, infoRequested: true, activity: [...x.activity, logEntry('Sent back to submitter', { remarks })] } : { ...moveTo(x, STAGE.feasibility, 'Sent back to Team feasibility check', remarks), infoRequested: false }))
           push({ userId: i.submitterId, title: 'Idea sent back', body: `${id} · ${remarks}`, trigger: 'Idea sent back / more info requested', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
@@ -808,7 +803,7 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v7',
+      name: 'coin-cost-innovation-hub-v8',
       version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
@@ -868,5 +863,5 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v7') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v8') void useStore.persist.rehydrate() })
 }

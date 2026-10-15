@@ -243,7 +243,7 @@ function buildIdea(opts: {
   if (t === 'Draft') { idea.stage = 'Draft'; idea.bucket = 'Draft'; idea.stageHistory = [{ stage: 'Draft', enteredAt: dt(createdAt) }]; return idea }
   log(dt(createdAt, 9, 45), submitterId, 'Idea submitted', { field: 'stage', oldValue: 'Draft', newValue: STAGE.feasibility })
 
-  // decide final stage index — 0 Team feasibility check · 1 Evaluation · 2 Sourcing approval · 3 Execution started · 4 Verification
+  // decide final stage index — 0 Team feasibility check · 1 Evaluation · 2 Approval · 3 Execution started · 4 Verification
   const ai = routeStages.indexOf(STAGE.approval)
   let finalIdx: number
   if (opts.stageOverride) finalIdx = routeStages.indexOf(opts.stageOverride)

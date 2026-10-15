@@ -1,4 +1,5 @@
 // Section 4 — savings methodology. One rule for every buyer.
+import { ideaDept } from './workflow'
 import type { Bucket, Commodity, Filters, Health, Idea, IdeaPart, LedgerEntry, Lever, RouteKey, SlaRule, User } from './types'
 import { ROUTE_STAGES, STAGE, STAGE_SLA_KEY, EVALUATION_STAGES, FEASIBILITY_STAGES, LAKH } from './masters'
 import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, sum, today, todayIso, workingDaysBetween, ymOf, iso } from './format'
@@ -147,6 +148,8 @@ export function canSeeIdea(user: User, idea: Idea): boolean {
   if (idea.submitterId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
+  // department ladder (team lead, department lead, department head, execution owner): every idea of their department
+  if (r.some((x) => x === 'teamlead' || x === 'deptlead' || x === 'depthead' || x === 'execowner') && ideaDept(idea) === user.department) return true
   return false
 }
 export const visibleIdeas = (user: User, ideas: Idea[]) => (user ? ideas.filter((i) => canSeeIdea(user, i)) : [])
