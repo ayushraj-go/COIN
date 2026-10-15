@@ -157,7 +157,7 @@ export function LeverAdmin() {
               <span className="text-[11px] text-muted ml-auto">Stage strip shown to the submitter</span>
             </div>
             <RouteStrip route={l.route} />
-            <div className="text-[11px] text-muted mt-2">R&D approval by: <b className="text-ink-2">{rndDeptFor(l.evaluator)}</b> · NPD sample: <b className="text-ink-2">{l.npdSample}</b> · Default savings type: <b className="text-ink-2">{l.defaultSavingsType}</b></div>
+            <div className="text-[11px] text-muted mt-2">Category evaluator: <b className="text-ink-2">{rndDeptFor(l.evaluator)}</b> · NPD sample: <b className="text-ink-2">{l.npdSample}</b> · Default savings type: <b className="text-ink-2">{l.defaultSavingsType}</b></div>
           </div>
         )}
         columns={[
@@ -183,7 +183,7 @@ export function RouteAdmin() {
   const ideas = useStore((s) => s.ideas)
   return (
     <div className="grid gap-3">
-      <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same six-stage workflow; the route only decides who joins R&D at the R&D approval stage and which milestones Execution started carries.</SectionIntro>
+      <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same six-stage workflow; the submitter's department runs the evaluation (stage 3), and the route decides which milestones Execution started carries.</SectionIntro>
       <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — six stages for every idea" subtitle="Idea submitted → Team feasibility check → R&D approval → Sourcing approval → Execution started → Implemented"
         actions={<span className="text-[11.5px] text-muted">{ideas.filter((i) => i.bucket === 'Pipeline' || i.bucket === 'In Execution').length} open ideas</span>}>
         <div className="overflow-x-auto pb-1">
@@ -216,7 +216,7 @@ export function RouteAdmin() {
             actions={<span className="text-[11.5px] text-muted">{ls.length} levers · {open} open ideas</span>}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Categories on this route</div><div className="flex flex-wrap gap-1.5">{ls.length ? ls.map((l) => <LeverChip key={l.id} leverId={l.id} />) : <span className="text-[12px] text-muted">No category mapped</span>}</div></div>
-              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">R&D approval by</div><div className="flex flex-wrap gap-1">{(approvers.length ? approvers : ['R&D']).map((d) => <span key={d} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">{d}</span>)}</div></div>
+              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Category evaluator</div><div className="flex flex-wrap gap-1">{(approvers.length ? approvers : ['R&D']).map((d) => <span key={d} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">{d}</span>)}</div></div>
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Execution started — milestones</div><div className="flex flex-wrap gap-1">{MILESTONE_TEMPLATES[r].map((m, k) => <span key={m} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-slate-50 border border-slate-200 text-ink-2"><span className="text-muted mr-1">{k + 1}.</span>{m}</span>)}</div></div>
             </div>
           </Card>

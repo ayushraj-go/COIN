@@ -177,7 +177,7 @@ export function LinkedRequests({ idea, compact }: { idea: Idea; compact?: boolea
   }
   const syncPap = () => {
     if (pap !== 'Raised') { toast(`${idea.papRequestId} is up to date — ${pap}`, 'info'); return }
-    run('pap', () => { syncNpdPap(idea.id, { papStatus: 'Price approved' }); toast('PAP price approved — Mark Done with the approved price to close the idea', 'success') })
+    run('pap', () => { syncNpdPap(idea.id, { papStatus: 'Price approved' }); toast('PAP price approved — hand over for verification with the approved price to close the idea', 'success') })
   }
   const Row = ({ sys, id, status, color, onSync, syncKey, na, icon }: { sys: string; id?: string; status: string; color: string; onSync: () => void; syncKey: string; na?: string; icon: string }) => (
     <div className="flex items-center gap-2.5 py-2 border-b border-dashed border-slate-200 last:border-0">

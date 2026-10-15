@@ -273,8 +273,8 @@ export const EXECUTION_RECORD: [string, string][] = [
 export const EXECUTION_SCREEN = [
   'Top strip: ideas in execution (count, ₹ committed), due this month, overdue, at risk, done this month, dropped this month. The filter bar narrows every view.',
   'Main view toggles between a table and a quarter timeline (each idea as a bar from start to due date, milestones as dots); the table shows the next reminder date for each idea.',
-  'Row actions: Update progress, Add milestone note, Change due date (reason logged), Mark Done, Drop, Reassign.',
-  'Mark Done needs the effective date and the approved new price (auto-pulled from PAP when linked).',
+  'Row actions: Update progress, Add milestone note, Change due date (reason logged), Hand over for verification, Verify, Drop, Reassign.',
+  'Hand-over needs the first MRN date (effective date) and the approved new price (auto-pulled from PAP when linked); Verification then checks MRN, Finance validation and the locked target.',
   'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.',
   'Side cards list recently done / dropped ideas and the slippage log.',
 ]

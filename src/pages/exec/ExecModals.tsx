@@ -1,4 +1,4 @@
-// M8 — Execution Hub row actions: Update progress, Add milestone note, Mark Done, Drop, due-date change (slippage),
+// M8 — Execution Hub row actions: Update progress, Add milestone note, Hand over for verification, Drop, due-date change (slippage),
 // inline quarter phasing and NPD / PAP status sync (Section 9)
 import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore'
@@ -296,7 +296,7 @@ export function LinkedEditor({ idea, onClose, canEdit }: { idea: Idea; onClose: 
     if (!Object.keys(patch).length) { onClose(); return }
     const undo = snapshot([idea.id])
     useStore.getState().syncNpdPap(idea.id, patch)
-    toast(`Status synced from NPD / PAP${patch.papStatus === 'Price approved' ? ' — approved price is ready for Mark Done' : ''}`, 'success', undo)
+    toast(`Status synced from NPD / PAP${patch.papStatus === 'Price approved' ? ' — approved price is ready for the hand-over' : ''}`, 'success', undo)
     onClose()
   }
   return (

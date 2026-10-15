@@ -83,7 +83,7 @@ export const RISK_FACTORS: { key: string; label: string; hint: string }[] = [
   { key: 'price', label: 'Price volatility', hint: 'Commodity / forex linked price' },
 ]
 
-/** R&D approves every idea; the lever's other evaluators (DQA, Quality, Process, Production) join R&D at this stage */
+/** Technical evaluator(s) named on the idea category — shown as reference in the category / route master */
 export const rndDeptFor = (evaluator?: string) =>
   !evaluator || evaluator === '—' || evaluator === 'To be confirmed' ? 'R&D' : evaluator.includes('R&D') ? evaluator : `R&D + ${evaluator}`
 
@@ -184,7 +184,7 @@ export const DEMO_LOGINS: { userId: string; role: string; blurb: string }[] = [
   { userId: 'u-head', role: 'Sourcing Head', blurb: 'All data · approves above limit · MIS' },
   { userId: 'u-lead1', role: 'Commodity Lead', blurb: 'Metals · approvals · workshops' },
   { userId: 'u-buyer1', role: 'Commodity Buyer', blurb: 'Fasteners & Steel · team feasibility · execution' },
-  { userId: 'u-eval1', role: 'Technical Evaluator', blurb: 'R&D approval · validation plan' },
+  { userId: 'u-eval1', role: 'Technical Evaluator', blurb: 'Department evaluation · cost-benefit, risk' },
   { userId: 'u-fin', role: 'Finance Controller', blurb: 'Validates realised savings' },
   { userId: 'u-mgmt', role: 'Management', blurb: 'Dashboards & monthly report' },
   { userId: 'u-sub1', role: 'Submitter', blurb: 'R&D employee · own ideas' },

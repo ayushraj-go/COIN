@@ -504,7 +504,7 @@ export default function Scope() {
             <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2"><Icon name="Workflow" size={15} className="text-brand-600" /><span className="text-[14px] font-bold text-ink">COIN workflow — applies to every idea</span><span className="text-[11.5px] text-muted">{TRACKER_STAGES.length} stages</span></div>
-                <span className="text-[11.5px] text-muted">Route decides who joins R&D approval and the Execution started milestones</span>
+                <span className="text-[11.5px] text-muted">Submitter's department evaluates · route decides the Execution started milestones</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                 {TRACKER_STAGES.map((st, k) => {
@@ -517,7 +517,7 @@ export default function Scope() {
                   )
                 })}
               </div>
-              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check covers the feasibility and new-source checks; DQA / Quality join R&D at R&D approval; NPD sample and PAP price revision are milestones inside Execution started. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
+              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check: technical feasibility, cost validity, duplicate / conflict, Go / No-go. Evaluation by the submitter's department: cost-benefit analysis, risk assessment and a supplier capability check (skipped below ₹ 5 L). Sourcing approval signs the budget + timeline lock. Execution started carries NPD sample, PAP price, first MRN at the new price and the hand-over; Verification confirms the locked target from MRN. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
             </div>
             <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mt-1">Routes as written in the scope document</div>
             <div className="grid gap-2.5">

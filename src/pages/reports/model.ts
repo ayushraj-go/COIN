@@ -185,7 +185,7 @@ export function reachedIdx(i: Idea) {
 }
 export function funnelSteps(ideas: Idea[]) {
   const sub = ideas.filter(nonDraft)
-  // six-stage flow: reachedIdx 1 = past Team feasibility check, 2 = past R&D approval
+  // six-stage flow: reachedIdx 1 = past Team feasibility check, 2 = past the department evaluation
   const validated = sub.filter((i) => reachedIdx(i) >= 1)
   const rnd = sub.filter((i) => reachedIdx(i) >= 2)
   const approved = sub.filter((i) => !!i.approvedAt || i.bucket === 'In Execution' || i.bucket === 'Implemented')
@@ -193,7 +193,7 @@ export function funnelSteps(ideas: Idea[]) {
   return [
     { step: 'Idea submitted', ideas: sub, n: sub.length },
     { step: 'Feasibility cleared', ideas: validated, n: validated.length },
-    { step: 'R&D approved', ideas: rnd, n: rnd.length },
+    { step: 'Evaluation recommended', ideas: rnd, n: rnd.length },
     { step: 'Execution started', ideas: approved, n: approved.length },
     { step: 'Implemented', ideas: impl, n: impl.length },
   ]
