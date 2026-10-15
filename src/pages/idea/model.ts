@@ -188,7 +188,8 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const evalStage = EVALUATION_STAGES.includes(stage)
   const pending = idea.approvals.find((a) => !a.decision)
   // stage 2 — feasibility team: commodity buyers / leads in scope, department members (no commodity mapping) on any idea
-  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || (can(me, 'feasibility') && (scope || me.commodities.length === 0)))
+  // — never on your own idea (the Sourcing Head can act everywhere)
+  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || (can(me, 'feasibility') && (scope || me.commodities.length === 0) && idea.submitterId !== me.id))
   // stage 3 — the submitter's department evaluates; Sourcing evaluations by the commodity lead / buyer; the Sourcing Head always
   const dept = idea.evaluation?.dept
   const evaluate = pipeline && evalStage && (head || (hasRole(me, 'techeval') && me.department === dept) || (dept === 'Sourcing' && hasRole(me, 'lead', 'buyer') && scope))

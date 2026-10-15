@@ -418,7 +418,9 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
     setCommercialOk(false); setBudgetL(String(+(((idea.oneTimeInvestment || Math.round(annual * 0.02)) / 1e5).toFixed(2)))); setMonths(6)
     setStart(firstOfMonth(addMonthsIso(todayIso(), leadMonths))); setSigName(me?.name ?? ''); setSig(null); setRemarks(''); setRejecting(false)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
-  const locked = idea.lock
+  // a lock signed for a different saving (baseline changed since) must be signed again
+  const stale = !!idea.lock && Math.abs(idea.lock.targetSaving - lockTarget(annual, idea.lock.timelineMonths)) > 1
+  const locked = stale ? undefined : idea.lock
   const end = addMonthsIso(start || todayIso(), months)
   const target = lockTarget(annual, months)
   const pending = idea.approvals.filter((a) => !a.decision)
@@ -465,6 +467,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
               : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">{sc?.status === 'Skipped' ? `Skipped — annualised ${inrShort(annual)} is below the ₹ 5 L threshold.` : 'No supplier response on record.'}</div>}
           </Check>
           <Check n={3} title="Budget + timeline lock" hint="Target saving = annualised × months ÷ 12; the savings start is the expected first MRN at the new price" ok={locked ? true : !!start}>
+            {stale && <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-900">The saving changed after the lock was signed ({inrShort(idea.lock!.targetSaving)} locked) — sign it again.</div>}
             {locked ? (
               <div className="grid grid-cols-2 gap-2">
                 <Kpi label="Budget" value={<Money value={locked.budget} />} /><Kpi label="Timeline" value={`${locked.timelineMonths} months`} />
@@ -530,9 +533,12 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
   const finOk = rows.length > 0 && rows.every((r) => r.financeStatus === 'Validated')
   const targetOk = !!plan && plan.elapsed > 0 && plan.onTrack
   const all = mrnOk && finOk && targetOk
+  // all three checks pass → verify; otherwise only the Sourcing Head may verify, with remarks, logged as an exception
+  const head = hasRole(useMe(), 'head')
+  const canVerify = all || (head && !!remarks.trim())
   const verify = () => {
     useStore.getState().verifyIdea(idea.id, { mrnAtApproved: mrnOk, financeValidated: finOk, targetAchieved: targetOk, remarks: remarks.trim() || undefined, targetAtVerification: plan?.planToDate ?? 0 })
-    toast()(`${idea.id} verified — savings proven against the locked target`, 'success'); onClose()
+    toast()(all ? `${idea.id} verified — savings proven against the locked target` : `${idea.id} verified with exception — logged with the failed checks`, all ? 'success' : 'warning'); onClose()
   }
   const back = () => { useStore.getState().returnToExecution(idea.id, remarks.trim()); toast()(`${idea.id} returned to execution`, 'warning'); onClose() }
   const items = [
@@ -548,7 +554,7 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
       </> : <>
         <Button variant="ghost" icon="Undo2" className="mr-auto" onClick={() => setReturning(true)}>Return to execution…</Button>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="success" icon="ShieldCheck" disabled={!all && !remarks.trim()} onClick={verify}>Verify savings</Button>
+        <Button variant={all ? 'success' : 'primary'} icon="ShieldCheck" disabled={!canVerify} onClick={verify}>{all ? 'Verify savings' : 'Verify with exception'}</Button>
       </>}>
       {returning ? (
         <Field label="Why is verification not passed?" required hint="The idea goes back to Execution started; the reason is shown to the owner.">
@@ -565,7 +571,7 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
             ))}
           </div>
           {plan && <PlanVsActualBlock p={plan} compact />}
-          <Field label="Verification remarks" hint={all ? 'Optional' : 'Required to verify while a check is not met'}>
+          <Field label="Verification remarks" hint={all ? 'Optional' : head ? 'Required — verifying with a failed check is logged as an exception' : 'All three checks must pass to verify; otherwise return the idea to execution'}>
             <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Target met for July–September; MRN at ₹ 14.50 every month" />
           </Field>
         </div>

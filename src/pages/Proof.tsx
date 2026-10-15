@@ -6,7 +6,7 @@ import { useFilteredIdeas } from '../lib/hooks'
 import type { Idea } from '../lib/types'
 import { STAGE } from '../lib/masters'
 import { partAnnualised } from '../lib/calc'
-import { planVsActual } from '../lib/workflow'
+import { inLockWindow, planVsActual } from '../lib/workflow'
 import { inrPrice, inrShort, num, sum } from '../lib/format'
 import { Badge, Card, DataTable, PageHeader, Segmented, cn, type Column } from '../components/ui'
 import { FilterBar } from '../components/FilterBar'
@@ -29,7 +29,8 @@ export default function Proof() {
     const total = sum(i.parts.map((p) => partAnnualised(p))) || 1
     const status: PartRow['status'] = i.verification?.verifiedAt ? 'Verified' : i.stage === STAGE.verification ? 'Awaiting verification' : 'In execution'
     return i.parts.map((p) => {
-      const pl = led.filter((l) => l.partCode === p.partCode)
+      // MRN inside the locked savings period only — the same window as the plan it is compared with
+      const pl = led.filter((l) => l.partCode === p.partCode && l.month <= last && inLockWindow(i.lock!, l.month))
       const realised = sum(pl.map((l) => l.realised))
       const planToDate = plan.planToDate * (partAnnualised(p) / total)
       return { key: `${i.id}-${p.partCode}`, idea: i, partCode: p.partCode, description: p.description, supplier: p.currentSupplier, baseline: p.baselinePrice, approved: p.approvedPrice ?? p.newPrice, mrnQty: sum(pl.map((l) => l.mrnQty)), realised, leakage: sum(pl.map((l) => l.leakage)), planToDate, variance: realised - planToDate, status }
@@ -48,7 +49,7 @@ export default function Proof() {
     { key: 'approved', label: 'Approved price', align: 'right', value: (r) => r.approved, render: (r) => <span className="num">{inrPrice(r.approved)}</span> },
     { key: 'mrnQty', label: 'MRN qty', align: 'right', value: (r) => r.mrnQty, render: (r) => <span className="num">{num(r.mrnQty)}</span> },
     { key: 'planToDate', label: 'Plan to date', align: 'right', value: (r) => Math.round(r.planToDate), render: (r) => <span className="num">{inrShort(r.planToDate)}</span> },
-    { key: 'realised', label: 'Realised (MRN)', align: 'right', value: (r) => Math.round(r.realised), render: (r) => <b className="num">{inrShort(r.realised)}</b> },
+    { key: 'realised', label: 'Realised (MRN, lock window)', align: 'right', value: (r) => Math.round(r.realised), render: (r) => <b className="num">{inrShort(r.realised)}</b> },
     { key: 'variance', label: 'Variance', align: 'right', value: (r) => Math.round(r.variance), render: (r) => <span className={cn('num font-semibold', r.variance < 0 ? 'text-red-600' : 'text-emerald-700')}>{r.variance >= 0 ? '+' : ''}{inrShort(r.variance)}</span> },
     { key: 'leakage', label: 'Leakage', align: 'right', value: (r) => Math.round(r.leakage), render: (r) => <span className={cn('num', r.leakage > 0 ? 'text-red-600 font-semibold' : 'text-muted')}>{r.leakage > 0 ? inrShort(r.leakage) : '—'}</span> },
     { key: 'status', label: 'Status', value: (r) => r.status, render: (r) => <Badge color={STATUS_COLOR[r.status]}>{r.status}</Badge> },
@@ -71,7 +72,7 @@ export default function Proof() {
           <Mini label="Part lines traced" value={`${rows.length}`} sub="each with baseline, approved price and MRN qty" />
         </div>
       </div>
-      <Card title="Part-wise proof" icon="Boxes" subtitle="Realised = (baseline − approved price) × MRN quantity · plan to date shared by each part's annualised value" pad={false}>
+      <Card title="Part-wise proof" icon="Boxes" subtitle="Within each locked savings period: realised = (baseline − approved price) × MRN quantity · plan to date shared by each part's annualised value" pad={false}>
         <DataTable rows={rows} columns={cols} rowKey={(r) => r.key} onRowClick={(r) => openIdea(r.idea.id)} exportName="COIN_Savings_proof" maxHeight={620} />
       </Card>
     </div>

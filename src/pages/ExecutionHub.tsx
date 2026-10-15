@@ -20,6 +20,7 @@ import { ExecTimeline, TimelineLegend } from './exec/Timeline'
 import { STAGE } from '../lib/masters'
 import { PlanVsActualBlock, useIdeaPlan } from './idea/PlanVsActual'
 import { VerificationModal } from './idea/StageForms'
+import { ideaPerms } from './idea/model'
 
 type Kpi = 'all' | 'due' | 'overdue' | 'risk' | 'done' | 'dropped'
 type ModalState = { kind: 'progress' | 'note' | 'done' | 'drop' | 'reassign' | 'target' | 'verify'; id: string; date?: string; to?: string; milestoneId?: string } | null
@@ -296,7 +297,7 @@ export default function ExecutionHub() {
                                 <ProgressBar value={ex.progress} color={hcol} height={5} />
                               </button>
                             </td>
-                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="#0f9f6e" icon="ShieldCheck">Verified</Badge> : <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="#ec8a1c" icon="ShieldQuestion">Verify</Badge></button>) : <Badge color="#6b7280" icon="Ban">Dropped</Badge>}</td>
+                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="#0f9f6e" icon="ShieldCheck">Verified</Badge> : ideaPerms(me, i).verify ? <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="#ec8a1c" icon="ShieldQuestion">Verify</Badge></button> : <Badge color="#ec8a1c" icon="ShieldQuestion">Awaiting verification</Badge>) : <Badge color="#6b7280" icon="Ban">Dropped</Badge>}</td>
                             <td className="max-[1700px]:hidden">
                               {status === 'In Execution' ? (
                                 <div className="leading-tight"><div className={cn('text-[12.5px] font-semibold num', nr.cadence === 'Due date passed' && 'text-red-600')}>{fmtDateShort(nr.date)}</div><div className="text-[10.5px] text-muted">{nr.cadence}</div></div>
@@ -368,7 +369,7 @@ export default function ExecutionHub() {
             <MenuItem icon="Activity" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'progress', id: pIdea.id }) }}>Update progress</MenuItem>
             <MenuItem icon="StickyNote" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'note', id: pIdea.id }) }}>Add milestone note</MenuItem>
             <MenuItem icon="PackageCheck" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'done', id: pIdea.id }) }}>Hand over for verification</MenuItem>
-            {pIdea.stage === STAGE.verification && !pIdea.verification?.verifiedAt && <MenuItem icon="ShieldCheck" onClick={() => { setPop(null); setModal({ kind: 'verify', id: pIdea.id }) }}>Verify savings</MenuItem>}
+            {ideaPerms(me, pIdea).verify && <MenuItem icon="ShieldCheck" onClick={() => { setPop(null); setModal({ kind: 'verify', id: pIdea.id }) }}>Verify savings</MenuItem>}
             <MenuItem icon="UserRoundCog" disabled={!editable(pIdea) || !canReassign} hint={!canReassign ? 'Reassignable by Commodity Lead' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassign && <span className="text-[10.5px] text-muted ml-1">(Lead)</span>}</MenuItem>
             <div className="h-px bg-line my-1" />
             <MenuItem icon="Ban" danger disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'drop', id: pIdea.id }) }}>Drop</MenuItem>

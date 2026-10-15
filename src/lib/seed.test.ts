@@ -49,3 +49,11 @@ describe('demo seed — six-stage walkthrough', () => {
     expect(ext.length).toBeGreaterThan(8)
   })
 })
+
+describe('reset restores the same demo data', () => {
+  it('building the seed again gives the same ideas and IDs', () => {
+    const again = buildSeed()
+    expect(again.ideas.map((i) => i.id)).toEqual(seed.ideas.map((i) => i.id))
+    expect(again.ideas.find((i) => i.showcase === 5)?.id).toBe(show(5).id)
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, sourceBreakdown, costFlags, milestoneSchedule } from './workflow'
+import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, sourceBreakdown, costFlags, milestoneSchedule, inLockWindow } from './workflow'
 
 describe('evaluation department', () => {
   it('uses the submitter department', () => {
@@ -104,5 +104,28 @@ describe('milestone schedule', () => {
     expect(ds[3]).toBe('2026-12-01')
     expect(ds[4]).toBe('2027-05-01')
     for (let k = 1; k < ds.length; k++) expect(ds[k] >= ds[k - 1]).toBe(true)
+  })
+})
+
+describe('leak guard false positives (review #5)', () => {
+  const sup: any[] = [{ code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd' }]
+  it('naming the recipient supplier in its own email is not a leak', () => {
+    const idea: any = { parts: [{ partCode: 'P1', baselinePrice: 874, newPrice: 850, annualVolume: 1000, currentSupplier: 'V10001 · Kiran Copper Tubes Pvt Ltd' }] }
+    expect(amberDataLeaks('We would like to know whether Kiran Copper Tubes Pvt Ltd can supply it.', idea, sup, { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd' })).toEqual([])
+  })
+  it('whole-number prices do not match other numbers, but do match as an amount', () => {
+    const idea: any = { parts: [{ partCode: 'P2', baselinePrice: 35, newPrice: 7, annualVolume: 1000, currentSupplier: 'V9 · Other' }] }
+    expect(amberDataLeaks('Tensile 350 MPa, 70 mm wide. Kindly respond within 7 days.', idea, sup)).toEqual([])
+    expect(amberDataLeaks('Current rate Rs 35 per piece', idea, sup).some((l) => l.includes('35'))).toBe(true)
+  })
+})
+
+describe('lock window (review minor #10)', () => {
+  it('covers the locked months only', () => {
+    const lock = { startDate: '2026-07-01', timelineMonths: 3 }
+    expect(inLockWindow(lock, '2026-07')).toBe(true)
+    expect(inLockWindow(lock, '2026-09')).toBe(true)
+    expect(inLockWindow(lock, '2026-10')).toBe(false)
+    expect(inLockWindow(lock, '2026-06')).toBe(false)
   })
 })

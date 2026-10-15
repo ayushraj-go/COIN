@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMe, useStore } from '../store/useStore'
-import { ideaAnnualised } from '../lib/calc'
+import { canSeeIdea, ideaAnnualised } from '../lib/calc'
 import { addDays, fmtDate, fmtDateTime, inrShort, todayIso } from '../lib/format'
 import { amberDataLeaks, needsSupplierCheck, stageLabel, supplierCapabilityEmail, SUPPLIER_CHECK_MIN, SUPPLIER_LINK_PLACEHOLDER, SUPPLIER_SPEC_BY_GROUP } from '../lib/workflow'
 import { STAGE } from '../lib/masters'
 import { Badge, Button, Card, EmptyState, Field, Icon, PageHeader, cn } from '../components/ui'
 import { SupplierResponseCard } from './idea/StageForms'
+import { ideaPerms } from './idea/model'
 
 export default function SupplierCheck() {
   const { id } = useParams()
@@ -47,9 +48,12 @@ export default function SupplierCheck() {
   }, [code, other.name, other.contactName, item, spec, requiredBy, touched]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!idea) return <Card><EmptyState icon="SearchX" title={`Idea ${id} not found`} action={<Button onClick={() => nav('/ideas')}>Go to ideas</Button>} /></Card>
+  if (!me || !canSeeIdea(me, idea)) return <Card><EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Visibility follows your role and commodity mapping." action={<Button onClick={() => nav('/')}>Go home</Button>} /></Card>
+  const mayEvaluate = ideaPerms(me, idea).evaluate
   const annual = ideaAnnualised(idea)
-  const leaks = amberDataLeaks(`${subject}\n${body}\n${item}\n${spec}`, idea, suppliers)
-  const canSend = !!sup?.name && !!sup.contactEmail && /@/.test(sup.contactEmail) && !!item.trim() && !!spec.trim() && !leaks.length && idea.stage === STAGE.evaluation
+  // the recipient's own name is not Amber data
+  const leaks = amberDataLeaks(`${subject}\n${body}\n${item}\n${spec}`, idea, suppliers, sup ? { code: sup.code, name: sup.name } : undefined)
+  const canSend = mayEvaluate && !!sup?.name && !!sup.contactEmail && /@/.test(sup.contactEmail) && !!item.trim() && !!spec.trim() && !leaks.length && idea.stage === STAGE.evaluation
   const send = () => {
     if (!sup) return
     const token = useStore.getState().sendSupplierCheck(idea.id, { supplierCode: sup.code, supplierName: sup.name, contactName: sup.contactName, email: sup.contactEmail, item: item.trim(), spec: spec.trim(), requiredBy, subject, body })
@@ -133,6 +137,7 @@ export default function SupplierCheck() {
               <Button variant="primary" icon="Send" disabled={!canSend} onClick={send}>Send capability request</Button>
             </div>
             {idea.stage !== STAGE.evaluation && <div className="text-[12px] text-muted text-right">Requests can be sent while the idea is in evaluation.</div>}
+            {idea.stage === STAGE.evaluation && !mayEvaluate && <div className="text-[12px] text-muted text-right">Only the {stageLabel(idea, STAGE.evaluation)} team or the Sourcing Head can send this request.</div>}
           </div>
         </div>
       )}

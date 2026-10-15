@@ -9,7 +9,7 @@ import {
   MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
 } from '../lib/masters'
 import { buildSeed, realiseMonth } from '../lib/seed'
-import { addMonthsIso, evalDeptOf, milestoneSchedule, needsSupplierCheck, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, lockTarget, milestoneSchedule, needsSupplierCheck, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
 import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus } from '../lib/types'
@@ -290,9 +290,29 @@ export const useStore = create<Store>()(
           stageHistory: [...history, { stage, enteredAt: t }],
           activity: [...idea.activity, logEntry(action, { field: 'stage', oldValue: idea.stage, newValue: stage, remarks })],
         }
+        next = resetForRework(next, idea.stage, stage)
         next = onEnterStage(next, stage)
         return next
       }
+
+      /** Going back inside IN (send back, board move) re-opens every stage form from the target onwards — a stage
+       *  is never passed on an old decision or an old signed lock */
+      const resetForRework = (idea: Idea, from: string, to: string): Idea => {
+        const order = [STAGE.feasibility, STAGE.evaluation, STAGE.approval] as string[]
+        const fi = order.indexOf(from), ti = order.indexOf(to)
+        if (ti < 0 || fi < 0 || ti >= fi) return idea
+        const next = { ...idea }
+        if (ti <= 0) next.feasibilityCheck = undefined
+        if (ti <= 1 && next.evaluation) {
+          const responded = next.evaluation.supplier?.status === 'Responded' ? next.evaluation.supplier : undefined
+          next.evaluation = { dept: next.evaluation.dept, supplier: responded }
+        }
+        next.lock = undefined
+        next.approvals = next.approvals.map((a) => ({ level: a.level, approverId: a.approverId }))
+        return next
+      }
+      /** A signed lock is valid only while its target still equals annualised × months ÷ 12 */
+      const lockIsCurrent = (idea: Idea) => !!idea.lock && Math.abs(idea.lock.targetSaving - lockTarget(ideaAnnualised(idea), idea.lock.timelineMonths)) <= 1
 
       return {
         userId: null,
@@ -469,6 +489,7 @@ export const useStore = create<Store>()(
           const lastPending = approvals.length - 1 - [...approvals].reverse().findIndex((a) => !a.decision)
           const finalStep = head || first === lastPending
           if (finalStep && !i.lock) { get().toast('Sign the budget & timeline lock before the final approval', 'warning'); return false }
+          if (finalStep && !lockIsCurrent(i)) { get().toast('The saving changed after the lock was signed — sign the budget & timeline lock again', 'warning'); return false }
           approvals.forEach((a, k) => { if (!a.decision && (head || k === first)) approvals[k] = { ...a, approverId: u.id, decision: 'Approved', at: now(), remarks } })
           const pending = approvals.find((a) => !a.decision)
           const levels = approvals.filter((a) => a.approverId === u.id && a.at && a.decision === 'Approved').map((a) => a.level).join(' + ')
@@ -585,12 +606,17 @@ export const useStore = create<Store>()(
         },
         verifyIdea: (id, v) => {
           const u = me()
-          const realised = ideaRealised(get().ledger, id)
+          const cur = getIdea(id)
+          // realised inside the locked savings period — the same window the target covers
+          const last = get().settings.lastRealisationMonth
+          const realised = get().ledger.filter((l) => l.ideaId === id && l.month <= last && (!cur.lock || inLockWindow(cur.lock, l.month))).reduce((a, l) => a + l.realised, 0)
+          const failed = [!v.mrnAtApproved && 'MRN not at the approved price', !v.financeValidated && 'Finance validation pending', !v.targetAchieved && 'target not achieved'].filter(Boolean) as string[]
+          const action = failed.length ? `Verified with exception — ${failed.join(', ')}` : 'Verified — target achieved'
           patchIdea(id, (i) => ({
             ...i,
             verification: { ...i.verification, mrnAtApproved: v.mrnAtApproved, financeValidated: v.financeValidated, targetAchieved: v.targetAchieved, remarks: v.remarks, realisedAtVerification: realised, targetAtVerification: v.targetAtVerification, verifiedAt: now(), verifiedBy: u.name, returnedAt: undefined, returnReason: undefined },
-            stageHistory: i.stageHistory.map((h, k) => (k === i.stageHistory.length - 1 && h.stage === STAGE.verification ? { ...h, exitedAt: now(), by: u.name, action: 'Verified', remarks: v.remarks } : h)),
-            activity: [...i.activity, logEntry('Verified — target achieved', { remarks: `Realised ${inrShort(realised)} vs ${inrShort(v.targetAtVerification)} due${v.remarks ? ' · ' + v.remarks : ''}` })],
+            stageHistory: i.stageHistory.map((h, k) => (k === i.stageHistory.length - 1 && h.stage === STAGE.verification ? { ...h, exitedAt: now(), by: u.name, action: failed.length ? 'Verified with exception' : 'Verified', remarks: v.remarks } : h)),
+            activity: [...i.activity, logEntry(action, { remarks: `Realised ${inrShort(realised)} vs ${inrShort(v.targetAtVerification)} due${v.remarks ? ' · ' + v.remarks : ''}` })],
           }))
           const i = getIdea(id)
           ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Savings verified', body: `${id} · ${i.title}`, trigger: 'Verified', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
@@ -598,10 +624,12 @@ export const useStore = create<Store>()(
         returnToExecution: (id, reason) => {
           patchIdea(id, (i) => {
             const n = moveTo(i, STAGE.execution, 'Returned to execution — verification not passed', reason)
+            const ms = n.execution ? n.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: undefined } : m)) : []
             return {
-              ...n, bucket: 'In Execution',
-              execution: n.execution ? { ...n.execution, status: 'In Execution', milestones: n.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: undefined } : m)) } : n.execution,
-              verification: { ...i.verification, returnedAt: now(), returnReason: reason },
+              ...n, bucket: 'In Execution', implementedAt: undefined,
+              execution: n.execution ? { ...n.execution, status: 'In Execution', milestones: ms, progress: Math.round((ms.filter((m) => m.doneDate).length / Math.max(1, ms.length)) * 100) } : n.execution,
+              // the hand-over is undone; only the return is kept until the next hand-over
+              verification: { returnedAt: now(), returnReason: reason },
             }
           })
           const i = getIdea(id)

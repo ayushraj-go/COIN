@@ -13,7 +13,7 @@ function mulberry32(a: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-const rnd = mulberry32(20261001)
+let rnd = mulberry32(20261001)
 const r = (a: number, b: number) => a + rnd() * (b - a)
 const ri = (a: number, b: number) => Math.floor(r(a, b + 1))
 const pick = <T,>(arr: T[]) => arr[Math.floor(rnd() * arr.length)]
@@ -776,6 +776,9 @@ export function seedEmails(): EmailLog[] {
 }
 
 export function buildSeed() {
+  // restart the random sequence and ID counters so "Reset demo data" restores exactly the same dataset and IDs
+  rnd = mulberry32(20261001)
+  for (const k of Object.keys(seqByCommodity)) delete seqByCommodity[k]
   const ideas = seedIdeas()
   const ledger = seedLedger(ideas)
   return { ideas, ledger, campaigns: seedCampaigns(), notifications: seedNotifications(ideas), emails: seedEmails(), lastRealisationMonth: LAST_REALISED }

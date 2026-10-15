@@ -99,10 +99,13 @@ const groupIn = (n: number) => Math.round(n).toLocaleString('en-IN')
 const groupUs = (n: number) => Math.round(n).toLocaleString('en-US')
 
 /** Amber data that must not leave in a supplier email: part codes, prices, volumes, current suppliers, ₹ amounts */
-export function amberDataLeaks(text: string, idea: Pick<Idea, 'parts'> & { supplierCode?: string }, suppliers: Pick<Supplier, 'code' | 'name'>[]): string[] {
+export function amberDataLeaks(text: string, idea: Pick<Idea, 'parts'> & { supplierCode?: string }, suppliers: Pick<Supplier, 'code' | 'name'>[], recipient?: { code?: string; name?: string }): string[] {
   const leaks = new Set<string>()
   const lower = text.toLowerCase()
+  // the recipient supplier is not a leak — the email has to address it by name
+  const isRecipient = (code?: string, name?: string) => !!recipient && ((!!code && code === recipient.code) || (!!name && !!recipient.name && name.toLowerCase() === recipient.name.toLowerCase()))
   const supplierHit = (code?: string, name?: string) => {
+    if (isRecipient(code, name)) return
     if (code && text.includes(code)) leaks.add(`Supplier code ${code}`)
     if (name && name.length > 3 && lower.includes(name.toLowerCase())) leaks.add(`Current supplier ${name}`)
   }
@@ -111,7 +114,11 @@ export function amberDataLeaks(text: string, idea: Pick<Idea, 'parts'> & { suppl
     for (const price of [p.baselinePrice, p.newPrice, p.approvedPrice]) {
       if (!(price > 0)) continue
       const s = String(+price.toFixed(4))
-      if (new RegExp(`(?<![\\d.,])${escapeRe(s)}0*(?![\\d])`).test(text)) leaks.add(`Price ${s}`)
+      // decimal prices are distinctive anywhere; whole-number prices only count when written as an amount (₹ / Rs / INR, per unit)
+      const re = s.includes('.')
+        ? new RegExp(`(?<![\\d.,])${escapeRe(s)}0*(?![\\d])`)
+        : new RegExp(`(?:(?:₹|\\brs\\.?|\\binr)\\s?${s}(?:\\.0+)?(?![\\d])|(?<![\\d.,])${s}(?:\\.0+)?\\s?(?:\\/-|per\\b|\\/\\s?(?:kg|nos|pc|piece|unit)))`, 'i')
+      if (re.test(text)) leaks.add(`Price ${s}`)
     }
     if (p.annualVolume > 0 && [String(Math.round(p.annualVolume)), groupIn(p.annualVolume), groupUs(p.annualVolume)].some((v) => text.includes(v))) leaks.add(`Volume ${groupIn(p.annualVolume)}`)
     const [code, ...rest] = (p.currentSupplier ?? '').split(' · ')
@@ -120,6 +127,12 @@ export function amberDataLeaks(text: string, idea: Pick<Idea, 'parts'> & { suppl
   if (idea.supplierCode) supplierHit(idea.supplierCode, suppliers.find((s) => s.code === idea.supplierCode)?.name)
   if (/₹\s?\d/.test(text)) leaks.add('Rupee amount')
   return [...leaks]
+}
+
+/** Is a month (YYYY-MM) inside the locked savings period? */
+export function inLockWindow(lock: { startDate: string; timelineMonths: number }, month: string) {
+  const start = ymOf(lock.startDate)
+  return month >= start && month < addMonthsYm(start, Math.max(1, Math.round(lock.timelineMonths || 1)))
 }
 
 export interface PlanRow { month: string; plan: number; planCum: number; actual: number | null; actualCum: number | null }
