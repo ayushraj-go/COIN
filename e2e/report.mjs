@@ -86,7 +86,7 @@ for (const j of [...new Set(steps.map((s) => s.journey))]) {
   if (js.some((s) => s.status === 'FAIL')) r.getCell(2).font = { color: { argb: FAIL }, bold: true }
 }
 sum.addRow([])
-sum.addRow(['Sheets', 'One sheet per role with every step and its screenshot · Idea journeys · Emails · Supplier requests · Notifications · Access matrix · What each role receives · Issues found & fixed · Hard-coding audit']).alignment = { wrapText: true }
+sum.addRow(['Sheets', 'One sheet per role with every step and its screenshot · Idea journeys · Emails · Supplier requests · Notifications · Audit trail · Access matrix · What each role receives · Issues found & fixed · Hard-coding audit']).alignment = { wrapText: true }
 
 // one sheet per role
 const used = new Set(['Summary'])
@@ -138,6 +138,11 @@ for (const e of runEmails.filter((x) => /invitation|outreach/i.test(`${x.templat
 const nt = wb.addWorksheet('Notifications')
 head(nt, [{ header: 'When', width: 18 }, { header: 'To', width: 24 }, { header: 'Title', width: 40 }, { header: 'Detail', width: 60 }, { header: 'Channel', width: 16 }])
 for (const n of R.notifications.filter((x) => new Date(x.at) >= started)) wrap(nt.addRow([fmt(n.at), userName(n.userId), n.title, n.body, n.channel]))
+
+// every server action during the run, accepted or refused (command_log)
+const at = wb.addWorksheet('Audit trail')
+head(at, [{ header: 'When', width: 18 }, { header: 'Who', width: 26 }, { header: 'Action', width: 28 }, { header: 'Result', width: 10 }, { header: 'Reason (when refused)', width: 70 }])
+for (const c of R.commands ?? []) { const r = at.addRow([fmt(c.at), c.actor_id === 'system' ? 'Supplier form (no login)' : userName(c.actor_id), c.command, c.ok ? 'Done' : 'Refused', c.error ?? '']); wrap(r); r.getCell(4).font = { bold: true, color: { argb: c.ok ? PASS : 'FFB45309' } } }
 
 // access matrix
 const am = wb.addWorksheet('Access matrix')

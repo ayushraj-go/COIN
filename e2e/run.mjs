@@ -78,6 +78,9 @@ const results = {
   serverErrors: serverLog.join('').split('\n').filter((l) => /"level":(50|60)/.test(l)).slice(0, 50),
 }
 fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify(results, null, 2))
+// everyone's notifications and the command audit trail, straight from the QA database
+const { collect } = await import('./collect.mjs')
+console.log('▸ collected from the database', await collect())
 const pass = qa.steps.filter((s) => s.status === 'PASS').length
 console.log(`\n▸ ${pass}/${qa.steps.length} steps passed · ${qa.issues.length} issues · ${qa.consoleErrors.length} console errors → ${path.relative(ROOT, OUT)}`)
 if (args.includes('--keep-server')) { console.log(`server still running on ${BASE} (Ctrl+C to stop)`); await new Promise(() => {}) }
