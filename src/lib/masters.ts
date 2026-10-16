@@ -347,8 +347,8 @@ export const PARTS_DEFAULT: Part[] = Object.entries(PART_ROWS).flatMap(([commodi
 )
 
 export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
-  { id: 'AR1', condition: 'Annualised impact up to ₹ X lakh', approver: 'Commodity Lead', thresholdLakh: 50, kind: 'value' },
-  { id: 'AR2', condition: 'Annualised impact above ₹ X lakh', approver: 'Commodity Lead → Sourcing Head', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR1', condition: 'Forecast impact up to ₹ X lakh', approver: 'Commodity Lead', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR2', condition: 'Forecast impact above ₹ X lakh', approver: 'Commodity Lead → Sourcing Head', thresholdLakh: 50, kind: 'value' },
   { id: 'AR3', condition: 'Any idea with one-time investment above ₹ Y lakh', approver: '+ Sourcing Head', thresholdLakh: 25, kind: 'investment' },
 ]
 
@@ -362,7 +362,7 @@ export const SLA_RULES_DEFAULT: SlaRule[] = [
 export const DROP_REASONS = DROP_REASONS_DEFAULT
 
 export const EMAIL_TEMPLATES_DEFAULT: EmailTemplate[] = [
-  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated annualised impact of {{impact}}.\n\nPlease complete the team feasibility check within 5 working days.\n\n— COIN · Cost Innovation Hub' },
+  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated forecast impact of {{impact}}.\n\nPlease complete the team feasibility check within 5 working days.\n\n— COIN · Cost Innovation Hub' },
   { id: 'T02', name: 'Feasibility request', subject: 'COIN · Feasibility requested for {{ideaId}}', body: 'Dear {{recipient}},\n\nAmber Sourcing requests your feasibility and offered price for idea "{{title}}". Use the secure link below (valid 7 days).\n\n{{secureLink}}\n\n— COIN · Cost Innovation Hub' },
   { id: 'T03', name: 'Pending approval', subject: 'COIN · Approval pending: {{ideaId}}', body: 'Dear {{recipient}},\n\nIdea "{{title}}" ({{impact}}) is awaiting your approval. SLA: 3 working days.\n\n— COIN' },
   { id: 'T04', name: 'Workshop invitation', subject: 'COIN · Invitation: {{campaign}}', body: 'Dear {{recipient}},\n\nYou are invited to the supplier improvement workshop "{{campaign}}" on {{date}} at {{venue}}. Please bring cost-reduction ideas for {{commodity}}.\n\n— Amber Sourcing' },

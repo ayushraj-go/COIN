@@ -7,10 +7,11 @@ import { useMe, useStore } from '../../store/useStore'
 import { STAGE, WORKFLOW_STAGES } from '../../lib/masters'
 import { ideaAnnualised } from '../../lib/calc'
 import { overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
-import { fmtDate, inrShort } from '../../lib/format'
+import { fmtDate, inrShort, todayIso } from '../../lib/format'
 import { Badge, Button, Icon, Money, cn } from '../../components/ui'
 import { ideaPerms } from './model'
-import { EvaluationModal, FeasibilityCheckModal, SourcingApprovalModal, SupplierResponseCard, VerificationModal } from './StageForms'
+import { EvaluationModal, FeasibilityCheckModal, SupplierResponseCard, VerificationModal } from './StageForms'
+import { SourcingApprovalModal } from './ApprovalModal'
 
 const reached = (idea: Idea, stage: string) => {
   const ref = idea.bucket === 'Dropped' ? idea.dropStage ?? '' : idea.stage
@@ -68,10 +69,12 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       </Shell>
 
       {/* Stage 3 */}
-      <Shell n={3} title={stageLabel(idea, STAGE.evaluation)} icon="FlaskConical" tone={ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}
-        status={<Badge color={ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}>{ev?.decision ? (ev.decision === 'Recommend' ? 'Recommended' : 'Rejected') : at(STAGE.evaluation) ? 'In evaluation' : 'Pending'}</Badge>}
+      <Shell n={3} title={stageLabel(idea, STAGE.evaluation)} icon="FlaskConical" tone={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}
+        status={<Badge color={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}>{ev?.skipped ? 'Skipped · below ₹ 5 L' : ev?.decision ? (ev.decision === 'Recommend' ? 'Recommended' : 'Rejected') : at(STAGE.evaluation) ? 'In evaluation' : 'Pending'}</Badge>}
         action={p.evaluate ? <div className="flex flex-wrap gap-1.5"><Button size="sm" variant="primary" icon="FlaskConical" onClick={() => setOpen('eval')}>Open evaluation</Button>{ev?.supplier && (ev.supplier.status === 'Not sent' || ev.supplier.status === 'Sent') && <Button size="sm" icon="Mail" onClick={() => nav(`/ideas/${idea.id}/supplier-check`)}>Supplier check</Button>}</div> : undefined}>
-        {ev && reached(idea, STAGE.evaluation) ? (
+        {ev?.skipped ? (
+          <Waiting>{ev.skippedReason ?? 'Forecast below ₹ 5 L'} — the idea went from the team feasibility check straight to the {stageLabel(idea, STAGE.approval)}.</Waiting>
+        ) : ev && reached(idea, STAGE.evaluation) ? (
           <>
             <Row k="Cost-benefit" v={ev.cbaVerified ? <span className="text-emerald-700">Verified</span> : 'To verify'} />
             <Row k="Risk" v={ev.risks?.length ? `${overallRisk(ev.risks)} · ${inrShort(riskTotal(ev.risks))} at risk` : 'To assess'} />
@@ -90,7 +93,8 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
           <>
             <Row k="Locked target" v={<Money value={lock.targetSaving} />} />
             <Row k="Timeline" v={`${lock.timelineMonths} months · ${fmtDate(lock.startDate)} → ${fmtDate(lock.endDate)}`} />
-            <Row k="Budget" v={inrShort(lock.budget)} />
+            <Row k="Budget" v={`${inrShort(lock.budget)}${lock.parts?.length && lock.parts.length > 1 ? ` · ${lock.parts.length} parts` : ''}`} />
+            {lock.milestones?.length ? <Row k="Plan" v={`${lock.milestones.length} milestones · next ${fmtDate(lock.milestones.find((m) => m.dueDate >= todayIso())?.dueDate ?? lock.endDate)}`} /> : null}
             <Row k="Supplier alignment" v={lock.supplierAligned} />
             <Row k="Signed" v={`${lock.signedBy} · ${fmtDate(lock.signedAt.slice(0, 10))}`} />
           </>

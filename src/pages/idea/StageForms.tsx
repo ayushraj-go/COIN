@@ -1,20 +1,20 @@
 // Stage forms of the six-stage workflow:
-// 2 Team feasibility check · 3 <dept> evaluation (cost-benefit, risk, supplier capability) · 4 <dept> approval (signed lock) · 6 Verification
+// 2 Team feasibility check · 3 <dept> evaluation (cost-benefit, risk, supplier capability) · 6 Verification
+// (4 <dept> approval — the signed budget + timeline lock — is in ApprovalModal.tsx)
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { ApprovalLock, Idea, RiskItem, RiskLevel } from '../../lib/types'
+import type { Idea, RiskItem, RiskLevel } from '../../lib/types'
 import { hasRole, useMe, useStore } from '../../store/useStore'
 import { RISK_FACTORS, STAGE } from '../../lib/masters'
 import { carryOver, committedInFy, duplicateCandidates, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
-import { addMonthsIso, costFlags, lockTarget, needsSupplierCheck, overallRisk, planVsActual, riskTotal, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
+import { costFlags, EVALUATION_MIN, needsEvaluation, needsSupplierCheck, overallRisk, planVsActual, riskTotal, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
 import { fmtDate, inrPrice, inrShort, quarterStart, todayIso } from '../../lib/format'
-import { Badge, Button, Field, Icon, InfoTip, Modal, Money, Segmented, cn } from '../../components/ui'
+import { Badge, Button, Field, Icon, InfoTip, LinkText, Modal, Money, Segmented, cn } from '../../components/ui'
 import { PlanVsActualBlock } from './PlanVsActual'
 
 const toast = () => useStore.getState().toast
 const RISK_COLOR: Record<RiskLevel, string> = { Low: 'var(--color-emerald-600)', Medium: 'var(--color-orange-400)', High: 'var(--color-accent-500)' }
 const DEPTS = ['Sourcing', 'R&D', 'Quality', 'DQA', 'Process', 'Production', 'Finance']
-const firstOfMonth = (d: string) => `${d.slice(0, 7)}-01`
 
 /** One numbered check with a pass / fail marker */
 function Check({ n, title, hint, ok, children }: { n: number; title: string; hint?: React.ReactNode; ok: boolean | null; children: React.ReactNode }) {
@@ -57,9 +57,12 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
   const suggested = technical === 'Yes' && cost === 'Valid' && conflict === 'None' ? 'Go' : 'No-go'
   useEffect(() => { setDecision(suggested) }, [suggested])
   const valid = (conflict === 'None' || !!conflictWith.trim()) && (decision === 'Go' || !!remarks.trim())
+  // below ₹ 5 L the idea skips the department evaluation and goes straight to the department head
+  const skipEval = !needsEvaluation(ideaAnnualised(idea))
+  const nextStep = skipEval ? stageLabel(idea, STAGE.approval) : stageLabel(idea, STAGE.evaluation)
   const submit = () => {
     useStore.getState().recordFeasibility(idea.id, { technical, technicalNote: technicalNote.trim() || undefined, cost, costNote: costNote.trim() || undefined, conflict, conflictWith: conflictWith.trim() || undefined, conflictNote: conflictNote.trim() || undefined, decision, departments, remarks: remarks.trim() || undefined })
-    toast()(decision === 'Go' ? `${idea.id} cleared the team feasibility check — sent for ${stageLabel(idea, STAGE.evaluation)}` : `${idea.id} not feasible — dropped for good`, decision === 'Go' ? 'success' : 'warning')
+    toast()(decision === 'Go' ? `${idea.id} cleared the team feasibility check — sent for ${nextStep}${skipEval ? ' (forecast below ₹ 5 L, evaluation skipped)' : ''}` : `${idea.id} not feasible — dropped for good`, decision === 'Go' ? 'success' : 'warning')
     onClose()
   }
   return (
@@ -68,9 +71,15 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
         <span className="mr-auto text-[11.5px] text-muted hidden sm:inline">Recorded by {me?.name} · {me?.department}</span>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant={decision === 'Go' ? 'success' : 'danger'} icon={decision === 'Go' ? 'CircleCheck' : 'CircleX'} disabled={!valid} onClick={submit}>
-          {decision === 'Go' ? `Go — send for ${stageLabel(idea, STAGE.evaluation)}` : 'No-go — drop idea'}
+          {decision === 'Go' ? `Go — send for ${nextStep}` : 'No-go — drop idea'}
         </Button>
       </>}>
+      {skipEval && (
+        <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-[12.5px] text-sky-900 flex items-start gap-2">
+          <Icon name="SkipForward" size={15} className="shrink-0 mt-px" />
+          <span>Forecast <b className="num">{inrShort(ideaAnnualised(idea))}</b> a year is below <b className="num">{inrShort(EVALUATION_MIN)}</b> — on Go the idea skips the {stageLabel(idea, STAGE.evaluation)} and goes straight to the {stageLabel(idea, STAGE.approval)}.</span>
+        </div>
+      )}
       <div className="grid gap-3 lg:grid-cols-2">
         <Check n={1} title="Is it technically feasible?" hint="Fits the drawing, process and quality plan without hidden changes" ok={technical === 'Yes'}>
           <Segmented value={technical} onChange={(k) => setTechnical(k as 'Yes' | 'No')} options={[{ key: 'Yes', label: 'Feasible', icon: 'CircleCheck' }, { key: 'No', label: 'Not feasible', icon: 'CircleX' }]} />
@@ -214,7 +223,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialTab = 'cba' }
           {idea.parts.length ? (
             <div className="rounded-xl border border-line overflow-x-auto">
               <table className="tbl">
-                <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>New</th><th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Saving %</th><th style={{ textAlign: 'right' }}>Annual volume</th><th style={{ textAlign: 'right' }}>Annualised</th></tr></thead>
+                <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>New</th><th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Saving %</th><th style={{ textAlign: 'right' }}>Annual volume</th><th style={{ textAlign: 'right' }}>Forecast</th></tr></thead>
                 <tbody>
                   {idea.parts.map((p) => (
                     <tr key={p.partCode}>
@@ -232,10 +241,10 @@ export function EvaluationModal({ idea, open, onClose, tab: initialTab = 'cba' }
             </div>
           ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">Open idea — valued by the estimate of {inrShort(annual)} a year; part-wise analysis follows once part codes are added.</div>}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Kpi label="Annualised saving" value={<Money value={annual} />} tip="(baseline − new price) × annual volume" />
+            <Kpi label="Forecast saving" value={<Money value={annual} />} tip="(baseline − new price) × annual volume" />
             <Kpi label="One-time investment" value={<Money value={inv} />} />
-            <Kpi label="Net saving · year 1" value={<Money value={annual - inv} />} tone={annual - inv >= 0 ? 'good' : 'bad'} tip="Annualised − one-time investment" />
-            <Kpi label="Payback" value={inv ? `${payback.toFixed(1)} months` : 'Immediate'} tip="Investment ÷ (annualised ÷ 12)" />
+            <Kpi label="Net saving · year 1" value={<Money value={annual - inv} />} tone={annual - inv >= 0 ? 'good' : 'bad'} tip="Forecast − one-time investment" />
+            <Kpi label="Payback" value={inv ? `${payback.toFixed(1)} months` : 'Immediate'} tip="Investment ÷ (forecast ÷ 12)" />
             <Kpi label={`Committed in ${fy}`} value={<Money value={committed} />} tip={`Live from ${fmtDate(goLive)} (${idea.expectedQuarter})`} />
             <Kpi label="Carry-over to next FY" value={<Money value={carryOver(annual, goLive, fy)} />} />
             <Kpi label="3-year saving, net" value={<Money value={annual * 3 - inv} />} />
@@ -289,7 +298,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialTab = 'cba' }
             <span>The supplier gets an email with a link to a short form asking only whether they can supply the item — no Amber prices, volumes, part codes or current suppliers. Ideas below <b className="num">{inrShort(SUPPLIER_CHECK_MIN)}</b> a year skip this check.</span>
           </div>
           {sc?.status === 'Skipped' || !needsSupplierCheck(annual) ? (
-            <div className="rounded-xl border border-line px-3.5 py-3 flex items-center gap-3"><span className="h-9 w-9 rounded-xl grid place-items-center bg-slate-100 text-slate-500"><Icon name="SkipForward" size={17} /></span><div><div className="text-[13.5px] font-semibold text-ink">Skipped — below the minimum saving threshold</div><div className="text-[12px] text-muted">Annualised {inrShort(annual)} is below {inrShort(SUPPLIER_CHECK_MIN)}.</div></div></div>
+            <div className="rounded-xl border border-line px-3.5 py-3 flex items-center gap-3"><span className="h-9 w-9 rounded-xl grid place-items-center bg-slate-100 text-slate-500"><Icon name="SkipForward" size={17} /></span><div><div className="text-[13.5px] font-semibold text-ink">Skipped — below the minimum saving threshold</div><div className="text-[12px] text-muted">Forecast {inrShort(annual)} is below {inrShort(SUPPLIER_CHECK_MIN)}.</div></div></div>
           ) : sc?.status === 'Responded' && sc.response ? (
             <SupplierResponseCard idea={idea} />
           ) : (
@@ -299,8 +308,20 @@ export function EvaluationModal({ idea, open, onClose, tab: initialTab = 'cba' }
                 <div className="text-[13.5px] font-semibold text-ink">{sc?.status === 'Sent' ? `Sent to ${sc.supplierName} — awaiting response` : 'Not sent yet'}</div>
                 <div className="text-[12px] text-muted">{sc?.status === 'Sent' ? `${sc.email} · ${fmtDate(sc.sentAt?.slice(0, 10))}` : 'Choose a supplier, review the template and send the capability request.'}</div>
               </div>
-              <Button variant="primary" icon="ArrowUpRight" onClick={() => { onClose(); nav(`/ideas/${idea.id}/supplier-check`) }}>{sc?.status === 'Sent' ? 'Open supplier check' : 'Start supplier check'}</Button>
+              <div className="flex flex-wrap gap-1.5">
+                {sc?.status === 'Sent' && sc.token && <Button icon="ExternalLink" onClick={() => window.open(`/supplier-form/${sc.token}`, '_blank', 'noopener')}>Open the supplier form</Button>}
+                <Button variant="primary" icon="ArrowUpRight" onClick={() => { onClose(); nav(`/ideas/${idea.id}/supplier-check`) }}>{sc?.status === 'Sent' ? 'Open supplier check' : 'Start supplier check'}</Button>
+              </div>
             </div>
+          )}
+          {sc?.status === 'Sent' && sc.body && (
+            <details className="rounded-xl border border-line bg-white group" open>
+              <summary className="cursor-pointer px-3.5 py-2.5 text-[13px] font-semibold text-ink flex items-center gap-2"><Icon name="Mail" size={15} className="text-brand-600" />The email sent to {sc.supplierName}<span className="ml-auto text-[11.5px] font-normal text-muted">{sc.email}</span></summary>
+              <div className="px-3.5 pb-3">
+                <div className="text-[12.5px] font-semibold text-ink mb-1.5">{sc.subject}</div>
+                <pre className="whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-ink-2 rounded-lg bg-slate-50 border border-line p-3"><LinkText text={sc.body} /></pre>
+              </div>
+            </details>
           )}
         </div>
       )}
@@ -397,127 +418,7 @@ export function SignaturePad({ onChange, height = 120 }: { onChange: (dataUrl: s
   )
 }
 
-// ─── Stage 4 — <dept> approval: commercial assessment, supplier alignment, signed budget + timeline lock ──
-export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
-  const me = useMe()
-  const users = useStore((s) => s.users)
-  const annual = ideaAnnualised(idea)
-  const ev = idea.evaluation
-  const sc = ev?.supplier
-  const leadMonths = idea.route === 'Technical' || idea.route === 'Supplier change' ? 2 : 1
-  const [commercialOk, setCommercialOk] = useState(false)
-  const [budgetL, setBudgetL] = useState('')
-  const [months, setMonths] = useState(6)
-  const [start, setStart] = useState('')
-  const [sigName, setSigName] = useState('')
-  const [sig, setSig] = useState<string | null>(null)
-  const [remarks, setRemarks] = useState('')
-  const [rejecting, setRejecting] = useState(false)
-  useEffect(() => {
-    if (!open) return
-    setCommercialOk(false); setBudgetL(String(+(((idea.oneTimeInvestment || Math.round(annual * 0.02)) / 1e5).toFixed(2)))); setMonths(6)
-    setStart(firstOfMonth(addMonthsIso(todayIso(), leadMonths))); setSigName(me?.name ?? ''); setSig(null); setRemarks(''); setRejecting(false)
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
-  // a lock signed for a different saving (baseline changed since) must be signed again
-  const stale = !!idea.lock && Math.abs(idea.lock.targetSaving - lockTarget(annual, idea.lock.timelineMonths)) > 1
-  const locked = stale ? undefined : idea.lock
-  const end = addMonthsIso(start || todayIso(), months)
-  const target = lockTarget(annual, months)
-  const pending = idea.approvals.filter((a) => !a.decision)
-  const head = hasRole(me, 'head')
-  const finalStep = head || pending.length <= 1
-  const supplierAligned: ApprovalLock['supplierAligned'] = sc?.status === 'Responded' && sc.response?.canSupply !== 'No' ? 'Confirmed' : sc?.status === 'Skipped' ? 'Skipped' : 'Not confirmed'
-  const canSign = commercialOk && !!sig && !!sigName.trim() && !!start && Number(budgetL) >= 0
-  const approveNow = () => {
-    const st = useStore.getState()
-    if (!locked) st.signLock(idea.id, { commercialOk, supplierAligned, budget: Math.round(Number(budgetL) * 1e5), timelineMonths: months, startDate: start, endDate: end, targetSaving: target, signatureName: sigName.trim(), signatureData: sig ?? undefined })
-    const ok = st.approve(idea.id, remarks.trim() || undefined)
-    if (ok) toast()(finalStep ? `${idea.id} approved — execution started in Cost Optimisation` : `Approved at ${pending[0]?.level} — pending ${pending[1]?.level}`, 'success')
-    onClose()
-  }
-  const rejectNow = () => { useStore.getState().reject(idea.id, remarks.trim()); toast()(`${idea.id} rejected at ${stageLabel(idea, STAGE.approval)} — dropped for good`, 'warning'); onClose() }
-  const r = ev?.risks ?? []
-  return (
-    <Modal open={open} onClose={onClose} size="xl" icon="Stamp" title={stageLabel(idea, STAGE.approval)} subtitle={`${idea.id} · ${idea.title}`}
-      footer={rejecting ? <>
-        <Button onClick={() => setRejecting(false)}>Back</Button>
-        <Button variant="danger" icon="CircleX" disabled={!remarks.trim()} onClick={rejectNow}>Reject — drop for good</Button>
-      </> : <>
-        <Button variant="ghost" icon="CircleX" className="mr-auto" onClick={() => setRejecting(true)}>Reject…</Button>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="success" icon="Signature" disabled={!locked && !canSign} onClick={approveNow}>{locked ? 'Approve' : finalStep ? 'Sign lock & approve' : 'Sign lock & approve level'}</Button>
-      </>}>
-      {rejecting ? (
-        <Field label="Why is this idea rejected?" required hint="The idea is dropped for good; a fresh attempt needs a new idea.">
-          <textarea className="input" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-        </Field>
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          <Check n={1} title="Commercial assessment" hint={`From the ${stageLabel(idea, STAGE.evaluation)} by ${ev?.by ?? '—'}`} ok={locked ? true : commercialOk}>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <Kpi label="Annualised saving" value={<Money value={annual} />} />
-              <Kpi label="Payback" value={idea.oneTimeInvestment ? `${paybackMonths(annual, idea.oneTimeInvestment).toFixed(1)} mo` : 'Immediate'} />
-              <Kpi label="Overall risk" value={r.length ? <span style={{ color: RISK_COLOR[overallRisk(r)] }}>{overallRisk(r)}</span> : '—'} />
-              <Kpi label="₹ at risk" value={<Money value={riskTotal(r)} />} />
-            </div>
-            {!locked && <label className="flex items-center gap-2 cursor-pointer text-[13px] font-semibold text-ink"><input type="checkbox" className="h-4 w-4 accent-brand-600" checked={commercialOk} onChange={(e) => setCommercialOk(e.target.checked)} />Commercial assessment complete</label>}
-          </Check>
-          <Check n={2} title="Supplier alignment & confirmation" hint="Supplier capability form result" ok={supplierAligned !== 'Not confirmed'}>
-            {sc?.status === 'Responded' ? <SupplierResponseCard idea={idea} />
-              : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">{sc?.status === 'Skipped' ? `Skipped — annualised ${inrShort(annual)} is below the ₹ 5 L threshold.` : 'No supplier response on record.'}</div>}
-          </Check>
-          <Check n={3} title="Budget + timeline lock" hint="Target saving = annualised × months ÷ 12; the savings start is the expected first MRN at the new price" ok={locked ? true : !!start}>
-            {stale && <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[12px] text-amber-900">The saving changed after the lock was signed ({inrShort(idea.lock!.targetSaving)} locked) — sign it again.</div>}
-            {locked ? (
-              <div className="grid grid-cols-2 gap-2">
-                <Kpi label="Budget" value={<Money value={locked.budget} />} /><Kpi label="Timeline" value={`${locked.timelineMonths} months`} />
-                <Kpi label="Savings start → end" value={`${fmtDate(locked.startDate)} → ${fmtDate(locked.endDate)}`} /><Kpi label="Locked target" value={<Money value={locked.targetSaving} />} />
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Budget (₹ lakh)"><input type="number" min="0" step="0.5" className="input num" value={budgetL} onChange={(e) => setBudgetL(e.target.value)} /></Field>
-                  <Field label="Savings start (first MRN)"><input type="date" className="input" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
-                </div>
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">Timeline</div>
-                  <div className="flex gap-1.5">{[3, 6, 9, 12].map((m) => <button key={m} type="button" onClick={() => setMonths(m)} className={cn('h-8 px-3 rounded-lg border text-[12.5px] font-semibold', months === m ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-line text-ink-2')}>{m} months</button>)}</div>
-                </div>
-                <div className="rounded-xl bg-brand-50 border border-brand-100 px-3 py-2.5 flex items-center justify-between gap-3">
-                  <div><div className="text-[10.5px] font-semibold uppercase tracking-wide text-brand-700">Locked target saving</div><div className="text-[22px] font-extrabold text-ink leading-tight"><Money value={target} /></div></div>
-                  <div className="text-right text-[12px] text-muted">{fmtDate(start)} → {fmtDate(end)}<br /><b className="text-ink-2 num">{inrShort(target / months)}</b> a month</div>
-                </div>
-              </div>
-            )}
-          </Check>
-          <Check n={4} title={locked ? 'Signed' : 'Sign the lock'} hint={locked ? `${locked.signedBy} · ${fmtDate(locked.signedAt.slice(0, 10))}` : 'Signature, name and date are stored with the approval'} ok={locked ? true : !!sig}>
-            {locked ? (
-              locked.signatureData ? <img src={locked.signatureData} alt={`Signature of ${locked.signatureName}`} className="h-[90px] rounded-lg border border-line bg-white" /> : <div className="font-[cursive] text-[26px] text-brand-800">{locked.signatureName}</div>
-            ) : (
-              <div className="grid gap-2">
-                <SignaturePad onChange={setSig} />
-                <div className="grid grid-cols-2 gap-2">
-                  <Field label="Name"><input className="input" value={sigName} onChange={(e) => setSigName(e.target.value)} /></Field>
-                  <Field label="Date"><input className="input" value={fmtDate(todayIso())} readOnly /></Field>
-                </div>
-              </div>
-            )}
-            <div className="mt-2.5 grid gap-1">
-              {idea.approvals.map((a, k) => (
-                <div key={k} className="flex items-center justify-between gap-2 text-[12px] rounded-lg bg-slate-50 px-2.5 py-1.5">
-                  <span className="font-semibold text-ink-2">L{k + 1} · {a.level}</span>
-                  <span className="text-muted truncate">{users.find((u) => u.id === a.approverId)?.name ?? '—'}</span>
-                  <Badge color={a.decision === 'Approved' ? 'var(--color-emerald-600)' : head || k === idea.approvals.findIndex((x) => !x.decision) ? 'var(--color-orange-400)' : 'var(--color-slate-400)'}>{a.decision ?? (head || k === idea.approvals.findIndex((x) => !x.decision) ? 'This approval' : 'Next')}</Badge>
-                </div>
-              ))}
-            </div>
-            <input className="input mt-2" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Approval remarks (optional)" />
-          </Check>
-        </div>
-      )}
-    </Modal>
-  )
-}
+// Stage 4 — <dept> approval lives in ApprovalModal.tsx (detailed commercial assessment, supplier alignment, lock, sign)
 
 // ─── Stage 6 — Verification: business side confirms the target was achieved ──
 export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {

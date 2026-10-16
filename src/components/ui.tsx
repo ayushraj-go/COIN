@@ -379,20 +379,20 @@ export function SourceTag({ children, color = 'var(--color-accent-700)' }: { chi
 }
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
-export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', icon }: { open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl'; icon?: string }) {
+export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', icon }: { open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'; icon?: string }) {
   useEffect(() => {
     if (!open) return
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [open, onClose])
-  const w = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl' }[size]
+  const w = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-7xl' }[size]
   return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[120] flex items-start sm:items-center justify-center p-3 sm:p-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-gray-900)]/40 backdrop-blur-[2px]" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
+          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} role="dialog" aria-modal="true" className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
             <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-line">
               <div className="flex items-center gap-3">
                 {icon && <div className="h-9 w-9 rounded-lg border border-line text-brand-600 grid place-items-center"><Icon name={icon} size={17} /></div>}
@@ -450,6 +450,24 @@ export function RemarksModal({ open, onClose, onConfirm, title, subtitle, requir
       <Field label="Remarks" required={required}><textarea autoFocus className="input" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} /></Field>
     </Modal>
   )
+}
+
+// ─── Email text with working links ────────────────────────────────────────────
+/** Plain text (an email body) with web links and COIN's public links (/supplier-form/…, /supplier-portal?…) made clickable.
+ *  Only http(s) and those two app paths become links — never any other scheme. */
+const LINK_RE = /(https?:\/\/[^\s<>"']+|(?<![\w/.])\/(?:supplier-form|supplier-portal)[^\s<>"']*)/g
+export function LinkText({ text }: { text: string }) {
+  const out: React.ReactNode[] = []
+  let last = 0
+  for (const m of text.matchAll(LINK_RE)) {
+    const at = m.index ?? 0
+    const href = m[0].replace(/[.,;:!?)\]]+$/, '')
+    if (at > last) out.push(text.slice(last, at))
+    out.push(<a key={at} href={href} target="_blank" rel="noopener noreferrer" className="text-brand-700 font-medium underline underline-offset-2 break-all hover:text-brand-800">{href}</a>)
+    last = at + href.length
+  }
+  out.push(text.slice(last))
+  return <>{out}</>
 }
 
 // ─── Empty & loading states ───────────────────────────────────────────────────

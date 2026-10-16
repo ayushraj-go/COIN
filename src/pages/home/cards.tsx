@@ -38,7 +38,7 @@ export function useScopeLabel() {
 // ─── Bucket cards (count + ₹) — click filters the page below ──────────────────
 const BUCKET_ICON: Record<string, string> = { Pipeline: 'Filter', 'In Execution': 'Rocket', Implemented: 'CircleCheckBig', Dropped: 'CircleSlash' }
 const BUCKET_TIP: Record<string, string> = {
-  Pipeline: 'Submitted and moving through Team feasibility check, department evaluation or department approval. Value = Σ annualised impact.',
+  Pipeline: 'Submitted and moving through Team feasibility check, department evaluation or department approval. Value = Σ forecast impact.',
   'In Execution': 'Execution started — NPD sample, PAP price revision and go-live milestones in the Execution Hub — until marked Done (Implemented) or Dropped.',
   Implemented: 'Marked Done with an effective date and approved price; realisation now flows from actual MRN.',
   Dropped: 'Dropped or rejected with a mandatory reason code; its value no longer counts as committed.',
@@ -103,7 +103,7 @@ export function TopIdeasCard({ d, sel, onClear, className }: { d: HomeData; sel:
   return (
     <Card className={cn('h-full', className)} bodyClass="flex flex-col" icon="Crown"
       title={<span className="flex items-center gap-2">Top 5 ideas by value<BucketFilterChip bucket={sel} onClear={onClear} /></span>}
-      subtitle={`${sel ?? 'Pipeline, In Execution and Implemented'} · by annualised impact`}
+      subtitle={`${sel ?? 'Pipeline, In Execution and Implemented'} · by forecast impact`}
       actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => drill(sel ? { bucket: sel } : {})}>View all</Button>}>
       {top.length ? (
         <div className="flex flex-col">
@@ -141,7 +141,7 @@ export function TopIdeasCard({ d, sel, onClear, className }: { d: HomeData; sel:
         return (
           <div className="mt-auto pt-2.5 border-t border-line">
             <div className="flex items-center justify-between gap-2 text-[11.5px]">
-              <span className="text-muted flex items-center gap-1">Top 5 concentration<InfoTip title="Concentration">Share of the scope's annualised impact carried by the five largest ideas — a high share means the FY rests on a few ideas.</InfoTip></span>
+              <span className="text-muted flex items-center gap-1">Top 5 concentration<InfoTip title="Concentration">Share of the scope's forecast impact carried by the five largest ideas — a high share means the FY rests on a few ideas.</InfoTip></span>
               <span className="text-ink-2"><b className="text-ink num">{inrShort(topSum)}</b> · <b className="num">{pct((topSum / all) * 100)}</b> of {base.length} ideas' value</span>
             </div>
             <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 mt-1.5 gap-px">

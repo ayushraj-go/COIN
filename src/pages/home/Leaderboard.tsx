@@ -57,7 +57,7 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
 
   return (
     <Card className={cn('h-full', className)} bodyClass="@container" icon="Trophy"
-      title={<span className="flex items-center gap-1.5">Contributor leaderboard<InfoTip title="Contributor leaderboard">Top 10 contributors per quarter by ideas submitted (or ₹ annualised impact). Rewards participation — incentive payout is out of scope.</InfoTip></span>}
+      title={<span className="flex items-center gap-1.5">Contributor leaderboard<InfoTip title="Contributor leaderboard">Top 10 contributors per quarter by ideas submitted (or ₹ forecast impact). Rewards participation — incentive payout is out of scope.</InfoTip></span>}
       subtitle={`Top 10 of ${total} contributor${total === 1 ? '' : 's'} · ${q} ${fy} (${QUARTER_MONTHS[q]} ${qYear})`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <Segmented size="sm" value={q} onChange={(k) => setQ(k as Q)} options={order.map((k) => ({ key: k, label: k }))} />

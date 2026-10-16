@@ -28,7 +28,7 @@ export const FIELDS: FormField[] = [
   { n: 19, section: 'D', card: D, field: 'Expected new price / unit (₹)', req: 'Yes', source: 'Per part code' },
   { n: 20, section: 'D', card: D, field: 'Annual volume', req: 'Yes', source: 'Last FY MRN; override needs reason' },
   { n: 21, section: 'D', card: D, field: 'Saving / unit and %', req: '—', source: 'Live' },
-  { n: 22, section: 'D', card: D, field: 'Annualised impact (₹)', req: '—', source: 'Live, per part + total' },
+  { n: 22, section: 'D', card: D, field: 'Forecast impact (₹)', req: '—', source: 'Live, per part + total' },
   { n: 23, section: 'D', card: D, field: 'Expected implementation quarter', req: 'Yes', source: 'Q1–Q4 of current or next FY' },
   { n: 24, section: 'D', card: D, field: 'Estimate (₹ lakh)', req: 'If no part codes', source: 'Rough annual impact in ₹ lakh, marked "Estimate"' },
   { n: 25, section: 'E', card: E, field: 'Gain-share % offered to Amber', req: 'No', source: 'Shown only for supplier submissions' },

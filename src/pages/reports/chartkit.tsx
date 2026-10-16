@@ -85,7 +85,7 @@ export function useIdeaList() {
     { key: 'commodity', label: 'Commodity', value: (i) => commodities.find((c) => c.code === i.commodity)?.name ?? i.commodity },
     { key: 'lever', label: 'Category', value: (i) => i.leverId, render: (i) => <LeverChip leverId={i.leverId} /> },
     { key: 'stage', label: 'Stage', value: (i) => i.stage, render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} idea={i} /> },
-    { key: 'value', label: 'Annualised', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
+    { key: 'value', label: 'Forecast', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
     { key: 'submitted', label: 'Submitted', value: (i) => i.submittedAt ?? i.createdAt, render: (i) => fmtDate((i.submittedAt ?? i.createdAt).slice(0, 10)) },
   ]
   const el = (

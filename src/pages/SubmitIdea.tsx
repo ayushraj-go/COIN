@@ -420,7 +420,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     B: [hasText(form.title) ? form.title : 'No idea name yet', form.attachments.length ? `${form.attachments.length} attachment${form.attachments.length === 1 ? '' : 's'}` : ''].filter(Boolean).join('  ·  '),
     C: isOpen ? 'Open idea — no part codes' : [form.parts.length ? `${form.parts.length} part${form.parts.length === 1 ? '' : 's'}: ${form.parts.slice(0, 3).map((p) => p.partCode).join(', ')}${form.parts.length > 3 ? '…' : ''}` : isSupplierScope ? 'No part codes — valued by estimate' : 'No part codes yet',
       form.proposedSupplier ? `Proposed ${form.proposedSupplier.name}` : ''].filter(Boolean).join('  ·  '),
-    D: `${estimate ? (hasText(form.openEstimateLakh) ? `Estimate ${inrShort(calc.annual)}` : 'No estimate yet') : `Annualised ${inrShort(calc.annual)}`}  ·  ${form.expectedQuarter}`,
+    D: `${estimate ? (hasText(form.openEstimateLakh) ? `Estimate ${inrShort(calc.annual)}` : 'No estimate yet') : `Forecast ${inrShort(calc.annual)}`}  ·  ${form.expectedQuarter}`,
     E: [hasText(form.gainSharePct) ? `Gain-share ${form.gainSharePct}%` : '', form.offerValidity ? `Valid to ${form.offerValidity}` : ''].filter(Boolean).join('  ·  ') || 'Optional — gain-share and offer validity',
   }
 
@@ -681,7 +681,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                     <span><L n={19}>Expected new price / unit (₹)</L></span>
                     <span><L n={20}>Annual volume</L></span>
                     <span className="text-right"><L n={21}>Saving / unit and %</L></span>
-                    <span className="text-right"><L n={22}>Annualised impact (₹)</L></span>
+                    <span className="text-right"><L n={22}>Forecast impact (₹)</L></span>
                   </div>
                   {form.parts.map((p) => {
                     const row = calc.rows.find((r) => r.partCode === p.partCode)!
@@ -731,7 +731,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                             <div className="mt-0.5 flex lg:justify-end"><PctBadge pct={row?.pct ?? 0} /></div>
                           </div>
                           <div className="min-w-0 lg:text-right lg:pt-1.5">
-                            <div className="lg:hidden"><div className="label"><L n={22}>Annualised impact (₹)</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={22}>Forecast impact (₹)</L></div></div>
                             <div className="text-[14px] font-extrabold" style={{ color: tone(row?.annual ?? 0) }}><Money value={row?.annual ?? 0} /></div>
                             <div className="text-[10.5px] text-muted mt-0.5">{inrPrice(row?.unit ?? 0)} × {num(toNum(p.annualVolume))}</div>
                           </div>
@@ -758,7 +758,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                     )
                   })}
                   <div className="flex items-center justify-between gap-3 px-3 py-2 bg-slate-50 border-t border-line">
-                    <span className="text-[12px] font-semibold text-ink-2 flex items-center gap-1.5"><Calc />Total annualised impact · {form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span>
+                    <span className="text-[12px] font-semibold text-ink-2 flex items-center gap-1.5"><Calc />Total forecast impact · {form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span>
                     <span className="text-[16px] font-extrabold" style={{ color: tone(calc.annual) }}><Money value={calc.annual} /></span>
                   </div>
                 </div>
@@ -844,7 +844,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           </AnimatePresence>
           <div className="relative z-10 bg-white border-t border-line px-3 py-2.5 flex items-center gap-3 shadow-[0_-8px_24px_-12px_rgb(15_23_42/.25)]">
             <button type="button" onClick={() => setSheet((v) => !v)} className="flex-1 min-w-0 text-left">
-              <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Annualised impact{calc.isOpen && ' · Estimate'}<Icon name={sheet ? 'ChevronDown' : 'ChevronUp'} size={12} /></span>
+              <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Forecast impact{calc.isOpen && ' · Estimate'}<Icon name={sheet ? 'ChevronDown' : 'ChevronUp'} size={12} /></span>
               <span className="flex items-center gap-2">
                 <span className="text-[18px] font-extrabold" style={{ color: tone(calc.annual) }}><Money value={calc.annual} /></span>
                 <PctBadge pct={calc.pct} />
@@ -869,7 +869,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
         {(form.title || form.parts.length > 0) && (
           <div className="mt-3 rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px]">
             <div className="font-semibold text-ink truncate">{form.title || 'Unnamed idea'}</div>
-            <div className="text-muted">{form.parts.length} part{form.parts.length === 1 ? '' : 's'} · annualised {inrShort(calc.annual)}</div>
+            <div className="text-muted">{form.parts.length} part{form.parts.length === 1 ? '' : 's'} · forecast {inrShort(calc.annual)}</div>
           </div>
         )}
       </Modal>

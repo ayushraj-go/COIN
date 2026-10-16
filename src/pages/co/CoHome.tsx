@@ -10,7 +10,7 @@ import { useCoData } from './data'
 import { HealthCard, PipelineCard } from './DashboardCards'
 import { HeadlineKpis } from '../home/Kpis'
 import { SourcesCard } from '../home/Sources'
-import { QueuePeek } from '../queue/QueuePeek'
+import { useFitHeight } from '../home/fit'
 import { PlanVsActualBlock, portfolioPlan } from '../idea/PlanVsActual'
 import { Badge, Card } from '../../components/ui'
 import { useStore } from '../../store/useStore'
@@ -22,6 +22,7 @@ export default function CoHome() {
   const c = useCoData()
   const scope = useScopeLabel()
   const [view, setView] = useState<'dashboard' | 'advanced'>('dashboard')
+  const [fitRef, fitH] = useFitHeight(300)
   if (!me) return null
   if (!ready) return <HomeSkeleton />
 
@@ -30,15 +31,19 @@ export default function CoHome() {
   return (
     <div>
       <HomeHeader
-        subtitle={<><Badge color="var(--color-accent-500)">LENS</Badge> Linked Evidence of Negotiation and Savings · stages 5–6 · {c.fy} · {scope}</>}
+        subtitle={<><Badge color="var(--color-accent-500)">LENS</Badge> Linked Evidence of Negotiation and Savings · {c.fy} · {scope}</>}
         actions={headerActions} />
 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
           <Reveal className="col-span-12"><HeadlineKpis d={c.d} /></Reveal>
-          <Reveal className="col-span-12"><QueuePeek /></Reveal>
-          <Reveal className="col-span-12"><SourcesCard ideas={c.d.ideas.filter((i) => i.bucket === 'In Execution' || i.bucket === 'Implemented')} mode="CO" fy={c.fy} /></Reveal>
-          <Reveal className="col-span-12"><PortfolioPlanCard ideas={c.d.ideas} /></Reveal>
+          {/* one screen at xl: where the savings come from beside plan vs actual, sized to the space left */}
+          <Reveal className="col-span-12">
+            <div ref={fitRef} style={fitH ? { height: fitH } : undefined} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] gap-4">
+              <SourcesCard fill={!!fitH} ideas={c.d.ideas.filter((i) => i.bucket === 'In Execution' || i.bucket === 'Implemented')} mode="CO" fy={c.fy} />
+              <PortfolioPlanCard ideas={c.d.ideas} height={fitH ?? undefined} />
+            </div>
+          </Reveal>
         </RevealGrid>
       ) : (
         <RevealGrid className="grid grid-cols-12 gap-4">
@@ -60,13 +65,15 @@ export default function CoHome() {
 }
 
 /** Σ locked targets vs Σ MRN savings — the LENS view of plan vs actual */
-function PortfolioPlanCard({ ideas }: { ideas: import('../../lib/types').Idea[] }) {
+/** `height`: the card fills that box (one-screen dashboard) and the chart takes what the figures leave */
+function PortfolioPlanCard({ ideas, height }: { ideas: import('../../lib/types').Idea[]; height?: number }) {
+  const fill = !!height
   const ledger = useStore((s) => s.ledger)
   const last = useStore((s) => s.settings.lastRealisationMonth)
   const p = portfolioPlan(ideas, ledger, last)
   return (
-    <Card title="Plan vs actual — locked targets" icon="ChartLine" subtitle={`${p.ideas} ideas with a signed budget + timeline lock · actuals from MRN`}>
-      <PlanVsActualBlock p={p} />
+    <Card title="Plan vs actual — locked targets" icon="ChartLine" subtitle={`${p.ideas} ideas with a signed budget + timeline lock · actuals from MRN`} className={fill ? 'h-full overflow-hidden' : undefined}>
+      <PlanVsActualBlock p={p} compact={fill} chartHeight={height ? Math.max(110, Math.min(260, height - 270)) : undefined} />
     </Card>
   )
 }

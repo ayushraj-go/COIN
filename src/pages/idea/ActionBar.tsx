@@ -1,4 +1,5 @@
-// Contextual action bar — the stage form for the signed-in user's role, plus send back / request info / reassign / drop.
+// Contextual action bar — the stage form for the signed-in user's role, plus send back (to the stage chosen) / request info /
+// reassign / drop.
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Idea } from '../../lib/types'
@@ -7,8 +8,9 @@ import { Button, Icon, RemarksModal, cn } from '../../components/ui'
 import { STAGE } from '../../lib/masters'
 import { stageLabel } from '../../lib/workflow'
 import { ideaPerms, useCtx, waitingOn, withUndo } from './model'
-import { DropModal, MarkDoneModal, ReassignModal } from './Modals'
-import { EvaluationModal, FeasibilityCheckModal, SourcingApprovalModal, VerificationModal } from './StageForms'
+import { DropModal, MarkDoneModal, ReassignModal, SendBackModal } from './Modals'
+import { EvaluationModal, FeasibilityCheckModal, VerificationModal } from './StageForms'
+import { SourcingApprovalModal } from './ApprovalModal'
 
 type ModalKey = null | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'reassign' | 'drop' | 'done'
 
@@ -16,7 +18,6 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   const me = useMe()
   const ctx = useCtx()
   const nav = useNavigate()
-  const sendBack = useStore((s) => s.sendBack)
   const requestInfo = useStore((s) => s.requestInfo)
   const [modal, setModal] = useState<ModalKey>(null)
   const p = ideaPerms(me, idea)
@@ -32,7 +33,7 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? stageLabel(idea, STAGE.approval) : 'Sign lock & approve'}</Button>)
   if (p.handOver) primary.push(<Button key="done" size={size} variant="success" icon="PackageCheck" onClick={() => setModal('done')}>Hand over for verification</Button>)
   if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
-  if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back</Button>)
+  if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back…</Button>)
   if (p.requestInfo) secondary.push(<Button key="ri" size={size} variant="secondary" icon="MessageCircleQuestion" onClick={() => setModal('requestInfo')}>Request info</Button>)
   if (p.reassign) secondary.push(<Button key="ra" size={size} variant="secondary" icon="UserRoundCog" onClick={() => setModal('reassign')}>Reassign</Button>)
   if (p.drop) secondary.push(<Button key="dr" size={size} variant="danger" icon="Ban" onClick={() => setModal('drop')}>Drop</Button>)
@@ -62,9 +63,7 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
       <EvaluationModal idea={idea} open={modal === 'eval'} onClose={close} />
       <SourcingApprovalModal idea={idea} open={modal === 'appr'} onClose={close} />
       <VerificationModal idea={idea} open={modal === 'verify'} onClose={close} />
-      <RemarksModal open={modal === 'sendBack'} onClose={close} variant="danger" icon="Undo2" confirmLabel="Send back" title="Send back to the Team feasibility check"
-        subtitle={`${idea.id} returns to the Team feasibility check for rework; the evaluation restarts after it is cleared again.`}
-        onConfirm={(r) => withUndo(idea.id, () => sendBack(idea.id, r), `${idea.id} sent back to the Team feasibility check`, { type: 'warning' })} />
+      <SendBackModal idea={idea} open={modal === 'sendBack'} onClose={close} />
       <RemarksModal open={modal === 'requestInfo'} onClose={close} icon="MessageCircleQuestion" confirmLabel="Request info" title="Request more information"
         subtitle={`${idea.submitterName} is notified and @mentioned in the comments.`} placeholder="What do you need from the submitter?"
         onConfirm={(r) => withUndo(idea.id, () => requestInfo(idea.id, r), `More information requested from ${idea.submitterName}`, { type: 'info' })} />

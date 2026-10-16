@@ -164,7 +164,7 @@ export function slaFrom(startIso: string, rule?: SlaRule | null) {
 export const SLA_RANK: Record<string, number> = { escalated: 4, breach: 3, due: 2, ok: 1, none: 0 }
 
 // ─── Drill modal: list the ideas behind a chart segment ───────────────────────
-export function DrillModal({ open, onClose, title, subtitle, ideas, valueFn, valueLabel = 'Annualised', links }: {
+export function DrillModal({ open, onClose, title, subtitle, ideas, valueFn, valueLabel = 'Forecast', links }: {
   open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; ideas: Idea[]; valueFn?: (i: Idea) => number; valueLabel?: string; links?: { label: string; url: string }[]
 }) {
   const openIdea = useStore((s) => s.openIdea)

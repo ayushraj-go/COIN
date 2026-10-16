@@ -36,8 +36,8 @@ export function PipelineCard({ c, className }: { c: CoData; className?: string }
 
   return (
     <Card className={cn('h-full', className)} icon="Workflow" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Implementation pipeline<InfoTip title="Implementation pipeline">After the department approval every idea is in Execution started, where its checklist runs NPD sample (if a new part / source needs trial), PAP price or source revision, then go-live, until it is Implemented. ₹ = annualised impact (approved price once implemented). Click a stage for its ideas.</InfoTip></span>}
-      subtitle={`${totalCount} ideas after approval · ${inrShort(totalValue)} annualised`}
+      title={<span className="flex items-center gap-1.5">Implementation pipeline<InfoTip title="Implementation pipeline">After the department approval every idea is in Execution started, where its checklist runs NPD sample (if a new part / source needs trial), PAP price or source revision, then go-live, until it is Implemented. ₹ = forecast impact (approved price once implemented). Click a stage for its ideas.</InfoTip></span>}
+      subtitle={`${totalCount} ideas after approval · ${inrShort(totalValue)} forecast`}
       actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => drill({}, '/execution')}>Execution Hub</Button>}>
       <div className="grid grid-cols-4 gap-2.5">
         {c.stages.map((r, k) => {

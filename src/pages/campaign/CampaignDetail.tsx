@@ -50,7 +50,7 @@ export default function OutreachCampaignDetail({ batch: b }: { batch: OutreachBa
   const mailSup = suppliers.find((s) => s.code === (mailFor || b.recipients[0]))
   const logged = mailSup ? emails.find((e) => e.at === b.sentAt && e.to.includes(mailSup.contactEmail)) : undefined
   const tpl = templates.find((t) => t.id === b.templateId)
-  const vars = mailSup ? supplierTemplateVars(mailSup, b.commodities, commodities, { workshopDate: b.workshopDate, replyBy: b.replyBy, senderName: b.sentByName }) : null
+  const vars = mailSup ? supplierTemplateVars(mailSup, b.commodities, commodities, { workshopDate: b.workshopDate, replyBy: b.replyBy, senderName: b.sentByName, batchId: b.id }) : null
   const mail = logged ? { subject: logged.subject, body: logged.body } : tpl && vars ? { subject: renderSupplierTemplate(tpl.subject, vars), body: renderSupplierTemplate(tpl.body, vars) } : null
 
   const stages: { label: string; value: number; note: string; color: string }[] = [

@@ -85,7 +85,7 @@ export function ApprovalAdmin() {
           <div className="grid gap-3">
             <Field label="Condition" hint="Use ₹ X lakh / ₹ Y lakh — replaced by the thresholds above"><input className="input" value={edit.condition} onChange={(e) => setEdit({ ...edit, condition: e.target.value })} /></Field>
             <Field label="Approver chain" hint="Use → between levels; prefix + for an added approver"><input className="input" value={edit.approver} onChange={(e) => setEdit({ ...edit, approver: e.target.value })} /></Field>
-            <Field label="Threshold type"><select className="input" value={edit.kind} onChange={(e) => setEdit({ ...edit, kind: e.target.value as ApprovalRule['kind'] })}><option value="value">Annualised value (₹ X)</option><option value="investment">One-time investment (₹ Y)</option></select></Field>
+            <Field label="Threshold type"><select className="input" value={edit.kind} onChange={(e) => setEdit({ ...edit, kind: e.target.value as ApprovalRule['kind'] })}><option value="value">Forecast value (₹ X)</option><option value="investment">One-time investment (₹ Y)</option></select></Field>
           </div>
         )}
       </Modal>

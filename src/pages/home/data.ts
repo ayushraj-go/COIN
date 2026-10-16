@@ -79,7 +79,7 @@ export function bucketFlows(ideas: Idea[], fy: string) {
   return out
 }
 
-/** Realisation plan for the period: approved annualised ÷ 12 for every month live up to the last realisation month */
+/** Realisation plan for the period: approved forecast ÷ 12 for every month live up to the last realisation month */
 export function committedForPeriod(ideas: Idea[], fy: string, lastMonth: string) {
   let total = 0
   for (const i of ideas) {

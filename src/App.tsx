@@ -16,6 +16,7 @@ import Scope from './pages/Scope'
 import Npd from './pages/Npd'
 import SupplierCheck from './pages/SupplierCheck'
 import SupplierForm from './pages/SupplierForm'
+import SupplierPortal from './pages/SupplierPortal'
 import Proof from './pages/Proof'
 import Queue from './pages/Queue'
 
@@ -33,6 +34,8 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         {/* public supplier capability form — opened from the emailed link, no login */}
         <Route path="/supplier-form/:token" element={<SupplierForm />} />
+        {/* public Supplier Portal — opened from the link in supplier outreach emails, no login */}
+        <Route path="/supplier-portal" element={<SupplierPortal />} />
         <Route element={<Protected><AppShell /></Protected>}>
           <Route path="/" element={<Home />} />
           <Route path="/ideas" element={<IdeaRegister mode="all" />} />

@@ -2,7 +2,7 @@ import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notifi
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, ladderOf, lockTarget, milestoneSchedule, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -286,7 +286,7 @@ function buildIdea(opts: {
   }
 
   // Pipeline — for ageing realism push some current stages back in time
-  const cur = routeStages[finalIdx]
+  let cur = routeStages[finalIdx]
   idea.stage = cur
   idea.stageEnteredAt = idea.stageHistory[idea.stageHistory.length - 1].enteredAt
   if (t === 'Pipeline') {
@@ -337,6 +337,21 @@ function buildIdea(opts: {
       supplier, decision: done ? 'Recommend' : undefined, remarks: done ? 'Recommended — cost-benefit verified, risks acceptable.' : undefined,
       by: done ? userById(evaluatorId).name : undefined, at: done ? idea.stageHistory[1].exitedAt : undefined,
     }
+  }
+
+  // forecast below ₹ 5 L: the department evaluation was skipped — team feasibility check straight to department approval
+  if (finalIdx >= 1 && !needsEvaluation(annual)) {
+    const reason = `Forecast ₹ ${(annual / 1e5).toFixed(2)} L is below ₹ 5 L — no ${evalDept} evaluation needed`
+    idea.evaluation = { dept: evalDept, skipped: true, skippedReason: reason, supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — forecast below ₹ 5 L' } }
+    const h = idea.stageHistory
+    const ev = h.findIndex((x) => x.stage === STAGE.evaluation)
+    const at = h[ev - 1]?.exitedAt ?? h[ev].enteredAt
+    Object.assign(h[ev], { enteredAt: at, exitedAt: at, by: 'COIN', action: `Skipped — ${reason}` })
+    if (h[ev + 1]) h[ev + 1].enteredAt = at
+    else { h.push({ stage: STAGE.approval, enteredAt: at }); cur = STAGE.approval; idea.stage = cur; idea.stageEnteredAt = at }
+    idea.activity = idea.activity
+      .filter((a) => !a.action.startsWith('Evaluation —'))
+      .map((a) => (a.action === `${evalDept} evaluation — recommended` ? { ...a, action: `${evalDept} evaluation skipped — forecast below ₹ 5 L`, remarks: reason } : a))
   }
 
   // approvals
@@ -444,8 +459,8 @@ function buildIdea(opts: {
     idea.bucket = 'Dropped'
     idea.droppedAt = dt(at, 14)
     idea.dropReason = t === 'Rejected' ? 'Price not agreed' : finalIdx === 0 ? 'Not feasible' : pick(DROP_REASONS.slice(0, 8))
-    if (t === 'Rejected' && idea.evaluation && finalIdx === 1) idea.evaluation = { ...idea.evaluation, decision: 'Reject', remarks: 'Saving not commensurate with qualification risk.', by: userById(evaluatorId).name, at: dt(at, 14) }
-    idea.dropRemarks = t === 'Rejected' ? `Rejected at ${finalIdx === 1 ? `${evalDept} evaluation` : 'sourcing approval'} — saving not commensurate with qualification risk.` : pick(['Supplier withdrew after RM increase.', 'Sample failed salt-spray at 96 h.', 'OEM customer did not approve the change.', 'Volume moved to new platform.', 'Superseded by consolidated negotiation idea.'])
+    if (t === 'Rejected' && idea.evaluation && cur === STAGE.evaluation) idea.evaluation = { ...idea.evaluation, decision: 'Reject', remarks: 'Saving not commensurate with qualification risk.', by: userById(evaluatorId).name, at: dt(at, 14) }
+    idea.dropRemarks = t === 'Rejected' ? `Rejected at ${cur === STAGE.evaluation ? `${evalDept} evaluation` : `${evalDept} approval`} — saving not commensurate with qualification risk.` : pick(['Supplier withdrew after RM increase.', 'Sample failed salt-spray at 96 h.', 'OEM customer did not approve the change.', 'Volume moved to new platform.', 'Superseded by consolidated negotiation idea.'])
     idea.stageHistory.push({ stage: idea.stage, enteredAt: idea.droppedAt, by: userById(c.buyerId).name, action: t, remarks: idea.dropRemarks })
     idea.stageEnteredAt = idea.droppedAt
     if (idea.execution) idea.execution.status = 'Dropped'
@@ -547,7 +562,7 @@ function buildShowcase(): Idea[] {
       evidence: 'R&D teardown and should-cost done; two local vendors shortlisted.', partCode: '3500040012', newPrice: 7775, volume: 120000, investment: 18 * LAKH, months: 6, risks: ['Medium', 'High', 'Medium', 'High', 'Low'] },
     { n: 2, commodity: 'STL', leverId: 'L12', submitterId: 'u-sub3', title: 'Cut the condenser side bracket from a drawing-nominal blank',
       current: 'The condenser side bracket is cut from an oversize blank; about 6 % offcut goes to scrap.', proposed: 'Correct the blank to drawing nominal and nest two brackets per strip.',
-      evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: '3400031187', newPrice: 38.2, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
+      evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: '3400031187', newPrice: 37.9, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
     { n: 3, commodity: 'ALU', leverId: 'L11', submitterId: 'u-sub4', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
       current: 'Indoor coils use 0.105 mm blue-coated fin stock.', proposed: 'Move to 0.100 mm hydrophilic fin stock with the same heat-transfer performance at a lower gauge.',
       evidence: 'Thermal performance test on a 1.5 TR coil passed at the R&D lab; vendor quote attached.', partCode: '3300021019', newPrice: 316, volume: 600000, investment: 0, months: 6, alt: 'V10003', risks: ['Medium', 'Low', 'Medium', 'Low', 'Medium'],

@@ -7,14 +7,14 @@ import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, sum, today, to
 /** Saving per unit = P(baseline) − P(new) */
 export const savingPerUnit = (p: IdeaPart, useApproved = false) => p.baselinePrice - (useApproved && p.approvedPrice != null ? p.approvedPrice : p.newPrice)
 export const savingPct = (p: IdeaPart) => (p.baselinePrice ? (savingPerUnit(p) / p.baselinePrice) * 100 : 0)
-/** Annualised impact = (P(baseline) − P(new)) × Q(last FY MRN) */
+/** Forecast impact = (P(baseline) − P(new)) × Q(last FY MRN) */
 export const partAnnualised = (p: IdeaPart, useApproved = false) => savingPerUnit(p, useApproved) * (p.annualVolume || 0)
 
 export function ideaAnnualised(idea: Pick<Idea, 'parts' | 'scope' | 'openEstimateLakh'>, useApproved = false): number {
   if (idea.scope === 'Open' || !idea.parts?.length) return (idea.openEstimateLakh || 0) * LAKH
   return sum(idea.parts.map((p) => partAnnualised(p, useApproved)))
 }
-/** Approved annualised (uses approved revised price where available) */
+/** Approved forecast (uses approved revised price where available) */
 export const ideaApprovedAnnualised = (idea: Idea) => ideaAnnualised(idea, true)
 
 export function ideaSavingPct(idea: Idea): number {
@@ -22,9 +22,9 @@ export function ideaSavingPct(idea: Idea): number {
   const base = sum(idea.parts.map((p) => p.baselinePrice * p.annualVolume))
   return base ? (ideaAnnualised(idea) / base) * 100 : 0
 }
-/** Net saving = Annualised impact − One-time investment */
+/** Net saving = Forecast impact − One-time investment */
 export const netSaving = (annual: number, investment: number) => annual - (investment || 0)
-/** Payback (months) = One-time investment ÷ (Annualised impact ÷ 12) */
+/** Payback (months) = One-time investment ÷ (Forecast impact ÷ 12) */
 export const paybackMonths = (annual: number, investment: number) => (annual > 0 && investment > 0 ? investment / (annual / 12) : 0)
 
 /** Months of the FY that fall on/after the go-live date (fractional by day for the first month) */
@@ -37,12 +37,12 @@ export function fyMonthsFrom(goLive: string, fy: string): number {
   const firstFrac = (daysInMonth - g.getDate() + 1) / daysInMonth
   return months + firstFrac
 }
-/** Committed saving (in-FY) = annualised × months live in FY ÷ 12. Worked example: ₹ 8.40 L live 1 Oct → ₹ 4.20 L */
+/** Committed saving (in-FY) = forecast × months live in FY ÷ 12. Worked example: ₹ 8.40 L live 1 Oct → ₹ 4.20 L */
 export const committedInFy = (annual: number, goLive: string, fy: string) => (annual * fyMonthsFrom(goLive, fy)) / 12
-/** Carry-over = annualised impact falling beyond 31 March */
+/** Carry-over = forecast impact falling beyond 31 March */
 export const carryOver = (annual: number, goLive: string, fy: string) => annual - committedInFy(annual, goLive, fy)
 
-/** Quarter phasing Q1..Q4 pre-filled from go-live date and annualised impact */
+/** Quarter phasing Q1..Q4 pre-filled from go-live date and forecast impact */
 export function phaseByQuarter(annual: number, goLive: string, fy: string) {
   const out = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }
   const g = parse(goLive)

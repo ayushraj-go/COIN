@@ -56,7 +56,7 @@ function HomeCO({ ctx, month }: { ctx: Ctx; month?: string }) {
       <KpiStrip items={[
         { label: ctx.fv ? 'Realised (validated)' : 'Realised', value: s.realisedCounting, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula, sub: `${s.counts.Implemented} ideas implemented`, onClick: () => drill({ bucket: 'Implemented' }) },
         { label: 'Committed (remaining)', value: s.remainingCommitted, icon: 'Rocket', color: 'var(--color-orange-400)', formula: 'Σ FY-phased saving still to come (In Execution + implemented months not yet realised)', sub: `${s.counts['In Execution']} ideas in execution`, onClick: () => drill({ bucket: 'In Execution' }) },
-        { label: 'Implemented (annualised)', value: s.values.Implemented, icon: 'CircleCheck', color: 'var(--color-teal-600)', sub: `${s.counts.Implemented} ideas`, onClick: () => drill({ bucket: 'Implemented' }) },
+        { label: 'Implemented (forecast)', value: s.values.Implemented, icon: 'CircleCheck', color: 'var(--color-teal-600)', sub: `${s.counts.Implemented} ideas`, onClick: () => drill({ bucket: 'Implemented' }) },
         { label: 'Carry-over to next FY', value: s.carryOver, icon: 'CalendarArrowUp', color: 'var(--color-indigo-600)', formula: kf('A9').formula },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -91,10 +91,10 @@ function HomeCO({ ctx, month }: { ctx: Ctx; month?: string }) {
           </ChartBox>
         </Card>
       </div>
-      <Card title="Top 10 ideas by value" icon="Trophy" subtitle="Annualised impact · In Execution and Implemented">
+      <Card title="Top 10 ideas by value" icon="Trophy" subtitle="Forecast impact · In Execution and Implemented">
         <DataTable rows={top} rowKey={(i) => i.id} exportName="COIN_Top10_execution" onRowClick={(i) => openIdea(i.id)}
           columns={ideaColumns(ctx, [
-            { key: 'annual', label: 'Annualised', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
+            { key: 'annual', label: 'Forecast', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
             { key: 'committed', label: `Committed ${ctx.fy}`, align: 'right', value: (i) => committedHard(ctx, i), render: (i) => <span className="num">{inrShort(committedHard(ctx, i))}</span> },
             { key: 'realised', label: 'Realised', align: 'right', value: (i) => realisedOf(ctx, [i]), render: (i) => <span className="num text-emerald-700">{inrShort(realisedOf(ctx, [i]))}</span> },
           ])} />
@@ -123,10 +123,10 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Ideas submitted', value: ctx.ideas.length, money: false, icon: 'Lightbulb', color: 'var(--color-brand-700)', formula: kf('B1').formula, sub: `${inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised` },
+        { label: 'Ideas submitted', value: ctx.ideas.length, money: false, icon: 'Lightbulb', color: 'var(--color-brand-700)', formula: kf('B1').formula, sub: `${inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} forecast` },
         { label: 'Pipeline value', value: s.pipeline, icon: 'Filter', color: 'var(--color-brand-500)', formula: kf('A3').formula, sub: `${s.counts.Pipeline} ideas in pipeline`, onClick: () => drill({ bucket: 'Pipeline' }) },
         { label: 'Conversion rate', value: conv, money: false, suffix: '%', digits: 1, icon: 'Percent', color: 'var(--color-emerald-600)', formula: kf('B2').formula, sub: `${d.steps[3].n} of ${d.steps[0].n} implemented` },
-        { label: 'Dropped', value: s.counts.Dropped, money: false, icon: 'CircleX', color: 'var(--color-gray-500)', formula: kf('B3').formula, sub: `${inrShort(s.values.Dropped)} annualised`, onClick: () => drill({ bucket: 'Dropped' }) },
+        { label: 'Dropped', value: s.counts.Dropped, money: false, icon: 'CircleX', color: 'var(--color-gray-500)', formula: kf('B3').formula, sub: `${inrShort(s.values.Dropped)} forecast`, onClick: () => drill({ bucket: 'Dropped' }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <Card className="lg:col-span-5" title="Idea funnel" icon="Filter" subtitle="Count and ₹ per bucket · stage-to-stage conversion">
@@ -169,12 +169,12 @@ function HomeIN({ ctx }: { ctx: Ctx }) {
           </ChartBox>
         </Card>
       </div>
-      <Card title="Top 10 pipeline ideas by value" icon="Trophy" subtitle="Annualised impact of ideas still under review">
+      <Card title="Top 10 pipeline ideas by value" icon="Trophy" subtitle="Forecast impact of ideas still under review">
         <DataTable rows={top} rowKey={(i) => i.id} exportName="COIN_Top10_pipeline" onRowClick={(i) => openIdea(i.id)}
           columns={ideaColumns(ctx, [
             { key: 'buyer', label: 'Buyer', value: (i) => nameOf(ctx, i.buyerId), render: (i) => <UserChip userId={i.buyerId} size={20} /> },
             { key: 'type', label: 'Savings type', value: (i) => i.savingsType, render: (i) => <SavingsTypeBadge type={i.savingsType} /> },
-            { key: 'annual', label: 'Annualised', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
+            { key: 'annual', label: 'Forecast', align: 'right', value: (i) => ideaAnnualised(i), render: (i) => <span className="num font-semibold">{inrShort(ideaAnnualised(i))}</span> },
           ])} />
       </Card>
       {list.el}
@@ -224,7 +224,7 @@ export function BridgeReport({ ctx }: { ctx: Ctx }) {
                 <span className="h-6 w-6 rounded-md grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: r.color }}>{k + 1}</span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[12.5px] font-semibold text-ink">{r.label}</span>
-                  <span className="block text-[11px] text-muted truncate">{({ realised: ctx.fv ? 'Finance-validated MRN-based hard saving' : 'MRN-based hard saving', committed: 'Remaining FY-phased committed saving', pipeline: 'Σ annualised impact of Pipeline ideas', total: 'Realised + committed + pipeline' } as Record<string, string>)[r.key]}</span>
+                  <span className="block text-[11px] text-muted truncate">{({ realised: ctx.fv ? 'Finance-validated MRN-based hard saving' : 'MRN-based hard saving', committed: 'Remaining FY-phased committed saving', pipeline: 'Σ forecast impact of Pipeline ideas', total: 'Realised + committed + pipeline' } as Record<string, string>)[r.key]}</span>
                 </span>
                 <span className="text-right">
                   <span className="block text-[13px] font-bold num text-ink">{inrShort(r.value)}</span>
@@ -529,7 +529,7 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
     { key: 'commodities', label: 'Commodities', value: (r) => r.commodities.join(', ') },
     { key: 'ideas', label: 'Ideas', align: 'right', value: (r) => r.ideas },
     { key: 'own', label: 'Supplier-submitted', align: 'right', value: (r) => r.supplierSubmitted },
-    { key: 'value', label: 'Value (annualised)', align: 'right', value: (r) => r.value, render: (r) => <span className="num font-semibold">{inrShort(r.value)}</span> },
+    { key: 'value', label: 'Value (forecast)', align: 'right', value: (r) => r.value, render: (r) => <span className="num font-semibold">{inrShort(r.value)}</span> },
     { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented },
     { key: 'conversion', label: 'Conversion', align: 'right', value: (r) => r.conversion, render: (r) => <span className="num">{pct(r.conversion, 0)}</span> },
     { key: 'gainShare', label: 'Gain-share %', align: 'right', value: (r) => r.gainShare, render: (r) => <span className="num">{isNaN(r.gainShare) ? '—' : pct(r.gainShare, 0)}</span> },
@@ -539,12 +539,12 @@ export function SupplierReport({ ctx }: { ctx: Ctx }) {
       <KpiStrip items={[
         { label: 'Suppliers with ideas', value: rows.filter((r) => r.ideas > 0).length, money: false, icon: 'Factory', color: 'var(--color-teal-600)' },
         { label: 'Supplier-submitted ideas', value: own, money: false, icon: 'Lightbulb', color: 'var(--color-violet-600)', onClick: () => list.show('Supplier-submitted ideas', ctx.ideas.filter((i) => i.isSupplierSubmission)), tip: 'Ideas submitted by suppliers through the Supplier Workspace' },
-        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: 'var(--color-brand-500)', tip: 'Σ annualised impact of ideas linked to each supplier' },
+        { label: 'Idea value', value: rows.reduce((a, r) => a + r.value, 0), icon: 'BadgeIndianRupee', color: 'var(--color-brand-500)', tip: 'Σ forecast impact of ideas linked to each supplier' },
         { label: 'Avg gain-share offered', value: gs.length ? gs.reduce((a, r) => a + r.gainShare, 0) / gs.length : 0, money: false, suffix: '%', digits: 1, icon: 'Handshake', color: 'var(--color-orange-400)', tip: 'Gain-share % offered to Amber on supplier submissions (captured as a field only)' },
         { label: 'Supplier participation', value: rows.filter((r) => r.supplierSubmitted > 0).length, money: false, icon: 'Users', color: 'var(--color-teal-600)', tip: 'Suppliers who submitted at least one idea through the Supplier Workspace', sub: 'submitted ≥ 1 idea' },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-8" title="Idea value by supplier" icon="ChartColumn" subtitle="Top 12 by annualised value · bar colour = conversion" actions={<Legend items={[{ label: '≥ 40% conversion', color: 'var(--color-emerald-600)' }, { label: '20–40%', color: 'var(--color-teal-600)' }, { label: '< 20%', color: 'var(--color-slate-400)' }]} />}>
+        <Card className="lg:col-span-8" title="Idea value by supplier" icon="ChartColumn" subtitle="Top 12 by forecast value · bar colour = conversion" actions={<Legend items={[{ label: '≥ 40% conversion', color: 'var(--color-emerald-600)' }, { label: '20–40%', color: 'var(--color-teal-600)' }, { label: '< 20%', color: 'var(--color-slate-400)' }]} />}>
           <ChartBox height={290}>
             <BarChart data={top} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />

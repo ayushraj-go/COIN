@@ -1,5 +1,6 @@
 // M1 — Dashboard for Buyer, Commodity Lead, Sourcing Head, Admin, Finance and Management
-// Two views: the Dashboard (CO-style KPI tiles + internal vs external ideas) and Advanced analytics (idea portfolio, SLA watch and more).
+// Two views: the Dashboard (headline KPI tiles + internal vs external ideas, one screen — no page scroll at xl) and
+// Advanced analytics (idea portfolio, SLA watch and more). Work waiting for the user lives in My queue.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
@@ -13,7 +14,7 @@ import { SlaWatchCard } from './MyActions'
 import { HeadlineKpis } from './Kpis'
 import { SourcesCard } from './Sources'
 import { Leaderboard } from './Leaderboard'
-import { QueuePeek } from '../queue/QueuePeek'
+import { useFitHeight } from './fit'
 
 export type SourcingVariant = 'sourcing' | 'finance' | 'mgmt'
 
@@ -28,6 +29,7 @@ export default function SourcingHome({ variant }: { variant: SourcingVariant }) 
   const drill = useDrill()
   const clear = () => setSel(null)
   const lb = settings.leaderboardVisible
+  const [fitRef, fitH] = useFitHeight(300)
   if (!me) return null
   if (!ready) return <HomeSkeleton />
 
@@ -45,8 +47,7 @@ export default function SourcingHome({ variant }: { variant: SourcingVariant }) 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
           <Reveal className="col-span-12"><HeadlineKpis d={d} /></Reveal>
-          <Reveal className="col-span-12"><QueuePeek /></Reveal>
-          <Reveal className="col-span-12"><SourcesCard ideas={d.active.filter((i) => i.bucket !== 'Dropped')} mode="IN" fy={d.fy} /></Reveal>
+          <Reveal className="col-span-12"><div ref={fitRef} style={fitH ? { height: fitH } : undefined}><SourcesCard fill={!!fitH} ideas={d.active.filter((i) => i.bucket !== 'Dropped')} mode="IN" fy={d.fy} /></div></Reveal>
         </RevealGrid>
       ) : (
         <RevealGrid className="grid grid-cols-12 gap-4">

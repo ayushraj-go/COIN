@@ -144,7 +144,7 @@ export default function ExecutionHub() {
     { k: 'due', label: 'Due this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: 'var(--color-brand-500)', tip: 'Due date falls later this month.' },
     { k: 'overdue', label: 'Overdue', value: sets.overdue.length, sub: <>{inrShort(cm(sets.overdue))} overdue</>, icon: 'Clock3', color: 'var(--color-rose-600)', tip: 'Due date passed — health Delayed. Owner and Commodity Lead are emailed the day after, then weekly.', formula: 'Overdue value = ₹ committed on ideas past due date' },
     { k: 'risk', label: 'At risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: 'var(--color-orange-400)', tip: 'At least one milestone is past its due date while the due date is still ahead.' },
-    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} annualised · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: 'var(--color-emerald-600)', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
+    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} forecast · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: 'var(--color-emerald-600)', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
     { k: 'dropped', label: 'Dropped this month', value: sets.dropped.length, sub: <>{inrShort(sum(sets.dropped.map((i) => removedCommitted(i, fy))))} removed</>, icon: 'Ban', color: 'var(--color-gray-500)', tip: 'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.' },
   ]
 
@@ -229,7 +229,7 @@ export default function ExecutionHub() {
                     <tr>
                       <th style={{ width: 34 }} />
                       <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th>Due date</th>
-                      <th><span className="inline-flex items-center gap-1">Quarter phasing Q1–Q4<InfoTip title="Quarter phasing" formula="Σ Q1..Q4 vs committedInFy(annualised, due date)">Pre-filled from due date and annualised impact; click to edit. Green dot = matches the system pre-fill.</InfoTip></span></th>
+                      <th><span className="inline-flex items-center gap-1">Quarter phasing Q1–Q4<InfoTip title="Quarter phasing" formula="Σ Q1..Q4 vs committedInFy(forecast, due date)">Pre-filled from due date and forecast impact; click to edit. Green dot = matches the system pre-fill.</InfoTip></span></th>
                       <th>Progress</th><th>Health</th>
                       <th className="max-[1700px]:hidden"><span className="inline-flex items-center gap-1">Next reminder<InfoTip title="Implementation reminder">Every 15 days; weekly in the last 30 days before the due date. After the due date passes: the day after, then weekly.</InfoTip></span></th>
                       <th>NPD / PAP</th><th style={{ textAlign: 'right' }}>Committed {fy}</th><th style={{ width: 44 }} />
@@ -462,7 +462,7 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px]">
           <span className="text-muted">Original due date</span><b className="text-right num">{fmtDate(ex.originalTargetDate)}</b>
-          <span className="text-muted">Annualised</span><b className="text-right num">{inrShort(ideaAnnualised(idea))}</b>
+          <span className="text-muted">Forecast</span><b className="text-right num">{inrShort(ideaAnnualised(idea))}</b>
           <span className="text-muted">Approved on</span><b className="text-right num">{fmtDate(idea.approvedAt?.slice(0, 10))}</b>
           <span className="text-muted">Owner</span><span className="text-right"><UserChip userId={ex.ownerId} size={16} /></span>
         </div>
@@ -528,7 +528,7 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
                 <div className="text-[11.5px] text-muted truncate">{isDone ? `First MRN ${fmtDate(i.execution!.effectiveDate)} · ${i.verification?.verifiedAt ? `verified ${fmtDate(i.verification.verifiedAt.slice(0, 10))}` : 'awaiting verification'}` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
               </div>
               <div className="text-right shrink-0">
-                {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">annualised</div></>
+                {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">forecast</div></>
                   : <><div className="text-[13px] font-bold num text-slate-500 line-through">{inrShort(removedCommitted(i, fy))}</div><div className="text-[10.5px] text-muted">committed removed</div></>}
               </div>
             </button>

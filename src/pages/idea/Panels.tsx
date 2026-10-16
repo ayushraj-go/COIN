@@ -131,7 +131,7 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
           </ol>
         </div>
         <div className="md:col-span-2">
-          <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center gap-1">Quarter phasing <InfoTip title="Quarter phasing" formula="Pre-filled from due date × annualised impact">Owner enters expected saving per quarter (Q1–Q4).</InfoTip></div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center gap-1">Quarter phasing <InfoTip title="Quarter phasing" formula="Pre-filled from due date × forecast impact">Owner enters expected saving per quarter (Q1–Q4).</InfoTip></div>
           <div className="grid grid-cols-4 gap-1.5">
             {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => (
               <div key={q} className="rounded-lg bg-amber-50/70 border border-amber-100 px-1.5 py-1.5 text-center">

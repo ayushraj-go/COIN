@@ -102,7 +102,7 @@ const DEFS: KDef[] = [
   },
   { id: 'A9', head: (ctx, sm) => ({ v: sm.carryOver, kind: 'money', color: 'var(--color-indigo-600)', sub: <>beyond {ctx.fy} close (31 March)</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => groupSum(ctx, p.ideas).carryOver, money) },
   {
-    id: 'B1', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', sub: <>{inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} annualised</> }),
+    id: 'B1', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', sub: <>{inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} forecast</> }),
     rows: (ctx) => {
       const m = new Map<string, Idea[]>()
       ctx.ideas.forEach((i) => m.set(i.stage, [...(m.get(i.stage) ?? []), i]))

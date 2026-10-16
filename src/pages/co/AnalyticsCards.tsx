@@ -165,7 +165,7 @@ export function PhasingCard({ c, className }: { c: CoData; className?: string })
   const realised = sum(data.map((x) => x.realised ?? 0))
   return (
     <Card className={cn('h-full', className)} icon="CalendarRange" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Committed vs realised by quarter<InfoTip title="Quarter phasing" formula="Committed = annualised × months live in FY ÷ 12 (or the execution's Q1–Q4 phasing)">Hard savings only. Implemented ideas phase from their effective date at the approved price; ideas in execution use the phasing set in the Execution Hub. The line is MRN-based realised savings.</InfoTip></span>}
+      title={<span className="flex items-center gap-1.5">Committed vs realised by quarter<InfoTip title="Quarter phasing" formula="Committed = forecast × months live in FY ÷ 12 (or the execution's Q1–Q4 phasing)">Hard savings only. Implemented ideas phase from their effective date at the approved price; ideas in execution use the phasing set in the Execution Hub. The line is MRN-based realised savings.</InfoTip></span>}
       subtitle={`${c.fy} · committed hard savings vs MRN realised`}>
       <div className="grid grid-cols-3 gap-2">
         <Mini label="Implemented" value={inrShort(impl)} color={IMPL.text} />
@@ -213,8 +213,8 @@ export function RouteMixCard({ c, className }: { c: CoData; className?: string }
   const n = sum(rows.map((r) => r.nExec + r.nImpl))
   return (
     <Card className={cn('h-full', className)} icon="Split" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Execution route mix<InfoTip title="Execution route mix">How approved ideas are being implemented. NPD → PAP needs an ECN / sample approval before the PAP change; PAP is a straight price revision; internal changes are executed by the owning department. ₹ = annualised impact (approved price once implemented).</InfoTip></span>}
-      subtitle={`${n} ideas after approval · ${inrShort(total)} annualised`}>
+      title={<span className="flex items-center gap-1.5">Execution route mix<InfoTip title="Execution route mix">How approved ideas are being implemented. NPD → PAP needs an ECN / sample approval before the PAP change; PAP is a straight price revision; internal changes are executed by the owning department. ₹ = forecast impact (approved price once implemented).</InfoTip></span>}
+      subtitle={`${n} ideas after approval · ${inrShort(total)} forecast`}>
       <div className="flex flex-col gap-2 flex-1">
         {rows.map((r) => (
           <div key={r.key} className="rounded-lg border border-line px-2.5 py-2" title={r.hint}>

@@ -120,7 +120,7 @@ export function DropsReport({ ctx }: { ctx: Ctx }) {
       <KpiStrip items={[
         { label: 'Dropped ideas', value: d.dropped.length, money: false, icon: 'CircleX', color: 'var(--color-gray-500)', onClick: () => drill({ bucket: 'Dropped' }) },
         { label: 'Drop rate', value: d.rate, money: false, suffix: '%', digits: 1, icon: 'Percent', color: 'var(--color-rose-600)', formula: kf('B3').formula, sub: `${d.dropped.length} of ${ctx.ideas.length} submitted` },
-        { label: 'Value dropped', value: d.value, icon: 'BadgeIndianRupee', color: 'var(--color-gray-500)', tip: 'Σ annualised impact of dropped ideas; the committed value is removed from committed savings' },
+        { label: 'Value dropped', value: d.value, icon: 'BadgeIndianRupee', color: 'var(--color-gray-500)', tip: 'Σ forecast impact of dropped ideas; the committed value is removed from committed savings' },
         { label: 'Top reason', value: d.byReason[0]?.count ?? 0, money: false, icon: 'ListOrdered', color: 'var(--color-brand-600)', sub: d.byReason[0]?.reason ?? '—', onClick: () => d.byReason[0] && drill({ bucket: 'Dropped', dropReason: d.byReason[0].reason }) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -351,7 +351,7 @@ export function LeakageReport({ ctx }: { ctx: Ctx }) {
   return (
     <div className="grid gap-3">
       <KpiStrip items={[
-        { label: 'Committed to date', value: d.committedTD, icon: 'Rocket', color: 'var(--color-orange-400)', tip: `Planned saving of implemented ideas up to ${monthLabel(ctx.lrm)} (approved annualised ÷ 12, pro-rated in the go-live month)` },
+        { label: 'Committed to date', value: d.committedTD, icon: 'Rocket', color: 'var(--color-orange-400)', tip: `Planned saving of implemented ideas up to ${monthLabel(ctx.lrm)} (approved forecast ÷ 12, pro-rated in the go-live month)` },
         { label: 'Realised', value: d.realised, icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)', formula: kf('A5').formula },
         { label: 'Realisation rate', value: d.rate, money: false, suffix: '%', digits: 1, icon: 'Gauge', color: rateTone(d.rate), formula: kf('D3').formula },
         { label: 'Finance validated', value: validated, icon: 'ShieldCheck', color: 'var(--color-teal-600)', sub: `${pct((validated / Math.max(1, d.realised)) * 100, 0)} of realised` },
@@ -459,7 +459,7 @@ export function ClosureReport({ ctx }: { ctx: Ctx }) {
         { label: `Open ideas rolling to ${d.next}`, value: d.rollIn.length, money: false, icon: 'Repeat', color: 'var(--color-brand-500)', sub: 'Pipeline + due date beyond 31 March', onClick: () => list.show(`Open ideas rolling into ${d.next}`, d.rollIn) },
       ]} />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <Card className="lg:col-span-7" title="In-FY committed vs carry-over by commodity" icon="ChartColumnStacked" subtitle={`Carry-over = annualised impact falling beyond ${fmtDate(d.fyEnd)}`} actions={<Legend items={[{ label: `Committed in ${ctx.fy}`, color: 'var(--color-orange-400)' }, { label: `Carry-over to ${d.next}`, color: 'var(--color-indigo-600)' }]} />}>
+        <Card className="lg:col-span-7" title="In-FY committed vs carry-over by commodity" icon="ChartColumnStacked" subtitle={`Carry-over = forecast impact falling beyond ${fmtDate(d.fyEnd)}`} actions={<Legend items={[{ label: `Committed in ${ctx.fy}`, color: 'var(--color-orange-400)' }, { label: `Carry-over to ${d.next}`, color: 'var(--color-indigo-600)' }]} />}>
           <ChartBox height={290}>
             <BarChart data={chart} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
               <CartesianGrid {...GRID} />

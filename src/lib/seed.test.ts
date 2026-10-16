@@ -16,7 +16,10 @@ describe('demo seed — six-stage walkthrough', () => {
   it('fills every form up to the idea’s stage', () => {
     expect(show(1).feasibilityCheck).toBeUndefined()
     expect(show(2).feasibilityCheck?.decision).toBe('Go')
-    expect(show(2).evaluation?.supplier?.status).toBe('Skipped') // below ₹ 5 L
+    // ₹ 5 L and above — waiting at the department evaluation with the supplier check still to send (smaller ideas skip stage 3)
+    expect(show(2).stage).toBe('Evaluation')
+    expect(show(2).evaluation?.skipped).toBeFalsy()
+    expect(show(2).evaluation?.supplier?.status).toBe('Not sent')
     expect(show(3).evaluation?.decision).toBe('Recommend')
     expect(show(3).evaluation?.supplier?.status).toBe('Responded')
     expect(show(3).lock).toBeUndefined()

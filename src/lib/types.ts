@@ -204,6 +204,9 @@ export interface SupplierCheck {
 /** Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability, decision */
 export interface Evaluation {
   dept: string
+  /** forecast below ₹ 5 L — the idea went from the team feasibility check straight to department approval */
+  skipped?: boolean
+  skippedReason?: string
   cbaVerified?: boolean
   cbaNote?: string
   risks?: RiskItem[]
@@ -228,6 +231,12 @@ export interface ApprovalLock {
   signatureData?: string
   signedAt: string
   signedBy: string
+  /** part-wise one-time budget (tooling, trials, validation…) — Σ = budget */
+  parts?: { partCode: string; budget: number; note?: string }[]
+  /** dated execution plan signed with the lock; execution starts from these dates */
+  milestones?: { name: string; dueDate: string }[]
+  /** commercial notes from the detailed assessment */
+  commercialNote?: string
 }
 
 /** Stage 6 — Verification: business side confirms the target was achieved */

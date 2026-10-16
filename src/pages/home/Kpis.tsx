@@ -31,18 +31,18 @@ export function HeadlineKpis({ d }: { d: HomeData }) {
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
       <KpiTile label="Pipeline" icon="Filter" color={TONE.brand} onClick={() => go(links.pipeline)} spark={f.Pipeline.values}
-        tip="Stages 2–4 in the Innovation Network: team feasibility check, department evaluation and department approval. ₹ = Σ annualised impact (part price × MRN volume). Trend = ₹ entering the pipeline each month.">
-        <TileValue value={<Money value={v.Pipeline} />} unit="annualised"
+        tip="Stages 2–4 in the Innovation Network: team feasibility check, department evaluation and department approval. ₹ = Σ forecast impact (part price × MRN volume). Trend = ₹ entering the pipeline each month.">
+        <TileValue value={<Money value={v.Pipeline} />} unit="forecast"
           sub={<>{ideas(c.Pipeline)} · {stageCount(STAGE.feasibility)} feasibility · {stageCount(STAGE.evaluation)} evaluation · {stageCount(STAGE.approval)} approval</>} />
       </KpiTile>
       <KpiTile label="In execution" icon="Rocket" color={TONE.brand} onClick={() => go(links.execution)} spark={f['In Execution'].values}
         tip="Stage 5 in Cost Optimisation — approved with a signed budget + timeline lock; milestones and plan vs actual. ₹ = FY-phased committed hard savings. Overdue = past the target date.">
         <TileValue value={<Money value={d.committedExec} />} unit="committed"
-          sub={<>{ideas(c['In Execution'])} · {overdue ? <b className="text-accent-600 num">{overdue} overdue</b> : <>{inrShort(v['In Execution'])} annualised</>}</>} />
+          sub={<>{ideas(c['In Execution'])} · {overdue ? <b className="text-accent-600 num">{overdue} overdue</b> : <>{inrShort(v['In Execution'])} forecast</>}</>} />
       </KpiTile>
       <KpiTile label="Implemented" icon="CircleCheckBig" color={TONE.done} onClick={() => go(links.implemented)} spark={f.Implemented.values}
-        tip="Stage 6 — handed over for verification, then verified by Finance against the locked target from MRN. ₹ = annualised impact. Trend = ₹ implemented each month.">
-        <TileValue value={<Money value={v.Implemented} />} unit="annualised" sub={<>{ideas(c.Implemented)} · {d.active.filter((i) => i.verification?.verifiedAt).length} verified</>} />
+        tip="Stage 6 — handed over for verification, then verified by Finance against the locked target from MRN. ₹ = forecast impact. Trend = ₹ implemented each month.">
+        <TileValue value={<Money value={v.Implemented} />} unit="forecast" sub={<>{ideas(c.Implemented)} · {d.active.filter((i) => i.verification?.verifiedAt).length} verified</>} />
       </KpiTile>
       <KpiTile hero label={`Realised · ${d.fy} (MRN)`} icon="BadgeIndianRupee" spark={realisedSpark(d)} onClick={() => go(links.realised)}
         tip="(baseline − approved price) × MRN quantity from the first MRN at the new price. Validated = accepted by Finance.">

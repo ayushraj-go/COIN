@@ -127,7 +127,7 @@ export function realisedOf(ctx: Ctx, ideas: Idea[], opts: { validatedOnly?: bool
 }
 export const leakageOf = (ctx: Ctx, ideas: Idea[]) => { const ids = new Set(ideas.map((i) => i.id)); return sum(ctx.led.filter((l) => ids.has(l.ideaId)).map((l) => l.leakage)) }
 
-/** Monthly committed (planned) saving of an implemented idea — annualised at the approved price ÷ 12, pro-rated in the go-live month */
+/** Monthly committed (planned) saving of an implemented idea — forecast at the approved price ÷ 12, pro-rated in the go-live month */
 export function plannedByMonth(i: Idea, months: string[]): Record<string, number> {
   const out: Record<string, number> = {}
   const eff = doneDate(i)

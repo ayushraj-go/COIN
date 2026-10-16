@@ -29,11 +29,11 @@ export const PURPOSE = [
 
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
-  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub · Implemented ideas · NPD master · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-emerald-600)' },
-  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · NPD master · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
+  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub · Implemented ideas · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-emerald-600)' },
+  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
 ]
 export const WORKSPACE_NOTE =
-  'After login every user sees the four status cards (Pipeline, In Execution, Implemented, Dropped) and chooses a workspace. The sidebar shows only that workspace\'s pages: Scope & Methodology sits at the top under Overview, MIS is pinned at the bottom, and the workspace badge in the sidebar header switches between CO and IN.'
+  'After login every user sees the four status cards (Pipeline, In Execution, Implemented, Dropped) and chooses a workspace. The sidebar shows only that workspace\'s pages: Scope & Methodology and MIS are pinned at the bottom, and the workspace badge in the sidebar header switches between CO and IN.'
 
 export const PROBLEM_INTRO =
   'Sourcing runs cost reduction across every commodity, but ideas have been chased through Excel trackers, emails and review meetings, so savings are hard to track and harder to defend.'
@@ -63,7 +63,7 @@ export const ROLES_INTRO =
 export const ROLES: { key: string; role: string; who: string; job: string; visibility: string }[] = [
   { key: 'submitter', role: 'Employee', who: 'Any employee in the eight departments', job: 'Stage 1 — submits ideas, tracks own ideas, answers queries', visibility: 'Own ideas' },
   { key: 'teamlead', role: 'Team lead', who: 'One per department (Sourcing: the commodity leads)', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
-  { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check (₹ 5 L and above)', visibility: 'Own department' },
+  { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check — only for ideas forecast at ₹ 5 L and above; smaller ideas skip stage 3', visibility: 'Own department' },
   { key: 'depthead', role: 'Department head', who: 'Head of each department (Sourcing: Head of Sourcing)', job: 'Stage 4 — <dept> approval: commercial assessment, supplier confirmation, budget + timeline lock, signature', visibility: 'Own department' },
   { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones, first MRN at the new price, hand-over for verification', visibility: 'Own department' },
   { key: 'finance', role: 'Finance verifier', who: 'Finance Controller', job: 'Stage 6 — verifies the locked target from MRN; validates realised savings', visibility: 'All' },
@@ -100,21 +100,21 @@ export const DEFINITIONS: [string, string][] = [
   ['Baseline price', 'Last buying price (LBP) of the part; if none, current PO price; for a new part, the quoted price (same rule as the Price Approval Portal)'],
   ['New price', 'Estimated at submission; replaced by the approved revised price at implementation'],
   ['Annual volume', 'Quantity received in the last full FY, from MRN; if no history, a forecast volume entered by the buyer and flagged'],
-  ['Annualised impact', 'Full-year saving at the new price and annual volume'],
+  ['Forecast impact', 'Full-year saving at the new price and annual volume'],
   ['Committed saving', 'Saving expected inside the current FY, phased by quarter from the implementation date'],
   ['Realised saving', 'Saving actually earned: price delta × MRN quantity received after the effective date'],
-  ['Carry-over', 'Part of the annualised impact that falls in the next FY'],
+  ['Carry-over', 'Part of the forecast impact that falls in the next FY'],
 ]
 
 export const FORMULAS: { name: string; expr: string }[] = [
   { name: 'Saving per unit', expr: 'P(baseline) − P(new)' },
-  { name: 'Annualised impact', expr: '(P(baseline) − P(new)) × Q(last FY MRN)' },
-  { name: 'Committed in FY', expr: 'Annualised impact × months live in FY ÷ 12' },
+  { name: 'Forecast impact', expr: '(P(baseline) − P(new)) × Q(last FY MRN)' },
+  { name: 'Committed in FY', expr: 'Forecast impact × months live in FY ÷ 12' },
   { name: 'Realised (FY to date)', expr: '(P(baseline) − P(approved)) × Q(MRN after effective date)' },
 ]
 
 export const WORKED_EXAMPLE =
-  'Worked example: a fastener idea cuts the price from ₹ 4.20 to ₹ 3.85 on 24,00,000 units received last FY. Saving per unit is ₹ 0.35 and annualised impact is ₹ 8.40 lakh. If it goes live on 1 October, the FY commits about ₹ 4.20 lakh (six months) and ₹ 4.20 lakh carries over to next FY.'
+  'Worked example: a fastener idea cuts the price from ₹ 4.20 to ₹ 3.85 on 24,00,000 units received last FY. Saving per unit is ₹ 0.35 and forecast impact is ₹ 8.40 lakh. If it goes live on 1 October, the FY commits about ₹ 4.20 lakh (six months) and ₹ 4.20 lakh carries over to next FY.'
 
 export const SAVINGS_CLASS_NOTE =
   'Each idea takes its classification from the default of its category; it is not entered on the form.'
@@ -173,7 +173,7 @@ export const FORM_FIELDS: { n: number; card: string; field: string; type: string
   { n: 19, card: 'D. Expected impact', field: 'Expected new price / unit (₹)', type: 'Number', req: 'Yes', source: 'Per part code' },
   { n: 20, card: 'D. Expected impact', field: 'Annual volume', type: 'Auto, editable', req: 'Yes', source: 'Last FY MRN, else forecast (flagged); override needs a reason' },
   { n: 21, card: 'D. Expected impact', field: 'Saving / unit and %', type: 'Calculated', req: '—', source: 'Live' },
-  { n: 22, card: 'D. Expected impact', field: 'Annualised impact (₹)', type: 'Calculated', req: '—', source: 'Live, per part + total' },
+  { n: 22, card: 'D. Expected impact', field: 'Forecast impact (₹)', type: 'Calculated', req: '—', source: 'Live, per part + total' },
   { n: 23, card: 'D. Expected impact', field: 'Expected implementation quarter', type: 'Dropdown', req: 'Yes', source: 'Q1–Q4 of current or next FY; past quarters disabled' },
   { n: 24, card: 'D. Expected impact', field: 'Estimate (₹ lakh)', type: 'Number', req: 'If no part codes', source: 'Open ideas and supplier ideas without parts; marked "Estimate"' },
   { n: 25, card: 'E. Supplier only', field: 'Gain-share % offered to Amber', type: 'Number', req: 'No', source: 'Shown only for supplier logins' },
@@ -185,7 +185,7 @@ export const FORM_BEHAVIOUR = [
   'Selecting a category shows the route strip (e.g. Buyer → R&D → Approval → NPD sample → PAP) with the evaluator and NPD sample rule.',
   'Selecting a part code fills description, UoM, supplier, baseline and volume in place, with a "from LBP" / "from MRN FY26" tag.',
   'Similar existing ideas appear inline as the idea name is typed, with a match % and a "view" link.',
-  'The summary panel shows annualised impact, saving %, saving per unit, the per-part split, committed this FY vs carry-over, the approval route and "what happens next". It stays in view and never needs scrolling; on a phone it becomes a bottom bar.',
+  'The summary panel shows forecast impact, saving %, saving per unit, the per-part split, committed this FY vs carry-over, the approval route and "what happens next". It stays in view and never needs scrolling; on a phone it becomes a bottom bar.',
   'Actions: Save draft (also Ctrl + S), Submit for validation, Cancel (keep or discard the draft). After submit, the user lands on the idea page showing its ID (COIN-FY27-FAS-0012) and a live status tracker.',
 ]
 
@@ -193,7 +193,7 @@ export const FORM_BEHAVIOUR = [
 export const MODULES_INTRO = 'The portal is delivered as ten modules across the two workspaces; the sidebar shows each user only the pages their role needs.'
 export const MODULES: { id: string; name: string; tag: DocSpace; space: string; screens: string; scope: string; path: string }[] = [
   { id: 'M1', name: 'Entry and dashboards', tag: 'Both', space: 'CO and IN', screens: 'Entry screen, workspace dashboards, role homes', scope: 'Four status cards and the CO / IN choice; per workspace a one-screen Dashboard and an Advanced analytics view; own homes for Submitter, Supplier and Technical Evaluator in IN', path: '/' },
-  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for Validate, feasibility, Go / No-go, Approve / Reject, Send back, Request info, Reassign, Mark Done and Drop', path: '/ideas/:id' },
+  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for Validate, feasibility, Go / No-go, Approve / Reject, Send back (the department head chooses the stage: submitter, team feasibility check or department evaluation), Request info, Reassign (execution), Mark Done and Drop', path: '/ideas/:id' },
   { id: 'M10', name: 'MIS', tag: 'Both', space: 'Pinned in CO and IN', screens: 'Report library, KPI library, monthly mailer, scheduled emails', scope: '12 standard reports with filter bar and Excel / PDF export; monthly management mailer', path: '/reports' },
   { id: 'M8', name: 'Execution Hub', tag: 'CO', space: 'CO', screens: 'Execution dashboard', scope: 'Approved ideas with owner, due date, quarter phasing, milestones, reminder schedule, health, Done / Drop and slippage log', path: '/execution' },
   { id: 'NPD', name: 'NPD development master', tag: 'CO', space: 'CO (also listed in IN)', screens: 'Read-only master', scope: 'Commodity codes, development SPOC per plant / product line, DQA SPOC, performance and reliability testing days, vendor groups and payment methods — synced from VMS', path: '/npd' },
@@ -207,12 +207,12 @@ export const MODULES: { id: string; name: string; tag: DocSpace; space: string; 
 export const NAV_BY_ROLE: { role: string; coNav: string; inNav: string }[] = [
   { role: 'Submitter', coNav: '—', inNav: 'My Ideas · Submit Idea' },
   { role: 'Supplier', coNav: '—', inNav: 'My Ideas · Submit Idea · Feasibility Requests · Workshops' },
-  { role: 'Technical Evaluator', coNav: 'NPD master', inNav: 'My Ideas · Submit Idea · NPD master' },
-  { role: 'Buyer / Commodity Lead / Sourcing Head', coNav: 'Execution Hub · Implemented ideas · NPD master · MIS', inNav: 'Idea Register · Submit Idea · Campaigns · NPD master · MIS' },
-  { role: 'Finance / Management', coNav: 'Implemented ideas · NPD master · MIS', inNav: 'NPD master · MIS' },
-  { role: 'Admin', coNav: 'Execution Hub · Implemented ideas · NPD master · MIS', inNav: 'Idea Register · Campaigns · NPD master · Admin & Masters · MIS' },
+  { role: 'Technical Evaluator', coNav: '—', inNav: 'My Ideas · Submit Idea' },
+  { role: 'Buyer / Commodity Lead / Sourcing Head', coNav: 'Execution Hub · Implemented ideas · MIS', inNav: 'Idea Register · Submit Idea · Campaigns · MIS' },
+  { role: 'Finance / Management', coNav: 'Implemented ideas · MIS', inNav: 'MIS' },
+  { role: 'Admin', coNav: 'Execution Hub · Implemented ideas · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
 ]
-export const NAV_NOTE = 'Every role also has Dashboard and Scope & Methodology at the top of both workspaces.'
+export const NAV_NOTE = 'Every role also has the Dashboard at the top and Scope & Methodology just above MIS at the bottom of both workspaces. The NPD master opens from Scope & Methodology.'
 
 export const APPROVAL_NOTE = 'The ₹ X threshold is to be confirmed by Amber.'
 export const APPROVAL_MATRIX_DOC: [string, string][] = [
@@ -265,7 +265,7 @@ export const EXECUTION_RECORD: [string, string][] = [
   ['Idea owner', 'Commodity Buyer by default; reassignable by Commodity Lead'],
   ['Start date', 'Auto = approval date'],
   ['Due date', 'Default 31 March of current FY; editable, each change needs a reason and is logged as slippage'],
-  ['Quarter phasing', 'Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and annualised impact'],
+  ['Quarter phasing', 'Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and forecast impact'],
   ['Milestones', 'Generated from the route, e.g. Technical: Supplier sample → NPD ECN raised → Sample approved → PAP price approved → First MRN at new price'],
   ['Linked requests', 'NPD request ID and PAP request ID, status synced'],
   ['Health', 'On track / At risk (milestone overdue) / Delayed (due date passed), shown as a coloured badge'],
@@ -312,10 +312,10 @@ export const LEAKAGE_NOTE =
 // ─── KPIs (ids are referenced by dashboards and reports) ──────────
 export const KPIS: { id: string; group: string; kpi: string; formula: string; cut: string }[] = [
   { id: 'A2', group: 'A. Savings', kpi: 'Savings % of spend', formula: 'Realised savings ÷ addressable spend', cut: 'Commodity, commodity group' },
-  { id: 'A3', group: 'A. Savings', kpi: 'Pipeline value', formula: 'Σ annualised impact of ideas in Pipeline', cut: 'Commodity, category' },
+  { id: 'A3', group: 'A. Savings', kpi: 'Pipeline value', formula: 'Σ forecast impact of ideas in Pipeline', cut: 'Commodity, category' },
   { id: 'A4', group: 'A. Savings', kpi: 'Committed value', formula: 'Σ FY-phased saving of ideas In Execution', cut: 'Quarter, commodity' },
   { id: 'A5', group: 'A. Savings', kpi: 'Realised value', formula: 'Σ MRN-based saving (FY to date)', cut: 'Month, commodity, supplier' },
-  { id: 'A9', group: 'A. Savings', kpi: 'Carry-over', formula: 'Annualised impact falling beyond 31 March', cut: 'Commodity' },
+  { id: 'A9', group: 'A. Savings', kpi: 'Carry-over', formula: 'Forecast impact falling beyond 31 March', cut: 'Commodity' },
   { id: 'B1', group: 'B. Funnel', kpi: 'Ideas by stage', formula: 'Count and ₹ per stage', cut: 'All' },
   { id: 'B2', group: 'B. Funnel', kpi: 'Conversion rate', formula: 'Implemented ÷ submitted (and each stage-to-stage step)', cut: 'Category, commodity' },
   { id: 'B3', group: 'B. Funnel', kpi: 'Drop rate and reasons', formula: 'Dropped ÷ submitted; top reasons, month-wise', cut: 'Reason, stage, commodity' },
@@ -343,7 +343,7 @@ export const DASHBOARDS_INTRO =
   'Each workspace opens on a Dashboard that fits one screen, with an "Advanced analytics" pill for depth. Submitter, Supplier and Technical Evaluator get their own home in IN. Dashboards have no filter bar: they show the user\'s own scope, and every card drills down to the ideas behind it.'
 export const DASHBOARDS: { space: string; view: string; who: string; contents: string }[] = [
   { space: 'Entry', view: 'After login', who: 'All roles', contents: 'Four status cards (Pipeline, In Execution, Implemented, Dropped — count and ₹) and the choice of CO or IN, each with its headline numbers' },
-  { space: 'CO', view: 'Dashboard', who: 'All roles', contents: 'Implementation KPIs (In Execution ₹ committed, Implemented ₹ annualised, Realised FY to date with validated / pending, Overdue / at risk); implementation pipeline (NPD sample → PAP price / source → internal execution → implemented) with realised savings by month; execution health with the next due and overdue list' },
+  { space: 'CO', view: 'Dashboard', who: 'All roles', contents: 'Implementation KPIs (In Execution ₹ committed, Implemented ₹ forecast, Realised FY to date with validated / pending, Overdue / at risk); implementation pipeline (NPD sample → PAP price / source → internal execution → implemented) with realised savings by month; execution health with the next due and overdue list' },
   { space: 'CO', view: 'Advanced analytics', who: 'All roles', contents: 'Savings trend by month; realisation; quarter phasing; implementation by category; top implemented ideas; commodity overview with realised savings and price leakage' },
   { space: 'IN', view: 'Dashboard', who: 'Buyer, Commodity Lead, Sourcing Head, Admin, Finance, Management', contents: 'Four status cards; Idea portfolio donut with a Value / Ideas toggle; SLA watch by review stage (Finance sees Savings to validate instead). Management also gets a Monthly report button' },
   { space: 'IN', view: 'Advanced analytics', who: 'Same roles', contents: 'Savings trend by month; funnel by stage; top 5 ideas by value; category mix; commodity overview (top 6); contributor leaderboard, or the realisation card for Finance or when the leaderboard is hidden' },

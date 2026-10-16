@@ -119,7 +119,7 @@ function WorkshopsTab() {
       <KpiStrip items={[
         { label: 'Live drives & workshops', value: totals.live, sub: `${totals.liveWorkshops} workshop${totals.liveWorkshops === 1 ? '' : 's'} · ${totals.drafts} draft${totals.drafts === 1 ? '' : 's'}` },
         { label: 'Ideas yielded', value: totals.ideas, sub: `${totals.supplierIdeas} from suppliers` },
-        { label: '₹ value yielded', value: <Money value={totals.value} />, sub: 'annualised, excl. dropped' },
+        { label: '₹ value yielded', value: <Money value={totals.value} />, sub: 'forecast, excl. dropped' },
         { label: 'Conversion', value: `${totals.conversion.toFixed(1)}%`, sub: `${totals.implemented} implemented of ${totals.ideas}` },
       ]} />
 
@@ -191,7 +191,7 @@ function WorkshopsTab() {
         </div>
 
         <div className="xl:col-span-4 flex flex-col gap-4 min-w-0">
-          <Panel title="Yield by drive" sub="annualised ₹ · click a bar">
+          <Panel title="Yield by drive" sub="forecast ₹ · click a bar">
             {chartData.length ? (
               <div style={{ height: Math.max(140, chartData.length * 32 + 24) }}>
                 <ResponsiveContainer width="100%" height="100%">

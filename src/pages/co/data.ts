@@ -27,7 +27,7 @@ export const CO_STAGES: CoStage[] = [
 
 export const HEALTHS: Health[] = ['On track', 'At risk', 'Delayed']
 
-/** Value used for an idea on the CO side: approved annualised once implemented, estimated annualised before */
+/** Value used for an idea on the CO side: approved forecast once implemented, estimated forecast before */
 export const coValue = (i: Idea) => (i.bucket === 'Implemented' ? ideaApprovedAnnualised(i) : ideaAnnualised(i))
 
 export function useCoData() {

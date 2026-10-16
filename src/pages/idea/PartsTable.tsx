@@ -35,7 +35,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
         <div className="flex items-center gap-2">
           {idea.locked && <Tooltip content="Approved values are locked; changes after approval need a change reason and re-approval above the set %."><span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600"><Icon name="Lock" size={12} />Locked</span></Tooltip>}
           {perms.override && !compact && <span className="hidden md:inline text-[11px] text-muted">Baseline and volume overrides need a reason and are logged</span>}
-          <InfoTip title="Annualised impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Saving per unit = P(baseline) − P(new). Red marks a negative delta.</InfoTip>
+          <InfoTip title="Forecast impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Saving per unit = P(baseline) − P(new). Red marks a negative delta.</InfoTip>
         </div>
       }>
       {idea.parts.length === 0 ? (
@@ -98,7 +98,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
                 <th style={{ textAlign: 'right' }}>Annual volume</th>
                 <th style={{ textAlign: 'right' }}>Saving / unit</th>
                 {!compact && <th style={{ textAlign: 'right' }}>%</th>}
-                <th style={{ textAlign: 'right' }}>Annualised</th>
+                <th style={{ textAlign: 'right' }}>Forecast</th>
               </tr>
             </thead>
             <tbody>

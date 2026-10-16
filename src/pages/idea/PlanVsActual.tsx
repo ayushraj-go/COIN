@@ -71,7 +71,7 @@ export function PlanChart({ rows, projected, target, height = 190 }: { rows: Row
 }
 
 /** Headline numbers + chart; `sentence` spells out the run-rate projection */
-export function PlanVsActualBlock({ p, compact }: { p: ReturnType<typeof planVsActual> | ReturnType<typeof portfolioPlan>; compact?: boolean }) {
+export function PlanVsActualBlock({ p, compact, chartHeight }: { p: ReturnType<typeof planVsActual> | ReturnType<typeof portfolioPlan>; compact?: boolean; chartHeight?: number }) {
   const behind = !p.onTrack
   const elapsed = p.rows.filter((r) => r.actual != null).length
   const sentence = !elapsed
@@ -85,7 +85,7 @@ export function PlanVsActualBlock({ p, compact }: { p: ReturnType<typeof planVsA
         <Stat label="Actual to date (MRN)" value={inrShort(p.actualToDate)} tone={elapsed ? (behind ? 'bad' : 'good') : undefined} />
         <Stat label="Projected at run-rate" value={elapsed ? inrShort(p.projected) : '—'} tone={elapsed ? (p.projected >= p.target * 0.95 ? 'good' : 'bad') : undefined} />
       </div>
-      <PlanChart rows={p.rows} projected={p.projected} target={p.target} height={compact ? 150 : 190} />
+      <PlanChart rows={p.rows} projected={p.projected} target={p.target} height={chartHeight ?? (compact ? 150 : 190)} />
       <div className={cn('mt-1.5 flex items-start gap-1.5 text-[12px]', !elapsed ? 'text-muted' : behind ? 'text-red-700' : 'text-emerald-700')}>
         <Icon name={!elapsed ? 'Clock3' : behind ? 'TrendingDown' : 'TrendingUp'} size={14} className="shrink-0 mt-px" />
         <span>{sentence}{elapsed ? (behind ? ' — behind plan.' : ' — on plan.') : ''}</span>

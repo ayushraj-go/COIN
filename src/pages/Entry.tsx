@@ -72,7 +72,7 @@ export default function Entry() {
             <span className="h-11 w-11 rounded-2xl bg-red-grad text-white grid place-items-center text-[15px] font-extrabold shrink-0 shadow-[0_10px_20px_-10px_rgb(184_20_42/.7)]">CO</span>
             <div className="min-w-0 flex-1">
               <h2 className="text-[18px] font-bold tracking-[-0.02em] text-ink leading-tight">Cost Optimisation</h2>
-              <p className="text-[12.5px] text-muted leading-snug">Cost innovation in execution — locked targets, part-wise proof from MRN and verified savings · <span className="whitespace-nowrap">stages 5–6</span></p>
+              <p className="text-[12.5px] text-muted leading-snug">Cost innovation in execution — locked targets, part-wise proof from MRN and verified savings</p>
             </div>
           </div>
           <div className="relative mt-3.5 grid sm:grid-cols-3 gap-2.5">

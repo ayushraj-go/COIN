@@ -58,7 +58,7 @@ export default function Workshops() {
             <KpiCard label="Invitations" value={invites.length} money={false} icon="MailOpen" color={PRIMARY} sub={isSupplier ? `${pending} awaiting your reply` : `${invites.filter((c) => c.status === 'Live').length} live`} tip="Workshop invitations are emailed on campaign launch, with a reminder 2 days before." />
             <KpiCard label={isSupplier ? 'Accepted' : 'Live now'} value={isSupplier ? accepted : invites.filter((c) => c.status === 'Live').length} money={false} icon="CalendarCheck" color="var(--color-emerald-600)" sub={isSupplier ? 'Accepted or attended' : 'Open for submissions'} />
             <KpiCard label="My ideas" value={allMine.length} money={false} icon="Lightbulb" color="var(--color-orange-400)" sub={`${allMine.filter((i) => i.bucket === 'Implemented').length} implemented`} tip="Ideas you submitted with a campaign / workshop tag." />
-            <KpiCard label="My ideas · ₹ value" value={myValue} icon="IndianRupee" color={GOLD} sub="Annualised impact, excl. dropped" formula="(P baseline − P new) × Q last FY MRN" />
+            <KpiCard label="My ideas · ₹ value" value={myValue} icon="IndianRupee" color={GOLD} sub="Forecast impact, excl. dropped" formula="(P baseline − P new) × Q last FY MRN" />
           </Stagger>
 
           {next && (

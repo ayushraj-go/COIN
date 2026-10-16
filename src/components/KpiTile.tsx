@@ -47,7 +47,7 @@ export function KpiTile({ label, icon, color = 'var(--color-brand-600)', tip, on
 }) {
   return (
     <button onClick={onClick}
-      className={cn('group relative overflow-hidden text-left rounded-2xl p-4 pb-3.5 h-full w-full flex flex-col transition-all duration-200 focus-ring',
+      className={cn('group relative overflow-hidden text-left rounded-2xl p-4 pb-3.5 [@media(max-height:820px)]:p-3 [@media(max-height:820px)]:pb-2.5 h-full w-full flex flex-col transition-all duration-200 focus-ring',
         hero ? 'bg-hero text-white shadow-[0_18px_38px_-22px_color-mix(in_srgb,var(--color-brand-950)_90%,transparent)] hover:-translate-y-px'
           : 'card hover:-translate-y-px hover:shadow-[0_14px_30px_-22px_color-mix(in_srgb,var(--color-brand-900)_55%,transparent)]')}>
       {hero && <span className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-accent-500" />}
@@ -63,8 +63,8 @@ export function KpiTile({ label, icon, color = 'var(--color-brand-600)', tip, on
         {delta != null ? <TrendChip delta={delta} hero={hero} goodWhenUp={goodWhenUp} />
           : <Icon name="ArrowUpRight" size={15} className={cn('shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5', hero ? 'text-white/60' : 'text-muted')} />}
       </div>
-      <div className="relative mt-3 flex-1">{children}</div>
-      {spark && spark.length > 1 && <Spark values={spark} color={color} hero={hero} className="relative mt-2 -mb-1" />}
+      <div className="relative mt-3 [@media(max-height:820px)]:mt-2 flex-1">{children}</div>
+      {spark && spark.length > 1 && <Spark values={spark} color={color} hero={hero} className="relative mt-2 -mb-1 [@media(max-height:820px)]:mt-1 [@media(max-height:820px)]:h-6" />}
     </button>
   )
 }

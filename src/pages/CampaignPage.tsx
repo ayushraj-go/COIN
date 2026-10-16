@@ -10,7 +10,7 @@ import { BUCKET_STYLE, ideaAnnualised } from '../lib/calc'
 import { LEVER_GROUP_STYLE } from '../lib/masters'
 import { addDays, daysBetween, fmtDate, fmtDateTime, inrShort, sum, todayIso } from '../lib/format'
 import {
-  Avatar, Badge, Button, Card, Count, DataTable, EmptyState, Icon, InfoTip, KV, LeverChip, Money, PageHeader, ProgressBar, SkeletonGrid, StageBadge, Tooltip, UserChip, cn, useWarmup, type Column,
+  Avatar, Badge, Button, Card, Count, DataTable, EmptyState, Icon, InfoTip, KV, LeverChip, LinkText, Money, PageHeader, ProgressBar, SkeletonGrid, StageBadge, Tooltip, UserChip, cn, useWarmup, type Column,
 } from '../components/ui'
 import {
   ATTENDANCE, ATT_STYLE, AttendanceBar, CampaignFormModal, CampaignStatusBadge, CampaignTypeBadge, GOLD, PRIMARY, campaignStats, copyText, dateRange, launchWithToast, submissionLink, YTick, type AttendanceStatus,
@@ -89,7 +89,7 @@ function WorkshopCampaignPage() {
   const saveSummary = () => { updateCampaign(c.id, { summary: summary.trim() }); toast('Post-workshop summary saved', 'success') }
   const snapshot = () => {
     const a = stats.att
-    const lines = `${stats.count} ideas captured (${stats.supplierIdeas} from suppliers) worth ${inrShort(stats.value)} annualised; ${stats.implemented} implemented — conversion ${stats.conversion.toFixed(0)}%. Attendance: ${a.Attended} attended, ${a.Accepted} accepted, ${a.Declined} declined, ${a.Invited} awaiting reply.${byLever[0] ? ` Largest lever: ${byLever[0].name} (${inrShort(byLever[0].value)}).` : ''}`
+    const lines = `${stats.count} ideas captured (${stats.supplierIdeas} from suppliers) worth ${inrShort(stats.value)} forecast; ${stats.implemented} implemented — conversion ${stats.conversion.toFixed(0)}%. Attendance: ${a.Attended} attended, ${a.Accepted} accepted, ${a.Declined} declined, ${a.Invited} awaiting reply.${byLever[0] ? ` Largest lever: ${byLever[0].name} (${inrShort(byLever[0].value)}).` : ''}`
     setSummary((s) => (s.trim() ? `${s.trim()}\n${lines}` : lines))
   }
 
@@ -99,7 +99,7 @@ function WorkshopCampaignPage() {
     { key: 'submitter', label: 'Submitted by', render: (i) => <span className="block leading-tight"><span className="block truncate max-w-[120px]">{i.submitterName}</span>{i.isSupplierSubmission && <span className="block text-[11px] text-muted">Supplier</span>}</span>, value: (i) => i.submitterName },
     { key: 'lever', label: 'Lever', render: (i) => <LeverChip leverId={i.leverId} compact />, value: (i) => levers.find((l) => l.id === i.leverId)?.name },
     { key: 'stage', label: 'Stage', render: (i) => <StageBadge stage={i.stage} bucket={i.bucket} idea={i} />, value: (i) => i.stage },
-    { key: 'value', label: 'Annualised', align: 'right', render: (i) => <span className="num font-semibold" style={{ color: i.bucket === 'Dropped' ? 'var(--color-gray-500)' : undefined }}>{inrShort(ideaAnnualised(i))}</span>, value: (i) => ideaAnnualised(i) },
+    { key: 'value', label: 'Forecast', align: 'right', render: (i) => <span className="num font-semibold" style={{ color: i.bucket === 'Dropped' ? 'var(--color-gray-500)' : undefined }}>{inrShort(ideaAnnualised(i))}</span>, value: (i) => ideaAnnualised(i) },
   ]
 
   return (
@@ -126,7 +126,7 @@ function WorkshopCampaignPage() {
                 {c.status === 'Live' && <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" /></span>}
                 Live yield
               </span>
-              <InfoTip title="Idea yield per campaign / workshop" formula="Ideas, ₹ value and conversion per campaign">Ideas tagged to this campaign (drafts excluded). ₹ value is the annualised impact of ideas not dropped. Conversion = implemented ÷ submitted.</InfoTip>
+              <InfoTip title="Idea yield per campaign / workshop" formula="Ideas, ₹ value and conversion per campaign">Ideas tagged to this campaign (drafts excluded). ₹ value is the forecast impact of ideas not dropped. Conversion = implemented ÷ submitted.</InfoTip>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div>
@@ -135,7 +135,7 @@ function WorkshopCampaignPage() {
                 <div className="text-[11.5px] text-muted mt-1">{stats.supplierIdeas} from suppliers</div>
               </div>
               <div>
-                <div className="text-[11.5px] text-muted font-medium">₹ value (annualised)</div>
+                <div className="text-[11.5px] text-muted font-medium">₹ value (forecast)</div>
                 <div className="text-[30px] leading-none font-semibold tracking-tight text-ink"><Money value={stats.value} /></div>
                 <div className="text-[11.5px] text-muted mt-1">excl. dropped ideas</div>
               </div>
@@ -190,7 +190,7 @@ function WorkshopCampaignPage() {
             empty={<EmptyState icon="Lightbulb" title={`No ideas yet — submit the first idea for ${cm?.name ?? c.commodity}`} desc="Share the submission link with invited suppliers and internal teams."
               action={c.status === 'Live' ? <Button variant="primary" icon="CirclePlus" onClick={() => nav(`/submit?campaign=${c.id}`)}>Submit idea</Button> : undefined} />} />
         </Card>
-        <Card className="lg:col-span-4" title="Yield by lever" subtitle="Annualised ₹ of ideas not dropped · click a bar to drill down" icon="ChartBar">
+        <Card className="lg:col-span-4" title="Yield by lever" subtitle="Forecast ₹ of ideas not dropped · click a bar to drill down" icon="ChartBar">
           {byLever.length ? (
             <>
               <div style={{ height: Math.max(140, byLever.length * 34 + 20) }}>
@@ -206,7 +206,7 @@ function WorkshopCampaignPage() {
                         <div className="rounded-xl bg-white border border-line shadow-xl px-3 py-2 text-[12px]">
                           <div className="font-semibold text-ink">{d.name}</div>
                           <div className="text-[11px] mb-1" style={{ color: LEVER_GROUP_STYLE[d.group].text }}>{d.group}</div>
-                          <div className="flex justify-between gap-4"><span className="text-muted">Annualised</span><b className="num">{inrShort(d.value)}</b></div>
+                          <div className="flex justify-between gap-4"><span className="text-muted">Forecast</span><b className="num">{inrShort(d.value)}</b></div>
                           <div className="flex justify-between gap-4"><span className="text-muted">Ideas</span><b className="num">{d.count}</b></div>
                         </div>
                       )
@@ -283,7 +283,7 @@ function WorkshopCampaignPage() {
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                       <div className="mx-4 mb-3 rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12px] text-ink-2 whitespace-pre-wrap">
                         <div className="flex flex-wrap gap-1 mb-1.5">{m.to.map((t) => <span key={t} className="px-1.5 rounded bg-white border border-line text-[11px]">{t}</span>)}</div>
-                        {m.body}
+                        <LinkText text={m.body} />
                       </div>
                     </motion.div>
                   )}

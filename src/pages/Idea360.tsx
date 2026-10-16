@@ -60,7 +60,7 @@ function HeaderCard({ idea }: { idea: Idea }) {
           </div>
         </div>
         <div className="lg:w-[280px] shrink-0 rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-gold-50 p-3.5">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Annualised impact <InfoTip title="Annualised impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Full-year saving at the new price and annual volume.</InfoTip></div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Forecast impact <InfoTip title="Forecast impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Full-year saving at the new price and annual volume.</InfoTip></div>
           <div className={annual < 0 ? 'text-red-600' : 'text-ink'}><span className="text-[28px] font-extrabold tracking-tight leading-tight"><Money value={annual} /></span></div>
           <div className="text-[12px] text-muted">
             {idea.scope === 'Open' ? 'Estimate for open idea' : `${pct.toFixed(1)}% saving on baseline spend · ${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}`}

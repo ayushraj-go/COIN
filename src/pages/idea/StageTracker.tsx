@@ -33,6 +33,8 @@ function buildNodes(idea: Idea): TNode[] {
     else if (terminal) state = k < ci ? 'done' : k === ci ? 'failed' : 'skipped'
     else state = k < ci ? 'done' : k === ci ? 'current' : 'future'
     if (state === 'done' && !h) state = 'bypassed'
+    // forecast below ₹ 5 L: the department evaluation was passed over
+    if (state === 'done' && s === STAGE.evaluation && idea.evaluation?.skipped) state = 'bypassed'
     const bucket = bucketFor(idea.route, s)
     const exit = h?.exitedAt
     const label = stageLabel(idea, s)
@@ -109,7 +111,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
           {nodes.map((node, k) => (
             <div key={node.key} className="relative flex flex-col items-center text-center px-1 min-w-0">
               <Tooltip content={detail(node)}>
-                <span className="cursor-default"><Circle n={node} index={k} size={compact ? 28 : 32} /></span>
+                <span className="cursor-default"><Circle n={node} index={k + 1} size={compact ? 28 : 32} /></span>
               </Tooltip>
               <div className={cn('mt-1.5 font-semibold leading-tight', compact ? 'text-[11px]' : 'text-[12px]', node.state === 'future' || node.state === 'skipped' ? 'text-muted' : 'text-ink')}>
                 {compact ? node.short : node.label}
@@ -134,7 +136,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
         {nodes.map((node, k) => (
           <li key={node.key} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <Circle n={node} index={k} size={26} />
+              <Circle n={node} index={k + 1} size={26} />
               {k < nodes.length - 1 && <span className="w-[2px] flex-1 min-h-3 my-0.5 rounded" style={{ background: k < lastReached ? node.color : 'var(--color-gray-200)' }} />}
             </div>
             <div className="min-w-0 pb-3">

@@ -145,13 +145,13 @@ export default function SubmitterHome() {
           {/* Row 2 — recent ideas (fills) + actions & campaigns */}
           <Reveal className="col-span-12 xl:col-span-8 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Lightbulb"
-              title={<span className="flex items-center gap-1.5">My recent ideas<InfoTip title="My ideas">Every idea you submitted, by bucket. Value = Σ annualised impact; realised comes from actual MRN after the effective date. Click an idea to open it in the side panel.</InfoTip></span>}
-              subtitle={`${submitted.length} submitted${stats[0].count ? ` · ${stats[0].count} draft${stats[0].count > 1 ? 's' : ''}` : ''} · ${inrShort(submittedValue)} annualised · ${inrShort(realised)} realised`}
+              title={<span className="flex items-center gap-1.5">My recent ideas<InfoTip title="My ideas">Every idea you submitted, by bucket. Value = Σ forecast impact; realised comes from actual MRN after the effective date. Click an idea to open it in the side panel.</InfoTip></span>}
+              subtitle={`${submitted.length} submitted${stats[0].count ? ` · ${stats[0].count} draft${stats[0].count > 1 ? 's' : ''}` : ''} · ${inrShort(submittedValue)} forecast · ${inrShort(realised)} realised`}
               actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>View all</Button>}>
               {mine.length ? (
                 <>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_170px_96px] gap-3 pb-1.5 border-b border-line text-[10.5px] font-semibold uppercase tracking-wide text-muted shrink-0">
-                    <span>Idea</span><span className="hidden sm:block">Live status</span><span className="text-right">Annualised</span>
+                    <span>Idea</span><span className="hidden sm:block">Live status</span><span className="text-right">Forecast</span>
                   </div>
                   <div ref={listRef} className="flex-1 min-h-0 overflow-hidden">
                     {mine.slice(0, rows).map((i) => (

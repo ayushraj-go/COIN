@@ -24,7 +24,6 @@ const LADDER: RoleKey[] = ['teamlead', 'deptlead', 'depthead', 'execowner']
 export const NAV: NavItem[] = [
   { key: 'home', label: 'Dashboard', path: '/', icon: 'LayoutDashboard', roles: ALL, module: 'M1', section: 'Overview' },
   { key: 'queue', label: 'My queue', path: '/queue', icon: 'Inbox', roles: ['teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin'], section: 'Overview' },
-  { key: 'scope', label: 'Scope & Methodology', path: '/scope', icon: 'BookOpenText', roles: ALL, section: 'Overview' },
   // IN — Innovation Network: ideas up to approval
   { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin', ...LADDER], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'myideas', label: 'My Ideas', path: '/my-ideas', icon: 'Lightbulb', roles: ['submitter', 'supplier'], module: 'M2', section: 'Ideas', spaces: ['IN'] },
@@ -37,9 +36,9 @@ export const NAV: NavItem[] = [
   { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin', 'execowner', 'depthead', 'finance'], module: 'M8', section: 'Implementation', spaces: ['CO'] },
   { key: 'proof', label: 'Savings proof', path: '/proof', icon: 'BadgeIndianRupee', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], module: 'M9', section: 'Implementation', spaces: ['CO'] },
   { key: 'implemented', label: 'Verification', path: '/ideas?bucket=Implemented', icon: 'ShieldCheck', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], section: 'Implementation', spaces: ['CO'] },
-  // NPD development master (read-only, synced from VMS) — both workspaces
-  { key: 'npd', label: 'NPD master', path: '/npd', icon: 'FlaskConical', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], section: 'Masters' },
-  // pinned at the bottom in every workspace (Scope & Methodology sits at the top under Overview)
+  // pinned at the bottom in every workspace: Scope & Methodology just above MIS. The NPD master (read-only, from VMS) is not
+  // in the sidebar; /npd still opens from an idea's NPD link.
+  { key: 'scope', label: 'Scope & Methodology', path: '/scope', icon: 'BookOpenText', roles: ALL, section: 'Pinned', pinned: true },
   { key: 'reports', label: 'MIS', path: '/reports', icon: 'ChartColumnBig', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', 'deptlead', 'depthead'], module: 'M10', section: 'Pinned', pinned: true },
 ]
 /** MIS opens for exactly the roles the sidebar shows it to */

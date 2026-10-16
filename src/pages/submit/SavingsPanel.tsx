@@ -51,9 +51,9 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
         <div className="px-4 py-2.5">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Per part code</span>
-            <InfoTip title="Saving per unit and annualised impact" formula={`${F('Saving per unit')}  ·  ${F('Annualised impact')}`}>An idea spanning several part codes stores price, volume and saving per part code and rolls them up.</InfoTip>
+            <InfoTip title="Saving per unit and forecast impact" formula={`${F('Saving per unit')}  ·  ${F('Forecast impact')}`}>An idea spanning several part codes stores price, volume and saving per part code and rolls them up.</InfoTip>
           </div>
-          {!c.rows.length && <div className="text-[12px] text-muted py-2">Add a part code to see saving / unit, % and annualised impact per part.</div>}
+          {!c.rows.length && <div className="text-[12px] text-muted py-2">Add a part code to see saving / unit, % and forecast impact per part.</div>}
           <div className="space-y-1">
             <AnimatePresence initial={false}>
               {shown.map((r) => (
@@ -71,7 +71,7 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
           {more > 0 && <div className="text-[11px] text-muted mt-1">+ {more} more part{more === 1 ? '' : 's'} — see card D</div>}
           {c.rows.length > 1 && (
             <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-dashed border-slate-200 text-[12.5px]">
-              <span className="font-semibold text-ink-2">Total annualised impact</span>
+              <span className="font-semibold text-ink-2">Total forecast impact</span>
               <span className="font-bold num" style={{ color: tone(c.annual) }}>{inrShort(c.annual)}</span>
             </div>
           )}
@@ -82,7 +82,7 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Committed vs carry-over
-            <InfoTip title="Committed saving (in-FY)" formula="Annualised impact × months live in FY ÷ 12">Saving expected inside the current FY, phased from the implementation date. Carry-over is the part of the annualised impact that falls in the next FY. {q} {fy} ({QUARTER_MONTHS[q]}): {c.monthsInFy.toFixed(1)} of 12 months fall in {currentFy}.</InfoTip>
+            <InfoTip title="Committed saving (in-FY)" formula="Forecast impact × months live in FY ÷ 12">Saving expected inside the current FY, phased from the implementation date. Carry-over is the part of the forecast impact that falls in the next FY. {q} {fy} ({QUARTER_MONTHS[q]}): {c.monthsInFy.toFixed(1)} of 12 months fall in {currentFy}.</InfoTip>
           </span>
           <span className="text-[11px] text-muted">Go-live {fmtDate(c.goLive)}</span>
         </div>
@@ -148,9 +148,9 @@ export function SavingsHero({ c, singleUnit }: { c: SavingsCalc; singleUnit?: Pa
           <span className="text-[10.5px] text-muted">Recalculates as you type</span>
         </div>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-[12px] text-ink-2 font-medium">Annualised impact</span>
+          <span className="text-[12px] text-ink-2 font-medium">Forecast impact</span>
           {c.isOpen && <Tooltip content="Rough annual impact entered for an open idea — marked Estimate"><span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gold-50 text-gold-700 border border-gold-200">Estimate</span></Tooltip>}
-          <InfoTip title="Annualised impact" formula={F('Annualised impact')}>Full-year saving at the new price and annual volume.</InfoTip>
+          <InfoTip title="Forecast impact" formula={F('Forecast impact')}>Full-year saving at the new price and annual volume.</InfoTip>
         </div>
         <div className="flex items-end gap-2.5 mt-1">
           <span className="text-[26px] leading-none font-extrabold tracking-tight transition-colors duration-300" style={{ color: col(c.annual) }}><Money value={c.annual} /></span>

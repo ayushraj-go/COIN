@@ -7,7 +7,7 @@ import { canSeeIdea, ideaAnnualised } from '../lib/calc'
 import { addDays, fmtDate, fmtDateTime, inrShort, todayIso } from '../lib/format'
 import { amberDataLeaks, needsSupplierCheck, stageLabel, supplierCapabilityEmail, SUPPLIER_CHECK_MIN, SUPPLIER_LINK_PLACEHOLDER, SUPPLIER_SPEC_BY_GROUP } from '../lib/workflow'
 import { STAGE } from '../lib/masters'
-import { Badge, Button, Card, EmptyState, Field, Icon, PageHeader, cn } from '../components/ui'
+import { Badge, Button, Card, EmptyState, Field, Icon, LinkText, PageHeader, cn } from '../components/ui'
 import { SupplierResponseCard } from './idea/StageForms'
 import { ideaPerms } from './idea/model'
 
@@ -69,11 +69,11 @@ export default function SupplierCheck() {
       </div>
       <PageHeader icon="Factory" title="Supplier capability check" fit
         badge={<Badge color={sc?.status === 'Responded' ? 'var(--color-emerald-600)' : sc?.status === 'Sent' ? 'var(--color-orange-400)' : 'var(--color-slate-500)'}>{sc?.status ?? 'Not sent'}</Badge>}
-        subtitle={`${stageLabel(idea, STAGE.evaluation)} · ${idea.title} · annualised ${inrShort(annual)}`}
+        subtitle={`${stageLabel(idea, STAGE.evaluation)} · ${idea.title} · forecast ${inrShort(annual)}`}
         actions={<Button size="sm" icon="FlaskConical" onClick={() => nav(`/ideas/${idea.id}`)}>Back to the idea</Button>} />
 
       {!needsSupplierCheck(annual) || sc?.status === 'Skipped' ? (
-        <Card><EmptyState icon="SkipForward" title="Skipped — below the minimum saving threshold" desc={`Annualised ${inrShort(annual)} is below ${inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to approval without a supplier capability check.`} /></Card>
+        <Card><EmptyState icon="SkipForward" title="Skipped — below the minimum saving threshold" desc={`Forecast ${inrShort(annual)} is below ${inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to approval without a supplier capability check.`} /></Card>
       ) : sc?.status === 'Sent' || sc?.status === 'Responded' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_420px] gap-4 items-start">
           <Card title={sc.status === 'Responded' ? 'Supplier response' : 'Waiting for the supplier'} icon={sc.status === 'Responded' ? 'MailCheck' : 'MailQuestion'}
@@ -154,7 +154,7 @@ function EmailPreview({ subject, body, to, readOnly, onSubject, onBody }: { subj
         <div className="grid grid-cols-[56px_minmax(0,1fr)] items-center gap-2 text-[12.5px]"><span className="text-muted">Subject</span>
           {readOnly ? <span className="font-semibold text-ink">{subject}</span> : <input className="input !h-8" value={subject} onChange={(e) => onSubject?.(e.target.value)} />}
         </div>
-        {readOnly ? <pre className="whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-ink-2 rounded-lg bg-slate-50 border border-line p-3">{body}</pre>
+        {readOnly ? <pre className="whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-ink-2 rounded-lg bg-slate-50 border border-line p-3"><LinkText text={body} /></pre>
           : <textarea className="input font-[inherit] text-[12.5px] leading-relaxed" rows={16} value={body} onChange={(e) => onBody?.(e.target.value)} />}
       </div>
     </Card>

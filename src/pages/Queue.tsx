@@ -41,7 +41,7 @@ export default function Queue() {
     { key: 'dept', label: 'Department', value: (r) => ideaDept(r.idea), render: (r) => <span className="text-[12.5px] text-ink-2">{ideaDept(r.idea)}</span> },
     { key: 'submitter', label: 'Raised by', value: (r) => r.idea.submitterName, render: (r) => <span className="text-[12.5px] text-ink-2 whitespace-nowrap">{r.idea.submitterName}</span> },
     ...(tab === 'all' ? [{ key: 'assignee', label: 'Assigned to', value: (r: QueueRow) => nameOf(r.assignee), render: (r: QueueRow) => <span className="text-[12.5px] text-ink-2 whitespace-nowrap">{nameOf(r.assignee)}</span> } as Column<QueueRow>] : []),
-    { key: 'value', label: 'Annualised', align: 'right', value: (r) => Math.round(ideaAnnualised(r.idea)), render: (r) => <span className="num font-semibold text-ink">{inrShort(ideaAnnualised(r.idea))}</span> },
+    { key: 'value', label: 'Forecast', align: 'right', value: (r) => Math.round(ideaAnnualised(r.idea)), render: (r) => <span className="num font-semibold text-ink">{inrShort(ideaAnnualised(r.idea))}</span> },
     { key: 'waiting', label: 'Waiting', align: 'right', value: (r) => r.waitingHours, render: (r) => <span className={cn('num', r.sla === 'breach' ? 'text-red-700 font-semibold' : 'text-ink-2')}>{waitingText(r.waitingHours)}{r.slaDays ? <span className="text-muted font-normal"> / {r.slaDays} d SLA</span> : null}</span> },
     { key: 'go', label: '', align: 'right', render: (r) => <Button size="xs" variant={r.assignedToMe ? 'primary' : 'secondary'} iconRight="ArrowRight" onClick={(e: React.MouseEvent) => { e.stopPropagation(); openIdea(r.idea.id) }}>{ACTION_META[r.action].verb}</Button> },
   ]

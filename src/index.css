@@ -189,8 +189,9 @@ select.input { padding-right: 28px; appearance: none; background-image: url("dat
 .tbl tbody tr.clickable { cursor: pointer; }
 
 /* cards — white surface, hairline border, a lit top edge and a soft two-layer shadow */
+/* position sits in the components layer so an `absolute` / `fixed` utility on a floating card (menus, pickers) still wins */
+@layer components { .card { position: relative; } }
 .card {
-  position: relative;
   background: #ffffff;
   border: 1px solid var(--color-line);
   border-radius: 14px;

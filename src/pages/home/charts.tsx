@@ -153,8 +153,8 @@ export function LeverMixCard({ d, sel, onClear, className }: { d: HomeData; sel:
   const h = hover != null ? data[hover] : null
   return (
     <Card className={cn('h-full', className)} icon="ChartPie"
-      title={<span className="flex items-center gap-2">Category mix<InfoTip title="Category mix">Share of annualised impact by category group. All categories roll up to Total Productivity in reports. Click a slice to see its ideas.</InfoTip><BucketFilterChip bucket={sel} onClear={onClear} /></span>}
-      subtitle={`${sel ?? 'Active ideas'} · annualised impact by group`}>
+      title={<span className="flex items-center gap-2">Category mix<InfoTip title="Category mix">Share of forecast impact by category group. All categories roll up to Total Productivity in reports. Click a slice to see its ideas.</InfoTip><BucketFilterChip bucket={sel} onClear={onClear} /></span>}
+      subtitle={`${sel ?? 'Active ideas'} · forecast impact by group`}>
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative h-[176px] w-[176px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -248,8 +248,8 @@ export function PortfolioCard({ d, className }: { d: HomeData; className?: strin
   const fmt = (x: { count: number; value: number }) => (mode === 'value' ? inrShort(x.value) : `${x.count}`)
   return (
     <Card className={cn('h-full', className)} icon="ChartPie" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Idea portfolio<InfoTip title="Idea portfolio">Every submitted idea sits in exactly one of four statuses. Switch between annualised value and number of ideas. Click a status to open its ideas.</InfoTip></span>}
-      subtitle={`${totalIdeas} ideas · ${inrShort(totalValue)} annualised impact`}
+      title={<span className="flex items-center gap-1.5">Idea portfolio<InfoTip title="Idea portfolio">Every submitted idea sits in exactly one of four statuses. Switch between forecast value and number of ideas. Click a status to open its ideas.</InfoTip></span>}
+      subtitle={`${totalIdeas} ideas · ${inrShort(totalValue)} forecast impact`}
       actions={<Segmented size="sm" value={mode} onChange={(k) => setMode(k as 'value' | 'count')} options={[{ key: 'value', label: 'Value' }, { key: 'count', label: 'Ideas' }]} />}>
       <div className="flex-1 flex flex-col sm:flex-row items-center gap-8 min-h-0">
         <div className="relative h-[230px] w-[230px] shrink-0">
@@ -265,7 +265,7 @@ export function PortfolioCard({ d, className }: { d: HomeData; className?: strin
             <div>
               <div className="text-[12px] text-muted">{hover != null ? data[hover].name : 'Total'}</div>
               <div className="text-[24px] font-bold text-ink num leading-tight">{hover != null ? fmt(data[hover]) : mode === 'value' ? inrShort(totalValue) : totalIdeas}</div>
-              <div className="text-[12px] text-muted">{hover != null ? pct(((mode === 'value' ? data[hover].value : data[hover].count) / total) * 100, 0) : mode === 'value' ? 'annualised' : 'ideas'}</div>
+              <div className="text-[12px] text-muted">{hover != null ? pct(((mode === 'value' ? data[hover].value : data[hover].count) / total) * 100, 0) : mode === 'value' ? 'forecast' : 'ideas'}</div>
             </div>
           </div>
         </div>

@@ -4,8 +4,11 @@ import type { Idea, Part, RiskItem, RiskLevel, RoleKey, Supplier, User } from '.
 import { addMonthsYm, ymOf } from './format'
 import { STAGE } from './masters'
 
-/** Below this annualised saving the supplier capability check is skipped */
+/** Below this forecast saving the supplier capability check is skipped */
 export const SUPPLIER_CHECK_MIN = 5_00_000
+/** Below this forecast saving the whole department evaluation (stage 3) is skipped: team feasibility → department approval */
+export const EVALUATION_MIN = 5_00_000
+export const needsEvaluation = (annual: number) => annual >= EVALUATION_MIN
 /** Stands in for the secure supplier-form link until the request is sent */
 export const SUPPLIER_LINK_PLACEHOLDER = '[secure form link]'
 /** Departments that run their own evaluation; every other department (Sourcing, Supplier, Management…) maps to Sourcing */
@@ -79,7 +82,31 @@ export function overallRisk(risks: RiskItem[]): RiskLevel {
 }
 export const riskTotal = (risks: RiskItem[]) => risks.reduce((a, r) => a + (r.costAtRisk || 0), 0)
 
-/** Saving locked for the approved timeline = annualised × months ÷ 12 */
+/** Timeline in months between two calendar dates (whole months + the part month, to one decimal; never negative) */
+export function monthsBetween(start: string, end: string): number {
+  const [y1, m1, d1] = start.slice(0, 10).split('-').map(Number)
+  const [y2, m2, d2] = end.slice(0, 10).split('-').map(Number)
+  const whole = (y2 - y1) * 12 + (m2 - m1)
+  const days = new Date(y2, m2, 0).getDate()
+  const months = whole + (d2 - d1) / days
+  return months > 0 ? Math.round(months * 10) / 10 : 0
+}
+
+export type SendBackTo = 'submitter' | 'Team feasibility check' | 'Evaluation'
+/** Where an idea can be sent back from its current stage: the submitter (rework and resubmit), the team feasibility
+ *  check, or the department evaluation — never to an evaluation the idea skipped (forecast below ₹ 5 L) */
+export function sendBackTargets(idea: Pick<Idea, 'stage' | 'department' | 'evaluation' | 'parts' | 'scope' | 'openEstimateLakh'> & { stage: string }, annual?: number): { to: SendBackTo; label: string; hint: string }[] {
+  const order = [STAGE.feasibility, STAGE.evaluation, STAGE.approval] as string[]
+  const at = order.indexOf(idea.stage)
+  if (at < 0) return []
+  const skipped = idea.evaluation?.skipped || (annual != null && !needsEvaluation(annual))
+  const out: { to: SendBackTo; label: string; hint: string }[] = [{ to: 'submitter', label: 'Submitter — rework the idea', hint: 'The submitter updates the idea; the team feasibility check runs again' }]
+  if (at >= 1) out.push({ to: STAGE.feasibility, label: 'Team feasibility check', hint: 'The team lead checks feasibility, cost and duplicates again' })
+  if (at >= 2 && !skipped) out.push({ to: STAGE.evaluation, label: stageLabel(idea, STAGE.evaluation), hint: 'Cost-benefit, risk and supplier check again; the feasibility check stands' })
+  return out
+}
+
+/** Saving locked for the approved timeline = forecast × months ÷ 12 */
 export const lockTarget = (annual: number, months: number) => (annual * months) / 12
 
 export function addMonthsIso(isoDate: string, months: number): string {

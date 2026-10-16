@@ -47,7 +47,7 @@ export function ideaDetail(ctx: Ctx, ideas: Idea[], title = 'Idea detail'): Tabl
     { h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Commodity', v: (i) => commodityName(ctx, i.commodity) },
     { h: 'Category', v: (i) => ctx.levers.find((l) => l.id === i.leverId)?.name }, { h: 'Route', v: (i) => i.route }, { h: 'Stage', v: (i) => i.stage }, { h: 'Bucket', v: (i) => i.bucket },
     { h: 'Savings type', v: (i) => i.savingsType }, { h: 'Buyer', v: (i) => nameOf(ctx, i.buyerId) }, { h: 'Plant', v: (i) => i.plant }, { h: 'Department', v: (i) => i.department },
-    { h: 'Annualised', v: (i) => ideaAnnualised(i), f: 'inr' }, { h: `Committed ${ctx.fy}`, v: (i) => committedHard(ctx, i), f: 'inr' }, { h: 'Realised', v: (i) => realisedOf(ctx, [i]), f: 'inr' },
+    { h: 'Forecast', v: (i) => ideaAnnualised(i), f: 'inr' }, { h: `Committed ${ctx.fy}`, v: (i) => committedHard(ctx, i), f: 'inr' }, { h: 'Realised', v: (i) => realisedOf(ctx, [i]), f: 'inr' },
     { h: 'Submitted', v: (i) => i.submittedAt, f: 'date' },
   ])
 }
@@ -61,10 +61,10 @@ export const REPORT_EXPORT: Record<string, (ctx: Ctx, space: Space) => ReportExp
     if (space === 'CO') {
       const top = ctx.ideas.filter((i) => i.bucket === 'In Execution' || i.bucket === 'Implemented').sort((a, b) => ideaAnnualised(b) - ideaAnnualised(a)).slice(0, 10)
       return {
-        kpis: [k(ctx.fv ? 'Realised (validated)' : 'Realised', inrShort(s.realisedCounting)), k('Committed (remaining)', inrShort(s.remainingCommitted)), k('Implemented (annualised)', inrShort(s.values.Implemented)), k('Carry-over to next FY', inrShort(s.carryOver))],
+        kpis: [k(ctx.fv ? 'Realised (validated)' : 'Realised', inrShort(s.realisedCounting)), k('Committed (remaining)', inrShort(s.remainingCommitted)), k('Implemented (forecast)', inrShort(s.values.Implemented)), k('Carry-over to next FY', inrShort(s.carryOver))],
         tables: [
           t('Monthly savings trend', d.trend, [{ h: 'Month', v: (r) => monthLabel(r.month) }, { h: 'Realised', v: (r) => r.realised, f: 'inr' }, { h: 'Validated', v: (r) => r.validated, f: 'inr' }, { h: 'Cumulative', v: (r) => (r.future ? null : r.cumulative), f: 'inr' }]),
-          t('Top 10 ideas by value', top, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Commodity', v: (i) => commodityName(ctx, i.commodity) }, { h: 'Stage', v: (i) => i.stage }, { h: 'Annualised', v: (i) => ideaAnnualised(i), f: 'inr' }, { h: `Committed ${ctx.fy}`, v: (i) => committedHard(ctx, i), f: 'inr' }, { h: 'Realised', v: (i) => realisedOf(ctx, [i]), f: 'inr' }]),
+          t('Top 10 ideas by value', top, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Commodity', v: (i) => commodityName(ctx, i.commodity) }, { h: 'Stage', v: (i) => i.stage }, { h: 'Forecast', v: (i) => ideaAnnualised(i), f: 'inr' }, { h: `Committed ${ctx.fy}`, v: (i) => committedHard(ctx, i), f: 'inr' }, { h: 'Realised', v: (i) => realisedOf(ctx, [i]), f: 'inr' }]),
         ],
       }
     }
@@ -75,8 +75,8 @@ export const REPORT_EXPORT: Record<string, (ctx: Ctx, space: Space) => ReportExp
       tables: [
         t('Funnel by bucket', d.buckets, [{ h: 'Bucket', v: (r) => r.bucket }, { h: 'Ideas', v: (r) => r.count, f: 'int' }, { h: 'Value', v: (r) => r.value, f: 'inr' }]),
         t('Stage-to-stage conversion', d.steps, [{ h: 'Step', v: (r) => r.step }, { h: 'Ideas', v: (r) => r.n, f: 'int' }, { h: 'Conversion from previous', v: (r) => { const k2 = d.steps.indexOf(r); return k2 ? (r.n / Math.max(1, d.steps[k2 - 1].n)) * 100 : 100 }, f: 'pct' }]),
-        t('Monthly idea inflow', inflow, [{ h: 'Month', v: (r) => monthLabel(r.month) }, { h: 'Ideas submitted', v: (r) => r.n, f: 'int' }, { h: 'Annualised value', v: (r) => r.value, f: 'inr' }]),
-        t('Top 10 pipeline ideas', topP, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Commodity', v: (i) => commodityName(ctx, i.commodity) }, { h: 'Stage', v: (i) => i.stage }, { h: 'Buyer', v: (i) => nameOf(ctx, i.buyerId) }, { h: 'Annualised', v: (i) => ideaAnnualised(i), f: 'inr' }]),
+        t('Monthly idea inflow', inflow, [{ h: 'Month', v: (r) => monthLabel(r.month) }, { h: 'Ideas submitted', v: (r) => r.n, f: 'int' }, { h: 'Forecast value', v: (r) => r.value, f: 'inr' }]),
+        t('Top 10 pipeline ideas', topP, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Commodity', v: (i) => commodityName(ctx, i.commodity) }, { h: 'Stage', v: (i) => i.stage }, { h: 'Buyer', v: (i) => nameOf(ctx, i.buyerId) }, { h: 'Forecast', v: (i) => ideaAnnualised(i), f: 'inr' }]),
       ],
     }
   },
@@ -224,7 +224,7 @@ export const REPORT_EXPORT: Record<string, (ctx: Ctx, space: Space) => ReportExp
       tables: [
         t('FY savings & carry-over by commodity', d.rows, [{ h: 'Commodity', v: (r) => r.name }, { h: 'Realised', v: (r) => r.realised, f: 'inr' }, { h: 'Committed (remaining)', v: (r) => r.remaining, f: 'inr' }, { h: `Committed ${ctx.fy}`, v: (r) => r.committed, f: 'inr' }, { h: `Carry-over ${d.next}`, v: (r) => r.carryOver, f: 'inr' }]),
         t('Quarter phasing', d.quarters, [{ h: 'Quarter', v: (r) => r.q }, { h: 'Committed', v: (r) => r.committed, f: 'inr' }, { h: 'Realised', v: (r) => r.realised, f: 'inr' }]),
-        t(`Open ideas rolling into ${d.next}`, d.rollIn, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Stage', v: (i) => i.stage }, { h: 'Due date', v: (i) => i.execution?.targetDate, f: 'date' }, { h: 'Health', v: (i) => (i.execution ? healthOf(i) : '—') }, { h: 'Annualised', v: (i) => ideaAnnualised(i), f: 'inr' }]),
+        t(`Open ideas rolling into ${d.next}`, d.rollIn, [{ h: 'Idea ID', v: (i) => i.id }, { h: 'Title', v: (i) => i.title }, { h: 'Stage', v: (i) => i.stage }, { h: 'Due date', v: (i) => i.execution?.targetDate, f: 'date' }, { h: 'Health', v: (i) => (i.execution ? healthOf(i) : '—') }, { h: 'Forecast', v: (i) => ideaAnnualised(i), f: 'inr' }]),
       ],
     }
   },

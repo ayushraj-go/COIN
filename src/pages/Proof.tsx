@@ -72,7 +72,7 @@ export default function Proof() {
           <Mini label="Part lines traced" value={`${rows.length}`} sub="each with baseline, approved price and MRN qty" />
         </div>
       </div>
-      <Card title="Part-wise proof" icon="Boxes" subtitle="Within each locked savings period: realised = (baseline − approved price) × MRN quantity · plan to date shared by each part's annualised value" pad={false}>
+      <Card title="Part-wise proof" icon="Boxes" subtitle="Within each locked savings period: realised = (baseline − approved price) × MRN quantity · plan to date shared by each part's forecast value" pad={false}>
         <DataTable rows={rows} columns={cols} rowKey={(r) => r.key} onRowClick={(r) => openIdea(r.idea.id)} exportName="COIN_Savings_proof" maxHeight={620} />
       </Card>
     </div>

@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useStore, hasRole } from '../../store/useStore'
 import type { Bucket, Campaign, Category, Commodity, Health, Idea, IdeaPart, Lever, LeverGroup, Plant, RouteKey, SlaRule, Supplier, User } from '../../lib/types'
 import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY, USERS_DEFAULT } from '../../lib/masters'
-import { stageLabel, ideaDept, stageAssignee } from '../../lib/workflow'
+import { stageLabel, ideaDept, needsEvaluation, stageAssignee } from '../../lib/workflow'
 import { can } from '../../lib/nav'
 import { healthOf, ideaAnnualised, leverGroupOf, partAnnualised, savingPct, savingPerUnit, slaStatus, stageAgeDays } from '../../lib/calc'
 import { fmtDate, inrShort, nowIso, uid } from '../../lib/format'
@@ -87,7 +87,7 @@ export const FILTER_KEYS = ['bucket', 'stage', 'commodity', 'category', 'lever',
 export const PARAM_LABEL: Record<string, string> = {
   bucket: 'Bucket', stage: 'Stage', commodity: 'Commodity', category: 'Category', lever: 'Lever', group: 'Lever group', route: 'Route', buyer: 'Buyer',
   owner: 'Owner', submitter: 'Submitter', supplier: 'Supplier', dept: 'Department', campaign: 'Campaign', savingsType: 'Savings type', dropReason: 'Drop reason',
-  health: 'Health', sla: 'SLA', plant: 'Plant', q: 'Search', minValue: 'Annualised ≥', maxValue: 'Annualised ≤', supplierOnly: 'Supplier ideas', fy: 'FY',
+  health: 'Health', sla: 'SLA', plant: 'Plant', q: 'Search', minValue: 'Forecast ≥', maxValue: 'Forecast ≤', supplierOnly: 'Supplier ideas', fy: 'FY',
 }
 const splitVals = (raw: string) => raw.split(',').map((v) => v.trim()).filter(Boolean)
 
@@ -205,8 +205,9 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
     sendBack: pipeline && actor,
     requestInfo: pipeline && actor,
     // pipeline stages are assigned by the ladder — only override users re-point the commodity buyer;
-    // in execution the department head (or override) hands the execution to another owner
-    reassign: (pipeline && head) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
+    // in execution the department head (or override) hands the execution to another owner. At department approval the
+    // head sends the idea back to the stage they choose instead (sendBackTargets) — no reassign there.
+    reassign: (pipeline && head && stage !== STAGE.approval) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
     drop: (pipeline && (actor || head)) || (exec && executor),
     handOver: exec && executor && idea.execution?.status === 'In Execution',
     // stage 6 — Finance verifies the locked target
@@ -268,12 +269,14 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   const stages = stagesOf(idea)
   const stage = stages.find((s) => target.stages.includes(s))
   if (!stage) return { ok: false, reason: `There is no “${target.label}” stage` }
+  const small = !needsEvaluation(ideaAnnualised(idea))
+  if (small && stage === STAGE.evaluation) return { ok: false, reason: `${idea.id} is forecast below ₹ 5 L — it skips the ${stageLabel(idea, STAGE.evaluation)}` }
   const ai = stages.indexOf(STAGE.approval), ci = stages.indexOf(idea.stage), ti = stages.indexOf(stage)
   if (ci > ai && ti <= ai) return { ok: false, reason: 'Approved values are locked — an idea in execution cannot return to IN' }
   // forward moves need the stage form of every stage being left
   if (ti > ci) {
     if (ci <= stages.indexOf(STAGE.feasibility) && ti > stages.indexOf(STAGE.feasibility) && idea.feasibilityCheck?.decision !== 'Go') return { ok: false, reason: 'Open the idea and complete the Team feasibility check (Go / No-go) first' }
-    if (ci <= stages.indexOf(STAGE.evaluation) && ti > stages.indexOf(STAGE.evaluation) && idea.evaluation?.decision !== 'Recommend') return { ok: false, reason: `Open the idea and complete the ${stageLabel(idea, STAGE.evaluation)} (cost-benefit, risk, supplier check) first` }
+    if (!small && ci <= stages.indexOf(STAGE.evaluation) && ti > stages.indexOf(STAGE.evaluation) && idea.evaluation?.decision !== 'Recommend') return { ok: false, reason: `Open the idea and complete the ${stageLabel(idea, STAGE.evaluation)} (cost-benefit, risk, supplier check) first` }
     if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the budget & timeline lock and approve in department approval before execution can start' }
   }
   if (ti > ai && ci <= ai) {
@@ -340,7 +343,7 @@ export function exportIdeas(rows: IdeaRow[], ctx: Ctx, filename: string) {
       'Idea ID': i.id, Title: i.title, FY: i.fy, 'Buying type': i.buyingType,
       Category: ctx.categories.find((c) => c.id === i.categoryId)?.name ?? i.categoryId, Commodity: r.commodityName,
       Lever: r.leverName, 'Lever group': r.group, Route: i.route, Stage: i.stage, Bucket: i.bucket,
-      'Annualised impact (₹)': Math.round(r.annual), 'Savings type': i.savingsType, 'One-time investment (₹)': i.oneTimeInvestment || 0,
+      'Forecast impact (₹)': Math.round(r.annual), 'Savings type': i.savingsType, 'One-time investment (₹)': i.oneTimeInvestment || 0,
       Scope: i.scope, Submitter: i.submitterName, 'Employee / vendor ID': i.employeeId, Department: i.department,
       'Supplier submission': i.isSupplierSubmission ? `Yes — ${i.supplierCode ?? ''}` : 'No',
       'Buyer / owner': r.ownerName, Plant: i.plant, 'Submitted on': fmtDate(r.submitted),
@@ -354,7 +357,7 @@ export function exportIdeas(rows: IdeaRow[], ctx: Ctx, filename: string) {
     'Idea ID': r.id, 'Part code': p.partCode, Description: p.description, UoM: p.uom, 'Current supplier': p.currentSupplier,
     'Baseline (₹ / unit)': p.baselinePrice, 'Baseline source': p.baselineSource, 'New price (₹ / unit)': p.newPrice,
     'Approved price (₹ / unit)': p.approvedPrice ?? '', 'Annual volume': p.annualVolume, 'Volume source': p.volumeSource,
-    'Saving / unit (₹)': +savingPerUnit(p).toFixed(4), 'Saving %': +savingPct(p).toFixed(2), 'Annualised (₹)': Math.round(partAnnualised(p)),
+    'Saving / unit (₹)': +savingPerUnit(p).toFixed(4), 'Saving %': +savingPct(p).toFixed(2), 'Forecast (₹)': Math.round(partAnnualised(p)),
   })))
   exportExcel(filename, [{ name: 'Ideas', rows: ideas }, { name: 'Part-wise savings', rows: parts }])
 }

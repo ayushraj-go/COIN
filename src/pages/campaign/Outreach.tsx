@@ -8,7 +8,7 @@ import { commodityShort, renderSupplierTemplate, supplierTemplateVars, useMe, us
 import { SUPPLIER_EMAIL_TEMPLATES_DEFAULT, SUPPLIER_TEMPLATE_PLACEHOLDERS } from '../../lib/masters'
 import { can } from '../../lib/nav'
 import { addDays, fmtDateTime, timeAgo, todayIso } from '../../lib/format'
-import { Button, EmptyState, Field, Icon, Modal, cn } from '../../components/ui'
+import { Button, EmptyState, Field, Icon, LinkText, Modal, cn } from '../../components/ui'
 import { batchName, kindForTemplate, linkResponses } from './metrics'
 import { Pager, Panel, Pill, PortalIndicator, PortalTag, Seg, usePaged, type PillTone } from './kit'
 
@@ -33,7 +33,7 @@ export function EmailPreview({ from, to, subject, body, clamp, fit, className }:
         <div className="flex gap-2 min-w-0"><span className="text-muted w-14 shrink-0">Subject</span><span className="text-ink font-semibold truncate min-w-0" title={subject}>{subject || '—'}</span></div>
       </div>
       <div className={cn('relative px-4 py-3 text-[12.5px] leading-[1.6] text-ink-2 whitespace-pre-wrap break-words', clamp && 'line-clamp-[16]', fit && 'flex-1 min-h-0 overflow-hidden')}>
-        {body || <span className="text-muted">Nothing to preview yet.</span>}
+        {body ? <LinkText text={body} /> : <span className="text-muted">Nothing to preview yet.</span>}
         {fit && <span className="pointer-events-none absolute left-0 right-0 bottom-0 h-8 bg-gradient-to-t from-white to-transparent" />}
       </div>
     </div>
