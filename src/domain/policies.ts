@@ -90,7 +90,7 @@ export const POLICIES: Record<string, CommandPolicy> = {
       const g = groupOfStage(String(ctx.args[1]))
       if (!g) return 'Unknown stage'
       const r = kanbanMove(ctx.me, i, g.key, ctx.state.users)
-      return r.ok ? null : r.reason || 'Not allowed'
+      return r.ok ? null : (r as { reason?: string }).reason || 'Not allowed'
     }),
   },
   dropIdea: { check: perm('drop', 'drop the idea') },

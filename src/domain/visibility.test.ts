@@ -63,8 +63,9 @@ describe('visibleDelta', () => {
     const hidden = data.ideas.find((i) => !canSeeIdea(me, i))!
     const after: DomainState = { ...state, ideas: state.ideas.map((i) => (i.id === target.id ? { ...i, title: 'changed' } : i.id === hidden.id ? { ...i, title: 'secret' } : i)).filter((i) => i.id !== data.ideas[data.ideas.length - 1].id) }
     const d = visibleDelta(me, before, after)
-    expect(d.ideas?.upsert.map((i) => i.id)).toEqual([target.id])
-    expect(d.ideas?.remove).toContain(data.ideas[data.ideas.length - 1].id)
+    const ideas = d.ideas as { upsert: { id: string }[]; remove: string[] }
+    expect(ideas.upsert.map((i) => i.id)).toEqual([target.id])
+    expect(ideas.remove).toContain(data.ideas[data.ideas.length - 1].id)
     expect(d.users).toBeUndefined()
   })
 })

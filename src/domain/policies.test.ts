@@ -24,7 +24,7 @@ describe('stage actions follow the department ladder', () => {
     const hidden = data.ideas.find((x) => x.department === 'HR' && x.bucket === 'Pipeline')!
     const r = run('u-rd-tl', 'recordFeasibility', hidden.id)
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.reason).toBe('Idea not found')
+    expect((r as { reason?: string }).reason).toBe('Idea not found')
   })
   it('internal steps and the supplier form are not callable as commands', () => {
     expect(run('u-admin', 'advance', data.ideas[0].id, 'x').ok).toBe(false)
