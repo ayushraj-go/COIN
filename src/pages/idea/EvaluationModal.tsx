@@ -94,13 +94,14 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
   const phSum = sum(QS.map((q) => f.phasing[q]))
   const changed = f0.edited.length + (phasing ? 1 : 0)
 
-  const saveCba = (verify: boolean) => {
+  // Next saves quietly — the step bar's check mark shows it; Save says so in a toast
+  const saveCba = (verify: boolean, quiet = false) => {
     // only what the evaluator typed over is stored; everything else stays automatic
     const cbaInputs = { ...typed, phasing }
     useStore.getState().saveEvaluation(idea.id, { cbaVerified: verify || !!ev?.cbaVerified, cbaNote: cbaNote.trim() || undefined, cbaInputs })
-    toast()(verify ? 'Cost-benefit analysis verified and saved' : 'Cost-benefit analysis saved')
+    if (!quiet) toast()(verify ? 'Cost-benefit analysis verified and saved' : 'Cost-benefit analysis saved')
   }
-  const saveRisk = () => { useStore.getState().saveEvaluation(idea.id, { risks, riskRemarks: riskRemarks.trim() || undefined }); toast()(`Risk assessment saved — overall ${overallRisk(risks)}, ${inrShort(riskTotal(risks))} at risk`) }
+  const saveRisk = (quiet = false) => { useStore.getState().saveEvaluation(idea.id, { risks, riskRemarks: riskRemarks.trim() || undefined }); if (!quiet) toast()(`Risk assessment saved — overall ${overallRisk(risks)}, ${inrShort(riskTotal(risks))} at risk`) }
   const decide = (d: 'Recommend' | 'Reject') => {
     useStore.getState().recordEvaluation(idea.id, d, remarks.trim() || undefined)
     toast()(d === 'Recommend' ? `${idea.id} recommended — sent for ${stageLabel(idea, STAGE.approval)}` : `${idea.id} rejected at ${deptLabel} — dropped for good`, d === 'Recommend' ? 'success' : 'warning')
@@ -120,8 +121,8 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
     <>
       <Button variant="ghost" onClick={onClose} className="mr-auto">Close</Button>
       {idx > 0 && <Button icon="ArrowLeft" onClick={() => go(idx - 1)}>Back</Button>}
-      {step === 'cba' && <><Button icon="Save" onClick={() => saveCba(false)}>Save</Button><Button variant="primary" iconRight="ArrowRight" onClick={() => { saveCba(true); go(1) }}>Verify &amp; next</Button></>}
-      {step === 'risk' && <><Button icon="Save" onClick={saveRisk}>Save</Button><Button variant="primary" iconRight="ArrowRight" onClick={() => { saveRisk(); go(2) }}>Save &amp; next</Button></>}
+      {step === 'cba' && <><Button icon="Save" onClick={() => saveCba(false)}>Save</Button><Button variant="primary" iconRight="ArrowRight" onClick={() => { saveCba(true, true); go(1) }}>Verify &amp; next</Button></>}
+      {step === 'risk' && <><Button icon="Save" onClick={() => saveRisk()}>Save</Button><Button variant="primary" iconRight="ArrowRight" onClick={() => { saveRisk(true); go(2) }}>Save &amp; next</Button></>}
       {step === 'supplier' && <Button variant="primary" iconRight="ArrowRight" onClick={() => go(3)}>Next</Button>}
       {step === 'decision' && <>
         <Button variant="ghost" icon="Undo2" disabled={!remarks.trim()} onClick={sendBack}>Send back to feasibility</Button>
