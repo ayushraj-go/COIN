@@ -76,11 +76,7 @@ function inviteAdded(c: Campaign, codes: string[]) {
   const s = useStore.getState()
   const sups = s.suppliers.filter((x) => codes.includes(x.code))
   if (!sups.length) return
-  useStore.setState((st) => ({
-    emails: [{ id: uid('e'), at: nowIso(), to: sups.map((x) => x.contactEmail), subject: `COIN · Invitation: ${c.name}`, body: `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, template: 'Workshop invitation' }, ...st.emails],
-    campaigns: st.campaigns.map((x) => (x.id === c.id ? { ...x, attendance: { ...x.attendance, ...Object.fromEntries(codes.map((k) => [k, x.attendance[k] ?? 'Invited'])) } } : x)),
-  }))
-  sups.forEach((sp) => { const u = s.users.find((x) => x.supplierCode === sp.code); if (u) s.notify({ userId: u.id, title: 'Workshop invitation', body: c.name, trigger: 'Workshop invitation', channel: 'Email', link: '/workshops', severity: 'info' }) })
+  s.inviteCampaignSuppliers(c.id, codes)
   s.toast(`Invites emailed to ${sups.length} added supplier${sups.length === 1 ? '' : 's'}: ${listEmails(sups.map((x) => x.contactEmail))}`, 'success')
 }
 
@@ -153,7 +149,7 @@ export function CampaignFormModal({ open, onClose, initial, onSaved }: { open: b
     workshopDate: d.type === 'Workshop' || d.workshopDate ? d.workshopDate || undefined : undefined, venue: d.type === 'Workshop' || d.venue ? d.venue.trim() || undefined : undefined,
     suppliers: d.suppliers, internalInvitees: d.internalInvitees, description: d.description.trim(),
   })
-  const save = (launch: boolean) => {
+  const save = async (launch: boolean) => {
     setShowErr(true)
     if (Object.keys(errors).length) { toast(`${Object.keys(errors).length} field(s) need attention`, 'error'); return }
     if (edit && initial) {
@@ -167,7 +163,7 @@ export function CampaignFormModal({ open, onClose, initial, onSaved }: { open: b
       }
       onSaved?.(initial.id)
     } else {
-      const id = createCampaign({ ...payload(), targetIdeas: 0, targetValue: 0, status: 'Draft' })
+      const id = await createCampaign({ ...payload(), targetIdeas: 0, targetValue: 0, status: 'Draft' })
       if (launch) launchWithToast(id)
       else toast(`${d.name.trim()} saved as draft (${id}) — launch it to send auto-invites`, 'success')
       onSaved?.(id)

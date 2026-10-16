@@ -17,7 +17,7 @@ const signValidLock = (id: string) => {
 beforeEach(() => { st().resetDemo(); st().loginAs('u-head') })
 
 describe('send back clears the stage records (review #1)', () => {
-  it('a sent-back idea must pass feasibility, evaluation and lock again', () => {
+  it('a sent-back idea must pass feasibility, evaluation and lock again', async () => {
     const id = show(3).id
     signValidLock(id)
     st().sendBack(id, 'Rework the baseline')
@@ -29,24 +29,24 @@ describe('send back clears the stage records (review #1)', () => {
     expect(i.approvals.every((a) => !a.decision)).toBe(true)
     expect(kanbanMove(user('u-head'), i, 'approval').ok).toBe(false)
   })
-  it('approve refuses a lock whose target no longer matches the idea', () => {
+  it('approve refuses a lock whose target no longer matches the idea', async () => {
     const id = show(3).id
     const i = idea(id)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: 999, signatureName: 'x' })
-    expect(st().approve(id)).toBe(false)
+    expect(await st().approve(id)).toBe(false)
     expect(idea(id).stage).toBe(STAGE.approval)
     void i
   })
 })
 
 describe('verification (review #2, #3)', () => {
-  it('only the business side may verify — not the buyer who executed it', () => {
+  it('only the business side may verify — not the buyer who executed it', async () => {
     const s5 = show(5)
     expect(ideaPerms(user(s5.buyerId), s5).verify).toBe(false)
     expect(ideaPerms(user('u-head'), s5).verify).toBe(true)
     expect(ideaPerms(user('u-fin'), s5).verify).toBe(true)
   })
-  it('verifying with a failed check is logged as an exception, never as "target achieved"', () => {
+  it('verifying with a failed check is logged as an exception, never as "target achieved"', async () => {
     const id = show(5).id
     st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: false, remarks: 'Accepted — volume dip in September', targetAtVerification: 100 })
     const i = idea(id)
@@ -57,13 +57,13 @@ describe('verification (review #2, #3)', () => {
 })
 
 describe('feasibility team (review #4)', () => {
-  it('a submitter cannot clear the feasibility check of their own idea', () => {
+  it('a submitter cannot clear the feasibility check of their own idea', async () => {
     const s1 = show(1)
     expect(s1.submitterId).toBe('u-sub1')
     expect(ideaPerms(user('u-sub1'), s1).feasibilityCheck).toBe(false)
     expect(ideaPerms(user('u-head'), s1).feasibilityCheck).toBe(true)
   })
-  it("the team lead of the submitter's department does the check; other departments neither see nor act", () => {
+  it("the team lead of the submitter's department does the check; other departments neither see nor act", async () => {
     const s1 = show(1) // R&D idea
     expect(canSeeIdea(user('u-rd-tl'), s1)).toBe(true)
     expect(ideaPerms(user('u-rd-tl'), s1).feasibilityCheck).toBe(true)
@@ -73,7 +73,7 @@ describe('feasibility team (review #4)', () => {
 })
 
 describe('return to execution resets the hand-over (review minor #3, regraded)', () => {
-  it('an idea returned from verification no longer looks implemented or handed over', () => {
+  it('an idea returned from verification no longer looks implemented or handed over', async () => {
     const id = show(5).id
     st().returnToExecution(id, 'MRN price above approved in September')
     const i = idea(id)
@@ -86,7 +86,7 @@ describe('return to execution resets the hand-over (review minor #3, regraded)',
 })
 
 describe('verification uses MRN inside the lock window (review minor #10, regraded)', () => {
-  it('realisedAtVerification counts only MRN months inside the locked period', () => {
+  it('realisedAtVerification counts only MRN months inside the locked period', async () => {
     const id = show(6).id
     const i = idea(id)
     const inWindow = st().ledger.filter((l) => l.ideaId === id && l.month >= i.lock!.startDate.slice(0, 7) && l.month < i.lock!.endDate.slice(0, 7)).reduce((a, l) => a + l.realised, 0)
@@ -98,7 +98,7 @@ describe('verification uses MRN inside the lock window (review minor #10, regrad
 })
 
 describe('department approval and execution owner (department ladder)', () => {
-  it('a recommended idea waits on its own department head, who approves; execution goes to the department execution owner', () => {
+  it('a recommended idea waits on its own department head, who approves; execution goes to the department execution owner', async () => {
     const s2 = show(2)
     const dept = s2.evaluation!.dept
     expect(dept).not.toBe('Sourcing')
@@ -111,7 +111,7 @@ describe('department approval and execution owner (department ladder)', () => {
     expect(st().notifications.some((n) => n.userId === head.id && n.ideaId === s2.id)).toBe(true)
     st().loginAs(head.id)
     signValidLock(s2.id)
-    expect(st().approve(s2.id)).toBe(true)
+    expect(await st().approve(s2.id)).toBe(true)
     const b = idea(s2.id)
     expect(b.stage).toBe(STAGE.execution)
     expect(b.approvals[0]).toMatchObject({ decision: 'Approved', approverId: head.id })

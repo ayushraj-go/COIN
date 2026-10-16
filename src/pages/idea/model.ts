@@ -298,25 +298,13 @@ export function ownerCandidates(idea: Idea, users: User[]): User[] {
 }
 
 // ─── Undo (5 s) on non-final actions ──────────────────────────────────────────
-export function restoreIdea(snap: Idea, label: string) {
-  const s = useStore.getState()
-  const me = s.users.find((u) => u.id === s.userId)
-  const cur = s.ideas.find((i) => i.id === snap.id)
-  // a dropped or rejected idea stays dropped — nothing brings it back; start a new idea instead
-  if (cur && (cur.stage === 'Dropped' || cur.stage === 'Rejected')) { s.toast(`${snap.id} is ${cur.stage.toLowerCase()} and cannot be restored — submit a new idea instead`, 'warning'); return }
-  const entry = {
-    id: uid('a'), at: nowIso(), userId: me?.id ?? 'system', userName: me?.name ?? 'System', action: `Undone: ${label}`,
-    ...(cur && cur.stage !== snap.stage ? { field: 'stage', oldValue: cur.stage, newValue: snap.stage } : {}),
-  }
-  useStore.setState((st) => ({ ideas: st.ideas.map((i) => (i.id === snap.id ? { ...snap, activity: [...snap.activity, entry] } : i)) }))
-  s.toast(`${snap.id} restored`, 'info')
-}
 export function withUndo(id: string, fn: () => void, message: string, opts: { final?: boolean; type?: 'success' | 'error' | 'info' | 'warning' } = {}) {
   const st = useStore.getState()
-  const snap = st.ideas.find((i) => i.id === id)
+  const known = st.ideas.some((i) => i.id === id)
+  // final actions (drop, reject) are never undone; everything else can be put back for 5 seconds
+  const undo = opts.final || !known ? undefined : st.beginUndo()
   fn()
-  if (opts.final || !snap) st.toast(message, opts.type ?? 'success')
-  else st.toast(message, opts.type ?? 'success', () => restoreIdea(snap, message))
+  st.toast(message, opts.type ?? 'success', undo)
 }
 
 // ─── Source tags & part maths ────────────────────────────────────────────────

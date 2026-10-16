@@ -124,10 +124,10 @@ export default function Login() {
   const [keep, setKeep] = useState(true)
   const [forgot, setForgot] = useState(false)
   const go = () => nav(loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/', { replace: true })
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password) { setErr('Enter your work email / employee ID and password.'); return }
-    if (login(email, password)) { toast('Welcome to COIN · Cost Innovation Hub'); go() }
+    if (await login(email, password)) { toast('Welcome to COIN · Cost Innovation Hub'); go() }
     else setErr('Invalid credentials. For this demo every persona uses the password coin@2026.')
   }
   const stats: [string, string, string][] = [

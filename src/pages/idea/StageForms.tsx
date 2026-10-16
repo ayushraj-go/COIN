@@ -428,10 +428,10 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   const finalStep = head || pending.length <= 1
   const supplierAligned: ApprovalLock['supplierAligned'] = sc?.status === 'Responded' && sc.response?.canSupply !== 'No' ? 'Confirmed' : sc?.status === 'Skipped' ? 'Skipped' : 'Not confirmed'
   const canSign = commercialOk && !!sig && !!sigName.trim() && !!start && Number(budgetL) >= 0
-  const approveNow = () => {
+  const approveNow = async () => {
     const st = useStore.getState()
-    if (!locked) st.signLock(idea.id, { commercialOk, supplierAligned, budget: Math.round(Number(budgetL) * 1e5), timelineMonths: months, startDate: start, endDate: end, targetSaving: target, signatureName: sigName.trim(), signatureData: sig ?? undefined })
-    const ok = st.approve(idea.id, remarks.trim() || undefined)
+    if (!locked) await st.signLock(idea.id, { commercialOk, supplierAligned, budget: Math.round(Number(budgetL) * 1e5), timelineMonths: months, startDate: start, endDate: end, targetSaving: target, signatureName: sigName.trim(), signatureData: sig ?? undefined })
+    const ok = await st.approve(idea.id, remarks.trim() || undefined)
     if (ok) toast()(finalStep ? `${idea.id} approved — execution started in Cost Optimisation` : `Approved at ${pending[0]?.level} — pending ${pending[1]?.level}`, 'success')
     onClose()
   }

@@ -58,7 +58,7 @@ export function MilestoneNoteModal({ idea, open, onClose, milestoneId }: { idea:
     const undo = snapshot([idea.id])
     const st = useStore.getState()
     if (markDone && !m.doneDate) st.toggleMilestone(idea.id, m.id, note.trim())
-    else useStore.setState((s) => ({ ideas: s.ideas.map((i) => (i.id === idea.id && i.execution ? { ...i, execution: { ...i.execution, milestones: i.execution.milestones.map((x) => (x.id === m.id ? { ...x, note: note.trim() } : x)) } } : i)) }))
+    else st.setMilestoneNote(idea.id, m.id, note.trim())
     st.addExecutionNote(idea.id, `${m.name}: ${note.trim()}`)
     toast(`Note added to “${m.name}”${markDone && !m.doneDate ? ' — milestone marked done' : ''}`, 'success', undo)
     onClose()

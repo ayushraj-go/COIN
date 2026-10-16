@@ -61,8 +61,8 @@ export default function SupplierForm() {
   )
 
   const valid = !!canSupply && !!meetsSpec && !!contact.trim()
-  const submit = () => {
-    const ok = useStore.getState().respondSupplierCheck(token, { canSupply: canSupply as Resp['canSupply'], meetsSpec: meetsSpec as Resp['meetsSpec'], capacityPerMonth: capacity.trim() || undefined, leadTimeDays: Number(lead) || undefined, indicativePrice: Number(price) || undefined, certifications: certs.trim() || undefined, remarks: remarks.trim() || undefined, contactName: contact.trim(), respondedAt: nowIso() })
+  const submit = async () => {
+    const ok = await useStore.getState().respondSupplierCheck(token, { canSupply: canSupply as Resp['canSupply'], meetsSpec: meetsSpec as Resp['meetsSpec'], capacityPerMonth: capacity.trim() || undefined, leadTimeDays: Number(lead) || undefined, indicativePrice: Number(price) || undefined, certifications: certs.trim() || undefined, remarks: remarks.trim() || undefined, contactName: contact.trim(), respondedAt: nowIso() })
     if (ok) setDone(true); else setFailed(true)
   }
   return shell(

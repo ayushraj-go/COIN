@@ -131,10 +131,10 @@ export function CrudSection<T extends Record<string, any>>({
     if (v2) return setErr(v2)
     const item = fromUi ? fromUi(d) : d
     if (typeof item[idKey] === 'string') (item as any)[idKey] = item[idKey].trim()
-    const prev = (useStore.getState() as Store)[storeKey] as any[]
+    const undo = useStore.getState().beginUndo()
     upsert(storeKey as any, item, idKey)
     onSaved?.(item, open.isNew)
-    toast(`${entity} ${open.isNew ? 'added' : 'updated'} · ${item.name ?? item.description ?? item[idKey]}`, 'success', () => useStore.setState({ [storeKey]: prev } as any))
+    toast(`${entity} ${open.isNew ? 'added' : 'updated'} · ${item.name ?? item.description ?? item[idKey]}`, 'success', undo)
     setOpen(null)
   }
   const del = () => {
@@ -142,9 +142,9 @@ export function CrudSection<T extends Record<string, any>>({
     const row = rows.find((r) => r[idKey] === open.draft[idKey])
     const why = row && blockDelete?.(row)
     if (why) return setErr(why)
-    const prev = (useStore.getState() as Store)[storeKey] as any[]
+    const undo = useStore.getState().beginUndo()
     remove(storeKey, open.draft[idKey], idKey)
-    toast(`${entity} ${open.draft.name ?? open.draft[idKey]} deleted`, 'warning', () => useStore.setState({ [storeKey]: prev } as any))
+    toast(`${entity} ${open.draft.name ?? open.draft[idKey]} deleted`, 'warning', undo)
     setOpen(null)
   }
   const editCols: Column<T>[] = [...columns, { key: '__edit', label: '', width: 44, render: () => <Icon name={ro ? 'Eye' : 'PencilLine'} size={14} className="text-muted" /> }]

@@ -120,9 +120,9 @@ export function LeverAdmin() {
   ]
   const toggle = (l: Lever) => {
     if (ro) return
-    const prev = useStore.getState().levers
+    const undo = useStore.getState().beginUndo()
     upsert('levers', { ...l, active: !l.active })
-    toast(`${l.name} ${l.active ? 'deactivated — hidden on the submission form' : 'activated'}`, 'success', () => useStore.setState({ levers: prev }))
+    toast(`${l.name} ${l.active ? 'deactivated — hidden on the submission form' : 'activated'}`, 'success', undo)
   }
   return (
     <div className="grid gap-3">
@@ -312,9 +312,9 @@ export function UserAdmin() {
   ]
   const toggle = (u: User) => {
     if (ro) return
-    const prev = useStore.getState().users
+    const undo = useStore.getState().beginUndo()
     upsert('users', { ...u, active: !u.active })
-    toast(`${u.name} ${u.active ? 'deactivated — cannot sign in' : 'activated'}`, 'success', () => useStore.setState({ users: prev }))
+    toast(`${u.name} ${u.active ? 'deactivated — cannot sign in' : 'activated'}`, 'success', undo)
   }
   const unmapped = commodities.filter((c) => !users.some((u) => u.active && u.roles.includes('buyer') && u.commodities.includes(c.code)))
   return (

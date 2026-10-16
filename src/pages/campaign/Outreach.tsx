@@ -271,8 +271,8 @@ export function EmailTemplatesTab({ onUse }: { onUse?: (templateId: string) => v
   const tokensOf = (t: SupplierEmailTemplate) => SUPPLIER_TEMPLATE_PLACEHOLDERS.filter((p) => usesToken(t, p.key))
   const pg = usePaged(templates, 8, page)
 
-  const duplicate = (t: SupplierEmailTemplate) => {
-    const id = save({ name: `${t.name} (copy)`, purpose: t.purpose, subject: t.subject, body: t.body })
+  const duplicate = async (t: SupplierEmailTemplate) => {
+    const id = await save({ name: `${t.name} (copy)`, purpose: t.purpose, subject: t.subject, body: t.body })
     setSelId(id)
     setPage(Math.floor(templates.length / 8))
     toast(`Duplicated “${t.name}” — edit the copy to tailor it`, 'success')
@@ -360,9 +360,9 @@ export function TemplateEditor({ open, template, readOnly, onClose, onSaved }: {
     setter(cur.slice(0, a) + token + cur.slice(b))
     requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(a + token.length, a + token.length) })
   }
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim() || !subject.trim() || !body.trim()) { setErr(true); return }
-    const id = save({ id: template?.id, name: name.trim(), purpose: purpose.trim(), subject: subject.trim(), body })
+    const id = await save({ id: template?.id, name: name.trim(), purpose: purpose.trim(), subject: subject.trim(), body })
     toast(`Template “${name.trim()}” saved`, 'success')
     onSaved?.(id)
     onClose()

@@ -22,20 +22,9 @@ export function useMediaQuery(q: string) {
 }
 
 // ─── Undo (5 s) for non-final actions: snapshot → restore ─────────────────────
-/** Captures the ideas / ledger rows an action touches plus the notification & email logs, and returns a restore function. */
-export function snapshot(ideaIds: string[] = [], ledgerIds: string[] = []) {
-  const s = useStore.getState()
-  const ideas = new Map(s.ideas.filter((i) => ideaIds.includes(i.id)).map((i) => [i.id, i]))
-  const rows = new Map(s.ledger.filter((l) => ledgerIds.includes(l.id)).map((l) => [l.id, l]))
-  const nIds = new Set(s.notifications.map((n) => n.id))
-  const eIds = new Set(s.emails.map((e) => e.id))
-  return () =>
-    useStore.setState((st) => ({
-      ideas: st.ideas.map((i) => ideas.get(i.id) ?? i),
-      ledger: st.ledger.map((l) => rows.get(l.id) ?? l),
-      notifications: st.notifications.filter((n) => nIds.has(n.id)),
-      emails: st.emails.filter((e) => eIds.has(e.id)),
-    }))
+/** Call before an undoable action; returns the function that undoes it (api mode: undone on the server) */
+export function snapshot(_ideaIds: string[] = [], _ledgerIds: string[] = []) {
+  return useStore.getState().beginUndo()
 }
 export const toast = (msg: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', undo?: () => void) => useStore.getState().toast(msg, type, undo)
 

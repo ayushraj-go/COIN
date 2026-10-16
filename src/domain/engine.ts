@@ -1,0 +1,786 @@
+// The COIN workflow engine — every action that changes data, written once and run in two places:
+// the browser store in local (demo) mode, and the API server for every command in api mode.
+// It only needs zustand-style set/get over DomainState plus a few hooks for side effects that differ per host.
+import type {
+  ApprovalLock, ApprovalRule, Attachment, Campaign, Category, Commodity, EmailLog, EmailPrefs, EmailTemplate, Evaluation, FeasibilityCheck, Idea, LedgerEntry, Lever, SupplierCheck,
+  Notification, Part, Plant, SavedView, Settings, SlaRule, Supplier, User,
+} from '../lib/types'
+import {
+  APPROVAL_RULES_DEFAULT, CATEGORIES_DEFAULT, COMMODITIES_DEFAULT, DEPARTMENTS, DROP_REASONS, EMAIL_TEMPLATES_DEFAULT, LEVERS_DEFAULT,
+  MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, EVALUATION_STAGES, STAGE,
+} from '../lib/masters'
+import { buildSeed, realiseMonth } from '../lib/seed'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsSupplierCheck, stageAssignee, stageLabel, SUPPLIER_LINK_PLACEHOLDER } from '../lib/workflow'
+import { fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
+import { bucketFor, ideaAnnualised, phaseByQuarter, summarise } from '../lib/calc'
+import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus } from '../lib/types'
+import { OUTREACH_BATCHES_DEFAULT, SUPPLIER_EMAIL_TEMPLATES_DEFAULT, SUPPLIER_RESPONSES_DEFAULT } from '../lib/masters'
+
+export const DEFAULT_SETTINGS: Settings = {
+  financeValidation: true, xThresholdLakh: 50, yThresholdLakh: 25, fyStartMonth: 4, currentFy: 'FY27', reapprovalPct: 5,
+  sessionTimeoutMin: 30, mailerRecipients: ['cxo-list@ambergroupindia.com', 'rajesh.khanna@ambergroupindia.com', 'girish.saluja@ambergroupindia.com'],
+  leaderboardVisible: true, density: 'compact', lastRealisationMonth: '2026-08',
+}
+
+/** Everything the engine reads and writes — the persisted data of one organisation */
+export interface DomainData {
+  users: User[]
+  levers: Lever[]
+  categories: Category[]
+  commodities: Commodity[]
+  plants: Plant[]
+  departments: string[]
+  suppliers: Supplier[]
+  parts: Part[]
+  dropReasons: string[]
+  slaRules: SlaRule[]
+  approvalRules: ApprovalRule[]
+  emailTemplates: EmailTemplate[]
+  settings: Settings
+  buyerTargets: Record<string, number> // buyerId → ₹ FY target
+  plantTargets: Record<string, number>
+  ideas: Idea[]
+  campaigns: Campaign[]
+  ledger: LedgerEntry[]
+  notifications: Notification[]
+  emails: EmailLog[]
+  savedViews: SavedView[]
+  emailPrefs: Record<string, EmailPrefs>
+  fyClosed: Record<string, boolean>
+  supplierTemplates: SupplierEmailTemplate[]
+  outreachBatches: OutreachBatch[]
+  supplierResponses: SupplierResponse[]
+  supplierPortalSyncAt: string
+}
+export const DATA_KEYS = ['users', 'levers', 'categories', 'commodities', 'plants', 'departments', 'suppliers', 'parts', 'dropReasons', 'slaRules', 'approvalRules', 'emailTemplates', 'settings', 'buyerTargets', 'plantTargets', 'ideas', 'campaigns', 'ledger', 'notifications', 'emails', 'savedViews', 'emailPrefs', 'fyClosed', 'supplierTemplates', 'outreachBatches', 'supplierResponses', 'supplierPortalSyncAt'] as const satisfies readonly (keyof DomainData)[]
+
+/** The engine's view of the world: the data plus who is acting */
+export interface DomainState extends DomainData { userId: string | null }
+
+/** Side effects that differ between the browser and the server */
+export interface EngineHooks {
+  /** a business rule refused the action (browser: warning toast; server: 409 with this message) */
+  warn: (message: string) => void
+  /** an idea was implemented (browser: confetti) */
+  celebrate?: () => void
+  /** origin of the web app, used in emailed links (supplier capability form) */
+  appUrl: () => string
+}
+
+export interface DomainActions {
+  saveDraft: (draft: Partial<Idea>, existingId?: string) => string
+  submitIdea: (draft: Partial<Idea>, existingId?: string) => string
+  updateIdea: (id: string, patch: Partial<Idea>, action?: string, remarks?: string) => void
+  deleteDraft: (id: string) => void
+  advance: (id: string, action: string, remarks?: string) => void
+  /** Stage 2 — four checks; Go → evaluation, No-go → dropped */
+  recordFeasibility: (id: string, c: Omit<FeasibilityCheck, 'by' | 'byDept' | 'at'>) => void
+  /** Stage 3 — save part of the evaluation (cost-benefit, risk) without deciding */
+  saveEvaluation: (id: string, patch: Partial<Omit<Evaluation, 'dept'>>) => void
+  /** Stage 3 — supplier capability email; returns the secure form token */
+  sendSupplierCheck: (id: string, s: { supplierCode?: string; supplierName: string; contactName: string; email: string; item: string; spec: string; requiredBy: string; subject: string; body: string }) => string
+  /** Public supplier form — false when the token is unknown or already answered */
+  respondSupplierCheck: (token: string, r: NonNullable<SupplierCheck['response']>) => boolean
+  skipSupplierCheck: (id: string) => void
+  /** Stage 3 — Recommend → department approval, Reject → dropped */
+  recordEvaluation: (id: string, decision: 'Recommend' | 'Reject', remarks?: string) => void
+  /** Stage 4 — budget + timeline lock, signed */
+  signLock: (id: string, lock: Omit<ApprovalLock, 'signedAt' | 'signedBy'>) => void
+  /** Stage 4 — the department head approves (Sourcing Head / Admin as override); needs a signed, current lock */
+  approve: (id: string, remarks?: string) => boolean
+  reject: (id: string, remarks: string) => void
+  sendBack: (id: string, remarks: string) => void
+  requestInfo: (id: string, remarks: string) => void
+  reassign: (id: string, userId: string, remarks: string) => void
+  moveToStage: (id: string, stage: string, remarks?: string) => void
+  addComment: (id: string, text: string) => void
+  addAttachments: (id: string, atts: Attachment[]) => void
+  overrideBaseline: (id: string, partCode: string, field: 'baselinePrice' | 'annualVolume', value: number, reason: string) => void
+
+  updateExecution: (id: string, patch: Partial<NonNullable<Idea['execution']>>, reason?: string) => void
+  toggleMilestone: (id: string, milestoneId: string, note?: string) => void
+  addExecutionNote: (id: string, text: string) => void
+  /** Stage 5 → 6 — effective date (first MRN) + approved price per part; the idea moves to Verification */
+  handOverForVerification: (id: string, effectiveDate: string, approvedPrices: Record<string, number>) => void
+  /** Stage 6 — business side confirms the target was achieved */
+  verifyIdea: (id: string, v: { mrnAtApproved: boolean; financeValidated: boolean; targetAchieved: boolean; remarks?: string; targetAtVerification: number }) => void
+  /** Stage 6 → 5 — verification not passed */
+  returnToExecution: (id: string, reason: string) => void
+  dropIdea: (id: string, reason: string, remarks: string) => void
+  syncNpdPap: (id: string, patch: Partial<Pick<Idea, 'npdStatus' | 'papStatus'>>) => void
+
+  runRealisation: (month?: string) => { month: string; rows: number; leakage: number }
+  uploadMrn: (rows: { ideaId: string; partCode: string; month: string; mrnQty: number; mrnPrice: number }[]) => number
+  financeValidate: (ids: string[], remarks?: string) => void
+  financeQuery: (ids: string[], remarks: string) => void
+  sendMonthlyReport: (month: string, manual: boolean) => void
+  bookFyClosure: (fy: string) => void
+
+  createCampaign: (c: Omit<Campaign, 'id' | 'createdAt' | 'createdBy' | 'attendance' | 'status'> & { status?: Campaign['status'] }) => string
+  updateCampaign: (id: string, patch: Partial<Campaign>) => void
+  launchCampaign: (id: string) => void
+  setAttendance: (id: string, code: string, status: Campaign['attendance'][string]) => void
+
+  notify: (n: Omit<Notification, 'id' | 'at' | 'read'>) => void
+  markRead: (id: string) => void
+  markAllRead: () => void
+  setEmailPrefs: (userId: string, prefs: EmailPrefs) => void
+  saveView: (v: Omit<SavedView, 'id'>) => void
+  deleteView: (id: string) => void
+
+  upsert: <K extends 'levers' | 'categories' | 'commodities' | 'plants' | 'users' | 'suppliers' | 'parts' | 'emailTemplates' | 'approvalRules' | 'slaRules'>(key: K, item: any, idKey?: string) => void
+  remove: (key: 'levers' | 'categories' | 'commodities' | 'plants' | 'users' | 'suppliers' | 'parts' | 'emailTemplates', id: string, idKey?: string) => void
+  setList: (key: 'dropReasons' | 'departments', list: string[]) => void
+  updateSettings: (patch: Partial<Settings>) => void
+  setBuyerTarget: (buyerId: string, value: number) => void
+  setPlantTarget: (plant: string, value: number) => void
+  resetDemo: () => void
+
+  // supplier outreach by email
+  saveSupplierTemplate: (t: Omit<SupplierEmailTemplate, 'id' | 'updatedAt' | 'updatedBy'> & { id?: string }) => string
+  sendOutreach: (o: { templateId: string; commodities: string[]; workshopDate?: string; replyBy?: string; /** explicit supplier codes (wizard) — defaults to every supplier of the commodities */ recipients?: string[]; name?: string; kind?: OutreachKind }) => OutreachBatch | null
+  setSupplierResponseStatus: (id: string, status: SupplierResponseStatus, ideaId?: string) => void
+  syncSupplierPortal: () => void
+  /** Execution Hub — edit the note on a milestone */
+  setMilestoneNote: (id: string, milestoneId: string, note: string) => void
+  /** Invite suppliers added to a live campaign: invitation email + attendance = Invited */
+  inviteCampaignSuppliers: (id: string, codes: string[]) => void
+  /** Admin — restore data sets from a JSON backup */
+  importData: (patch: Partial<DomainData>) => void
+}
+
+/** Recipients by role (active users) — never hard-coded ids */
+export const usersWithRole = (users: User[], ...roles: User['roles']) => users.filter((u) => u.active !== false && u.roles.some((r) => roles.includes(r))).map((u) => u.id)
+
+export function freshData(): DomainData {
+  const s = buildSeed()
+  const buyerTargets: Record<string, number> = {}
+  for (const c of COMMODITIES_DEFAULT) buyerTargets[c.buyerId] = (buyerTargets[c.buyerId] || 0) + c.target
+  const total = COMMODITIES_DEFAULT.reduce((a, c) => a + c.target, 0)
+  const plantShare: Record<string, number> = { RJP: 0.26, DDN: 0.18, JHJ: 0.12, SRC: 0.16, PUN: 0.1, NDA: 0.12, GNO: 0.06 }
+  const plantTargets = Object.fromEntries(Object.entries(plantShare).map(([k, v]) => [k, Math.round(total * v)]))
+  return {
+    users: USERS_DEFAULT, levers: LEVERS_DEFAULT, categories: CATEGORIES_DEFAULT, commodities: COMMODITIES_DEFAULT, plants: PLANTS_DEFAULT,
+    departments: DEPARTMENTS, suppliers: SUPPLIERS_DEFAULT, parts: PARTS_DEFAULT, dropReasons: DROP_REASONS, slaRules: SLA_RULES_DEFAULT,
+    approvalRules: APPROVAL_RULES_DEFAULT, emailTemplates: EMAIL_TEMPLATES_DEFAULT, settings: { ...DEFAULT_SETTINGS, lastRealisationMonth: s.lastRealisationMonth }, buyerTargets, plantTargets,
+    ideas: s.ideas, campaigns: s.campaigns, ledger: s.ledger, notifications: s.notifications, emails: s.emails,
+    savedViews: [
+      { id: 'sv-1', name: 'High value > ₹ 1 Cr', userId: '*', filters: { minValue: 1e7 }, columns: [] },
+      { id: 'sv-2', name: 'Technical route in Pipeline', userId: '*', filters: { route: 'Technical', bucket: 'Pipeline' }, columns: [] },
+      { id: 'sv-3', name: 'Supplier ideas', userId: '*', filters: { supplierOnly: true }, columns: [] },
+    ] as SavedView[],
+    emailPrefs: {} as Record<string, EmailPrefs>, fyClosed: {} as Record<string, boolean>,
+    supplierTemplates: SUPPLIER_EMAIL_TEMPLATES_DEFAULT, outreachBatches: OUTREACH_BATCHES_DEFAULT, supplierResponses: SUPPLIER_RESPONSES_DEFAULT,
+    supplierPortalSyncAt: nowIso(),
+  }
+}
+
+type SetFn = (partial: Partial<DomainState> | ((s: DomainState) => Partial<DomainState>)) => void
+type GetFn = () => DomainState & DomainActions
+
+export function domainActions(set: SetFn, get: GetFn, hooks: EngineHooks): DomainActions {
+      const me = () => get().users.find((u) => u.id === get().userId)!
+      const now = () => nowIso()
+      const logEntry = (action: string, extra: Partial<Idea['activity'][0]> = {}) => {
+        const u = me()
+        return { id: uid('a'), at: now(), userId: u?.id ?? 'system', userName: u?.name ?? 'System', action, ...extra }
+      }
+      const patchIdea = (id: string, fn: (i: Idea) => Idea) => set((s) => ({ ideas: s.ideas.map((i) => (i.id === id ? fn(i) : i)) }))
+      const getIdea = (id: string) => get().ideas.find((i) => i.id === id)!
+      const commodityOf = (code: string) => get().commodities.find((c) => c.code === code)
+      const leverOf = (id: string) => get().levers.find((l) => l.id === id)!
+      const push = (n: Omit<Notification, 'id' | 'at' | 'read'>) => get().notify(n)
+      const email = (to: string[], subject: string, body: string, template: string, attachments?: string[]) =>
+        set((s) => ({ emails: [{ id: uid('e'), at: now(), to, subject, body, template, attachments }, ...s.emails] }))
+      const userEmail = (id: string) => get().users.find((u) => u.id === id)?.email ?? id
+
+      /** Who evaluates at stage 3: the department lead of the idea's department */
+      const evaluatorIds = (idea: Idea, dept: string) => [ladderOf(dept, idea.commodity, get().users).deptLead].filter(Boolean) as string[]
+
+      /** entry side-effects when an idea lands on a stage */
+      const onEnterStage = (idea: Idea, stage: string): Idea => {
+        let next = { ...idea }
+        if (EVALUATION_STAGES.includes(stage)) {
+          const dept = evalDeptOf(idea.department)
+          const keep = idea.evaluation?.supplier?.status === 'Responded' ? idea.evaluation.supplier : undefined
+          const supplier: SupplierCheck = keep ?? (needsSupplierCheck(ideaAnnualised(idea)) ? { status: 'Not sent' } : { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' })
+          next.evaluation = { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false }
+          for (const uidv of evaluatorIds(idea, dept)) push({ userId: uidv, title: `${dept} evaluation requested`, body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
+        }
+        if (stage === STAGE.approval) {
+          // one approval level: the head of the idea's department (Sourcing Head / Admin can still act as override)
+          const dept = next.evaluation?.dept ?? evalDeptOf(idea.department)
+          const headId = ladderOf(dept, idea.commodity, get().users).deptHead
+          next.approvals = [{ level: `${dept} head`, approverId: headId }]
+          if (headId) push({ userId: headId, title: `Pending ${dept} approval`, body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
+        }
+        return next
+      }
+
+      /** Execution started — dates and milestones come from the signed budget + timeline lock */
+      const createExecution = (idea: Idea): Idea => {
+        const fy = get().settings.currentFy
+        const start = todayIso()
+        // savings period from the lock: start = expected first MRN at the new price
+        const savingsStart = idea.lock?.startDate ?? addMonthsIso(start, 1)
+        const target = idea.lock?.endDate ?? addMonthsIso(savingsStart, 6)
+        const annual = ideaAnnualised(idea)
+        const tpl = MILESTONE_TEMPLATES[idea.route] ?? MILESTONE_TEMPLATES.Commercial
+        const due = milestoneSchedule(start, savingsStart, target, tpl)
+        // NPD sample and PAP price revision are tracked inside "Execution started"
+        const npd = tpl.some((m) => m.includes('NPD'))
+        const pap = tpl.some((m) => m.includes('PAP'))
+        const goLive = savingsStart
+        return {
+          ...idea,
+          approvedAt: now(),
+          ownerId: stageAssignee(idea, STAGE.execution, get().users) ?? idea.buyerId,
+          locked: true,
+          ...(npd ? { npdRequestId: idea.npdRequestId ?? `NPD-ECN-${Math.floor(26000 + Math.random() * 999)}`, npdStatus: idea.npdStatus ?? 'ECN raised' } : {}),
+          ...(pap ? { papRequestId: idea.papRequestId ?? `PAP-${Math.floor(40000 + Math.random() * 9999)}`, papStatus: idea.papStatus ?? 'Raised' } : {}),
+          execution: {
+            ownerId: stageAssignee(idea, STAGE.execution, get().users) ?? idea.buyerId, startDate: start, targetDate: target, originalTargetDate: target,
+            phasing: phaseByQuarter(annual, goLive, fy), // pre-filled from the expected first MRN; owner edits
+            milestones: tpl.map((name, k) => ({ id: uid('m'), name, dueDate: due[k] })),
+            slippage: [], progress: 0, notes: [], status: 'In Execution',
+          },
+        }
+      }
+
+      const moveTo = (idea: Idea, stage: string, action: string, remarks?: string): Idea => {
+        const t = now()
+        const history = idea.stageHistory.map((h, k) => (k === idea.stageHistory.length - 1 && !h.exitedAt ? { ...h, exitedAt: t, by: me()?.name, action, remarks } : h))
+        let next: Idea = {
+          ...idea, stage, bucket: bucketFor(idea.route, stage), stageEnteredAt: t, infoRequested: false,
+          stageHistory: [...history, { stage, enteredAt: t }],
+          activity: [...idea.activity, logEntry(action, { field: 'stage', oldValue: idea.stage, newValue: stage, remarks })],
+        }
+        next = resetForRework(next, idea.stage, stage)
+        next = onEnterStage(next, stage)
+        return next
+      }
+
+      /** Going back inside IN (send back, board move) re-opens every stage form from the target onwards — a stage
+       *  is never passed on an old decision or an old signed lock */
+      const resetForRework = (idea: Idea, from: string, to: string): Idea => {
+        const order = [STAGE.feasibility, STAGE.evaluation, STAGE.approval] as string[]
+        const fi = order.indexOf(from), ti = order.indexOf(to)
+        if (ti < 0 || fi < 0 || ti >= fi) return idea
+        const next = { ...idea }
+        if (ti <= 0) next.feasibilityCheck = undefined
+        if (ti <= 1 && next.evaluation) {
+          const responded = next.evaluation.supplier?.status === 'Responded' ? next.evaluation.supplier : undefined
+          next.evaluation = { dept: next.evaluation.dept, supplier: responded }
+        }
+        next.lock = undefined
+        next.approvals = next.approvals.map((a) => ({ level: a.level, approverId: a.approverId }))
+        return next
+      }
+      /** A signed lock is valid only while its target still equals annualised × months ÷ 12 */
+      const lockIsCurrent = (idea: Idea) => !!idea.lock && Math.abs(idea.lock.targetSaving - lockTarget(ideaAnnualised(idea), idea.lock.timelineMonths)) <= 1
+
+  return {
+        // ─── Ideas ────────────────────────────────────────────────────────────
+        saveDraft: (draft, existingId) => {
+          const u = me()
+          if (existingId) {
+            patchIdea(existingId, (i) => ({ ...i, ...draft, activity: i.activity }))
+            return existingId
+          }
+          const id = `DRAFT-${uid('d').slice(2, 8).toUpperCase()}`
+          const lever = leverOf(draft.leverId ?? get().levers[0]?.id)
+          // defaults come from the masters: the chosen commodity (or the first one) and its buyer
+          const com = commodityOf(draft.commodity ?? '') ?? get().commodities[0]
+          const idea: Idea = {
+            id, seq: 0, fy: get().settings.currentFy, title: '', currentState: '', proposedChange: '', evidence: '', evidenceTags: [], attachments: [],
+            submitterId: u.id, submitterName: u.name, employeeId: u.employeeId, department: u.department, plant: u.plant, buyingType: 'Direct', categoryId: com?.categoryId ?? '', commodity: com?.code ?? '',
+            leverId: lever.id, scope: 'Part-specific', parts: [], savingsType: lever.defaultSavingsType, oneTimeInvestment: 0, expectedQuarter: `Q3 ${get().settings.currentFy}`,
+            isSupplierSubmission: u.roles.includes('supplier'), supplierCode: u.supplierCode, route: lever.route, stage: 'Draft', bucket: 'Draft',
+            stageEnteredAt: now(), createdAt: now(), buyerId: com?.buyerId ?? '', approvals: [], stageHistory: [{ stage: 'Draft', enteredAt: now() }],
+            activity: [logEntry('Created idea (draft)')], comments: [], ...draft,
+          } as Idea
+          set((s) => ({ ideas: [idea, ...s.ideas] }))
+          return id
+        },
+        submitIdea: (draft, existingId) => {
+          const s = get()
+          const u = me()
+          const lever = leverOf(draft.leverId!)
+          const commodity = commodityOf(draft.commodity!)!
+          const fy = s.settings.currentFy
+          const seqs = s.ideas.filter((i) => i.commodity === commodity.code && i.fy === fy).map((i) => i.seq)
+          const seq = (seqs.length ? Math.max(...seqs) : 0) + 1
+          const id = `COIN-${fy}-${commodity.code}-${String(seq).padStart(4, '0')}`
+          const base: Idea = existingId ? s.ideas.find((i) => i.id === existingId)! : ({} as Idea)
+          const t = now()
+          let idea: Idea = {
+            ...base,
+            attachments: [], evidenceTags: [], comments: [], approvals: [], parts: [],
+            ...draft,
+            id, seq, fy, route: lever.route, buyerId: commodity.buyerId,
+            submitterId: base.submitterId ?? u.id, submitterName: base.submitterName ?? u.name, employeeId: base.employeeId ?? u.employeeId, department: base.department ?? u.department,
+            isSupplierSubmission: u.roles.includes('supplier'), supplierCode: u.supplierCode ?? draft.supplierCode,
+            stage: STAGE.feasibility, bucket: 'Pipeline', stageEnteredAt: t, createdAt: base.createdAt ?? t, submittedAt: t,
+            stageHistory: [{ stage: 'Draft', enteredAt: base.createdAt ?? t, exitedAt: t, by: u.name, action: 'Idea submitted' }, { stage: STAGE.feasibility, enteredAt: t }],
+            activity: [...(base.activity ?? []), ...(existingId ? [] : [logEntry('Created idea')]), logEntry('Idea submitted', { field: 'stage', oldValue: 'Draft', newValue: STAGE.feasibility })],
+          } as Idea
+          if (idea.parts.some((p) => p.baselineOverrideReason || p.volumeOverrideReason)) {
+            idea.parts.forEach((p) => {
+              if (p.baselineOverrideReason) idea.activity.push(logEntry('Baseline override', { field: `baseline ${p.partCode}`, newValue: String(p.baselinePrice), remarks: p.baselineOverrideReason }))
+              if (p.volumeOverrideReason) idea.activity.push(logEntry('Volume override', { field: `volume ${p.partCode}`, newValue: String(p.annualVolume), remarks: p.volumeOverrideReason }))
+            })
+          }
+          set((st) => ({ ideas: [idea, ...st.ideas.filter((i) => i.id !== existingId)] }))
+          const teamLead = stageAssignee({ ...idea, id, submitterId: idea.submitterId ?? me().id } as Idea, STAGE.feasibility, get().users)
+          if (teamLead) push({ userId: teamLead, title: 'Team feasibility check requested', body: `${id} · ${idea.title}`, trigger: 'Idea submitted in my commodity', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
+          email([userEmail(commodity.buyerId)], `COIN · New idea ${id} in ${commodity.name}`, idea.title, 'Idea submitted')
+          if (idea.campaignId) idea = { ...idea }
+          return id
+        },
+        updateIdea: (id, patch, action, remarks) =>
+          patchIdea(id, (i) => {
+            const changes = Object.keys(patch).filter((k) => JSON.stringify((i as any)[k]) !== JSON.stringify((patch as any)[k]))
+            const entries = action ? [logEntry(action, { remarks, field: changes.join(', ') })] : changes.map((k) => logEntry('Edited', { field: k, oldValue: String((i as any)[k] ?? ''), newValue: String((patch as any)[k] ?? ''), remarks }))
+            return { ...i, ...patch, activity: [...i.activity, ...entries] }
+          }),
+        deleteDraft: (id) => set((s) => ({ ideas: s.ideas.filter((i) => i.id !== id) })),
+        advance: (id, action, remarks) => {
+          const i = getIdea(id)
+          const stages = ROUTE_STAGES[i.route]
+          const idx = stages.indexOf(i.stage)
+          if (idx < 0 || idx >= stages.length - 1) return
+          const nextStage = stages[idx + 1]
+          patchIdea(id, (x) => {
+            let n = moveTo(x, nextStage, action, remarks)
+            if (x.stage === STAGE.approval) n = createExecution(n)
+            return n
+          })
+        },
+        recordFeasibility: (id, c) => {
+          const u = me()
+          const check: FeasibilityCheck = { ...c, by: u.name, byDept: u.department, at: now() }
+          const summary = `Technically ${c.technical === 'Yes' ? 'feasible' : 'not feasible'} · cost ${c.cost.toLowerCase()} · ${c.conflict === 'None' ? 'no duplicate / conflict' : `${c.conflict.toLowerCase()}${c.conflictWith ? ` with ${c.conflictWith}` : ''}`}`
+          patchIdea(id, (i) => ({ ...i, feasibilityCheck: check, activity: [...i.activity, logEntry(`Team feasibility check — ${c.decision}`, { remarks: `${summary}${c.remarks ? ' · ' + c.remarks : ''}` })] }))
+          if (c.decision === 'Go') get().advance(id, 'Team feasibility check — Go', c.remarks)
+          else get().dropIdea(id, 'Not feasible', c.remarks || summary)
+        },
+        saveEvaluation: (id, patch) => {
+          const what = [patch.cbaVerified != null && 'cost-benefit analysis', patch.risks && 'risk assessment'].filter(Boolean).join(' and ')
+          patchIdea(id, (i) => ({
+            ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), ...patch },
+            activity: what ? [...i.activity, logEntry(`Evaluation — ${what} saved`, { remarks: patch.cbaNote ?? patch.riskRemarks })] : i.activity,
+          }))
+        },
+        sendSupplierCheck: (id, sc) => {
+          const u = me()
+          const token = `${id.slice(-8)}-${uid('sc').slice(-6)}`.toLowerCase()
+          // the secure form link is filled in once the token exists
+          const link = `${hooks.appUrl()}/supplier-form/${token}`
+          const body = sc.body.replace(SUPPLIER_LINK_PLACEHOLDER, link)
+          patchIdea(id, (i) => ({
+            ...i,
+            evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), supplier: { status: 'Sent', token, ...sc, body, sentAt: now(), sentBy: u.name } },
+            activity: [...i.activity, logEntry(`Supplier capability request sent to ${sc.supplierName}`, { remarks: sc.email })],
+          }))
+          email([sc.email], sc.subject, body, 'Supplier capability request')
+          return token
+        },
+        respondSupplierCheck: (token, r) => {
+          const i = get().ideas.find((x) => x.evaluation?.supplier?.token === token)
+          if (!i || i.evaluation!.supplier!.status !== 'Sent') return false
+          const sc = i.evaluation!.supplier!
+          patchIdea(i.id, (x) => ({
+            ...x,
+            evaluation: { ...x.evaluation!, supplier: { ...sc, status: 'Responded', response: r } },
+            activity: [...x.activity, { id: uid('a'), at: now(), userId: 'supplier', userName: `${r.contactName} (${sc.supplierName})`, action: `Supplier capability response — can supply: ${r.canSupply}`, remarks: `Meets spec: ${r.meetsSpec}${r.leadTimeDays ? ` · lead time ${r.leadTimeDays} d` : ''}${r.capacityPerMonth ? ` · capacity ${r.capacityPerMonth}` : ''}` }],
+          }))
+          for (const uidv of evaluatorIds(i, i.evaluation!.dept)) push({ userId: uidv, title: 'Supplier capability response received', body: `${i.id} · ${sc.supplierName} — can supply: ${r.canSupply}`, trigger: 'Supplier response', channel: 'In-app', ideaId: i.id, link: `/ideas/${i.id}`, severity: r.canSupply === 'No' ? 'warning' : 'success' })
+          return true
+        },
+        skipSupplierCheck: (id) => {
+          const i = getIdea(id)
+          if (needsSupplierCheck(ideaAnnualised(i))) return
+          patchIdea(id, (x) => ({ ...x, evaluation: { ...(x.evaluation ?? { dept: evalDeptOf(x.department) }), supplier: { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' } } }))
+        },
+        recordEvaluation: (id, decision, remarks) => {
+          const u = me()
+          patchIdea(id, (i) => ({ ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), decision, remarks, by: u.name, at: now() }, activity: [...i.activity, logEntry(`Evaluation — ${decision === 'Recommend' ? 'recommended for sourcing approval' : 'rejected'}`, { remarks })] }))
+          if (decision === 'Recommend') get().advance(id, `${getIdea(id).evaluation?.dept ?? 'Department'} evaluation — recommended`, remarks)
+          else get().reject(id, remarks || 'Rejected at evaluation')
+        },
+        signLock: (id, lock) => {
+          const u = me()
+          patchIdea(id, (i) => ({ ...i, lock: { ...lock, signedAt: now(), signedBy: u.name }, activity: [...i.activity, logEntry('Budget & timeline lock signed', { remarks: `${lock.timelineMonths} months · target ${inrShort(lock.targetSaving)} · budget ${inrShort(lock.budget)}` })] }))
+        },
+        approve: (id, remarks) => {
+          const u = me()
+          const i = getIdea(id)
+          const head = u.roles.includes('head') || u.roles.includes('admin')
+          const approvals = [...i.approvals]
+          const first = approvals.findIndex((a) => !a.decision)
+          if (first < 0) return false
+          const lastPending = approvals.length - 1 - [...approvals].reverse().findIndex((a) => !a.decision)
+          const finalStep = head || first === lastPending
+          if (finalStep && !i.lock) { hooks.warn('Sign the budget & timeline lock before the final approval'); return false }
+          if (finalStep && !lockIsCurrent(i)) { hooks.warn('The saving changed after the lock was signed — sign the budget & timeline lock again'); return false }
+          approvals.forEach((a, k) => { if (!a.decision && (head || k === first)) approvals[k] = { ...a, approverId: u.id, decision: 'Approved', at: now(), remarks } })
+          const pending = approvals.find((a) => !a.decision)
+          const levels = approvals.filter((a) => a.approverId === u.id && a.at && a.decision === 'Approved').map((a) => a.level).join(' + ')
+          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`${stageLabel(i, STAGE.approval)} (${levels || 'Approver'})${head && u.id !== i.approvals[0]?.approverId ? ' — acting as override' : ''}`, { remarks })] }))
+          if (pending) {
+            if (pending.approverId) push({ userId: pending.approverId, title: `Pending ${stageLabel(i, STAGE.approval)}`, body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+          } else {
+            get().advance(id, `${stageLabel(i, STAGE.approval)} — approved`, remarks)
+            ;[...new Set([i.submitterId, getIdea(id).ownerId ?? i.buyerId])].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+          }
+          return true
+        },
+        reject: (id, remarks) => {
+          const i = getIdea(id)
+          patchIdea(id, (x) => {
+            const n = moveTo(x, 'Rejected', 'Rejected', remarks)
+            return { ...n, bucket: 'Dropped', dropStage: x.stage, droppedAt: now(), dropReason: 'Rejected', dropRemarks: remarks, approvals: x.approvals.map((a) => (!a.decision ? { ...a, decision: 'Rejected' as const, at: now(), remarks } : a)) }
+          })
+          ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Idea rejected', body: `${id} · ${remarks}`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'danger' }))
+        },
+        sendBack: (id, remarks) => {
+          const i = getIdea(id)
+          // Evaluation and department approval send an idea back to the Team feasibility check for rework
+          const atStart = i.stage === STAGE.feasibility
+          patchIdea(id, (x) => (atStart ? { ...x, infoRequested: true, activity: [...x.activity, logEntry('Sent back to submitter', { remarks })] } : { ...moveTo(x, STAGE.feasibility, 'Sent back to Team feasibility check', remarks), infoRequested: false }))
+          push({ userId: i.submitterId, title: 'Idea sent back', body: `${id} · ${remarks}`, trigger: 'Idea sent back / more info requested', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+        },
+        requestInfo: (id, remarks) => {
+          const i = getIdea(id)
+          patchIdea(id, (x) => ({ ...x, infoRequested: true, activity: [...x.activity, logEntry('More info requested', { remarks })], comments: [...x.comments, { id: uid('c'), at: now(), userId: me().id, userName: me().name, text: `@${i.submitterName} ${remarks}`, mentions: [i.submitterId] }] }))
+          push({ userId: i.submitterId, title: 'More info requested', body: `${id} · ${remarks}`, trigger: 'Idea sent back / more info requested', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+        },
+        reassign: (id, userId, remarks) => {
+          const i = getIdea(id)
+          const to = get().users.find((u) => u.id === userId)
+          // pipeline: only the commodity buyer changes — the ladder still decides who checks, evaluates and approves;
+          // execution: the execution owner changes
+          const pipeline = i.bucket === 'Pipeline'
+          patchIdea(id, (x) => ({
+            ...x, ...(pipeline ? { buyerId: userId } : { ownerId: userId, execution: x.execution ? { ...x.execution, ownerId: userId } : x.execution }),
+            activity: [...x.activity, logEntry('Reassigned', { field: pipeline ? 'commodity buyer' : 'execution owner', oldValue: get().users.find((u) => u.id === (pipeline ? i.buyerId : i.ownerId ?? i.buyerId))?.name, newValue: to?.name, remarks })],
+          }))
+          push({ userId, title: 'Idea reassigned to you', body: `${id} · ${i.title}`, trigger: 'Reassigned', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
+        },
+        moveToStage: (id, stage, remarks) => {
+          const i = getIdea(id)
+          if (stage === STAGE.verification) { get().handOverForVerification(id, i.execution?.effectiveDate ?? todayIso(), Object.fromEntries(i.parts.map((p) => [p.partCode, p.approvedPrice ?? p.newPrice]))); return }
+          patchIdea(id, (x) => {
+            let n = moveTo(x, stage, `Moved on board to ${stage}`, remarks)
+            if (bucketFor(x.route, x.stage) === 'Pipeline' && n.bucket === 'In Execution' && !x.execution) n = createExecution(n)
+            return n
+          })
+        },
+        addComment: (id, text) => {
+          const mentions = get().users.filter((u) => text.includes('@' + u.name)).map((u) => u.id)
+          patchIdea(id, (i) => ({ ...i, comments: [...i.comments, { id: uid('c'), at: now(), userId: me().id, userName: me().name, text, mentions }] }))
+          mentions.forEach((m) => push({ userId: m, title: `${me().name} mentioned you`, body: `${id}: ${text.slice(0, 90)}`, trigger: '@mention', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'info' }))
+        },
+        addAttachments: (id, atts) => patchIdea(id, (i) => ({ ...i, attachments: [...i.attachments, ...atts].slice(0, 10), activity: [...i.activity, logEntry(`Added ${atts.length} attachment(s)`)] })),
+        overrideBaseline: (id, partCode, field, value, reason) =>
+          patchIdea(id, (i) => {
+            const p = i.parts.find((x) => x.partCode === partCode)!
+            const old = p[field]
+            return {
+              ...i,
+              parts: i.parts.map((x) => (x.partCode === partCode ? { ...x, [field]: value, ...(field === 'baselinePrice' ? { baselineSource: 'Override', baselineOverrideReason: reason } : { volumeSource: 'Override', volumeOverrideReason: reason }) } : x)),
+              activity: [...i.activity, logEntry(field === 'baselinePrice' ? 'Baseline override' : 'Volume override', { field: `${field} ${partCode}`, oldValue: String(old), newValue: String(value), remarks: reason })],
+            }
+          }),
+
+        // ─── Execution Hub ────────────────────────────────────────────────────
+        updateExecution: (id, patch, reason) =>
+          patchIdea(id, (i) => {
+            if (!i.execution) return i
+            const ex = { ...i.execution, ...patch }
+            const act: Idea['activity'] = []
+            if (patch.targetDate && patch.targetDate !== i.execution.targetDate) {
+              ex.slippage = [...i.execution.slippage, { at: now(), by: me().name, oldDate: i.execution.targetDate, newDate: patch.targetDate, reason: reason || 'Not specified' }]
+              act.push(logEntry('Target date changed (slippage logged)', { field: 'targetDate', oldValue: i.execution.targetDate, newValue: patch.targetDate, remarks: reason }))
+            }
+            if (patch.ownerId && patch.ownerId !== i.execution.ownerId) act.push(logEntry('Owner changed', { field: 'owner', oldValue: get().users.find((u) => u.id === i.execution!.ownerId)?.name, newValue: get().users.find((u) => u.id === patch.ownerId)?.name, remarks: reason }))
+            if (patch.phasing) act.push(logEntry('Quarter phasing updated', { field: 'phasing', oldValue: JSON.stringify(i.execution.phasing), newValue: JSON.stringify(patch.phasing) }))
+            if (patch.progress != null && patch.progress !== i.execution.progress) act.push(logEntry('Progress updated', { field: 'progress', oldValue: `${i.execution.progress}%`, newValue: `${patch.progress}%` }))
+            return { ...i, ownerId: ex.ownerId, execution: ex, activity: [...i.activity, ...act] }
+          }),
+        toggleMilestone: (id, mid, note) =>
+          patchIdea(id, (i) => {
+            if (!i.execution) return i
+            const ms = i.execution.milestones.map((m) => (m.id === mid ? { ...m, doneDate: m.doneDate ? undefined : todayIso(), note: note ?? m.note } : m))
+            const m = ms.find((x) => x.id === mid)!
+            const progress = Math.round((ms.filter((x) => x.doneDate).length / ms.length) * 100)
+            // savings count from the first MRN at the new price
+            const firstMrn = m.name === 'First MRN at new price'
+            const effectiveDate = firstMrn ? m.doneDate : i.execution.effectiveDate
+            return { ...i, execution: { ...i.execution, milestones: ms, progress, effectiveDate }, activity: [...i.activity, logEntry(m.doneDate ? `Milestone done: ${m.name}` : `Milestone reopened: ${m.name}`, { remarks: note })] }
+          }),
+        addExecutionNote: (id, text) => patchIdea(id, (i) => (i.execution ? { ...i, execution: { ...i.execution, notes: [...i.execution.notes, { at: now(), by: me().name, text }] }, activity: [...i.activity, logEntry('Milestone note added', { remarks: text })] } : i)),
+        handOverForVerification: (id, effectiveDate, prices) => {
+          const u = me()
+          patchIdea(id, (i) => {
+            let n = i.stage === STAGE.verification ? i : moveTo(i, STAGE.verification, 'Handed for verification', `First MRN at the new price ${effectiveDate}`)
+            if (!n.execution) n = createExecution(n)
+            const done = (name: string) => (name === 'First MRN at new price' ? effectiveDate : todayIso())
+            n = {
+              ...n, implementedAt: now(), papStatus: n.papRequestId ? 'Price approved' : n.papStatus, npdStatus: n.npdRequestId ? 'Sample approved' : n.npdStatus,
+              parts: n.parts.map((p) => ({ ...p, approvedPrice: prices[p.partCode] ?? p.approvedPrice ?? p.newPrice })),
+              execution: { ...n.execution!, status: 'Done', effectiveDate, approvedPrice: Object.values(prices)[0], progress: 100, milestones: n.execution!.milestones.map((m) => ({ ...m, doneDate: m.doneDate ?? done(m.name) })) },
+              verification: { handedAt: now(), handedBy: u.name },
+            }
+            return n
+          })
+          const i = getIdea(id)
+          ;[...new Set([i.submitterId, i.ownerId ?? i.buyerId, ...(stageAssignee(i, STAGE.verification, get().users) ? [stageAssignee(i, STAGE.verification, get().users)!] : usersWithRole(get().users, 'finance'))])].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+          hooks.celebrate?.()
+        },
+        verifyIdea: (id, v) => {
+          const u = me()
+          const cur = getIdea(id)
+          // realised inside the locked savings period — the same window the target covers
+          const last = get().settings.lastRealisationMonth
+          const realised = get().ledger.filter((l) => l.ideaId === id && l.month <= last && (!cur.lock || inLockWindow(cur.lock, l.month))).reduce((a, l) => a + l.realised, 0)
+          const failed = [!v.mrnAtApproved && 'MRN not at the approved price', !v.financeValidated && 'Finance validation pending', !v.targetAchieved && 'target not achieved'].filter(Boolean) as string[]
+          const action = failed.length ? `Verified with exception — ${failed.join(', ')}` : 'Verified — target achieved'
+          patchIdea(id, (i) => ({
+            ...i,
+            verification: { ...i.verification, mrnAtApproved: v.mrnAtApproved, financeValidated: v.financeValidated, targetAchieved: v.targetAchieved, remarks: v.remarks, realisedAtVerification: realised, targetAtVerification: v.targetAtVerification, verifiedAt: now(), verifiedBy: u.name, returnedAt: undefined, returnReason: undefined },
+            stageHistory: i.stageHistory.map((h, k) => (k === i.stageHistory.length - 1 && h.stage === STAGE.verification ? { ...h, exitedAt: now(), by: u.name, action: failed.length ? 'Verified with exception' : 'Verified', remarks: v.remarks } : h)),
+            activity: [...i.activity, logEntry(action, { remarks: `Realised ${inrShort(realised)} vs ${inrShort(v.targetAtVerification)} due${v.remarks ? ' · ' + v.remarks : ''}` })],
+          }))
+          const i = getIdea(id)
+          ;[i.submitterId, i.buyerId].forEach((uidv) => push({ userId: uidv, title: 'Savings verified', body: `${id} · ${i.title}`, trigger: 'Verified', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+        },
+        returnToExecution: (id, reason) => {
+          patchIdea(id, (i) => {
+            const n = moveTo(i, STAGE.execution, 'Returned to execution — verification not passed', reason)
+            const ms = n.execution ? n.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: undefined } : m)) : []
+            return {
+              ...n, bucket: 'In Execution', implementedAt: undefined,
+              execution: n.execution ? { ...n.execution, status: 'In Execution', milestones: ms, progress: Math.round((ms.filter((m) => m.doneDate).length / Math.max(1, ms.length)) * 100) } : n.execution,
+              // the hand-over is undone; only the return is kept until the next hand-over
+              verification: { returnedAt: now(), returnReason: reason },
+            }
+          })
+          const i = getIdea(id)
+          push({ userId: i.ownerId ?? i.buyerId, title: 'Returned to execution', body: `${id} · ${reason}`, trigger: 'Verification', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+        },
+        dropIdea: (id, reason, remarks) => {
+          const i = getIdea(id)
+          patchIdea(id, (x) => {
+            const n = moveTo(x, 'Dropped', `Dropped — ${reason}`, remarks)
+            return { ...n, bucket: 'Dropped', dropStage: x.stage, droppedAt: now(), dropReason: reason, dropRemarks: remarks, execution: x.execution ? { ...x.execution, status: 'Dropped' } : x.execution }
+          })
+          push({ userId: i.submitterId, title: 'Idea dropped', body: `${id} · ${reason}`, trigger: 'Dropped', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'danger' })
+        },
+        syncNpdPap: (id, patch) => {
+          const i = getIdea(id)
+          patchIdea(id, (x) => ({ ...x, ...patch, activity: [...x.activity, logEntry('Status synced from NPD / PAP', { field: Object.keys(patch).join(', '), newValue: Object.values(patch).join(', ') })] }))
+          if (patch.npdStatus) push({ userId: i.ownerId ?? i.buyerId, title: `NPD sample ${patch.npdStatus.toLowerCase()}`, body: `${id} · ${i.npdRequestId}`, trigger: 'NPD sample approved / failed', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: patch.npdStatus === 'Sample failed' ? 'danger' : 'success' })
+          if (patch.papStatus === 'Price approved') push({ userId: i.ownerId ?? i.buyerId, title: 'PAP price approved', body: `${id} · ${i.papRequestId}`, trigger: 'PAP price approved', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' })
+        },
+
+        // ─── Savings realisation ──────────────────────────────────────────────
+        runRealisation: (month) => {
+          const s = get()
+          const m = month ?? addMonthsYm(s.settings.lastRealisationMonth, 1)
+          const rows = realiseMonth(s.ideas, m, Math.random).map((r) => ({ ...r, postedAt: now() }))
+          const existing = new Set(s.ledger.map((l) => l.id))
+          const fresh = rows.filter((r) => !existing.has(r.id))
+          const leakage = fresh.reduce((a, r) => a + r.leakage, 0)
+          set((st) => ({ ledger: [...st.ledger, ...fresh], settings: { ...st.settings, lastRealisationMonth: m > st.settings.lastRealisationMonth ? m : st.settings.lastRealisationMonth } }))
+          for (const fin of usersWithRole(s.users, 'finance')) push({ userId: fin, title: 'Savings to validate', body: `${monthLong(m)} realisation posted — ${fresh.length} entries awaiting validation`, trigger: 'Savings to validate', channel: 'In-app + email', link: '/execution', severity: 'warning' })
+          if (leakage > 0) {
+            const affected = new Set(fresh.filter((r) => r.leakage > 0).map((r) => s.ideas.find((i) => i.id === r.ideaId)))
+            affected.forEach((i) => {
+              if (!i) return
+              push({ userId: i.buyerId, title: 'Price leakage detected', body: `${i.id} · MRN price above approved new price (${monthLong(m)})`, trigger: 'Price leakage detected', channel: 'Email', ideaId: i.id, link: '/execution', severity: 'danger' })
+              const lead = commodityOf(i.commodity)?.leadId
+              if (lead) push({ userId: lead, title: 'Price leakage detected', body: `${i.id} · ${monthLong(m)}`, trigger: 'Price leakage detected', channel: 'Email', ideaId: i.id, link: '/execution', severity: 'danger' })
+            })
+          }
+          get().sendMonthlyReport(m, false)
+          return { month: m, rows: fresh.length, leakage }
+        },
+        uploadMrn: (rows) => {
+          const s = get()
+          let n = 0
+          const entries: LedgerEntry[] = []
+          for (const r of rows) {
+            const i = s.ideas.find((x) => x.id === r.ideaId)
+            const p = i?.parts.find((x) => x.partCode === r.partCode)
+            if (!i || !p) continue
+            const approved = p.approvedPrice ?? p.newPrice
+            const planned = Math.round(p.annualVolume / 12)
+            const leakage = Math.max(0, r.mrnPrice - approved) * r.mrnQty
+            const ex: LedgerEntry['exceptions'] = []
+            if (leakage > 0) ex.push('Price leakage')
+            if (r.mrnQty === 0) ex.push('No MRN received')
+            else if (r.mrnQty < planned * 0.5) ex.push('Volume below 50% of plan')
+            entries.push({ id: `LG-${i.id}-${p.partCode}-${r.month}`, ideaId: i.id, partCode: p.partCode, supplierCode: p.currentSupplier.split(' · ')[0], month: r.month, mrnQty: r.mrnQty, plannedQty: planned, mrnPrice: r.mrnPrice, baseline: p.baselinePrice, approvedPrice: approved, realised: (p.baselinePrice - approved) * r.mrnQty, leakage, exceptions: ex, financeStatus: 'Pending', postedAt: now() })
+            n++
+          }
+          const ids = new Set(entries.map((e) => e.id))
+          set((st) => ({ ledger: [...st.ledger.filter((l) => !ids.has(l.id)), ...entries] }))
+          return n
+        },
+        financeValidate: (ids, remarks) => {
+          const set2 = new Set(ids)
+          set((s) => ({ ledger: s.ledger.map((l) => (set2.has(l.id) ? { ...l, financeStatus: 'Validated', financeBy: me().name, financeAt: now(), financeRemarks: remarks ?? l.financeRemarks } : l)) }))
+        },
+        financeQuery: (ids, remarks) => {
+          const set2 = new Set(ids)
+          const s = get()
+          set((st) => ({ ledger: st.ledger.map((l) => (set2.has(l.id) ? { ...l, financeStatus: 'Queried', financeBy: me().name, financeAt: now(), financeRemarks: remarks } : l)) }))
+          const ideaIds = new Set(s.ledger.filter((l) => set2.has(l.id)).map((l) => l.ideaId))
+          ideaIds.forEach((iid) => { const i = s.ideas.find((x) => x.id === iid); if (i) push({ userId: i.buyerId, title: 'Finance query on realised saving', body: `${iid} · ${remarks}`, trigger: 'Finance query', channel: 'In-app + email', ideaId: iid, link: '/execution', severity: 'warning' }) })
+        },
+        sendMonthlyReport: (month, manual) => {
+          const s = get()
+          const fy = fyOf(month + '-01')
+          const sum = summarise(s.ideas.filter((i) => i.fy === fy), s.ledger, 0, fy, s.settings.financeValidation, s.settings.lastRealisationMonth)
+          const monthRealised = s.ledger.filter((l) => l.month === month).reduce((a, l) => a + l.realised, 0)
+          const body = `PFA, Cost Optimisation Report\n\nRealised to date: ${inrShort(sum.realisedCounting)}\nCommitted: ${inrShort(sum.remainingCommitted)}\nPipeline: ${inrShort(sum.pipeline)}\nMonth's realised saving: ${inrShort(monthRealised)}`
+          email(s.settings.mailerRecipients, `COIN — Cost Optimisation Report, ${monthLong(month)}`, body, 'Monthly Cost Optimisation Report', [`COIN_Report_${month}.pdf`, `COIN_Detail_${month}.xlsx`])
+          const leads = [...new Set(s.commodities.map((c) => c.leadId))]
+          leads.forEach((l) => email([userEmail(l)], `COIN — Cost Optimisation Report, ${monthLong(month)} (commodity cut)`, body, 'Monthly Cost Optimisation Report'))
+          usersWithRole(s.users, 'mgmt', 'head').forEach((uidv) => push({ userId: uidv, title: 'Monthly Cost Optimisation Report', body: `COIN — Cost Optimisation Report, ${monthLong(month)} ${manual ? `sent manually by ${me()?.name ?? 'Sourcing'}` : 'emailed after realisation run'}`, trigger: 'Monthly Cost Optimisation Report', channel: 'Email + attachments', link: '/reports', severity: 'success' }))
+        },
+        // Section 9 step 6 — at FY close open ideas roll into the next FY with a new target date and carry-over is booked
+        bookFyClosure: (fy) => {
+          const nfy = `FY${String(Number(fy.slice(2)) + 1).padStart(2, '0')}`
+          const newTarget = fyEnd(nfy)
+          set((s) => ({
+            fyClosed: { ...s.fyClosed, [fy]: true },
+            ideas: s.ideas.map((i) => {
+              if (i.fy !== fy || i.execution?.status !== 'In Execution') return i
+              const reason = `FY closure — rolled into ${nfy}; carry-over booked`
+              return {
+                ...i,
+                execution: { ...i.execution, targetDate: newTarget, slippage: [...i.execution.slippage, { at: now(), by: me()?.name ?? 'System', oldDate: i.execution.targetDate, newDate: newTarget, reason }] },
+                activity: [...i.activity, logEntry(`Rolled into ${nfy} at FY closure`, { field: 'targetDate', oldValue: i.execution.targetDate, newValue: newTarget, remarks: reason })],
+              }
+            }),
+          }))
+          usersWithRole(get().users, 'head', 'finance', 'mgmt').forEach((u) => push({ userId: u, title: `${fy} closure booked`, body: `Open ideas rolled into ${nfy} with due date ${newTarget}; carry-over booked`, trigger: 'FY closure', channel: 'In-app + email', link: '/execution', severity: 'info' }))
+        },
+
+        // ─── Campaigns ────────────────────────────────────────────────────────
+        createCampaign: (c) => {
+          // next free number — counting would reuse an id after a campaign is removed
+          const id = `CMP-${String(Math.max(0, ...get().campaigns.map((x) => Number(x.id.replace(/\D/g, '')) || 0)) + 1).padStart(3, '0')}`
+          set((s) => ({ campaigns: [{ ...c, id, status: c.status ?? 'Draft', attendance: {}, createdBy: me().id, createdAt: now() } as Campaign, ...s.campaigns] }))
+          return id
+        },
+        updateCampaign: (id, patch) => set((s) => ({ campaigns: s.campaigns.map((c) => (c.id === id ? { ...c, ...patch } : c)) })),
+        launchCampaign: (id) => {
+          const c = get().campaigns.find((x) => x.id === id)!
+          const sups = get().suppliers.filter((s) => c.suppliers.includes(s.code))
+          email(sups.map((s) => s.contactEmail), `COIN · Invitation: ${c.name}`, `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, 'Workshop invitation')
+          c.internalInvitees.forEach((u) => email([userEmail(u)], `COIN · Invitation: ${c.name}`, c.description, 'Workshop invitation'))
+          sups.forEach((s) => { const u = get().users.find((x) => x.supplierCode === s.code); if (u) push({ userId: u.id, title: 'Workshop invitation', body: `${c.name}${c.workshopDate ? ' · ' + c.workshopDate : ''}`, trigger: 'Workshop invitation', channel: 'Email', link: '/workshops', severity: 'info' }) })
+          c.internalInvitees.forEach((u) => push({ userId: u, title: 'Campaign invitation', body: c.name, trigger: 'Workshop invitation', channel: 'Email', link: `/campaigns/${c.id}`, severity: 'info' }))
+          set((s) => ({ campaigns: s.campaigns.map((x) => (x.id === id ? { ...x, status: 'Live', invitesSentAt: now(), attendance: Object.fromEntries(x.suppliers.map((k) => [k, x.attendance[k] ?? 'Invited'])) } : x)) }))
+        },
+        setAttendance: (id, code, status) => set((s) => ({ campaigns: s.campaigns.map((c) => (c.id === id ? { ...c, attendance: { ...c.attendance, [code]: status } } : c)) })),
+
+        // ─── Supplier outreach by email ───────────────────────────────────────
+        saveSupplierTemplate: (t) => {
+          const list = get().supplierTemplates ?? SUPPLIER_EMAIL_TEMPLATES_DEFAULT
+          const id = t.id ?? `ST${String(list.length + 1).padStart(2, '0')}-${uid('t').slice(2, 6)}`
+          const item: SupplierEmailTemplate = { ...t, id, updatedAt: now(), updatedBy: me()?.name ?? 'System' }
+          set({ supplierTemplates: list.some((x) => x.id === id) ? list.map((x) => (x.id === id ? item : x)) : [...list, item] })
+          return id
+        },
+        sendOutreach: ({ templateId, commodities, workshopDate, replyBy, recipients, name, kind }) => {
+          const s = get()
+          const tpl = (s.supplierTemplates ?? SUPPLIER_EMAIL_TEMPLATES_DEFAULT).find((x) => x.id === templateId)
+          const sups = recipients ? s.suppliers.filter((x) => recipients.includes(x.code)) : outreachRecipients(s.suppliers, commodities)
+          if (!tpl || !sups.length) return null
+          const u = me()
+          const t = now()
+          const batchId = `OB-${String((s.outreachBatches ?? []).length + 1).padStart(3, '0')}-${uid('b').slice(2, 5)}`
+          const mails: EmailLog[] = sups.map((sup) => {
+            const vars = supplierTemplateVars(sup, commodities, s.commodities, { workshopDate, replyBy, senderName: u?.name })
+            return { id: uid('e'), at: t, to: [sup.contactEmail], subject: renderSupplierTemplate(tpl.subject, vars), body: renderSupplierTemplate(tpl.body, vars), template: `Supplier outreach · ${tpl.name}` }
+          })
+          const batch: OutreachBatch = {
+            id: batchId, templateId: tpl.id, templateName: tpl.name, commodities, recipients: sups.map((x) => x.code), recipientCount: sups.length,
+            name: name?.trim() || undefined, kind, workshopDate: workshopDate || undefined, replyBy: replyBy || undefined, sentAt: t, sentBy: u?.id ?? 'system', sentByName: u?.name ?? 'System',
+          }
+          set((st) => ({ emails: [...mails, ...st.emails], outreachBatches: [batch, ...(st.outreachBatches ?? [])] }))
+          return batch
+        },
+        setSupplierResponseStatus: (id, status, ideaId) =>
+          set((s) => ({ supplierResponses: (s.supplierResponses ?? []).map((r) => (r.id === id ? { ...r, status, ideaId: ideaId ?? r.ideaId, updatedAt: now(), updatedBy: me()?.name } : r)) })),
+        syncSupplierPortal: () => set({ supplierPortalSyncAt: now() }),
+
+        // ─── Notifications ────────────────────────────────────────────────────
+        notify:(n) => set((s) => ({ notifications: [{ ...n, id: uid('n'), at: now(), read: false }, ...s.notifications] })),
+        markRead: (id) => set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)) })),
+        markAllRead: () => set((s) => ({ notifications: s.notifications.map((n) => (n.userId === s.userId ? { ...n, read: true } : n)) })),
+        setEmailPrefs: (userId, prefs) => set((s) => ({ emailPrefs: { ...s.emailPrefs, [userId]: prefs } })),
+        saveView: (v) => set((s) => ({ savedViews: [...s.savedViews, { ...v, id: uid('sv') }] })),
+        deleteView: (id) => set((s) => ({ savedViews: s.savedViews.filter((v) => v.id !== id) })),
+
+        // ─── Admin ────────────────────────────────────────────────────────────
+        upsert: (key, item, idKey = 'id') =>
+          set((s) => {
+            const list = (s as any)[key] as any[]
+            const exists = list.some((x) => x[idKey] === item[idKey])
+            return { [key]: exists ? list.map((x) => (x[idKey] === item[idKey] ? { ...x, ...item } : x)) : [...list, item] } as any
+          }),
+        remove: (key, id, idKey = 'id') => set((s) => ({ [key]: ((s as any)[key] as any[]).filter((x) => x[idKey] !== id) } as any)),
+        setList: (key, list) => set({ [key]: list } as any),
+        updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+        setBuyerTarget: (b, v) => set((s) => ({ buyerTargets: { ...s.buyerTargets, [b]: v } })),
+        setPlantTarget: (p, v) => set((s) => ({ plantTargets: { ...s.plantTargets, [p]: v } })),
+        resetDemo: () => set({ ...freshData() }),
+
+        setMilestoneNote: (id, mid, note) => patchIdea(id, (i) => (i.execution ? { ...i, execution: { ...i.execution, milestones: i.execution.milestones.map((x) => (x.id === mid ? { ...x, note } : x)) }, activity: [...i.activity, logEntry('Milestone note edited', { remarks: note })] } : i)),
+        inviteCampaignSuppliers: (id, codes) => {
+          const c = get().campaigns.find((x) => x.id === id)
+          const sups = get().suppliers.filter((x) => codes.includes(x.code))
+          if (!c || !sups.length) return
+          set((st) => ({
+            emails: [{ id: uid('e'), at: now(), to: sups.map((x) => x.contactEmail), subject: `COIN · Invitation: ${c.name}`, body: `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, template: 'Workshop invitation' }, ...st.emails],
+            campaigns: st.campaigns.map((x) => (x.id === c.id ? { ...x, attendance: { ...x.attendance, ...Object.fromEntries(codes.map((k) => [k, x.attendance[k] ?? 'Invited'])) } } : x)),
+          }))
+          sups.forEach((sp) => { const u = get().users.find((x) => x.supplierCode === sp.code); if (u) push({ userId: u.id, title: 'Workshop invitation', body: c.name, trigger: 'Workshop invitation', channel: 'Email', link: '/workshops', severity: 'info' }) })
+        },
+        importData: (patch) => set(Object.fromEntries(DATA_KEYS.filter((k) => (patch as Record<string, unknown>)[k] !== undefined).map((k) => [k, (patch as Record<string, unknown>)[k]])) as Partial<DomainState>),
+  }
+}
+
+// ─── Supplier outreach helpers (pure) ─────────────────────────────────────────
+/** Commodity name without the "(Cu)" style suffix — used in outreach summaries */
+export const commodityShort = (name: string) => name.replace(/\s*\([^)]*\)\s*$/, '')
+/** Base URL of the external Supplier Portal — set from the environment (VITE_SUPPLIER_PORTAL_URL / SUPPLIER_PORTAL_URL) */
+let portalBase = 'https://supplier-portal.coin.amber'
+export const configureSupplierPortal = (url?: string) => { if (url) portalBase = url.replace(/\/$/, '') }
+/** External Supplier Portal deep link — suppliers never log into COIN */
+export const supplierPortalLink = (supplierCode: string, commodities: string[]) =>
+  `${portalBase}/submit?s=${supplierCode}&c=${commodities.join(',')}`
+/** Every supplier whose commodities include at least one of the chosen codes */
+export function outreachRecipients(suppliers: Supplier[], commodities: string[]) {
+  return suppliers.filter((s) => s.commodities.some((c) => commodities.includes(c)))
+}
+/** Placeholder values for one supplier; commodity = the supplier's commodities within the chosen set */
+export function supplierTemplateVars(sup: Supplier, chosen: string[], commodities: Commodity[], extra: { workshopDate?: string; replyBy?: string; senderName?: string } = {}): Record<string, string> {
+  const mine = sup.commodities.filter((c) => chosen.includes(c))
+  const names = (mine.length ? mine : chosen).map((c) => commodityShort(commodities.find((x) => x.code === c)?.name ?? c))
+  const fmt = (d?: string) => { if (!d) return ''; const x = new Date(d + 'T00:00:00'); return isNaN(+x) ? d : x.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+  return {
+    supplierName: sup.name, contactName: sup.contactName, commodity: names.join(' & '),
+    workshopDate: fmt(extra.workshopDate) || 'the scheduled date', replyBy: fmt(extra.replyBy) || 'the due date',
+    portalLink: supplierPortalLink(sup.code, mine.length ? mine : chosen), senderName: extra.senderName ?? 'Amber Sourcing',
+  }
+}
+/** Replace {{placeholder}} tokens; unknown tokens are left as-is */
+export function renderSupplierTemplate(text: string, vars: Record<string, string>) {
+  return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k: string) => (k in vars ? vars[k] : m))
+}

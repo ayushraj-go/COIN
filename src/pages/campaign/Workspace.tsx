@@ -306,9 +306,9 @@ export function NewCampaignWizard({ open, onClose, initialTemplateId, preset }: 
   const vp = usePaged(vendorList, vSize, vPage)
   const tp = usePaged(templates, 5, tPage)
 
-  const send = () => {
+  const send = async () => {
     if (!tpl) return
-    const b = sendOutreach({ templateId: tpl.id, commodities: chosen, recipients: recipients.map((s) => s.code), name: finalName, kind, workshopDate: usesWs ? workshopDate || undefined : undefined, replyBy: usesReply ? replyBy || undefined : undefined })
+    const b = await sendOutreach({ templateId: tpl.id, commodities: chosen, recipients: recipients.map((s) => s.code), name: finalName, kind, workshopDate: usesWs ? workshopDate || undefined : undefined, replyBy: usesReply ? replyBy || undefined : undefined })
     if (!b) { toast('No vendors selected', 'warning'); return }
     toast(`“${finalName}” emailed to ${plural(b.recipientCount, 'vendor')}`, 'success')
     onClose()

@@ -69,10 +69,10 @@ export function ApprovalAdmin() {
   const atApproval = ideas.filter((i) => i.stage === 'Approval')
   const needHead = (xx: number, yy: number) => atApproval.filter((i) => approvalLevels(ideaAnnualised(i), i.oneTimeInvestment, xx, yy).includes('Sourcing Head')).length
   const save = () => {
-    const prevS = { ...useStore.getState().settings }, prevR = useStore.getState().approvalRules
+    const undo = useStore.getState().beginUndo()
     updateSettings({ xThresholdLakh: x, yThresholdLakh: y, reapprovalPct: re })
     rules.forEach((r) => upsert('approvalRules', { ...r, thresholdLakh: r.kind === 'value' ? x : y }))
-    nowUndo(`Approval matrix saved · ₹ X = ${x} lakh, ₹ Y = ${y} lakh`, () => useStore.setState({ settings: prevS, approvalRules: prevR }))
+    nowUndo(`Approval matrix saved · ₹ X = ${x} lakh, ₹ Y = ${y} lakh`, undo)
   }
   const chain = simA > 0 || simI > 0 ? approvalLevels(simA * LAKH, simI * LAKH, x, y) : []
   const fill = (s: string, r: ApprovalRule) => s.replace('₹ X lakh', `₹ ${r.kind === 'value' ? x : y} lakh`).replace('₹ Y lakh', `₹ ${y} lakh`)
@@ -80,7 +80,7 @@ export function ApprovalAdmin() {
     <div className="grid gap-3">
       <LadderCard />
       <Modal open={!!edit} onClose={() => setEdit(null)} icon="GitBranch" title={`Edit rule ${edit?.id ?? ''}`} size="sm"
-        footer={<><Button onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" icon="Save" disabled={!edit?.condition.trim() || !edit?.approver.trim()} onClick={() => { const prev = useStore.getState().approvalRules; upsert('approvalRules', edit); nowUndo(`Rule ${edit!.id} updated`, () => useStore.setState({ approvalRules: prev })); setEdit(null) }}>Save rule</Button></>}>
+        footer={<><Button onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" icon="Save" disabled={!edit?.condition.trim() || !edit?.approver.trim()} onClick={() => { const undo = useStore.getState().beginUndo(); upsert('approvalRules', edit); nowUndo(`Rule ${edit!.id} updated`, undo); setEdit(null) }}>Save rule</Button></>}>
         {edit && (
           <div className="grid gap-3">
             <Field label="Condition" hint="Use ₹ X lakh / ₹ Y lakh — replaced by the thresholds above"><input className="input" value={edit.condition} onChange={(e) => setEdit({ ...edit, condition: e.target.value })} /></Field>
@@ -156,7 +156,7 @@ export function SlaAdmin() {
   const setF = (k: number, patch: Partial<SlaRule>) => setDraft((d) => d.map((r, i) => (i === k ? { ...r, ...patch } : r)))
   const dirty = JSON.stringify(draft) !== JSON.stringify(rules)
   const anyErr = draft.some((r) => errOf(r))
-  const save = () => { const prev = useStore.getState().slaRules; draft.forEach((r) => upsert('slaRules', r, 'stage')); nowUndo('SLA & reminder rules saved', () => useStore.setState({ slaRules: prev })) }
+  const save = () => { const undo = useStore.getState().beginUndo(); draft.forEach((r) => upsert('slaRules', r, 'stage')); nowUndo('SLA & reminder rules saved', undo) }
   return (
     <div className="grid gap-3">
       <SectionIntro icon="BellRing">{NOTIF_INTRO} Stage SLAs are counted in working days (Decision 11: as proposed).</SectionIntro>
@@ -256,9 +256,9 @@ export function TemplatesAdmin() {
     setTimeout(() => { el?.focus(); el?.setSelectionRange(s + tag.length, s + tag.length) }, 0)
   }
   const dirty = draft && cur && (draft.subject !== cur.subject || draft.body !== cur.body || draft.name !== cur.name)
-  const save = () => { if (!draft) return; const prev = useStore.getState().emailTemplates; upsert('emailTemplates', draft); nowUndo(`Template “${draft.name}” saved`, () => useStore.setState({ emailTemplates: prev })) }
+  const save = () => { if (!draft) return; const undo = useStore.getState().beginUndo(); upsert('emailTemplates', draft); nowUndo(`Template “${draft.name}” saved`, undo) }
   const addNew = () => { const id = `T${String(templates.length + 1).padStart(2, '0')}-${Date.now().toString(36).slice(-3)}`; upsert('emailTemplates', { id, name: 'New template', subject: 'COIN · {{ideaId}}', body: 'Dear {{recipient}},\n\n\n— COIN · Cost Innovation Hub' }); setSel(id) }
-  const del = () => { if (!cur) return; const prev = useStore.getState().emailTemplates; remove('emailTemplates', cur.id); setSel(templates.find((t) => t.id !== cur.id)?.id); nowUndo(`Template “${cur.name}” deleted`, () => useStore.setState({ emailTemplates: prev })) }
+  const del = () => { if (!cur) return; const undo = useStore.getState().beginUndo(); remove('emailTemplates', cur.id); setSel(templates.find((t) => t.id !== cur.id)?.id); nowUndo(`Template “${cur.name}” deleted`, undo) }
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
       <Card className="xl:col-span-3 rounded-2xl" title="Templates" icon="Mails" actions={!ro && <Button size="xs" variant="outline" icon="Plus" onClick={addNew}>New</Button>}>
@@ -313,7 +313,7 @@ export function CalendarAdmin() {
   const today = todayIso()
   const sm = settings.fyStartMonth
   const qLabel = (q: number) => { const a = (sm - 1 + q * 3) % 12; return `${MONTH_NAMES[a].slice(0, 3)}–${MONTH_NAMES[(a + 2) % 12].slice(0, 3)}` }
-  const set = (patch: Partial<typeof settings>, msg: string) => { const prev = { ...useStore.getState().settings }; updateSettings(patch); nowUndo(msg, () => useStore.setState({ settings: prev })) }
+  const set = (patch: Partial<typeof settings>, msg: string) => { const undo = useStore.getState().beginUndo(); updateSettings(patch); nowUndo(msg, undo) }
   const months = fyMonths(fy)
   return (
     <div className="grid gap-3">
@@ -368,7 +368,7 @@ export function SettingsAdmin() {
   const ro = useRO()
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
-  const set = (patch: Partial<typeof settings>, msg: string) => { const prev = { ...useStore.getState().settings }; updateSettings(patch); nowUndo(msg, () => useStore.setState({ settings: prev })) }
+  const set = (patch: Partial<typeof settings>, msg: string) => { const undo = useStore.getState().beginUndo(); updateSettings(patch); nowUndo(msg, undo) }
   const [timeout, setTimeoutV] = useState(settings.sessionTimeoutMin)
   const [reap, setReap] = useState(settings.reapprovalPct)
   useEffect(() => { setTimeoutV(settings.sessionTimeoutMin); setReap(settings.reapprovalPct) }, [settings.sessionTimeoutMin, settings.reapprovalPct])
@@ -485,10 +485,10 @@ export function DataAdmin() {
   }
   const doImport = () => {
     if (!pending) return
-    const prev = snapshot()
+    const undo = useStore.getState().beginUndo()
     const patch = Object.fromEntries(DATA_KEYS.filter((k) => pending.data[k] !== undefined).map((k) => [k, pending.data[k]]))
-    useStore.setState(patch as any)
-    toast(`Imported ${pending.name} · ${Object.keys(patch).length} data sets`, 'success', () => useStore.setState(prev as any))
+    useStore.getState().importData(patch)
+    toast(`Imported ${pending.name} · ${Object.keys(patch).length} data sets`, 'success', undo)
     setPending(null)
   }
   const counts: [string, number, string][] = [['Ideas', state.ideas.length, 'Lightbulb'], ['Ledger entries', state.ledger.length, 'BookOpenCheck'], ['Users', state.users.length, 'Users'], ['Vendors', state.suppliers.length, 'Factory'], ['Parts', state.parts.length, 'Package'], ['Campaigns', state.campaigns.length, 'Megaphone'], ['Notifications', state.notifications.length, 'Bell'], ['Emails', state.emails.length, 'Mail']]

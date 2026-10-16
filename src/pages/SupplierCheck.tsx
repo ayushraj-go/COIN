@@ -54,9 +54,9 @@ export default function SupplierCheck() {
   // the recipient's own name is not Amber data
   const leaks = amberDataLeaks(`${subject}\n${body}\n${item}\n${spec}`, idea, suppliers, sup ? { code: sup.code, name: sup.name } : undefined)
   const canSend = mayEvaluate && !!sup?.name && !!sup.contactEmail && /@/.test(sup.contactEmail) && !!item.trim() && !!spec.trim() && !leaks.length && idea.stage === STAGE.evaluation
-  const send = () => {
+  const send = async () => {
     if (!sup) return
-    const token = useStore.getState().sendSupplierCheck(idea.id, { supplierCode: sup.code, supplierName: sup.name, contactName: sup.contactName, email: sup.contactEmail, item: item.trim(), spec: spec.trim(), requiredBy, subject, body })
+    const token = await useStore.getState().sendSupplierCheck(idea.id, { supplierCode: sup.code, supplierName: sup.name, contactName: sup.contactName, email: sup.contactEmail, item: item.trim(), spec: spec.trim(), requiredBy, subject, body })
     toast(`Capability request sent to ${sup.name} — form link ${token}`, 'success')
   }
   const formUrl = sc?.token ? `/supplier-form/${sc.token}` : null

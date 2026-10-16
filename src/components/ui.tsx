@@ -496,7 +496,7 @@ export interface Column<T> { key: string; label: React.ReactNode; render?: (row:
 export function DataTable<T>({ rows, columns, onRowClick, rowKey, exportName, toolbar, maxHeight = 560, empty, selectable, selected, onSelect, footer, dense }: {
   rows: T[]; columns: Column<T>[]; onRowClick?: (r: T) => void; rowKey: (r: T) => string; exportName?: string; toolbar?: React.ReactNode; maxHeight?: number | string; empty?: React.ReactNode; selectable?: boolean; selected?: Set<string>; onSelect?: (s: Set<string>) => void; footer?: React.ReactNode; dense?: boolean
 }) {
-  const density = useStore((s) => s.settings.density)
+  const density = useStore((s) => s.densityPref ?? s.settings.density)
   const setDensity = useStore((s) => s.setDensity)
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null)
   const [hidden, setHidden] = useState<Set<string>>(() => new Set(columns.filter((c) => c.hidden).map((c) => c.key)))

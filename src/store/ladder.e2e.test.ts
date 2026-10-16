@@ -19,9 +19,9 @@ const part: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals
 beforeEach(() => { st().resetDemo() })
 
 describe('an HR idea runs the whole department ladder', () => {
-  it('employee → team lead → department lead → department head → execution owner → Finance', () => {
+  it('employee → team lead → department lead → department head → execution owner → Finance', async () => {
     st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate' })
+    const id = await st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate' })
     expect(idea(id).department).toBe('HR')
     expect(idea(id).stage).toBe(STAGE.feasibility)
 
@@ -54,7 +54,7 @@ describe('an HR idea runs the whole department ladder', () => {
     st().loginAs('u-hr-head')
     expect(can('u-hr-head', id).approve).toBe(true)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-11-01', endDate: '2027-05-01', targetSaving: lockTarget(ideaAnnualised(idea(id)), 6), signatureName: 'Lata Krishnan' })
-    expect(st().approve(id)).toBe(true)
+    expect(await st().approve(id)).toBe(true)
     expect(idea(id).stage).toBe(STAGE.execution)
     expect(idea(id).ownerId).toBe('u-hr-exec')
 

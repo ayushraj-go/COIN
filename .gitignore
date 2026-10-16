@@ -4,3 +4,10 @@ dist/
 *.log
 .vite/
 .DS_Store
+
+.env
+.env.*
+!.env.example
+.pgdata/
+qa-output/
+server/dist/

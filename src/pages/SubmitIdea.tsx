@@ -150,7 +150,6 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const plant = plants.find((p) => p.id === form.plant)
   const lead = users.find((u) => u.id === commodity?.leadId)
   const buyer = users.find((u) => u.id === commodity?.buyerId)
-  const head = users.find((u) => u.id === 'u-head') ?? users.find((u) => u.roles.includes('head'))
   // stages 2–4 for this submitter's department (supplier ideas go to Sourcing)
   const route = useMemo(() => approvalRoute(evalDeptOf(me?.department), commodity?.code ?? '', users, me?.id).map((r) => ({ label: r.label, name: users.find((u) => u.id === r.userId)?.name })), [me, commodity, users])
   const myCommodities = isSupplier && me.commodities.length ? commodities.filter((c) => me.commodities.includes(c.code)) : commodities
@@ -269,13 +268,18 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   }, [form, dirty])
 
   // ─── draft autosave (debounced 1.2 s) ─────────────────────────────────────────
-  const persistDraft = useCallback((fromUnmount = false) => {
+  // one save at a time: a second autosave waits for the first, so a new draft is never created twice
+  const inflightRef = useRef<Promise<string> | null>(null)
+  const persistDraft = useCallback(async (fromUnmount = false) => {
+    if (inflightRef.current) await inflightRef.current.catch(() => undefined)
     const f = formRef.current
     const s = useStore.getState()
     const lv = s.levers.find((l) => l.id === f.leverId)
     const cm = s.commodities.find((c) => c.code === f.commodity)
     const payload = toPayload(f, me, lv, cm?.buyerId)
-    const id = s.saveDraft(payload, draftRef.current ?? undefined)
+    const pending = s.saveDraft(payload, draftRef.current ?? undefined)
+    inflightRef.current = pending
+    const id = await pending.finally(() => { if (inflightRef.current === pending) inflightRef.current = null })
     if (!draftRef.current) {
       draftRef.current = id
       if (!fromUnmount) {
@@ -301,10 +305,10 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     if (dirtyRef.current && !doneRef.current && !isEmptyDraft(formRef.current)) persistRef.current(true)
   }, [])
 
-  const saveNow = useCallback(() => {
+  const saveNow = useCallback(async () => {
     if (isEmptyDraft(formRef.current) && !draftRef.current) { toast('Nothing to save yet — start with an idea name or a category', 'info'); return }
     clearTimeout(timerRef.current)
-    const id = persistDraft()
+    const id = await persistDraft()
     toast(`Draft saved · ${id}`, 'success')
   }, [persistDraft, toast])
 
@@ -317,7 +321,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const leave = () => { const idx = (window.history.state as any)?.idx; if (typeof idx === 'number' && idx > 0) nav(-1); else nav('/') }
 
   // ─── actions ─────────────────────────────────────────────────────────────────
-  const submit = () => {
+  const submit = async () => {
     setShowErrors(true)
     const keys = Object.keys(errors)
     if (keys.length) {
@@ -331,7 +335,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     clearTimeout(timerRef.current)
     doneRef.current = true
     const payload = toPayload(form, me, lever, commodity?.buyerId)
-    const id = useStore.getState().submitIdea(payload, draftRef.current ?? undefined)
+    if (inflightRef.current) await inflightRef.current.catch(() => undefined)
+    const id = await useStore.getState().submitIdea(payload, draftRef.current ?? undefined)
     toast(`${id} submitted — sent to ${route[0]?.name ?? 'your team lead'} for the team feasibility check`, 'success')
     nav(`/ideas/${id}`)
   }
@@ -863,7 +868,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
         footer={<>
           <Button variant="danger" icon="Trash2" onClick={() => { clearTimeout(timerRef.current); doneRef.current = true; if (draftRef.current) useStore.getState().deleteDraft(draftRef.current); setCancelOpen(false); toast('Draft discarded', 'info'); leave() }}>Discard draft</Button>
           <Button onClick={() => setCancelOpen(false)}>Continue editing</Button>
-          <Button variant="primary" icon="Save" onClick={() => { clearTimeout(timerRef.current); persistDraft(); doneRef.current = true; setCancelOpen(false); toast(`Draft kept · ${draftRef.current} — resume it from My Ideas`, 'success'); leave() }}>Keep draft &amp; leave</Button>
+          <Button variant="primary" icon="Save" onClick={async () => { clearTimeout(timerRef.current); const id = await persistDraft(); doneRef.current = true; setCancelOpen(false); toast(`Draft kept · ${id} — resume it from My Ideas`, 'success'); leave() }}>Keep draft &amp; leave</Button>
         </>}>
         <p className="text-[13px] text-ink-2">Keep the draft to finish later — it stays in My Ideas with status Draft — or discard it permanently.</p>
         {(form.title || form.parts.length > 0) && (

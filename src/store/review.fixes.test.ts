@@ -33,7 +33,7 @@ describe('C1 — the board follows the ladder', () => {
 })
 
 describe('C2 — Execution Hub rights', () => {
-  it('only the department execution owner, the department head (reassign) and override users edit', () => {
+  it('only the department execution owner, the department head (reassign) and override users edit', async () => {
     const ex = rdExec()
     expect(execRights(user('u-lead1'), ex).editable).toBe(false)
     expect(execRights(user('u-buyer2'), ex).editable).toBe(false)
@@ -45,7 +45,7 @@ describe('C2 — Execution Hub rights', () => {
 })
 
 describe('I1 — pipeline reassignment does not hijack the ladder', () => {
-  it('the department head still approves and the department execution owner still executes', () => {
+  it('the department head still approves and the department execution owner still executes', async () => {
     const a = rd(STAGE.approval)
     expect(ideaPerms(user('u-buyer2'), a).reassign).toBe(false)
     st().reassign(a.id, 'u-buyer2', 'commodity buyer change')
@@ -53,7 +53,7 @@ describe('I1 — pipeline reassignment does not hijack the ladder', () => {
     expect(idea(a.id).ownerId).toBeUndefined()
     st().loginAs('u-rd-head')
     st().signLock(a.id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: lockTarget(ideaAnnualised(idea(a.id)), 6), signatureName: 'Dr. Sameer Kulkarni' })
-    expect(st().approve(a.id)).toBe(true)
+    expect(await st().approve(a.id)).toBe(true)
     expect(idea(a.id).ownerId).toBe('u-rd-exec')
     // I6 — the execution owner is told execution has started
     expect(st().notifications.some((n) => n.userId === 'u-rd-exec' && n.ideaId === a.id)).toBe(true)
@@ -61,7 +61,7 @@ describe('I1 — pipeline reassignment does not hijack the ladder', () => {
 })
 
 describe('I2 / I3 — reassigned owners', () => {
-  it('a reassigned execution owner can open the idea and finds it in their queue', () => {
+  it('a reassigned execution owner can open the idea and finds it in their queue', async () => {
     const ex = rdExec()
     st().reassign(ex.id, 'u-buyer1', 'cover during leave')
     expect(canSeeIdea(user('u-buyer1'), idea(ex.id))).toBe(true)
@@ -77,7 +77,7 @@ describe('I2 / I3 — reassigned owners', () => {
 })
 
 describe('I4 — MIS for department leads and heads', () => {
-  it('opens for the roles the sidebar offers it to', () => {
+  it('opens for the roles the sidebar offers it to', async () => {
     expect(canOpenReports(user('u-eval1'))).toBe(true)
     expect(canOpenReports(user('u-rd-head'))).toBe(true)
     expect(canOpenReports(user('u-sub1'))).toBe(false)
