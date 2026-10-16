@@ -146,7 +146,8 @@ export function canSeeIdea(user: User, idea: Idea): boolean {
   const r = user.roles
   if (r.some((x) => x === 'head' || x === 'finance' || x === 'mgmt' || x === 'admin')) return true
   if (idea.submitterId === user.id || idea.ownerId === user.id) return true
-  if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
+  // a supplier sees the ideas it submitted under its vendor code — never Amber's internal ideas that name it
+  if (r.includes('supplier')) return !!idea.isSupplierSubmission && !!user.supplierCode && idea.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
   // department ladder (team lead, department lead, department head, execution owner): every idea of their department
   if (r.some((x) => x === 'teamlead' || x === 'deptlead' || x === 'depthead' || x === 'execowner') && ideaDept(idea) === user.department) return true
