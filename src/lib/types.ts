@@ -204,6 +204,8 @@ export interface SupplierCheck {
 /** Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability, decision */
 export interface Evaluation {
   dept: string
+  /** cost-benefit inputs the evaluator changed (auto values come from the idea); see cbaFigures */
+  cbaInputs?: { investment?: number; goLive?: string; payback?: number; carryOver?: number }
   /** forecast below ₹ 5 L — the idea went from the team feasibility check straight to department approval */
   skipped?: boolean
   skippedReason?: string
@@ -248,6 +250,9 @@ export interface Verification {
   targetAchieved?: boolean
   realisedAtVerification?: number
   targetAtVerification?: number
+  /** captured when the locked timeline ended and COIN moved the idea to Verification: locked target vs MRN actual in the window */
+  forecastAtClose?: number
+  actualAtClose?: number
   verifiedAt?: string
   verifiedBy?: string
   remarks?: string

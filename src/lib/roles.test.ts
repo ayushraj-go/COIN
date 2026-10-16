@@ -59,8 +59,10 @@ describe('who may act', () => {
     expect(ideaPerms(U('u-hr-lead'), at(STAGE.evaluation)).evaluate).toBe(false)
     expect(ideaPerms(U('u-rd-head'), at(STAGE.approval)).approve).toBe(true)
     expect(ideaPerms(U('u-qa-head'), at(STAGE.approval)).approve).toBe(false)
-    expect(ideaPerms(U('u-rd-exec'), at(STAGE.execution)).handOver).toBe(true)
-    expect(ideaPerms(U('u-hr-exec'), at(STAGE.execution)).handOver).toBe(false)
+    expect(ideaPerms(U('u-rd-exec'), at(STAGE.execution)).execute).toBe(true)
+    expect(ideaPerms(U('u-hr-exec'), at(STAGE.execution)).execute).toBe(false)
+    // nobody hands over by hand — COIN moves the idea to verification when the locked timeline ends
+    expect(ideaPerms(U('u-rd-exec'), at(STAGE.execution)).handOver).toBe(false)
     expect(ideaPerms(U('u-fin'), at(STAGE.verification)).verify).toBe(true)
     expect(ideaPerms(U('u-rd-head'), at(STAGE.verification)).verify).toBe(false)
   })
@@ -75,7 +77,7 @@ describe('who may act', () => {
       expect(p.feasibilityCheck || p.evaluate || p.approve).toBe(false)
       for (const o of ['u-head', 'u-admin']) { const q = ideaPerms(U(o), at(s)); expect(q.feasibilityCheck || q.evaluate || q.approve, `${o} ${s}`).toBe(true) }
     }
-    expect(ideaPerms(U('u-admin'), at(STAGE.execution)).handOver).toBe(true)
+    expect(ideaPerms(U('u-admin'), at(STAGE.execution)).execute).toBe(true)
     expect(ideaPerms(U('u-admin'), at(STAGE.verification)).verify).toBe(true)
   })
   it('department roles see their department; employees only their own ideas', () => {

@@ -113,6 +113,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 /* navy hero band with an Amber red glow — headers and the highlighted KPI tile */
 .bg-hero { background: radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--color-accent-500) 26%, transparent), transparent 60%), linear-gradient(125deg, var(--color-brand-950) 0%, var(--color-brand-900) 50%, var(--color-brand-800) 100%); }
 /* Amber red band (CO workspace) */
+.bg-co-grad { background: linear-gradient(135deg, var(--color-teal-500) 0%, var(--color-teal-600) 45%, var(--color-teal-800) 100%); }
 .bg-red-grad { background: linear-gradient(135deg, var(--color-accent-400) 0%, var(--color-accent-500) 45%, var(--color-accent-700) 100%); }
 /* soft tints used behind KPI tiles and section headers */
 .bg-soft-blue { background: linear-gradient(180deg, var(--color-brand-50) 0%, #ffffff 100%); }

@@ -10,7 +10,8 @@ import { overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
 import { fmtDate, inrShort, todayIso } from '../../lib/format'
 import { Badge, Button, Icon, Money, cn } from '../../components/ui'
 import { ideaPerms } from './model'
-import { EvaluationModal, FeasibilityCheckModal, SupplierResponseCard, VerificationModal } from './StageForms'
+import { FeasibilityCheckModal, SupplierResponseCard, VerificationModal } from './StageForms'
+import { EvaluationModal } from './EvaluationModal'
 import { SourcingApprovalModal } from './ApprovalModal'
 
 const reached = (idea: Idea, stage: string) => {
@@ -107,14 +108,15 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
         action={p.verify ? <Button size="sm" variant="success" icon="ShieldCheck" onClick={() => setOpen('verify')}>Verify savings</Button> : undefined}>
         {v?.handedAt ? (
           <>
-            <Row k="Handed over" v={`${v.handedBy ?? '—'} · ${fmtDate(v.handedAt.slice(0, 10))}`} />
+            <Row k="In verification since" v={`${fmtDate(v.handedAt.slice(0, 10))} · locked timeline ended`} />
             <Row k="First MRN at new price" v={fmtDate(idea.execution?.effectiveDate)} />
+            {v.forecastAtClose != null && <Row k="Locked target vs MRN actual" v={`${inrShort(v.forecastAtClose)} / ${inrShort(v.actualAtClose ?? 0)}`} />}
             {v.verifiedAt && <Row k="Verified" v={`${v.verifiedBy} · ${fmtDate(v.verifiedAt.slice(0, 10))}`} />}
             {v.realisedAtVerification != null && <Row k="Realised vs due" v={`${inrShort(v.realisedAtVerification)} / ${inrShort(v.targetAtVerification ?? 0)}`} />}
             {v.remarks && <div className="mt-1 text-muted italic truncate" title={v.remarks}>“{v.remarks}”</div>}
           </>
         ) : v?.returnedAt ? <Waiting>Returned to execution on {fmtDate(v.returnedAt.slice(0, 10))}: {v.returnReason}</Waiting>
-          : <Waiting>{dropped ? 'Not reached.' : 'After the hand-over the business side checks MRN at the approved price, Finance validation and the locked target.'}</Waiting>}
+          : <Waiting>{dropped ? 'Not reached.' : 'When the locked timeline ends COIN moves the idea here by itself; Finance compares the locked target with the saving found in MRN.'}</Waiting>}
       </Shell>
 
       {!compact && ev?.supplier?.status === 'Responded' && <div className="md:col-span-2 2xl:col-span-4"><SupplierResponseCard idea={idea} /></div>}

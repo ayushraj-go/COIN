@@ -87,7 +87,7 @@ function Sidebar() {
               return (
                 <button key={k} type="button" aria-pressed={on} title={SPACE_META[k].name} onClick={() => { if (!on) setSpace(k); nav('/') }}
                   className={cn('min-w-0 flex items-center gap-[5px] rounded-lg py-1.5 text-left transition-colors', collapsed ? 'justify-center' : 'px-1', on ? 'bg-[var(--sb-active-bg)]' : 'hover:bg-[var(--sb-hover)]')}>
-                  <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0 transition-opacity', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad', !on && 'opacity-60')}>{k}</span>
+                  <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0 transition-opacity', k === 'CO' ? 'bg-co-grad' : 'bg-brand-grad', !on && 'opacity-60')}>{k}</span>
                   {!collapsed && <span className={cn('min-w-0 text-[10px] leading-[1.2]', on ? 'font-semibold text-[var(--sb-active-fg)]' : 'font-medium text-[var(--sb-card-sub)]')}>{k === 'CO' ? <>Cost<br />Optimisation</> : <>Innovation<br />Network</>}</span>}
                 </button>
               )
@@ -110,7 +110,7 @@ function Sidebar() {
             {(['CO', 'IN'] as const).map((k) => (
               <button key={k} onClick={() => { setSpace(k); nav('/') }} title={collapsed ? SPACE_META[k].name : undefined}
                 className={cn('group w-full flex items-center gap-2.5 h-9 rounded-lg text-[13px] font-medium text-[var(--sb-fg)] hover:bg-[var(--sb-hover)] transition-colors mb-0.5', collapsed ? 'justify-center' : 'px-2')}>
-                <span className={cn('h-6 w-6 rounded-md text-white text-[9.5px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{k}</span>
+                <span className={cn('h-6 w-6 rounded-md text-white text-[9.5px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-co-grad' : 'bg-brand-grad')}>{k}</span>
                 {!collapsed && <span className="flex-1 truncate text-left">{SPACE_META[k].name}</span>}
                 {!collapsed && <Icon name="ChevronRight" size={14} className="text-[var(--sb-icon)] opacity-0 group-hover:opacity-100 transition-opacity" />}
               </button>
@@ -155,7 +155,7 @@ function MobileNav() {
                 {(['CO', 'IN'] as const).map((k) => (
                   <button key={k} type="button" onClick={() => { setSpace(k); nav('/'); setOpen(false) }}
                     className={cn('h-11 rounded-xl flex items-center gap-2 px-2 text-left text-[11px] leading-tight font-semibold border', space === k ? 'bg-brand-50 border-brand-200 text-brand-800' : 'border-line text-ink-2')}>
-                    <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{k}</span>{SPACE_META[k].name}
+                    <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-co-grad' : 'bg-brand-grad')}>{k}</span>{SPACE_META[k].name}
                   </button>
                 ))}
               </div>
@@ -358,6 +358,8 @@ export default function AppShell() {
   const space = useStore((s) => s.space)
   const setSpace = useStore((s) => s.setSpace)
   useEffect(() => { mainRef.current?.scrollTo({ top: 0 }) }, [loc.pathname])
+  // the monthly MRN feed: post every completed month not posted yet, then move executions whose locked timeline ended
+  useEffect(() => { useStore.getState().syncMrn() }, [])
   // A deep link enters its workspace directly; CO-only pages (Execution Hub, Savings proof) always switch to CO
   useEffect(() => { const sp = spaceForPath(loc.pathname); if (sp === 'CO' && space !== 'CO') setSpace('CO'); else if (!space && sp) setSpace(sp) }, [space, loc.pathname, setSpace])
   return (

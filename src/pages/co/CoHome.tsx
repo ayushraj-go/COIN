@@ -72,7 +72,7 @@ function PortfolioPlanCard({ ideas, height }: { ideas: import('../../lib/types')
   const last = useStore((s) => s.settings.lastRealisationMonth)
   const p = portfolioPlan(ideas, ledger, last)
   return (
-    <Card title="Plan vs actual — locked targets" icon="ChartLine" subtitle={`${p.ideas} ideas with a signed budget + timeline lock · actuals from MRN`} className={fill ? 'h-full overflow-hidden' : undefined}>
+    <Card title="Locked target vs MRN actual" icon="ChartLine" subtitle={`${p.ideas} ideas with a signed budget + timeline lock · actual savings from MRN only`} className={fill ? 'h-full overflow-hidden' : undefined}>
       <PlanVsActualBlock p={p} compact={fill} chartHeight={height ? Math.max(110, Math.min(260, height - 270)) : undefined} />
     </Card>
   )

@@ -58,13 +58,18 @@ describe('an HR idea runs the whole department ladder', () => {
     expect(idea(id).stage).toBe(STAGE.execution)
     expect(idea(id).ownerId).toBe('u-hr-exec')
 
-    // 5 · execution — HR execution owner hands over after the first MRN
+    // 5 · execution — HR execution owner keeps the record; MRN is counted month by month from the savings start;
+    //     when the locked timeline ends COIN moves the idea to verification by itself
     expect(inQueue('u-hr-exec', id)).toBe(true)
-    expect(can('u-hr-head', id).handOver).toBe(false)
-    expect(can('u-pr-exec', id).handOver).toBe(false)
-    st().loginAs('u-hr-exec')
-    expect(can('u-hr-exec', id).handOver).toBe(true)
-    st().handOverForVerification(id, '2026-11-01', { [part.partCode]: 96 })
+    expect(can('u-hr-head', id).execute).toBe(false)
+    expect(can('u-pr-exec', id).execute).toBe(false)
+    expect(can('u-hr-exec', id).execute).toBe(true)
+    expect(can('u-hr-exec', id).handOver).toBe(false)
+    st().uploadMrn([{ ideaId: id, partCode: part.partCode, month: '2026-11', mrnQty: 20000, mrnPrice: 96 }])
+    expect(idea(id).execution?.effectiveDate).toBe('2026-11-01')
+    st().closeEndedExecutions('2027-04-30')
+    expect(idea(id).stage).toBe(STAGE.execution)
+    st().closeEndedExecutions('2027-05-01')
     expect(idea(id).stage).toBe(STAGE.verification)
 
     // 6 · verification — Finance

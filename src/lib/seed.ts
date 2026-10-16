@@ -2,7 +2,7 @@ import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notifi
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, monthsBetween, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -379,26 +379,36 @@ function buildIdea(opts: {
   if (idea.approvedAt && idea.lock) {
     const approvedDay = idea.approvedAt.slice(0, 10)
     const L = idea.lock
-    const targetDate = L.endDate
-    const tpl = MILESTONE_TEMPLATES[route]
-    const due = milestoneSchedule(approvedDay, L.startDate, L.endDate, tpl)
-    const ms = tpl.map((name, k) => ({ id: `m-${id}-${k}`, name, dueDate: due[k], doneDate: undefined as string | undefined }))
     let effectiveDate: string | undefined
     let handedAt: string | undefined
     if (t === 'Implemented') {
       effectiveDate = addDays(L.startDate, ri(0, 9))
       if (ymOf(effectiveDate) > LAST_REALISED) effectiveDate = `${LAST_REALISED}-0${ri(1, 9)}`
       if (effectiveDate < approvedDay) effectiveDate = addDays(approvedDay, 5)
-      handedAt = addDays(effectiveDate, ri(25, 70))
-      if (handedAt >= TODAY) handedAt = addDays(TODAY, -ri(2, 9))
-      if (handedAt <= effectiveDate) handedAt = addDays(effectiveDate, 3)
+      let reached = addDays(effectiveDate, ri(25, 70))
+      if (reached >= TODAY) reached = addDays(TODAY, -ri(2, 9))
+      if (reached <= effectiveDate) reached = addDays(effectiveDate, 3)
+      // an implemented idea reached verification because its locked timeline ended: the timeline is the whole months
+      // from the savings start to when it reached verification, and COIN moved it on that end date
+      let m = Math.max(1, Math.floor(monthsBetween(L.startDate, reached)))
+      while (m > 1 && addMonthsIso(L.startDate, m) > TODAY) m--
+      if (addMonthsIso(L.startDate, m) > TODAY) { L.startDate = firstOfMonth(addMonthsIso(TODAY, -1)); m = 1 }
+      Object.assign(L, { timelineMonths: m, endDate: addMonthsIso(L.startDate, m), targetSaving: lockTarget(annual, m) })
+      handedAt = L.endDate
+      if (effectiveDate >= handedAt || effectiveDate < L.startDate) effectiveDate = L.startDate
+    }
+    const targetDate = L.endDate
+    const tpl = MILESTONE_TEMPLATES[route]
+    const due = milestoneSchedule(approvedDay, L.startDate, L.endDate, tpl)
+    const ms = tpl.map((name, k) => ({ id: `m-${id}-${k}`, name, dueDate: due[k], doneDate: undefined as string | undefined }))
+    if (t === 'Implemented' && effectiveDate && handedAt) {
       const eff = effectiveDate, hand = handedAt
       ms.forEach((m) => (m.doneDate = m.name === 'First MRN at new price' ? eff : m.name === 'Handed for verification' ? hand : m.name === 'Implementation confirmed' ? (addDays(eff, 20) < hand ? addDays(eff, 20) : hand) : m.dueDate < eff ? m.dueDate : eff))
       const exH = idea.stageHistory.find((h) => h.stage === STAGE.execution)
-      if (exH) exH.exitedAt = dt(hand, 15)
+      if (exH) Object.assign(exH, { exitedAt: `${hand}T00:00:00.000Z`, by: 'COIN', action: 'Locked timeline ended' })
       const vH = idea.stageHistory.find((h) => h.stage === STAGE.verification)
-      if (vH) vH.enteredAt = dt(hand, 15)
-      idea.stageEnteredAt = dt(hand, 15)
+      if (vH) vH.enteredAt = `${hand}T00:00:00.000Z`
+      idea.stageEnteredAt = `${hand}T00:00:00.000Z`
     } else {
       // route steps done when due; first MRN once the savings start has passed; never handed over while in execution
       ms.forEach((m) => {
@@ -437,11 +447,11 @@ function buildIdea(opts: {
     }
     if (effectiveDate) idea.parts = idea.parts.map((p) => ({ ...p, approvedPrice: +(p.newPrice * r(0.985, 1.02)).toFixed(p.newPrice > 100 ? 1 : 2) }))
     if (t === 'Implemented') {
-      idea.implementedAt = dt(handedAt!, 15)
+      idea.implementedAt = `${handedAt}T00:00:00.000Z`
       exec.approvedPrice = idea.parts[0]?.approvedPrice
       idea.locked = true
-      log(dt(handedAt!, 15), c.buyerId, 'Handed for verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${effectiveDate}` })
-      idea.verification = { handedAt: dt(handedAt!, 15), handedBy: userById(c.buyerId).name }
+      log(`${handedAt}T00:00:00.000Z`, 'system', 'Locked timeline ended — moved to verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${effectiveDate}` })
+      idea.verification = { handedAt: `${handedAt}T00:00:00.000Z`, handedBy: 'COIN — locked timeline ended', forecastAtClose: L.targetSaving }
       const verifiedOn = addDays(handedAt!, ri(3, 25))
       if (chance(0.6) && verifiedOn < TODAY) {
         idea.verification = { ...idea.verification, verifiedAt: dt(verifiedOn, 12), verifiedBy: userById(lad.verifier).name, mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price; savings on plan for the period.' }
@@ -600,7 +610,8 @@ function buildShowcase(): Idea[] {
       D.start = `${addMonthsYm(LAST_REALISED, sp.n === 5 ? -2 : -4)}-01`
       D.approved = addDays(D.start, -24); D.eval = addDays(D.approved, -9); D.feas = addDays(D.eval, -14); D.submitted = addDays(D.feas, -6)
       const end = addMonthsIso(D.start, sp.months)
-      D.handed = addDays(end, sp.n === 5 ? 4 : 3) < TODAY ? addDays(end, sp.n === 5 ? 4 : 3) : addDays(TODAY, -1)
+      // COIN moves an idea to verification when its locked timeline ends
+      D.handed = end <= TODAY ? end : addDays(TODAY, -1)
       if (sp.n === 6) D.verified = addDays(D.handed, 6) < TODAY ? addDays(D.handed, 6) : TODAY
     }
 
@@ -617,7 +628,7 @@ function buildShowcase(): Idea[] {
     const evalDept = evalDeptOf(idea.department)
     const lad = ladderFor(evalDept, c.code, sp.submitterId)
     const evaluatorId = lad.evaluator
-    const name = (u: string) => userById(u).name
+    const name = (u: string) => (u === 'system' ? 'COIN' : userById(u).name)
     const act: Idea['activity'] = []
     const log = (at: string, userId: string, action: string, extra: Partial<Idea['activity'][0]> = {}) => act.push({ id: `a-${act.length}-${id}`, at, userId, userName: userId === 'supplier' ? `${altSup?.contactName} (${altSup?.name})` : name(userId), action, ...extra })
     log(dt(D.submitted, 9, 30), sp.submitterId, 'Created idea (draft)')
@@ -684,10 +695,10 @@ function buildShowcase(): Idea[] {
     // Stage 6 — verification
     if (sp.n >= 5) {
       idea.implementedAt = dt(D.handed, 15)
-      idea.verification = { handedAt: dt(D.handed, 15), handedBy: name(lad.exec) }
+      idea.verification = { handedAt: `${D.handed}T00:00:00.000Z`, handedBy: 'COIN — locked timeline ended', forecastAtClose: idea.lock!.targetSaving }
       log(dt(idea.lock!.startDate, 12), lad.exec, 'Milestone done: First MRN at new price')
-      log(dt(D.handed, 15), lad.exec, 'Handed for verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${idea.lock!.startDate}` })
-      close(dt(D.handed, 15), lad.exec, 'Handed for verification', STAGE.verification)
+      log(`${D.handed}T00:00:00.000Z`, 'system', 'Locked timeline ended — moved to verification', { field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification, remarks: `First MRN at the new price ${idea.lock!.startDate}` })
+      close(`${D.handed}T00:00:00.000Z`, 'system', 'Locked timeline ended', STAGE.verification)
     }
     if (sp.n === 6) {
       idea.verification = { ...idea.verification, verifiedAt: dt(D.verified, 12), verifiedBy: name(lad.verifier), mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price for every month; target for the locked period achieved.' }
@@ -705,15 +716,18 @@ function buildShowcase(): Idea[] {
 const FINAL = ['First MRN at new price', 'Implementation confirmed', 'Handed for verification']
 
 // ─── Realisation ledger (Section 9) ───────────────────────────────────────────
-export function realiseMonth(ideas: Idea[], month: string, rng: () => number = rnd): LedgerEntry[] {
+/** One month of MRN savings. `fromLock`: an idea without a recorded first MRN counts from the savings start in its lock
+ *  (the live monthly feed); the seed history passes false and keeps only ideas whose first MRN is on record. */
+export function realiseMonth(ideas: Idea[], month: string, rng: () => number = rnd, fromLock = true): LedgerEntry[] {
   const out: LedgerEntry[] = []
   for (const i of ideas) {
-    if ((i.bucket !== 'Implemented' && i.bucket !== 'In Execution') || !i.execution?.effectiveDate) continue
-    if (ymOf(i.execution.effectiveDate) > month) continue
+    // MRN at the new price counts from the first MRN on record, else from the savings start signed in the lock
+    const eff = i.execution?.effectiveDate ?? (fromLock ? i.lock?.startDate : undefined)
+    if ((i.bucket !== 'Implemented' && i.bucket !== 'In Execution') || !i.execution || !eff) continue
+    if (ymOf(eff) > month) continue
     for (const p of i.parts) {
       const approved = p.approvedPrice ?? p.newPrice
       const planned = Math.round(p.annualVolume / 12)
-      const eff = i.execution.effectiveDate
       let frac = 1
       if (ymOf(eff) === month) { const d = parse(eff); const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); frac = (dim - d.getDate() + 1) / dim }
       const roll = rng()
@@ -742,7 +756,7 @@ export function seedLedger(ideas: Idea[]): LedgerEntry[] {
   const out: LedgerEntry[] = []
   const showcase = new Set(ideas.filter((i) => (i.showcase ?? 0) >= 5).map((i) => i.id))
   for (const m of fyMonths(FY).filter((m) => m <= LAST_REALISED)) {
-    const rows = realiseMonth(ideas, m)
+    const rows = realiseMonth(ideas, m, rnd, false)
     rows.forEach((row) => {
       if (showcase.has(row.ideaId)) {
         // walkthrough ideas: MRN 5 % above plan at the approved price, validated by Finance
@@ -797,12 +811,46 @@ export function seedEmails(): EmailLog[] {
   ]
 }
 
+/** The same rule the app applies every day: an idea whose locked timeline has ended is in Verification, with the
+ *  locked target and the MRN actual inside the window captured at the hand-over */
+function closeEndedTimelines(ideas: Idea[], ledger: LedgerEntry[]) {
+  const actual = (i: Idea) => ledger.filter((l) => l.ideaId === i.id && l.month <= LAST_REALISED && inLockWindow(i.lock!, l.month)).reduce((a, l) => a + l.realised, 0)
+  for (const i of ideas) {
+    if (i.stage === STAGE.execution && i.lock && i.execution && i.lock.endDate <= TODAY) {
+      const at = `${i.lock.endDate}T00:00:00.000Z`
+      Object.assign(i.stageHistory[i.stageHistory.length - 1], { exitedAt: at, by: 'COIN', action: 'Locked timeline ended' })
+      i.stageHistory.push({ stage: STAGE.verification, enteredAt: at })
+      i.stage = STAGE.verification
+      i.bucket = bucketFor(i.route, STAGE.verification)
+      i.stageEnteredAt = at
+      i.implementedAt = at
+      i.execution.status = 'Done'
+      i.execution.progress = 100
+      i.execution.milestones = i.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: i.lock!.endDate } : m))
+      i.verification = { handedAt: at, handedBy: 'COIN — locked timeline ended', forecastAtClose: i.lock.targetSaving }
+      i.activity.push({ id: `a-${i.activity.length}-${i.id}`, at, userId: 'system', userName: 'COIN', action: 'Locked timeline ended — moved to verification', field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification })
+    }
+    if (i.lock && i.verification?.forecastAtClose != null) {
+      const v = i.verification
+      v.actualAtClose = actual(i)
+      // a verified idea records what MRN showed against the locked target — achieved at 95 % or more, else a shortfall
+      if (v.verifiedAt) {
+        const ok = v.actualAtClose >= i.lock.targetSaving * 0.95
+        Object.assign(v, { targetAchieved: ok, realisedAtVerification: v.actualAtClose, targetAtVerification: i.lock.targetSaving, remarks: ok ? v.remarks : `Shortfall: MRN ${Math.round((v.actualAtClose / i.lock.targetSaving) * 100)} % of the locked target for the period.` })
+        const h = i.stageHistory.find((x) => x.stage === STAGE.verification)
+        if (h && !ok) h.action = 'Verified with shortfall'
+      }
+    }
+  }
+}
+
 export function buildSeed() {
   // restart the random sequence and ID counters so "Reset demo data" restores exactly the same dataset and IDs
   rnd = mulberry32(20261001)
   for (const k of Object.keys(seqByCommodity)) delete seqByCommodity[k]
   const ideas = seedIdeas()
   const ledger = seedLedger(ideas)
+  closeEndedTimelines(ideas, ledger)
   return { ideas, ledger, campaigns: seedCampaigns(), notifications: seedNotifications(ideas), emails: seedEmails(), lastRealisationMonth: LAST_REALISED }
 }
 export type Seed = ReturnType<typeof buildSeed>

@@ -31,11 +31,9 @@ export const NAV: NavItem[] = [
   { key: 'workshops', label: 'Workshops', path: '/workshops', icon: 'Presentation', roles: ['supplier'], module: 'M6', section: 'Supplier', spaces: ['IN'] },
   { key: 'campaigns', label: 'Campaigns', path: '/campaigns', icon: 'Megaphone', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M7', section: 'Network', spaces: ['IN'] },
   { key: 'admin', label: 'Admin & Masters', path: '/admin', icon: 'Settings2', roles: ['admin'], module: 'M12', section: 'System', spaces: ['IN'] },
-  // CO — Cost Optimisation: implementation after approval
-  // CO — stages 5–6: Execution started (TRACE) and Verification, with part-wise savings proof (PROOF)
-  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'admin', 'execowner', 'depthead', 'finance'], module: 'M8', section: 'Implementation', spaces: ['CO'] },
-  { key: 'proof', label: 'Savings proof', path: '/proof', icon: 'BadgeIndianRupee', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], module: 'M9', section: 'Implementation', spaces: ['CO'] },
-  { key: 'implemented', label: 'Verification', path: '/ideas?bucket=Implemented', icon: 'ShieldCheck', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], section: 'Implementation', spaces: ['CO'] },
+  // CO — Cost Optimisation: execution after approval. The Execution Hub holds execution, monthly MRN tracking,
+  // savings proof (PROOF) and verification as tabs — no separate sidebar entries for them.
+  { key: 'execution', label: 'Execution Hub', path: '/execution', icon: 'Rocket', roles: ['buyer', 'lead', 'head', 'finance', 'mgmt', 'admin', ...LADDER], module: 'M8', section: 'Implementation', spaces: ['CO'] },
   // pinned at the bottom in every workspace: Scope & Methodology just above MIS. The NPD master (read-only, from VMS) is not
   // in the sidebar; /npd still opens from an idea's NPD link.
   { key: 'scope', label: 'Scope & Methodology', path: '/scope', icon: 'BookOpenText', roles: ALL, section: 'Pinned', pinned: true },

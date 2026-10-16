@@ -29,7 +29,7 @@ export const PURPOSE = [
 
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
-  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub · Implemented ideas · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-emerald-600)' },
+  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub (execution, monthly MRN tracking, savings proof, verification) · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-emerald-600)' },
   { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
 ]
 export const WORKSPACE_NOTE =
@@ -65,7 +65,7 @@ export const ROLES: { key: string; role: string; who: string; job: string; visib
   { key: 'teamlead', role: 'Team lead', who: 'One per department (Sourcing: the commodity leads)', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
   { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check — only for ideas forecast at ₹ 5 L and above; smaller ideas skip stage 3', visibility: 'Own department' },
   { key: 'depthead', role: 'Department head', who: 'Head of each department (Sourcing: Head of Sourcing)', job: 'Stage 4 — <dept> approval: commercial assessment, supplier confirmation, budget + timeline lock, signature', visibility: 'Own department' },
-  { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones, first MRN at the new price, hand-over for verification', visibility: 'Own department' },
+  { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones and NPD / PAP until the locked deadline; MRN tracked monthly, verification starts by itself on the deadline', visibility: 'Own department' },
   { key: 'finance', role: 'Finance verifier', who: 'Finance Controller', job: 'Stage 6 — verifies the locked target from MRN; validates realised savings', visibility: 'All' },
   { key: 'head', role: 'Sourcing Head', who: 'Head of Sourcing', job: 'Acts at every stage (override); Sourcing department head', visibility: 'All' },
   { key: 'admin', role: 'Admin', who: 'Sourcing Excellence / IT', job: 'Acts at every stage (override); masters, users, rules, demo data', visibility: 'All' },
@@ -80,7 +80,7 @@ export const PERMISSION_MATRIX: { action: string; key: string; cells: string[] }
   { action: 'Team feasibility check (own department, not own idea)', key: 'feasibility', cells: ['—', '✓', '—', '—', '—', '—', '✓', '✓', '—', '—'] },
   { action: 'Evaluation — cost-benefit, risk, supplier check', key: 'techeval', cells: ['—', '—', '✓', '—', '—', '—', '✓', '✓', '—', '—'] },
   { action: 'Approval + budget and timeline lock', key: 'approve', cells: ['—', '—', '—', '✓', '—', '—', '✓', '✓', '—', '—'] },
-  { action: 'Execution — milestones, hand over, drop', key: 'execute', cells: ['—', '—', '—', '—', '✓', '—', '✓', '✓', '—', '—'] },
+  { action: 'Execution — milestones, notes, drop', key: 'execute', cells: ['—', '—', '—', '—', '✓', '—', '✓', '✓', '—', '—'] },
   { action: 'Verification of the locked target', key: 'verify', cells: ['—', '—', '—', '—', '—', '✓', '✓', '✓', '—', '—'] },
   { action: 'Run campaigns / workshops', key: 'campaign', cells: ['—', 'Sourcing', '—', 'Sourcing', 'Sourcing', '—', '✓', '✓', '—', '—'] },
   { action: 'View dashboards and MIS', key: 'view', cells: ['Own', 'Department', 'Department', 'Department', 'Department', 'All', 'All', 'All', 'Own', 'All'] },
@@ -208,9 +208,9 @@ export const NAV_BY_ROLE: { role: string; coNav: string; inNav: string }[] = [
   { role: 'Submitter', coNav: '—', inNav: 'My Ideas · Submit Idea' },
   { role: 'Supplier', coNav: '—', inNav: 'My Ideas · Submit Idea · Feasibility Requests · Workshops' },
   { role: 'Technical Evaluator', coNav: '—', inNav: 'My Ideas · Submit Idea' },
-  { role: 'Buyer / Commodity Lead / Sourcing Head', coNav: 'Execution Hub · Implemented ideas · MIS', inNav: 'Idea Register · Submit Idea · Campaigns · MIS' },
-  { role: 'Finance / Management', coNav: 'Implemented ideas · MIS', inNav: 'MIS' },
-  { role: 'Admin', coNav: 'Execution Hub · Implemented ideas · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
+  { role: 'Buyer / Commodity Lead / Sourcing Head', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Submit Idea · Campaigns · MIS' },
+  { role: 'Finance / Management', coNav: 'Execution Hub · MIS', inNav: 'MIS' },
+  { role: 'Admin', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
 ]
 export const NAV_NOTE = 'Every role also has the Dashboard at the top and Scope & Methodology just above MIS at the bottom of both workspaces. The NPD master opens from Scope & Methodology.'
 
@@ -260,23 +260,25 @@ export const NPD_USE = [
 
 // ─── Execution and realisation (CO) ─────────────────────────────────────
 export const EXECUTION_INTRO =
-  'Every approved idea enters the Execution Hub with an owner, a start date equal to its approval date and a due date of 31 March, and stays there until it is marked Done or Dropped with a reason.'
+  'Every approved idea enters the Execution Hub with an owner and the deadline signed in its budget + timeline lock at department approval. MRN is read from the ERP every month and compared with the monthly forecast; on the deadline COIN moves the idea to verification by itself — nobody hands over by hand. An idea leaves earlier only when dropped with a reason.'
 export const EXECUTION_RECORD: [string, string][] = [
   ['Idea owner', 'Commodity Buyer by default; reassignable by Commodity Lead'],
   ['Start date', 'Auto = approval date'],
-  ['Due date', 'Default 31 March of current FY; editable, each change needs a reason and is logged as slippage'],
+  ['Deadline', 'The savings end signed in the lock at department approval; it does not move during execution'],
+  ['MRN tracking', 'Each completed month: forecast (locked target ÷ months) vs saving found in MRN transactions; no MRN, no saving'],
+  ['First MRN at the new price', 'Taken from the MRN feed (first MRN line at the new price), never typed by hand'],
   ['Quarter phasing', 'Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and forecast impact'],
   ['Milestones', 'Generated from the route, e.g. Technical: Supplier sample → NPD ECN raised → Sample approved → PAP price approved → First MRN at new price'],
   ['Linked requests', 'NPD request ID and PAP request ID, status synced'],
-  ['Health', 'On track / At risk (milestone overdue) / Delayed (due date passed), shown as a coloured badge'],
+  ['Health', 'On plan / Behind plan (MRN below 90 % of the forecast to date) / No MRN yet / At risk (milestone overdue)'],
 ]
 export const EXECUTION_SCREEN = [
-  'Top strip: ideas in execution (count, ₹ committed), due this month, overdue, at risk, done this month, dropped this month. The filter bar narrows every view.',
+  'Tabs: Execution · Monthly MRN tracking · Savings proof · Verification. Top strip: ideas in execution (count, ₹ committed), deadline this month, no MRN yet, behind plan / at risk, moved to verification this month, dropped this month.',
   'Main view toggles between a table and a quarter timeline (each idea as a bar from start to due date, milestones as dots); the table shows the next reminder date for each idea.',
-  'Row actions: Update progress, Add milestone note, Change due date (reason logged), Hand over for verification, Verify, Drop, Reassign.',
-  'Hand-over needs the first MRN date (effective date) and the approved new price (auto-pulled from PAP when linked); Verification then checks MRN, Finance validation and the locked target.',
+  'Row actions: Update progress, Add milestone note, Drop, Reassign (department head). No manual hand-over and no change of the deadline.',
+  'On the deadline COIN moves the idea to verification with the locked target and the MRN actual for the locked window; Finance verifies (MRN at the approved price, Finance validation, target achieved from MRN).',
   'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.',
-  'Side cards list recently done / dropped ideas and the slippage log.',
+  'Side cards list ideas recently moved to verification or dropped, and the locked deadlines of the next 60 days.',
 ]
 export const DROP_REASONS_DEFAULT = [
   'Supplier not feasible',

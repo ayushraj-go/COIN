@@ -1,5 +1,7 @@
-// M8 — Execution Hub · TRACE (stages 5–6 in Cost Optimisation): every approved idea with owner, locked timeline, milestones,
-// plan vs actual, CO date and MRN link, hand-over for verification, verification, drop and slippage log. Table ↔ quarter timeline.
+// M8 — Execution Hub · TRACE (stages 5–6 in Cost Optimisation), in four tabs:
+// Execution (owner, locked deadline, milestones, plan vs actual, NPD / PAP, drop) · Monthly MRN tracking (forecast vs MRN
+// actual, month by month) · Savings proof (PROOF, part-wise) · Verification (locked target vs MRN actual).
+// Nobody hands over by hand: on the deadline signed at department approval COIN moves the idea to verification.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore, useMe, hasRole } from '../store/useStore'
@@ -15,16 +17,18 @@ import {
 } from '../components/ui'
 import { FilterBar } from '../components/FilterBar'
 import { MenuItem, MiniHead, Popover, ReassignModal, nextReminder, snapshot, toast } from './exec/shared'
-import { DropModal, LinkedEditor, MarkDoneModal, MilestoneNoteModal, PhasingEditor, ProgressModal, TargetDateModal, npdColor, papColor } from './exec/ExecModals'
+import { DropModal, LinkedEditor, MilestoneNoteModal, PhasingEditor, ProgressModal, npdColor, papColor } from './exec/ExecModals'
 import { ExecTimeline, TimelineLegend } from './exec/Timeline'
-import { STAGE } from '../lib/masters'
 import { PlanVsActualBlock, useIdeaPlan } from './idea/PlanVsActual'
-import { VerificationModal } from './idea/StageForms'
-import { ideaPerms, execRights, ownerCandidates } from './idea/model'
+import { execRights, ownerCandidates } from './idea/model'
+import { MrnFeedBanner, MrnTracking, UpcomingDeadlines, VerificationList, track } from './exec/Tabs'
+import Proof from './Proof'
 
-type Kpi = 'all' | 'due' | 'overdue' | 'risk' | 'done' | 'dropped'
-type ModalState = { kind: 'progress' | 'note' | 'done' | 'drop' | 'reassign' | 'target' | 'verify'; id: string; date?: string; to?: string; milestoneId?: string } | null
-type Phase = 'execution' | 'verification' | 'verified'
+type Kpi = 'all' | 'due' | 'nomrn' | 'risk' | 'done' | 'dropped'
+type ModalState = { kind: 'progress' | 'note' | 'drop' | 'reassign'; id: string; date?: string; to?: string; milestoneId?: string } | null
+type Tab = 'execution' | 'mrn' | 'proof' | 'verification'
+/** set by the MRN feed — never ticked by hand */
+const AUTO_MILESTONES = ['First MRN at new price', 'Handed for verification']
 type PopState = { kind: 'phasing' | 'linked' | 'menu'; id: string; el: HTMLElement } | null
 const QS = ['Q1', 'Q2', 'Q3', 'Q4'] as const
 /** The execution "target date" is a deadline — shown as the due date. COIN has no savings target / landing. */
@@ -50,15 +54,15 @@ export default function ExecutionHub() {
   const ready = useWarmup(320)
 
   const [kpi, setKpi] = useState<Kpi>('all')
-  const [phase, setPhase] = useState<Phase>('execution')
   const [view, setView] = useState<'table' | 'timeline'>('table')
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const tab = (['mrn', 'proof', 'verification'].includes(params.get('tab') ?? '') ? params.get('tab') : 'execution') as Tab
+  const setTab = (k: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (k === 'execution') n.delete('tab'); else n.set('tab', k); return n }, { replace: true })
   const [q, setQ] = useState(params.get('q') ?? '')
   const [owner, setOwner] = useState('All')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [modal, setModal] = useState<ModalState>(null)
   const [pop, setPop] = useState<PopState>(null)
-  const [editTarget, setEditTarget] = useState<{ id: string; draft: string } | null>(null)
   const boxRef = useRef<HTMLDivElement>(null)
   const [boxW, setBoxW] = useState(0)
   useEffect(() => {
@@ -73,27 +77,29 @@ export default function ExecutionHub() {
   const ym = ymOf(t)
   const hub = useMemo(() => ideas.filter((i) => i.execution), [ideas])
   const active = useMemo(() => hub.filter((i) => i.execution!.status === 'In Execution' && i.bucket === 'In Execution'), [hub])
+  const lastMrn = settings.lastRealisationMonth
+  const tracks = useMemo(() => new Map(active.filter((i) => i.lock).map((i) => [i.id, track(i, ledger, lastMrn)])), [active, ledger, lastMrn])
   const sets = useMemo(() => ({
     all: active,
+    // the locked deadline falls this month — COIN moves these to verification on that date
     due: active.filter((i) => ymOf(i.execution!.targetDate) === ym && i.execution!.targetDate >= t),
-    overdue: active.filter((i) => i.execution!.targetDate < t),
-    risk: active.filter((i) => healthOf(i) === 'At risk'),
-    done: hub.filter((i) => i.execution!.status === 'Done' && ymOf(i.verification?.handedAt ?? i.implementedAt ?? i.execution!.effectiveDate ?? '') === ym),
+    nomrn: active.filter((i) => tracks.get(i.id)?.status === 'No MRN yet'),
+    risk: active.filter((i) => tracks.get(i.id)?.status === 'Behind plan' || healthOf(i) === 'At risk'),
+    done: hub.filter((i) => i.execution!.status === 'Done' && ymOf(i.verification?.handedAt ?? i.implementedAt ?? '') === ym),
     dropped: hub.filter((i) => i.execution!.status === 'Dropped' && ymOf(i.droppedAt ?? '') === ym),
-  }), [active, hub, ym, t])
+  }), [active, hub, ym, t, tracks])
   const cm = (list: Idea[]) => sum(list.map((i) => ideaCommitted(i, fy)))
   const committedHard = sum(active.filter(isHard).map((i) => ideaCommitted(i, fy)))
 
   // owner filter: everyone who owns an execution here (department execution owners, Sourcing buyers, reassigned owners)
   const ownerOptions = useMemo(() => { const ids = new Set(hub.map((i) => i.execution?.ownerId).filter(Boolean)); return users.filter((u) => ids.has(u.id)).sort((a, b) => a.name.localeCompare(b.name)) }, [users, hub])
-  const awaiting = useMemo(() => hub.filter((i) => i.stage === STAGE.verification && !i.verification?.verifiedAt), [hub])
+  const awaiting = useMemo(() => hub.filter((i) => i.stage === 'Verification' && !i.verification?.verifiedAt), [hub])
   const verified = useMemo(() => hub.filter((i) => !!i.verification?.verifiedAt), [hub])
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
-    const base = phase === 'verification' ? awaiting : phase === 'verified' ? verified : sets[kpi]
-    return base.filter((i) => (owner === 'All' || i.execution!.ownerId === owner) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.includes(k))))
+    return sets[kpi].filter((i) => (owner === 'All' || i.execution!.ownerId === owner) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.includes(k))))
       .sort((a, b) => (a.execution!.targetDate < b.execution!.targetDate ? -1 : a.execution!.targetDate > b.execution!.targetDate ? 1 : 0))
-  }, [sets, kpi, owner, q, phase, awaiting, verified])
+  }, [sets, kpi, owner, q])
 
   // price leakage for these ideas (Section 9)
   const hubIds = useMemo(() => new Set(hub.map((i) => i.id)), [hub])
@@ -114,17 +120,11 @@ export default function ExecutionHub() {
 
   const toggleMs = (i: Idea, mid: string) => {
     const m = i.execution!.milestones.find((x) => x.id === mid)!
-    // the hand-over milestone closes Execution started — capture first MRN date and approved prices
-    if (m.name === 'Handed for verification' && !m.doneDate) { setModal({ kind: 'done', id: i.id }); return }
+    // the first MRN and the move to verification come from the MRN feed and the locked deadline
+    if (AUTO_MILESTONES.includes(m.name)) return
     const undo = snapshot([i.id])
     useStore.getState().toggleMilestone(i.id, mid)
     toast(m.doneDate ? `Milestone reopened: ${m.name}` : `Milestone done: ${m.name}`, 'success', undo)
-  }
-  const commitTarget = (i: Idea) => {
-    const d = editTarget?.draft
-    setEditTarget(null)
-    if (!d || d === i.execution!.targetDate || !/^20[2-4]\d-\d{2}-\d{2}$/.test(d)) return
-    setModal({ kind: 'target', id: i.id, date: d })
   }
   const doExport = () => exportExcel(`COIN_Execution_Hub_${fy}`, [{
     name: 'Execution Hub',
@@ -141,10 +141,10 @@ export default function ExecutionHub() {
 
   const kpiCards: { k: Kpi; label: string; value: number; sub: React.ReactNode; icon: string; color: string; tip: string; formula?: string }[] = [
     { k: 'all', label: 'In execution', value: active.length, sub: <>{inrShort(committedHard)} committed</>, icon: 'Rocket', color: 'var(--color-orange-400)', tip: 'Approved ideas with an owner and dates, until marked Done or Dropped. ₹ committed counts hard savings only; cost avoidance and one-time savings are reported separately.', formula: 'Σ FY-phased saving of ideas In Execution' },
-    { k: 'due', label: 'Due this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: 'var(--color-brand-500)', tip: 'Due date falls later this month.' },
-    { k: 'overdue', label: 'Overdue', value: sets.overdue.length, sub: <>{inrShort(cm(sets.overdue))} overdue</>, icon: 'Clock3', color: 'var(--color-rose-600)', tip: 'Due date passed — health Delayed. Owner and Commodity Lead are emailed the day after, then weekly.', formula: 'Overdue value = ₹ committed on ideas past due date' },
-    { k: 'risk', label: 'At risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: 'var(--color-orange-400)', tip: 'At least one milestone is past its due date while the due date is still ahead.' },
-    { k: 'done', label: 'Handed over this month', value: sets.done.length, sub: <>{inrShort(sum(sets.done.map(ideaApprovedAnnualised)))} forecast · {awaiting.length} awaiting verification</>, icon: 'PackageCheck', color: 'var(--color-emerald-600)', tip: 'Handed for verification this month with the first MRN date and approved price; the business side then verifies the savings.' },
+    { k: 'due', label: 'Deadline this month', value: sets.due.length, sub: <>{inrShort(cm(sets.due))} · {monthLabel(ym)}</>, icon: 'CalendarClock', color: 'var(--color-brand-500)', tip: 'The locked timeline ends this month — on that date COIN moves the idea to verification.' },
+    { k: 'nomrn', label: 'No MRN yet', value: sets.nomrn.length, sub: <>{inrShort(cm(sets.nomrn))} committed</>, icon: 'PackageX', color: 'var(--color-rose-600)', tip: 'The savings start in the lock has passed but no MRN at the new price has been received — nothing is claimed until MRN arrives.' },
+    { k: 'risk', label: 'Behind plan / at risk', value: sets.risk.length, sub: <>{inrShort(cm(sets.risk))} at risk</>, icon: 'TriangleAlert', color: 'var(--color-orange-400)', tip: 'MRN actual below 90 % of the monthly forecast to date, or a milestone past its due date.' },
+    { k: 'done', label: 'Moved to verification', value: sets.done.length, sub: <>this month · {awaiting.length} awaiting verification</>, icon: 'ShieldQuestion', color: 'var(--color-emerald-600)', tip: 'Ideas whose locked timeline ended this month — COIN moved them to verification with the forecast and the MRN actual.' },
     { k: 'dropped', label: 'Dropped this month', value: sets.dropped.length, sub: <>{inrShort(sum(sets.dropped.map((i) => removedCommitted(i, fy))))} removed</>, icon: 'Ban', color: 'var(--color-gray-500)', tip: 'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.' },
   ]
 
@@ -156,9 +156,25 @@ export default function ExecutionHub() {
           <Tooltip content={<div className="grid gap-1"><div>{dueWording(EXECUTION_INTRO)}</div>{EXECUTION_RECORD.map(([k, v]) => <div key={k}><b>{dueWording(k)}:</b> {dueWording(v)}</div>)}</div>}><span className="inline-flex items-center gap-1 text-[12px] text-muted cursor-help"><Icon name="Info" size={13} />Execution record rules</span></Tooltip>
           <Button icon="FileSpreadsheet" onClick={doExport}>Export</Button>
         </>} />
-      <FilterBar compact className="mb-5" />
+      <FilterBar compact className="mb-4" />
+      <div className="flex flex-wrap items-center gap-2 mb-4" role="tablist" aria-label="Execution Hub">
+        {([
+          ['execution', 'Execution', 'Rocket', active.length],
+          ['mrn', 'Monthly MRN tracking', 'ChartColumnBig', tracks.size],
+          ['proof', 'Savings proof', 'BadgeIndianRupee', null],
+          ['verification', 'Verification', 'ShieldCheck', awaiting.length],
+        ] as [Tab, string, string, number | null][]).map(([k, label, icon, n]) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={cn('h-10 pl-3 pr-3.5 rounded-xl border text-[13px] font-semibold inline-flex items-center gap-2 transition-colors', tab === k ? 'bg-brand-600 border-brand-600 text-white shadow-[0_8px_18px_-10px_color-mix(in_srgb,var(--color-brand-700)_80%,transparent)]' : 'bg-white border-line text-ink-2 hover:border-slate-300')}>
+            <Icon name={icon} size={15} />{label}{n != null && <span className={cn('min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold grid place-items-center num', tab === k ? 'bg-white/20' : 'bg-slate-100 text-ink-2')}>{n}</span>}
+          </button>
+        ))}
+      </div>
 
-      {!ready ? (
+      {tab === 'mrn' ? <MrnTracking ideas={hub} />
+        : tab === 'proof' ? <Proof embedded />
+          : tab === 'verification' ? <VerificationList ideas={hub} />
+            : !ready ? (
         <div className="grid gap-3">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[92px] rounded-xl" />)}</div>
           <Skeleton className="h-16 rounded-xl" />
@@ -172,6 +188,7 @@ export default function ExecutionHub() {
             ))}
           </Stagger>
 
+          <MrnFeedBanner className="mb-3" />
           {/* Price leakage callout */}
           <div className={cn('rounded-2xl border px-4 py-3 mb-4 flex flex-col lg:flex-row lg:items-center gap-3 shadow-[0_1px_3px_rgb(15_23_42/.04)]', leak.total > 0 ? 'border-red-200 bg-gradient-to-r from-red-50 to-white' : 'border-emerald-200 bg-emerald-50/60')}>
             <div className="flex items-center gap-3 min-w-0 lg:w-[42%]">
@@ -198,7 +215,6 @@ export default function ExecutionHub() {
           <Card pad={false} className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3.5 pb-3 border-b border-line">
               <div className="flex items-center gap-2 flex-wrap">
-                <Segmented value={phase} onChange={(k) => { setPhase(k as Phase); setKpi('all') }} options={[{ key: 'execution', label: `5 · Execution started (${active.length})`, icon: 'Rocket' }, { key: 'verification', label: `6 · Verification (${awaiting.length})`, icon: 'ShieldQuestion' }, { key: 'verified', label: `Verified (${verified.length})`, icon: 'ShieldCheck' }]} />
                 <Segmented value={view} onChange={(k) => setView(k as any)} options={[{ key: 'table', label: 'Table', icon: 'Table2' }, { key: 'timeline', label: 'Quarter timeline', icon: 'ChartGantt' }]} />
                 {kpi !== 'all' && (
                   <span className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-brand-50 border border-brand-200 text-[12px] font-semibold text-brand-700">
@@ -228,7 +244,7 @@ export default function ExecutionHub() {
                   <thead>
                     <tr>
                       <th style={{ width: 34 }} />
-                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th>Due date</th>
+                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at department approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
                       <th><span className="inline-flex items-center gap-1">Quarter phasing Q1–Q4<InfoTip title="Quarter phasing" formula="Σ Q1..Q4 vs committedInFy(forecast, due date)">Pre-filled from due date and forecast impact; click to edit. Green dot = matches the system pre-fill.</InfoTip></span></th>
                       <th>Progress</th><th>Health</th>
                       <th className="max-[1700px]:hidden"><span className="inline-flex items-center gap-1">Next reminder<InfoTip title="Implementation reminder">Every 15 days; weekly in the last 30 days before the due date. After the due date passes: the day after, then weekly.</InfoTip></span></th>
@@ -270,19 +286,10 @@ export default function ExecutionHub() {
                             </td>
                             <td className="max-[1700px]:hidden num text-[12.5px]">{fmtDate(ex.startDate)}</td>
                             <td>
-                              {editTarget?.id === i.id ? (
-                                <div className="flex items-center gap-1">
-                                  <input type="date" autoFocus className="input !h-8 !w-[140px] text-[12.5px]" value={editTarget.draft} onChange={(e) => setEditTarget({ id: i.id, draft: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') commitTarget(i); if (e.key === 'Escape') setEditTarget(null) }} />
-                                  <button onMouseDown={(e) => e.preventDefault()} onClick={() => commitTarget(i)} className="h-7 w-7 grid place-items-center rounded-md bg-brand-grad text-white"><Icon name="Check" size={13} /></button>
-                                  <button onClick={() => setEditTarget(null)} className="h-7 w-7 grid place-items-center rounded-md hover:bg-slate-100"><Icon name="X" size={13} /></button>
-                                </div>
-                              ) : (
-                                <button disabled={!ed} onClick={() => setEditTarget({ id: i.id, draft: ex.targetDate })} className={cn('group inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-h-8 max-w-[104px] py-1 px-1.5 -mx-1.5 rounded-md text-[12.5px] num', ed && 'hover:bg-slate-100', ex.targetDate < t && status === 'In Execution' && 'text-red-600 font-semibold')}>
-                                  {fmtDate(ex.targetDate)}
-                                  {slip !== 0 && <Tooltip content={`Original due date ${fmtDate(ex.originalTargetDate)} · ${ex.slippage.length} change${ex.slippage.length === 1 ? '' : 's'} logged`}><span className="text-[10.5px] font-bold text-red-600 bg-red-50 rounded px-1">{slip > 0 ? '+' : ''}{slip}d</span></Tooltip>}
-                                  {ed && <Icon name="Pencil" size={11} className="opacity-0 group-hover:opacity-60" />}
-                                </button>
-                              )}
+                              <Tooltip content={`Locked at department approval · moves to verification on ${fmtDate(ex.targetDate)}`}>
+                                <span className="inline-flex items-center gap-1 text-[12.5px] num whitespace-nowrap"><Icon name="Lock" size={11} className="text-muted" />{fmtDate(ex.targetDate)}</span>
+                              </Tooltip>
+                              <div className="text-[10.5px] text-muted">{daysBetween(t, ex.targetDate) > 0 ? `in ${daysBetween(t, ex.targetDate)} days` : 'today'}</div>
                             </td>
                             <td>
                               <button onClick={(e) => setPop({ kind: 'phasing', id: i.id, el: e.currentTarget })} className="flex items-center gap-2 h-9 px-1.5 -mx-1.5 rounded-md hover:bg-slate-100">
@@ -299,7 +306,7 @@ export default function ExecutionHub() {
                                 <ProgressBar value={ex.progress} color={hcol} height={5} />
                               </button>
                             </td>
-                            <td>{status === 'In Execution' ? <HealthBadge health={health} /> : status === 'Done' ? (i.verification?.verifiedAt ? <Badge color="var(--color-emerald-600)" icon="ShieldCheck">Verified</Badge> : ideaPerms(me, i).verify ? <button onClick={() => setModal({ kind: 'verify', id: i.id })}><Badge color="var(--color-orange-400)" icon="ShieldQuestion">Verify</Badge></button> : <Badge color="var(--color-orange-400)" icon="ShieldQuestion">Awaiting verification</Badge>) : <Badge color="var(--color-gray-500)" icon="Ban">Dropped</Badge>}</td>
+                            <td>{status === 'In Execution' ? (tracks.get(i.id) && tracks.get(i.id)!.status !== 'On plan' && tracks.get(i.id)!.status !== 'Not started' ? <Badge color={tracks.get(i.id)!.status === 'No MRN yet' ? 'var(--color-rose-600)' : 'var(--color-orange-400)'}>{tracks.get(i.id)!.status}</Badge> : <HealthBadge health={health} />) : status === 'Done' ? <Badge color="var(--color-emerald-600)" icon="ShieldCheck">In verification</Badge> : <Badge color="var(--color-gray-500)" icon="Ban">Dropped</Badge>}</td>
                             <td className="max-[1700px]:hidden">
                               {status === 'In Execution' ? (
                                 <div className="leading-tight"><div className={cn('text-[12.5px] font-semibold num', nr.cadence === 'Due date passed' && 'text-red-600')}>{fmtDateShort(nr.date)}</div><div className="text-[10.5px] text-muted">{nr.cadence}</div></div>
@@ -342,8 +349,8 @@ export default function ExecutionHub() {
                 </table>
                 {!list.length && (
                   <EmptyState icon={kpi === 'done' ? 'PartyPopper' : 'Rocket'}
-                    title={phase === 'verification' ? 'Nothing awaiting verification' : phase === 'verified' ? 'No verified ideas yet' : kpi === 'all' ? 'No approved ideas in execution yet' : kpi === 'done' ? `Nothing marked Done in ${monthLong(ym)} yet` : kpi === 'dropped' ? `No drops in ${monthLong(ym)}` : 'No ideas in this view'}
-                    desc={kpi === 'all' ? 'Every approved idea enters the Execution Hub with an owner, a start date and a due date of 31 March.' : 'Clear the KPI filter to see every idea in execution.'}
+                    title={kpi === 'all' ? 'No approved ideas in execution yet' : kpi === 'done' ? `Nothing moved to verification in ${monthLong(ym)} yet` : kpi === 'dropped' ? `No drops in ${monthLong(ym)}` : 'No ideas in this view'}
+                    desc={kpi === 'all' ? 'Every approved idea enters the Execution Hub with an owner and the deadline signed in its lock.' : 'Clear the KPI filter to see every idea in execution.'}
                     action={kpi === 'all' ? <Button size="sm" icon="Table2" onClick={() => nav('/ideas?stage=approval')}>Open ideas in sourcing approval</Button> : <Button size="sm" onClick={() => setKpi('all')}>Show all in execution</Button>} />
                 )}
               </div>
@@ -352,7 +359,7 @@ export default function ExecutionHub() {
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
             <RecentClosures hub={hub} fy={fy} className="xl:col-span-7" />
-            <SlippageLog hub={hub} className="xl:col-span-5" />
+            <UpcomingDeadlines hub={hub} className="xl:col-span-5" />
           </div>
         </>
       )}
@@ -370,8 +377,6 @@ export default function ExecutionHub() {
             <div className="px-2.5 pt-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted truncate">{pIdea.id}</div>
             <MenuItem icon="Activity" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'progress', id: pIdea.id }) }}>Update progress</MenuItem>
             <MenuItem icon="StickyNote" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'note', id: pIdea.id }) }}>Add milestone note</MenuItem>
-            <MenuItem icon="PackageCheck" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'done', id: pIdea.id }) }}>Hand over for verification</MenuItem>
-            {ideaPerms(me, pIdea).verify && <MenuItem icon="ShieldCheck" onClick={() => { setPop(null); setModal({ kind: 'verify', id: pIdea.id }) }}>Verify savings</MenuItem>}
             <MenuItem icon="UserRoundCog" disabled={!canReassignIdea(pIdea)} hint={!canReassignIdea(pIdea) ? 'Reassignable by the department head' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassignIdea(pIdea) && <span className="text-[10.5px] text-muted ml-1">(Dept head)</span>}</MenuItem>
             <div className="h-px bg-line my-1" />
             <MenuItem icon="Ban" danger disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'drop', id: pIdea.id }) }}>Drop</MenuItem>
@@ -384,10 +389,7 @@ export default function ExecutionHub() {
       {/* Modals */}
       <ProgressModal idea={mIdea} open={modal?.kind === 'progress'} onClose={() => setModal(null)} />
       <MilestoneNoteModal idea={mIdea} open={modal?.kind === 'note'} milestoneId={modal?.milestoneId} onClose={() => setModal(null)} />
-      <MarkDoneModal idea={mIdea} open={modal?.kind === 'done'} fy={fy} onClose={() => setModal(null)} />
       <DropModal idea={mIdea} open={modal?.kind === 'drop'} fy={fy} onClose={() => setModal(null)} />
-      {mIdea && <VerificationModal idea={mIdea} open={modal?.kind === 'verify'} onClose={() => setModal(null)} />}
-      <TargetDateModal idea={mIdea} newDate={modal?.date ?? ''} open={modal?.kind === 'target'} fy={fy} onClose={() => setModal(null)} />
       <ReassignModal open={modal?.kind === 'reassign'} onClose={() => setModal(null)} title={`Reassign ${mIdea?.id ?? ''}`} subtitle="Idea owner — Commodity Buyer by default; reassignable by Commodity Lead"
         candidates={mIdea ? ownerCandidates(mIdea, users) : []} currentId={mIdea?.execution?.ownerId} defaultTo={modal?.to}
         onConfirm={(uid, r) => { if (!mIdea) return; const undo = snapshot([mIdea.id]); useStore.getState().reassign(mIdea.id, uid, r); toast(`${mIdea.id} reassigned to ${users.find((u) => u.id === uid)?.name}`, 'info', undo) }} />
@@ -419,11 +421,11 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
             const overdue = !m.doneDate && m.dueDate < t
             return (
               <div key={m.id} className="flex items-start gap-2 rounded-lg px-1.5 py-1 hover:bg-slate-50 group">
-                <button disabled={!editable} onClick={() => onToggle(m.id)} className={cn('mt-0.5 h-[18px] w-[18px] rounded-md border-2 grid place-items-center shrink-0 transition-colors', m.doneDate ? 'bg-emerald-600 border-emerald-600 text-white' : overdue ? 'border-red-400' : 'border-slate-300', editable && !m.doneDate && 'hover:border-emerald-500')} title={editable ? (m.doneDate ? 'Reopen milestone' : 'Mark milestone done') : undefined}>
+                <button disabled={!editable || AUTO_MILESTONES.includes(m.name)} onClick={() => onToggle(m.id)} className={cn('mt-0.5 h-[18px] w-[18px] rounded-md border-2 grid place-items-center shrink-0 transition-colors', m.doneDate ? 'bg-emerald-600 border-emerald-600 text-white' : overdue ? 'border-red-400' : 'border-slate-300', editable && !m.doneDate && 'hover:border-emerald-500')} title={editable ? (m.doneDate ? 'Reopen milestone' : 'Mark milestone done') : undefined}>
                   {m.doneDate && <Icon name="Check" size={11} strokeWidth={3} />}
                 </button>
                 <div className="min-w-0 flex-1">
-                  <div className={cn('text-[12.5px] font-medium', m.doneDate ? 'text-muted line-through decoration-slate-300' : 'text-ink')}>{m.name}</div>
+                  <div className={cn('text-[12.5px] font-medium', m.doneDate ? 'text-muted line-through decoration-slate-300' : 'text-ink')}>{m.name}{AUTO_MILESTONES.includes(m.name) && <span className="ml-1.5 text-[10px] font-semibold text-teal-700 bg-teal-50 rounded px-1 no-underline inline-block">{m.name === 'Handed for verification' ? 'on the deadline' : 'from MRN'}</span>}</div>
                   <div className={cn('text-[11px] num', overdue ? 'text-red-600 font-semibold' : 'text-muted')}>{m.doneDate ? `Done ${fmtDate(m.doneDate)} · due ${fmtDate(m.dueDate)}` : `${overdue ? 'Overdue · ' : ''}Due ${fmtDate(m.dueDate)}`}</div>
                   {m.note && <div className="text-[11.5px] text-ink-2 mt-0.5">“{m.note}”</div>}
                 </div>
@@ -495,12 +497,12 @@ function CoCard({ idea, editable }: { idea: Idea; editable: boolean }) {
         <input type="date" disabled={!editable} className="input !h-8 text-[12.5px]" value={co} onChange={(e) => setCo(e.target.value)} onBlur={(e) => save(e.target.value)} />
       </label>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
-        <span className="text-muted">First MRN at new price</span><b className="text-right num">{first?.doneDate ? fmtDate(first.doneDate) : `due ${fmtDate(first?.dueDate)}`}</b>
+        <span className="text-muted">First MRN at new price</span><b className="text-right num">{first?.doneDate ? fmtDate(first.doneDate) : 'awaiting MRN'}</b>
         <span className="text-muted">NPD</span><b className="text-right">{idea.npdRequestId ? `${idea.npdRequestId} · ${idea.npdStatus}` : 'n/a'}</b>
         <span className="text-muted">PAP</span><b className="text-right">{idea.papRequestId ? `${idea.papRequestId} · ${idea.papStatus}` : 'n/a'}</b>
       </div>
       <div className="mt-auto rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1.5 text-[11.5px] text-muted flex items-start gap-1.5">
-        <Icon name="Link2" size={13} className="shrink-0 mt-px" /><span><b className="text-ink-2">MRN link</b> — ERP MRN feed is a future link; until then actuals come from the monthly MRN upload / realisation run.</span>
+        <Icon name="Link2" size={13} className="shrink-0 mt-px" /><span><b className="text-ink-2">MRN feed</b> — read from the ERP every month; the first MRN at the new price and every saving come from MRN transactions only.</span>
       </div>
     </div>
   )
@@ -514,8 +516,8 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
   const done = hub.filter((i) => i.execution!.status === 'Done')
   const dropped = hub.filter((i) => i.execution!.status === 'Dropped')
   return (
-    <Card title="Recently handed over / dropped" icon="History" className={className}
-      subtitle={`${done.length} handed for verification · ${dropped.length} dropped from execution in ${fy}`}>
+    <Card title="Recently moved to verification / dropped" icon="History" className={className}
+      subtitle={`${done.length} moved to verification on their locked deadline · ${dropped.length} dropped from execution in ${fy}`}>
       <div className="grid grid-cols-1 gap-1">
         {rows.map(({ i, at }) => {
           const isDone = i.execution!.status === 'Done'
@@ -525,7 +527,7 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2"><span className="font-mono text-[11px] text-muted">{i.id}</span><span className="text-[11px] text-muted">· {fmtDate(at.slice(0, 10))}</span></div>
                 <div className="text-[12.5px] font-semibold text-ink truncate">{i.title}</div>
-                <div className="text-[11.5px] text-muted truncate">{isDone ? `First MRN ${fmtDate(i.execution!.effectiveDate)} · ${i.verification?.verifiedAt ? `verified ${fmtDate(i.verification.verifiedAt.slice(0, 10))}` : 'awaiting verification'}` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
+                <div className="text-[11.5px] text-muted truncate">{isDone ? `Target ${inrShort(i.lock?.targetSaving ?? 0)} · MRN actual ${inrShort(i.verification?.actualAtClose ?? 0)} · ${i.verification?.verifiedAt ? `verified ${fmtDate(i.verification.verifiedAt.slice(0, 10))}` : 'awaiting verification'}` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
               </div>
               <div className="text-right shrink-0">
                 {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">forecast</div></>
@@ -535,32 +537,6 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
           )
         })}
         {!rows.length && <EmptyState icon="History" title="No closures yet" desc="Ideas marked Done or Dropped from execution will appear here." className="py-6" />}
-      </div>
-    </Card>
-  )
-}
-
-function SlippageLog({ hub, className }: { hub: Idea[]; className?: string }) {
-  const openIdea = useStore((s) => s.openIdea)
-  const rows = hub.flatMap((i) => i.execution!.slippage.map((s) => ({ i, ...s }))).sort((a, b) => (a.at < b.at ? 1 : -1))
-  const slipped = new Set(rows.map((r) => r.i.id)).size
-  const avg = rows.length ? Math.round(sum(rows.map((r) => daysBetween(r.oldDate, r.newDate))) / rows.length) : 0
-  return (
-    <Card title="Slippage log" icon="CalendarX2" className={className} subtitle={`${rows.length} due-date change${rows.length === 1 ? '' : 's'} · ${slipped} idea${slipped === 1 ? '' : 's'} · avg +${avg} days`}
-      actions={<InfoTip title="Slippage">Due date — default 31 March of current FY; editable, each change needs a reason and is logged as slippage.</InfoTip>}>
-      <div className="grid grid-cols-1 gap-1">
-        {rows.slice(0, 30).map((r, k) => (
-          <button key={k} onClick={() => openIdea(r.i.id)} className="text-left rounded-lg px-2 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[11px] text-muted">{r.i.id}</span>
-              <span className="text-[11px] font-bold text-red-600 bg-red-50 rounded px-1.5 num">+{daysBetween(r.oldDate, r.newDate)} days</span>
-            </div>
-            <div className="text-[12px] text-ink num"><b>{fmtDate(r.oldDate)}</b> → <b>{fmtDate(r.newDate)}</b></div>
-            <div className="text-[11.5px] text-ink-2 truncate">“{r.reason}”</div>
-            <div className="text-[10.5px] text-muted">{r.by}{r.at <= new Date().toISOString() ? ` · ${fmtDateTime(r.at)}` : ''}</div>
-          </button>
-        ))}
-        {!rows.length && <EmptyState icon="CalendarCheck" title="No slippage" desc="Every idea in execution is on its original due date." className="py-6" />}
       </div>
     </Card>
   )

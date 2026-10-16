@@ -175,11 +175,16 @@ export function inScope(me: User | null | undefined, idea: Idea) {
 }
 export interface IdeaPerms {
   feasibilityCheck: boolean; evaluate: boolean; approve: boolean
-  sendBack: boolean; requestInfo: boolean; reassign: boolean; drop: boolean; handOver: boolean; verify: boolean
+  sendBack: boolean; requestInfo: boolean; reassign: boolean; drop: boolean
+  /** always false — COIN moves an idea to Verification itself when the locked timeline ends */
+  handOver: boolean
+  /** the execution owner (or override) keeps the execution record: milestones, notes, NPD / PAP */
+  execute: boolean
+  verify: boolean
   override: boolean; sync: boolean; continueDraft: boolean; comment: boolean; upload: boolean
 }
 export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
-  const none: IdeaPerms = { feasibilityCheck: false, evaluate: false, approve: false, sendBack: false, requestInfo: false, reassign: false, drop: false, handOver: false, verify: false, override: false, sync: false, continueDraft: false, comment: false, upload: false }
+  const none: IdeaPerms = { feasibilityCheck: false, evaluate: false, approve: false, sendBack: false, requestInfo: false, reassign: false, drop: false, handOver: false, execute: false, verify: false, override: false, sync: false, continueDraft: false, comment: false, upload: false }
   if (!me) return none
   const stage = idea.stage
   const pipeline = idea.bucket === 'Pipeline'
@@ -205,11 +210,12 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
     sendBack: pipeline && actor,
     requestInfo: pipeline && actor,
     // pipeline stages are assigned by the ladder — only override users re-point the commodity buyer;
-    // in execution the department head (or override) hands the execution to another owner. At department approval the
-    // head sends the idea back to the stage they choose instead (sendBackTargets) — no reassign there.
-    reassign: (pipeline && head && stage !== STAGE.approval) || (exec && (head || (hasRole(me, 'depthead') && inDept))),
+    // pipeline stages are never reassigned to another SPOC: the idea is sent back to a stage it has passed (sendBackTargets).
+    // In execution the department head (or override) hands the execution to another owner of the department.
+    reassign: exec && (head || (hasRole(me, 'depthead') && inDept)),
     drop: (pipeline && (actor || head)) || (exec && executor),
-    handOver: exec && executor && idea.execution?.status === 'In Execution',
+    handOver: false,
+    execute: exec && executor && idea.execution?.status === 'In Execution',
     // stage 6 — Finance verifies the locked target
     verify: stage === STAGE.verification && !idea.verification?.verifiedAt && (head || hasRole(me, 'finance')),
     override: pipeline && validator && !idea.locked,
@@ -236,10 +242,10 @@ export function waitingOn(idea: Idea, ctx: Ctx): string {
   }
   if (s === STAGE.verification || s === 'Implemented') {
     const v = idea.verification
-    return v?.verifiedAt ? `Verified ${fmtDate(v.verifiedAt.slice(0, 10))} by ${v.verifiedBy}` : `Handed for verification${v?.handedAt ? ` ${fmtDate(v.handedAt.slice(0, 10))}` : ''} · awaiting Finance verification · ${who(STAGE.verification)}`
+    return v?.verifiedAt ? `Verified ${fmtDate(v.verifiedAt.slice(0, 10))} by ${v.verifiedBy}` : `In verification since ${v?.handedAt ? fmtDate(v.handedAt.slice(0, 10)) : '—'} (locked timeline ended) · locked target vs MRN actual · awaiting ${who(STAGE.verification)}`
   }
   const nextMs = idea.execution?.milestones.find((m) => !m.doneDate)
-  return `Execution started · owner ${who(STAGE.execution)}${nextMs ? ` · next: ${nextMs.name}` : ''}`
+  return `Execution started · owner ${who(STAGE.execution)}${nextMs ? ` · next: ${nextMs.name}` : ''}${idea.lock ? ` · moves to verification on ${fmtDate(idea.lock.endDate)}` : ''}`
 }
 
 // ─── Kanban move rules (permission-checked) ──────────────────────────────────
@@ -261,10 +267,7 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
     return { ok: true, kind: 'drop', stage: 'Dropped', backward: false }
   }
   if (targetKey === 'verification') {
-    if (!p.handOver) return { ok: false, reason: `Handing ${idea.id} over for verification needs the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
-    if (idea.bucket !== 'In Execution') return { ok: false, reason: 'Only ideas in Execution started can be handed for verification' }
-    if (!idea.execution?.effectiveDate) return { ok: false, reason: 'Record the first MRN at the new price in the Execution Hub before handing over for verification' }
-    return { ok: true, kind: 'done', stage: STAGE.verification, backward: false }
+    return { ok: false, reason: `${idea.id} moves to Verification by itself when its locked timeline ends${idea.lock ? ` (${fmtDate(idea.lock.endDate)})` : ''} — savings are then checked against MRN` }
   }
   const stages = stagesOf(idea)
   const stage = stages.find((s) => target.stages.includes(s))
@@ -283,14 +286,14 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
     if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: `Moving past ${stageLabel(idea, STAGE.approval)} needs the department head (or the Sourcing Head / Admin)` }
   } else if (ti <= ai) {
     if (!(p.feasibilityCheck || p.evaluate || p.approve)) return { ok: false, reason: `Moving ${idea.id} needs ${who}` }
-  } else if (!p.handOver) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
+  } else if (!p.execute) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
   return { ok: true, kind: 'move', stage, backward: ti < ci }
 }
 
 /** Execution Hub rights for one execution — straight from the ladder */
 export function execRights(me: User | null | undefined, idea: Idea) {
   const p = ideaPerms(me, idea)
-  return { editable: p.handOver, canReassign: p.reassign && idea.bucket === 'In Execution' }
+  return { editable: p.execute, canReassign: p.reassign && idea.bucket === 'In Execution' }
 }
 /** Who an execution can be handed to: the idea's department execution owners (Sourcing: the commodity buyers) */
 export function ownerCandidates(idea: Idea, users: User[]): User[] {

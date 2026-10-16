@@ -17,17 +17,17 @@ describe('kpiLinks', () => {
       expect(l.realised).toEqual({ space: 'IN', base: '/my-ideas', bucket: 'Implemented' })
     }
   })
-  it('the Sourcing Head opens the register, the Execution Hub and Savings proof', () => {
+  it('the Sourcing Head opens the register and the Execution Hub — its Verification and Savings proof tabs', () => {
     const l = kpiLinks(user('u-head'))
     expect(l.pipeline).toEqual({ space: 'IN', base: '/ideas', bucket: 'Pipeline' })
     expect(l.execution).toEqual({ space: 'CO', base: '/execution' })
-    expect(l.implemented).toEqual({ space: 'CO', base: '/ideas', bucket: 'Implemented' })
-    expect(l.realised).toEqual({ space: 'CO', base: '/proof' })
+    expect(l.implemented).toEqual({ space: 'CO', base: '/execution?tab=verification' })
+    expect(l.realised).toEqual({ space: 'CO', base: '/execution?tab=proof' })
   })
-  it('a team lead without the Execution Hub sees executions in the register', () => {
+  it('the ladder roles open the Execution Hub too (savings proof and verification live there now)', () => {
     const l = kpiLinks(user('u-rd-tl'))
-    expect(l.execution).toEqual({ space: 'CO', base: '/ideas', bucket: 'In Execution' })
-    expect(l.realised).toEqual({ space: 'CO', base: '/proof' })
+    expect(l.execution).toEqual({ space: 'CO', base: '/execution' })
+    expect(l.realised).toEqual({ space: 'CO', base: '/execution?tab=proof' })
   })
 })
 

@@ -8,8 +8,9 @@ import { Button, Icon, RemarksModal, cn } from '../../components/ui'
 import { STAGE } from '../../lib/masters'
 import { stageLabel } from '../../lib/workflow'
 import { ideaPerms, useCtx, waitingOn, withUndo } from './model'
-import { DropModal, MarkDoneModal, ReassignModal, SendBackModal } from './Modals'
-import { EvaluationModal, FeasibilityCheckModal, VerificationModal } from './StageForms'
+import { DropModal, ReassignModal, SendBackModal } from './Modals'
+import { FeasibilityCheckModal, VerificationModal } from './StageForms'
+import { EvaluationModal } from './EvaluationModal'
 import { SourcingApprovalModal } from './ApprovalModal'
 
 type ModalKey = null | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'reassign' | 'drop' | 'done'
@@ -31,7 +32,6 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Team feasibility check</Button>)
   if (p.evaluate) primary.push(<Button key="eval" size={size} variant="primary" icon="FlaskConical" onClick={() => setModal('eval')}>{stageLabel(idea, STAGE.evaluation)}</Button>)
   if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? stageLabel(idea, STAGE.approval) : 'Sign lock & approve'}</Button>)
-  if (p.handOver) primary.push(<Button key="done" size={size} variant="success" icon="PackageCheck" onClick={() => setModal('done')}>Hand over for verification</Button>)
   if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
   if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back…</Button>)
   if (p.requestInfo) secondary.push(<Button key="ri" size={size} variant="secondary" icon="MessageCircleQuestion" onClick={() => setModal('requestInfo')}>Request info</Button>)
@@ -69,7 +69,6 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
         onConfirm={(r) => withUndo(idea.id, () => requestInfo(idea.id, r), `More information requested from ${idea.submitterName}`, { type: 'info' })} />
       <ReassignModal idea={idea} open={modal === 'reassign'} onClose={close} />
       <DropModal idea={idea} open={modal === 'drop'} onClose={close} />
-      <MarkDoneModal idea={idea} open={modal === 'done'} onClose={close} />
     </div>
   )
 }

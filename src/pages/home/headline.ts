@@ -17,8 +17,8 @@ export function kpiLinks(me: User | null | undefined): Record<KpiKey, KpiLink> {
   return {
     pipeline: { space: 'IN', base: '/ideas', bucket: 'Pipeline' },
     execution: can('execution') ? { space: 'CO', base: '/execution' } : { space: 'CO', base: '/ideas', bucket: 'In Execution' },
-    implemented: { space: 'CO', base: '/ideas', bucket: 'Implemented' },
-    realised: can('proof') ? { space: 'CO', base: '/proof' } : { space: 'CO', base: '/ideas', bucket: 'Implemented' },
+    implemented: can('execution') ? { space: 'CO', base: '/execution?tab=verification' } : { space: 'CO', base: '/ideas', bucket: 'Implemented' },
+    realised: can('execution') ? { space: 'CO', base: '/execution?tab=proof' } : { space: 'CO', base: '/ideas', bucket: 'Implemented' },
   }
 }
 

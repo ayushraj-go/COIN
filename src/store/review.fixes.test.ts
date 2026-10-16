@@ -28,7 +28,9 @@ describe('C1 — the board follows the ladder', () => {
   it('the stage\'s own role and the override users can use the board', () => {
     expect(kanbanMove(user('u-rd-head'), rd(STAGE.approval), 'evaluation').ok).toBe(true)
     expect(kanbanMove(user('u-admin'), rd(STAGE.approval), 'evaluation').ok).toBe(true)
-    expect(kanbanMove(user('u-rd-exec'), rdExec(), 'verification').ok).toBe(true)
+    // verification is reached only when the locked timeline ends — never by a board move
+    expect(kanbanMove(user('u-rd-exec'), rdExec(), 'verification').ok).toBe(false)
+    expect(kanbanMove(user('u-rd-exec'), rdExec(), 'dropped').ok).toBe(true)
   })
 })
 

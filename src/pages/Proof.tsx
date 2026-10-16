@@ -14,7 +14,8 @@ import { PlanVsActualBlock, portfolioPlan } from './idea/PlanVsActual'
 
 interface PartRow { key: string; idea: Idea; partCode: string; description: string; supplier: string; baseline: number; approved: number; mrnQty: number; realised: number; leakage: number; planToDate: number; variance: number; status: 'Verified' | 'Awaiting verification' | 'In execution' }
 
-export default function Proof() {
+/** `embedded`: shown as the Savings proof tab of the Execution Hub (the hub has the page header and filters) */
+export default function Proof({ embedded }: { embedded?: boolean } = {}) {
   const ideas = useFilteredIdeas()
   const ledger = useStore((s) => s.ledger)
   const last = useStore((s) => s.settings.lastRealisationMonth)
@@ -57,12 +58,19 @@ export default function Proof() {
 
   return (
     <div className="pb-8">
-      <PageHeader icon="BadgeIndianRupee" title="Savings proof" badge={<Badge color="var(--color-accent-500)">PROOF</Badge>} fit
-        subtitle="Part-linked Realisation and Optimisation Output Framework — every locked target traced to its parts and MRN"
-        actions={<Segmented size="sm" value={scope} onChange={(k) => setScope(k as typeof scope)} options={[{ key: 'all', label: 'All' }, { key: 'execution', label: 'Execution started' }, { key: 'verification', label: 'Verification' }]} />} />
-      <FilterBar compact className="mb-4" />
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="text-[12.5px] text-muted"><b className="text-ink-2">PROOF</b> — Part-linked Realisation and Optimisation Output Framework: every locked target traced to its parts and MRN</div>
+          <Segmented size="sm" value={scope} onChange={(k) => setScope(k as typeof scope)} options={[{ key: 'all', label: 'All' }, { key: 'execution', label: 'Execution started' }, { key: 'verification', label: 'Verification' }]} />
+        </div>
+      ) : <>
+        <PageHeader icon="BadgeIndianRupee" title="Savings proof" badge={<Badge color="var(--color-accent-500)">PROOF</Badge>} fit
+          subtitle="Part-linked Realisation and Optimisation Output Framework — every locked target traced to its parts and MRN"
+          actions={<Segmented size="sm" value={scope} onChange={(k) => setScope(k as typeof scope)} options={[{ key: 'all', label: 'All' }, { key: 'execution', label: 'Execution started' }, { key: 'verification', label: 'Verification' }]} />} />
+        <FilterBar compact className="mb-4" />
+      </>}
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4 mb-4">
-        <Card title="Plan vs actual — all locked targets" icon="ChartLine" subtitle={`${pf.ideas} ideas with a signed budget + timeline lock · plan = locked target spread over the timeline · actual = MRN savings`}>
+        <Card title="Locked target vs MRN actual — portfolio" icon="ChartLine" subtitle={`${pf.ideas} ideas with a signed budget + timeline lock · plan = locked target spread over the timeline · actual = MRN savings`}>
           <PlanVsActualBlock p={pf} />
         </Card>
         <div className="grid grid-cols-2 xl:grid-cols-1 gap-3 content-start">

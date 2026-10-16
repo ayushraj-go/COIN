@@ -6,14 +6,17 @@ import { Button, Field, Icon, Modal, Money, Segmented, SourceTag, Avatar, cn } f
 import { ideaAnnualised, ideaCommitted, partAnnualised } from '../../lib/calc'
 import { inrPrice, inrShort, monthLong, num, sum, todayIso } from '../../lib/format'
 import { withUndo, BASELINE_TAG, VOLUME_TAG, ownerCandidates } from './model'
-import { sendBackTargets, stageLabel, type SendBackTo } from '../../lib/workflow'
+import { sendBackTargets, stageAssignee, stageLabel, type SendBackTo } from '../../lib/workflow'
 
 const t = () => useStore.getState().toast
 
 // ─── Send back to a chosen stage (department evaluation / approval) ──────────
 export function SendBackModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const sendBack = useStore((s) => s.sendBack)
+  const users = useStore((s) => s.users)
   const targets = sendBackTargets(idea, ideaAnnualised(idea))
+  // the person who owns each passed stage — the request goes to that person, not to a list of SPOCs
+  const owner = (x: SendBackTo) => (x === 'submitter' ? idea.submitterName : users.find((u) => u.id === stageAssignee(idea, x, users))?.name ?? '—')
   const [to, setTo] = useState<SendBackTo>(targets[targets.length - 1]?.to ?? 'submitter')
   const [remarks, setRemarks] = useState('')
   useEffect(() => { if (open) { setTo(targets[targets.length - 1]?.to ?? 'submitter'); setRemarks('') } }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -23,14 +26,15 @@ export function SendBackModal({ idea, open, onClose }: { idea: Idea; open: boole
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Send back" subtitle={`${idea.id} · now at ${stageLabel(idea, idea.stage)} — choose where it goes back to`} icon="Undo2" size="md"
+    <Modal open={open} onClose={onClose} title="Send back to a passed stage" subtitle={`${idea.id} · now at ${stageLabel(idea, idea.stage)} — the request goes to the person who owns that stage`} icon="Undo2" size="md"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" icon="Undo2" disabled={!remarks.trim()} onClick={submit}>Send back to {where(to)}</Button></>}>
       <div className="grid gap-2 mb-3" role="radiogroup" aria-label="Send back to">
         {targets.map((x, k) => (
           <button key={x.to} type="button" role="radio" aria-checked={to === x.to} onClick={() => setTo(x.to)}
             className={cn('flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors', to === x.to ? 'border-brand-500 bg-brand-50' : 'border-line bg-white hover:border-slate-300')}>
             <span className={cn('mt-0.5 h-5 w-5 rounded-full grid place-items-center text-[10.5px] font-bold shrink-0', to === x.to ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500')}>{k + 1}</span>
-            <span className="min-w-0"><span className="block text-[13px] font-semibold text-ink">{x.label}</span><span className="block text-[12px] text-muted">{x.hint}</span></span>
+            <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold text-ink">{x.label}</span><span className="block text-[12px] text-muted">{x.hint}</span></span>
+            <span className="shrink-0 text-right"><span className="block text-[10.5px] text-muted">goes to</span><span className="block text-[12.5px] font-semibold text-ink-2">{owner(x.to)}</span></span>
           </button>
         ))}
         {idea.evaluation?.skipped && <div className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Info" size={12} />The {stageLabel(idea, 'Evaluation')} was skipped (forecast below ₹ 5 L), so it is not offered.</div>}

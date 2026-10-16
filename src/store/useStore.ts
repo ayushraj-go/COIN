@@ -10,7 +10,7 @@ import {
 } from '../lib/masters'
 import { buildSeed, realiseMonth } from '../lib/seed'
 import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, sendBackTargets, stageAssignee, stageLabel, SUPPLIER_LINK_PLACEHOLDER, type SendBackTo } from '../lib/workflow'
-import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort } from '../lib/format'
+import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort, ymOf } from '../lib/format'
 import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus, SupplierResponseType } from '../lib/types'
 import { OUTREACH_BATCHES_DEFAULT, SUPPLIER_EMAIL_TEMPLATES_DEFAULT, SUPPLIER_RESPONSES_DEFAULT } from '../lib/masters'
@@ -128,6 +128,10 @@ interface Actions {
   syncNpdPap: (id: string, patch: Partial<Pick<Idea, 'npdStatus' | 'papStatus'>>) => void
 
   runRealisation: (month?: string) => { month: string; rows: number; leakage: number }
+  /** Monthly MRN feed: posts every completed month not posted yet, then closes executions whose locked timeline ended */
+  syncMrn: (today?: string) => { months: string[]; closed: string[] }
+  /** Ideas still in execution after their lock end move to Verification with locked target vs MRN actual */
+  closeEndedExecutions: (today?: string) => string[]
   uploadMrn: (rows: { ideaId: string; partCode: string; month: string; mrnQty: number; mrnPrice: number }[]) => number
   financeValidate: (ids: string[], remarks?: string) => void
   financeQuery: (ids: string[], remarks: string) => void
@@ -206,7 +210,7 @@ const safeStorage: Storage = {
   },
 }
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
-try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
+try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
 export const useStore = create<Store>()(
   persist(
@@ -236,7 +240,7 @@ export const useStore = create<Store>()(
           const dept = evalDeptOf(idea.department)
           const keep = idea.evaluation?.supplier?.status === 'Responded' ? idea.evaluation.supplier : undefined
           const supplier: SupplierCheck = keep ?? (needsSupplierCheck(ideaAnnualised(idea)) ? { status: 'Not sent' } : { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' })
-          next.evaluation = { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false }
+          next.evaluation = { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false, cbaInputs: idea.evaluation?.cbaInputs }
           for (const uidv of evaluatorIds(idea, dept)) push({ userId: uidv, title: `${dept} evaluation requested`, body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
         }
         if (stage === STAGE.approval) {
@@ -304,11 +308,27 @@ export const useStore = create<Store>()(
         if (ti <= 0) next.feasibilityCheck = undefined
         if (ti <= 1 && next.evaluation) {
           const responded = next.evaluation.supplier?.status === 'Responded' ? next.evaluation.supplier : undefined
-          next.evaluation = { dept: next.evaluation.dept, supplier: responded }
+          // the evaluation runs again; the supplier's answer and the cost-benefit inputs are kept as the starting point
+          next.evaluation = { dept: next.evaluation.dept, supplier: responded, cbaInputs: next.evaluation.cbaInputs }
         }
         next.lock = undefined
         next.approvals = next.approvals.map((a) => ({ level: a.level, approverId: a.approverId }))
         return next
+      }
+      /** The first MRN at the new price comes from the MRN feed: the idea's savings start (or the month's first day)
+       *  becomes its effective date and the "First MRN at new price" milestone is ticked — never typed by hand */
+      const markFirstMrn = (rows: LedgerEntry[]) => {
+        const first = new Map<string, string>()
+        for (const r of rows) if (r.mrnQty > 0 && (!first.has(r.ideaId) || r.month < first.get(r.ideaId)!)) first.set(r.ideaId, r.month)
+        for (const [id, month] of first) {
+          const i = get().ideas.find((x) => x.id === id)
+          if (!i?.execution || i.execution.effectiveDate) continue
+          const date = i.lock?.startDate && ymOf(i.lock.startDate) === month ? i.lock.startDate : `${month}-01`
+          patchIdea(id, (x) => {
+            const ms = x.execution!.milestones.map((m) => (m.name === 'First MRN at new price' && !m.doneDate ? { ...m, doneDate: date } : m))
+            return { ...x, execution: { ...x.execution!, effectiveDate: date, milestones: ms, progress: Math.round((ms.filter((m) => m.doneDate).length / Math.max(1, ms.length)) * 100) }, activity: [...x.activity, { id: uid('a'), at: now(), userId: 'system', userName: 'COIN · MRN feed', action: 'First MRN at the new price received', remarks: `${monthLong(month)} MRN` }] }
+          })
+        }
       }
       /** Forecast below ₹ 5 L: the evaluation stage is recorded as skipped and the idea goes straight to department approval */
       const skipEvaluation = (idea: Idea, action: string, remarks?: string): Idea => {
@@ -689,6 +709,7 @@ export const useStore = create<Store>()(
           const fresh = rows.filter((r) => !existing.has(r.id))
           const leakage = fresh.reduce((a, r) => a + r.leakage, 0)
           set((st) => ({ ledger: [...st.ledger, ...fresh], settings: { ...st.settings, lastRealisationMonth: m > st.settings.lastRealisationMonth ? m : st.settings.lastRealisationMonth } }))
+          markFirstMrn(fresh)
           push({ userId: 'u-fin', title: 'Savings to validate', body: `${monthLong(m)} realisation posted — ${fresh.length} entries awaiting validation`, trigger: 'Savings to validate', channel: 'In-app + email', link: '/execution', severity: 'warning' })
           if (leakage > 0) {
             const affected = new Set(fresh.filter((r) => r.leakage > 0).map((r) => s.ideas.find((i) => i.id === r.ideaId)))
@@ -701,6 +722,34 @@ export const useStore = create<Store>()(
           }
           get().sendMonthlyReport(m, false)
           return { month: m, rows: fresh.length, leakage }
+        },
+        syncMrn: (today = todayIso()) => {
+          const lastClosed = addMonthsYm(ymOf(today), -1)
+          const months: string[] = []
+          for (let m = addMonthsYm(get().settings.lastRealisationMonth, 1); m <= lastClosed; m = addMonthsYm(m, 1)) { get().runRealisation(m); months.push(m) }
+          return { months, closed: get().closeEndedExecutions(today) }
+        },
+        closeEndedExecutions: (today = todayIso()) => {
+          const ended = get().ideas.filter((i) => i.stage === STAGE.execution && i.bucket === 'In Execution' && i.lock?.endDate && i.lock.endDate <= today)
+          for (const i of ended) {
+            const lock = i.lock!
+            // MRN only, inside the locked window — nothing else is claimed
+            const actual = get().ledger.filter((l) => l.ideaId === i.id && inLockWindow(lock, l.month)).reduce((a, l) => a + l.realised, 0)
+            const at = `${lock.endDate}T00:00:00.000Z`
+            patchIdea(i.id, (x) => {
+              const n = moveTo(x, STAGE.verification, 'Locked timeline ended — moved to verification', `Target ${inrShort(lock.targetSaving)} · MRN actual ${inrShort(actual)}`)
+              const ms = (n.execution?.milestones ?? []).map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: lock.endDate } : m))
+              return {
+                ...n, implementedAt: at, stageEnteredAt: at,
+                stageHistory: n.stageHistory.map((h, k) => (k === n.stageHistory.length - 1 ? { ...h, enteredAt: at } : k === n.stageHistory.length - 2 ? { ...h, exitedAt: at, by: 'COIN' } : h)),
+                execution: n.execution ? { ...n.execution, status: 'Done', progress: 100, milestones: ms } : n.execution,
+                verification: { handedAt: at, handedBy: 'COIN — locked timeline ended', forecastAtClose: lock.targetSaving, actualAtClose: actual },
+              }
+            })
+            const verifier = stageAssignee(getIdea(i.id), STAGE.verification, get().users)
+            ;[...new Set([verifier, i.ownerId, i.submitterId].filter(Boolean) as string[])].forEach((uidv) => push({ userId: uidv, title: uidv === verifier ? 'Verify savings — locked timeline ended' : 'Locked timeline ended — in verification', body: `${i.id} · target ${inrShort(lock.targetSaving)} · MRN actual ${inrShort(actual)}`, trigger: 'Implemented', channel: 'In-app + email', ideaId: i.id, link: `/ideas/${i.id}`, severity: actual >= lock.targetSaving ? 'success' : 'warning' }))
+          }
+          return ended.map((i) => i.id)
         },
         uploadMrn: (rows) => {
           const s = get()
@@ -722,6 +771,7 @@ export const useStore = create<Store>()(
           }
           const ids = new Set(entries.map((e) => e.id))
           set((st) => ({ ledger: [...st.ledger.filter((l) => !ids.has(l.id)), ...entries] }))
+          markFirstMrn(entries)
           return n
         },
         financeValidate: (ids, remarks) => {
@@ -858,7 +908,7 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v8',
+      name: 'coin-cost-innovation-hub-v9',
       version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
@@ -918,5 +968,5 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v8') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v9') void useStore.persist.rehydrate() })
 }

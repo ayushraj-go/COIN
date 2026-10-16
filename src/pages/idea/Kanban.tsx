@@ -8,7 +8,7 @@ import { BUCKET_STYLE } from '../../lib/calc'
 import { can } from '../../lib/nav'
 import { inrShort, sum } from '../../lib/format'
 import { STAGE_GROUPS, kanbanMove, withUndo, type IdeaRow, type MoveResult, type StageGroup } from './model'
-import { DropModal, MarkDoneModal } from './Modals'
+import { DropModal } from './Modals'
 
 function KanbanCard({ r, dragging, draggable, shakeKey, onDragStart, onDragEnd, onOpen }: {
   r: IdeaRow; dragging: boolean; draggable: boolean; shakeKey: number; onDragStart: (e: DragEvent) => void; onDragEnd: () => void; onOpen: () => void
@@ -75,7 +75,6 @@ export function KanbanBoard({ rows, draftCount = 0 }: { rows: IdeaRow[]; draftCo
   const [shake, setShake] = useState<{ id: string; n: number }>({ id: '', n: 0 })
   const [pending, setPending] = useState<{ row: IdeaRow; group: StageGroup; stage: string; backward: boolean } | null>(null)
   const [dropFor, setDropFor] = useState<Idea | null>(null)
-  const [doneFor, setDoneFor] = useState<Idea | null>(null)
   const canDrag = can(me, 'validate') || can(me, 'approve') || can(me, 'execute')
 
   const columns = useMemo(() => STAGE_GROUPS.map((g) => {
@@ -100,7 +99,6 @@ export function KanbanBoard({ rows, draftCount = 0 }: { rows: IdeaRow[]; draftCo
       return
     }
     if (res.kind === 'drop') setDropFor(r.idea)
-    else if (res.kind === 'done') setDoneFor(r.idea)
     else setPending({ row: r, group: g, stage: res.stage, backward: res.backward })
   }
 
@@ -183,7 +181,6 @@ export function KanbanBoard({ rows, draftCount = 0 }: { rows: IdeaRow[]; draftCo
         )}
       </RemarksModal>
       {dropFor && <DropModal idea={dropFor} open={!!dropFor} onClose={() => setDropFor(null)} />}
-      {doneFor && <MarkDoneModal idea={doneFor} open={!!doneFor} onClose={() => setDoneFor(null)} />}
     </div>
   )
 }

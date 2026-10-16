@@ -1,6 +1,6 @@
-// Dashboard body for IN and CO — where the value comes from, in one panel:
+// Dashboard body for IN and CO — the internal vs external breakup, in one panel:
 // a split bar (internal vs external), then Internal ideas (by commodity / department / individual) beside
-// External ideas (suppliers: Tier 1, Tier 2, via campaigns, top suppliers).
+// External (supplier) ideas: count, value and share, campaign-sourced ideas, top contributing suppliers.
 // IN values = forecast impact; CO values = MRN-realised savings (with committed alongside).
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
@@ -64,7 +64,6 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
   const topSuppliers = extSuppliers.slice(0, fill ? fitSup : 5)
   const supMax = Math.max(1, ...topSuppliers.map((x) => x.v))
   const supName = (code: string) => suppliers.find((x) => x.code === code)?.name ?? code
-  const tierOf = (code: string) => suppliers.find((x) => x.code === code)?.tier ?? 'Tier 2'
   const segRow = (x: Seg, k: number) => {
     const u = tab === 'individual' ? users.find((y) => y.id === x.key) : undefined
     const w = ((mode === 'IN' ? x.value : x.value || x.count) / maxSeg) * 100
@@ -93,8 +92,8 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="h-8 w-8 rounded-[10px] grid place-items-center bg-brand-50 text-brand-700 shrink-0"><Icon name="GitFork" size={15} /></span>
             <div className="min-w-0">
-              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">{mode === 'IN' ? 'Where the value comes from' : 'Where the savings come from'}
-                <InfoTip title="Internal vs external">Internal = ideas raised inside Amber (by commodity team, department and employee). External = ideas from suppliers, split by tier and by campaign. {mode === 'IN' ? 'Values are forecast impact.' : 'Values are MRN-realised savings for ideas in execution or implemented.'}</InfoTip>
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">{mode === 'IN' ? 'Internal vs external idea breakup' : 'Internal vs external savings breakup'}
+                <InfoTip title="Internal vs external">Internal = ideas raised inside Amber (by commodity, department and employee). External = ideas from suppliers, including those received through campaigns and workshops. {mode === 'IN' ? 'Values are forecast impact.' : 'Values are MRN-realised savings for ideas in execution or implemented.'}</InfoTip>
               </h3>
               <p className="text-[11.5px] text-muted"><b className="text-ink-2 num">{s.internal.count + s.external.count}</b> ideas · <b className="text-ink-2 num">{money(total)}</b> {unit}</p>
             </div>
@@ -114,7 +113,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
         {/* internal */}
         <div className="px-5 py-4 [@media(max-height:820px)]:py-3 xl:border-r border-line min-w-0 min-h-0 flex flex-col">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: INT }} /><span className="text-[13px] font-semibold text-ink">Internal ideas</span><span className="text-[11.5px] text-muted">raised inside Amber</span></div>
+            <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: INT }} /><span className="text-[13px] font-semibold text-ink">Internal ideas</span><span className="text-[11.5px] text-muted">by commodity, department or employee</span></div>
             <Segmented size="sm" value={tab} onChange={(k) => { setTab(k as Tab); setAll(false) }} options={[{ key: 'commodity', label: 'Commodity' }, { key: 'department', label: 'Department' }, { key: 'individual', label: 'Individual' }]} />
           </div>
           <div className="grid grid-cols-[18px_minmax(96px,1fr)_minmax(36px,30%)_80px_28px] items-center gap-x-3 px-2 pb-1 text-[11px] text-muted">
@@ -133,42 +132,28 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
 
         {/* external */}
         <div className="px-5 py-4 [@media(max-height:820px)]:py-3 border-t xl:border-t-0 border-line min-w-0 min-h-0 flex flex-col gap-3.5 [@media(max-height:820px)]:gap-2.5">
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: EXT }} /><span className="text-[13px] font-semibold text-ink">External ideas</span><span className="text-[11.5px] text-muted">from suppliers</span></div>
-          <div>
-            <div className="grid grid-cols-2 gap-3">
-              {[t1, t2].map((t, k) => (
-                <button key={t.key} onClick={() => setModal({ title: `External ideas — ${t.label}`, ids: t.ids })} className="text-left rounded-xl border border-line px-3.5 py-3 [@media(max-height:820px)]:py-2 hover:border-[var(--color-slate-300)] hover:bg-slate-50/60 transition-colors">
-                  <div className="flex items-center justify-between gap-2 text-[11.5px]">
-                    <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color: k === 0 ? 'var(--color-accent-700)' : 'var(--color-slate-600)' }}><span className="h-2 w-2 rounded-full" style={{ background: k === 0 ? EXT : 'var(--color-accent-200)' }} />{t.key}</span>
-                    <span className="text-muted num">{pct((t.count / extCount) * 100, 0)}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-baseline gap-1"><span className="text-[22px] font-bold text-ink num leading-none">{t.count}</span><span className="text-[11.5px] text-muted">ideas</span></div>
-                  <div className="mt-1 text-[12px] font-semibold text-ink-2 num">{money(t.value)} <span className="font-normal text-muted">{mode === 'IN' ? 'forecast' : 'realised'}</span></div>
-                  {mode === 'CO' && <div className="text-[11px] text-muted num">{money(committed(t.ids))} committed</div>}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2.5 flex h-1.5 rounded-full overflow-hidden bg-slate-100">
-              <span style={{ width: `${(t1.count / extCount) * 100}%`, background: EXT }} />
-              <span style={{ width: `${(t2.count / extCount) * 100}%`, background: 'var(--color-accent-200)' }} />
-            </div>
-          </div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: EXT }} /><span className="text-[13px] font-semibold text-ink">External (supplier) ideas</span></div>
+          {/* summary — count, value and share of the total */}
+          <button onClick={() => setModal({ title: 'External (supplier) ideas', ids: [...t1.ids, ...t2.ids] })} className="text-left grid grid-cols-3 gap-2 rounded-xl border border-line px-3.5 py-2.5 [@media(max-height:820px)]:py-2 hover:border-[var(--color-slate-300)] hover:bg-slate-50/60 transition-colors">
+            <span className="min-w-0"><span className="block text-[11px] text-muted">Ideas</span><span className="block text-[20px] font-bold text-ink num leading-tight">{s.external.count}</span></span>
+            <span className="min-w-0"><span className="block text-[11px] text-muted">{mode === 'IN' ? 'Forecast value' : 'Realised (MRN)'}</span><span className="block text-[15px] font-bold text-ink num leading-tight mt-0.5">{money(s.external.value)}</span>{mode === 'CO' && <span className="block text-[11px] text-muted num">{money(committed([...t1.ids, ...t2.ids]))} committed</span>}</span>
+            <span className="min-w-0"><span className="block text-[11px] text-muted">Share of total</span><span className="block text-[15px] font-bold text-ink num leading-tight mt-0.5">{pct(total ? 100 - intShare : 0, 0)}</span></span>
+          </button>
 
-          <button onClick={() => setModal({ title: 'Supplier ideas via campaigns & workshops', ids: s.external.viaCampaign.ids })}
+          <button onClick={() => setModal({ title: 'Campaign-sourced supplier ideas', ids: s.external.viaCampaign.ids })}
             className="flex items-center gap-3 rounded-xl bg-accent-50/70 border border-accent-100 px-3.5 py-2.5 [@media(max-height:820px)]:py-1.5 text-left hover:bg-accent-50 transition-colors">
             <span className="h-8 w-8 rounded-[10px] grid place-items-center shrink-0 bg-white text-accent-600 border border-accent-100"><Icon name="Megaphone" size={15} /></span>
-            <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-semibold text-ink">Via campaigns & workshops</span><span className="block text-[11.5px] text-muted">{pct((s.external.viaCampaign.count / extCount) * 100, 0)} of supplier ideas came through a campaign</span></span>
+            <span className="min-w-0 flex-1"><span className="block text-[12.5px] font-semibold text-ink">Campaign-sourced ideas</span><span className="block text-[11.5px] text-muted">{pct((s.external.viaCampaign.count / extCount) * 100, 0)} of supplier ideas from campaigns and workshops</span></span>
             <span className="text-right shrink-0"><span className="block text-[18px] font-bold text-ink num leading-tight">{s.external.viaCampaign.count}</span><span className="block text-[11px] text-muted num">{money(s.external.viaCampaign.value)}</span></span>
           </button>
 
           <div className={cn('min-w-0', fill && 'flex-1 min-h-0 flex flex-col')}>
-            <div className="text-[11.5px] font-medium text-muted mb-1">Top suppliers</div>
+            <div className="text-[11.5px] font-medium text-muted mb-1">Top contributing suppliers</div>
             <div ref={supRef} className={cn(fill && 'flex-1 min-h-0 overflow-hidden')}>
             {topSuppliers.map((x) => (
               <button key={x.code} onClick={() => drill({ ...bucketParam, supplier: x.code, supplierOnly: 'true' })} className="group w-full grid grid-cols-[minmax(0,1fr)_minmax(40px,26%)_78px] items-center gap-x-3 rounded-lg px-2 -mx-2 h-[32px] text-left hover:bg-slate-50">
                 <span className="flex items-center gap-2 min-w-0">
                   <span className="text-[12.5px] font-medium text-ink truncate group-hover:text-brand-700">{supName(x.code)}</span>
-                  <span className={cn('shrink-0 text-[10px] font-semibold px-1.5 h-[18px] leading-[18px] rounded', tierOf(x.code) === 'Tier 1' ? 'bg-accent-50 text-accent-700' : 'bg-slate-100 text-slate-600')}>{tierOf(x.code) === 'Tier 1' ? 'T1' : 'T2'}</span>
                 </span>
                 <Bar w={(x.v / supMax) * 100} color="var(--color-accent-400)" h="h-1.5" />
                 <span className="text-right text-[12px] num"><b className="text-ink">{money(x.v)}</b><span className="text-muted"> · {x.n}</span></span>

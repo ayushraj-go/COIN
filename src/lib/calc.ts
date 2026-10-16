@@ -2,7 +2,7 @@
 import { ideaDept } from './workflow'
 import type { Bucket, Commodity, Filters, Health, Idea, IdeaPart, LedgerEntry, Lever, RouteKey, SlaRule, User } from './types'
 import { ROUTE_STAGES, STAGE, STAGE_SLA_KEY, EVALUATION_STAGES, FEASIBILITY_STAGES, LAKH } from './masters'
-import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, sum, today, todayIso, workingDaysBetween, ymOf, iso } from './format'
+import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, quarterStart, sum, today, todayIso, workingDaysBetween, ymOf, iso } from './format'
 
 /** Saving per unit = P(baseline) − P(new) */
 export const savingPerUnit = (p: IdeaPart, useApproved = false) => p.baselinePrice - (useApproved && p.approvedPrice != null ? p.approvedPrice : p.newPrice)
@@ -56,6 +56,24 @@ export function phaseByQuarter(annual: number, goLive: string, fy: string) {
   }
   return out
 }
+
+/** Cost-benefit figures of an idea: the evaluator's changes (evaluation.cbaInputs) over the auto values —
+ *  investment from the idea, go-live from the expected quarter, payback = investment ÷ (forecast ÷ 12),
+ *  committed this FY = forecast × months live ÷ 12, carry-over = forecast − committed. */
+export function cbaFigures(idea: Idea, fy: string) {
+  const annual = ideaAnnualised(idea)
+  const x = idea.evaluation?.cbaInputs ?? {}
+  const [q, qfy] = (idea.expectedQuarter || `Q3 ${fy}`).split(' ')
+  const autoGoLive = idea.lock?.startDate ?? quarterStart(q, qfy || fy)
+  const investment = x.investment ?? (idea.oneTimeInvestment || 0)
+  const goLive = x.goLive ?? autoGoLive
+  const payback = x.payback ?? paybackMonths(annual, investment)
+  const carryOver = x.carryOver ?? carryOverFrom(annual, goLive, fy)
+  const committed = annual - carryOver
+  const edited = (['investment', 'goLive', 'payback', 'carryOver'] as const).filter((k) => x[k] != null)
+  return { annual, investment, goLive, payback, carryOver, committed, edited, auto: { investment: idea.oneTimeInvestment || 0, goLive: autoGoLive, payback: paybackMonths(annual, investment), carryOver: carryOverFrom(annual, goLive, fy) } }
+}
+const carryOverFrom = (annual: number, goLive: string, fy: string) => annual - (annual * fyMonthsFrom(goLive, fy)) / 12
 
 export function goLiveOf(idea: Idea): string {
   if (idea.execution?.effectiveDate) return idea.execution.effectiveDate

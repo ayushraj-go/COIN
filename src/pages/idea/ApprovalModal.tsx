@@ -8,47 +8,17 @@ import { useNavigate } from 'react-router-dom'
 import type { ApprovalLock, Idea } from '../../lib/types'
 import { hasRole, useMe, useStore } from '../../store/useStore'
 import { MILESTONE_TEMPLATES, RISK_FACTORS, STAGE } from '../../lib/masters'
-import { carryOver, committedInFy, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
+import { cbaFigures, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
 import { addMonthsIso, lockTarget, milestoneSchedule, monthsBetween, overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
 import { addDays, fmtDate, fmtDateTime, inrPrice, inrShort, quarterStart, sum, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, Modal, Money, cn } from '../../components/ui'
 import { SignaturePad } from './StageForms'
+import { Block, Kpi, Kv, Mark } from './formKit'
 
 const RISK_COLOR = { Low: 'var(--color-emerald-600)', Medium: 'var(--color-orange-400)', High: 'var(--color-accent-500)' } as const
 const firstOfMonth = (d: string) => `${d.slice(0, 7)}-01`
 const lakh = (n: number) => +(n / 1e5).toFixed(2)
 type Tab = 'commercial' | 'supplier' | 'lock' | 'sign'
-
-/** Section with a title row */
-function Block({ title, icon, hint, children, right }: { title: string; icon: string; hint?: React.ReactNode; children: React.ReactNode; right?: React.ReactNode }) {
-  return (
-    <section className="rounded-xl border border-line bg-white">
-      <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="h-7 w-7 rounded-lg grid place-items-center bg-brand-50 text-brand-700 shrink-0"><Icon name={icon} size={14} /></span>
-          <div className="min-w-0"><div className="text-[13.5px] font-semibold text-ink">{title}</div>{hint && <div className="text-[11.5px] text-muted">{hint}</div>}</div>
-        </div>
-        {right}
-      </div>
-      <div className="px-3.5 pb-3.5">{children}</div>
-    </section>
-  )
-}
-function Kpi({ label, value, tone, tip, sub }: { label: string; value: React.ReactNode; tone?: 'good' | 'bad'; tip?: string; sub?: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-line bg-white px-3 py-2 min-w-0">
-      <div className="text-[11px] font-medium text-muted flex items-center gap-1 truncate">{label}{tip && <InfoTip title={label}>{tip}</InfoTip>}</div>
-      <div className={cn('text-[16px] font-bold num truncate', tone === 'good' ? 'text-emerald-700' : tone === 'bad' ? 'text-red-600' : 'text-ink')}>{value}</div>
-      {sub && <div className="text-[11px] text-muted truncate">{sub}</div>}
-    </div>
-  )
-}
-const Kv = ({ k, v }: { k: string; v: React.ReactNode }) => (
-  <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-2 py-1 border-b border-dashed border-line last:border-0 text-[12.5px]"><span className="text-muted">{k}</span><span className="text-ink font-medium min-w-0 break-words">{v}</span></div>
-)
-const Mark = ({ ok, warn }: { ok: boolean; warn?: boolean }) => (
-  <span className={cn('h-5 w-5 rounded-full grid place-items-center text-white shrink-0', ok ? 'bg-emerald-600' : warn ? 'bg-orange-400' : 'bg-red-500')}><Icon name={ok ? 'Check' : warn ? 'Minus' : 'X'} size={11} strokeWidth={3} /></span>
-)
 
 export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const me = useMe()
@@ -86,7 +56,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   }
   useEffect(() => {
     if (!open) return
-    const total = idea.oneTimeInvestment || Math.round(annual * 0.02)
+    const total = cbaFigures(idea, fy).investment || Math.round(annual * 0.02)
     // the idea's one-time investment, split by each part's share of the saving
     const split = Object.fromEntries(rows.map((r) => [r.key, String(lakh(annual ? (total * r.saving) / annual : total / rows.length))]))
     const s = firstOfMonth(addMonthsIso(todayIso(), leadMonths))
@@ -111,10 +81,11 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   const canSign = commercialOk && timelineOk && planOk && !!sig && !!sigName.trim()
 
   // ─── commercial numbers ──
-  const inv = idea.oneTimeInvestment || 0
-  const [q, qfy] = (idea.expectedQuarter || `Q3 ${fy}`).split(' ')
-  const goLive = locked?.startDate ?? (start || quarterStart(q, qfy || fy))
-  const committed = committedInFy(annual, goLive, fy)
+  // the department evaluation's cost-benefit figures (with any inputs the evaluator changed)
+  const cba = cbaFigures(idea, fy)
+  const inv = cba.investment
+  const goLive = locked?.startDate ?? cba.goLive
+  const committed = cba.committed
   const phasing = phaseByQuarter(annual, goLive, fy)
   const spendToday = sum(idea.parts.map((p) => p.baselinePrice * p.annualVolume))
   const spendAfter = sum(idea.parts.map((p) => p.newPrice * p.annualVolume))
@@ -179,7 +150,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
             <Kpi label="Forecast saving / year" value={<Money value={annual} />} sub={idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
             <Kpi label="Locked target" value={<Money value={locked?.targetSaving ?? target} />} sub={`${locked?.timelineMonths ?? months} months`} />
             <Kpi label="Budget" value={<Money value={locked?.budget ?? budgetTotal} />} sub={inv ? `investment ${inrShort(inv)}` : 'no investment entered'} />
-            <Kpi label="Payback" value={inv ? `${paybackMonths(annual, inv).toFixed(1)} months` : 'Immediate'} />
+            <Kpi label="Payback" value={inv || cba.edited.includes('payback') ? `${cba.payback.toFixed(1)} months` : 'Immediate'} sub={cba.edited.length ? 'inputs set at evaluation' : undefined} />
             <Kpi label="Overall risk" value={risks.length ? <span style={{ color: RISK_COLOR[overallRisk(risks)] }}>{overallRisk(risks)}</span> : ev?.skipped ? 'Not assessed' : '—'} sub={risks.length ? `${inrShort(atRisk)} at risk` : undefined} />
             <Kpi label="Supplier alignment" value={supplierAligned} tone={supplierAligned === 'Confirmed' ? 'good' : supplierAligned === 'Not confirmed' ? 'bad' : undefined} sub={sc?.supplierName} />
           </div>
@@ -245,7 +216,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                   <Kpi label="One-time investment" value={<Money value={inv} />} />
                   <Kpi label="Net saving · year 1" value={<Money value={annual - inv} />} tone={annual - inv >= 0 ? 'good' : 'bad'} />
                   <Kpi label={`Committed in ${fy}`} value={<Money value={committed} />} tip="Forecast × months live in the FY ÷ 12" />
-                  <Kpi label="Carry-over to next FY" value={<Money value={carryOver(annual, goLive, fy)} />} />
+                  <Kpi label="Carry-over to next FY" value={<Money value={cba.carryOver} />} />
                   <Kpi label="3-year saving, net" value={<Money value={annual * 3 - inv} />} />
                   <Kpi label="Benefit / cost (3 yr)" value={inv ? `${((annual * 3) / inv).toFixed(1)}×` : '—'} />
                   <Kpi label="Risk-adjusted saving" value={<Money value={annual - atRisk} />} tip="Forecast − ₹ at risk from the risk register" />
