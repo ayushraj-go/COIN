@@ -1,4 +1,4 @@
-// M6 — Supplier Workspace home (one screen at xl): KPIs + submit banner, then my ideas · workshop invites · my ideas by stage
+// M6 — Supplier Workspace home (one screen at xl): the headline KPI row, then my ideas · workshop invites · submit banner + my ideas by stage
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
@@ -8,9 +8,11 @@ import { daysBetween, fmtDate, inrPrice, inrShort, pct, sum, timeAgo, todayIso }
 import { OUT_OF_SCOPE } from '../../lib/scope'
 import { STAGE, TRACKER_STAGES } from '../../lib/masters'
 import { Badge, BucketBadge, Button, Card, EmptyState, Icon, InfoTip, LeverChip, SlaPill, useWarmup } from '../../components/ui'
-import { HomeHeader, HomeSkeleton, MiniStat, Reveal, RevealGrid, StageTrackerMini } from './shared'
-import { SubmitCta } from './SubmitterHome'
+import { HomeHeader, HomeSkeleton, Reveal, RevealGrid, StageTrackerMini } from './shared'
+import { SubmitActions } from './SubmitterHome'
 import { useFitHeight, useRowsFit } from './fit'
+import { useHomeData } from './data'
+import { HeadlineKpis } from './Kpis'
 
 const ATT_STYLE: Record<string, { color: string; icon: string }> = {
   Invited: { color: 'var(--color-brand-500)', icon: 'MailOpen' },
@@ -25,6 +27,7 @@ export default function SupplierHome() {
   const code = me.supplierCode ?? ''
   const { ideas, campaigns, suppliers, commodities, slaRules, setAttendance, toast, openIdea } = useStore()
   const nav = useNavigate()
+  const d = useHomeData()
   const [fitRef, fitH] = useFitHeight()
   const sup = suppliers.find((s) => s.code === code)
   const invites = useMemo(() => campaigns.filter((c) => c.suppliers.includes(code) && c.status !== 'Draft').sort((a, b) => (b.workshopDate ?? b.startDate).localeCompare(a.workshopDate ?? a.startDate)), [campaigns, code])
@@ -57,28 +60,19 @@ export default function SupplierHome() {
   if (!ready) return <HomeSkeleton variant="people" />
   return (
     <div>
-      <HomeHeader subtitle={<>{sup?.name ?? me.designation} · <span className="font-mono">{code}</span> · {sup?.city} · Supplier Workspace</>} />
+      <HomeHeader subtitle={<>{sup?.name ?? me.designation} · <span className="font-mono">{code}</span> · {sup?.city} · Supplier Workspace</>}
+        actions={<SubmitActions hint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} onHint={() => nav('/workshops')} />} />
 
       <div ref={fitRef} style={fitH ? { height: fitH } : undefined}>
         <RevealGrid className="h-full grid grid-cols-12 gap-3 xl:grid-rows-[auto_minmax(0,1fr)]">
-          {/* Row 1 — KPIs + submit banner */}
-          <Reveal className="col-span-12 xl:col-span-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 h-full [&>*]:h-full">
-              <MiniStat label="Workshop invites" icon="Presentation" color="var(--color-violet-600)" value={invites.length} sub={awaitingReply.length ? `${awaitingReply.length} awaiting your reply` : 'All invitations answered'} onClick={() => nav('/workshops')} />
-              <MiniStat label="Under review" icon="ClipboardCheck" color="var(--color-orange-400)" value={underReview.length} sub={underReview.length ? 'Feasibility, R&D or sourcing approval' : 'Nothing awaiting review'} onClick={() => nav('/my-ideas')} />
-              <MiniStat label="My ideas" icon="Lightbulb" color="var(--color-brand-500)" value={ownSubmitted.length} sub={<>{inrShort(sum(ownSubmitted.map((x) => ideaAnnualised(x))))} annualised impact</>} onClick={() => nav('/my-ideas')} />
-              <MiniStat label="Gain-share offered" icon="Handshake" color="var(--color-teal-600)" value={gs.length ? `${gsAvg.toFixed(1)}%` : '—'} sub={gs.length ? `avg on ${gs.length} ideas · ≈ ${inrShort(gsValue)} / yr` : 'Offer gain-share when you submit'} tip={<InfoTip title="Gain-share offered to Amber">{payoutNote}</InfoTip>} />
-            </div>
-          </Reveal>
-          <Reveal className="col-span-12 xl:col-span-4">
-            <SubmitCta title="Bring your next idea to Amber" desc="Submit with a gain-share offer and its validity, then track it through Team feasibility check, R&D approval and department approval to PAP price revision and first MRN." campaignHint={awaitingReply.length ? `${awaitingReply.length} workshop invite${awaitingReply.length > 1 ? 's' : ''} awaiting reply` : undefined} />
-          </Reveal>
+          {/* Row 1 — the headline KPI row (same on every home and workspace) */}
+          <Reveal className="col-span-12"><HeadlineKpis d={d} /></Reveal>
 
           {/* Row 2 — three equal columns: my ideas · workshop invites · my ideas by stage */}
           <Reveal className="col-span-12 md:col-span-6 xl:col-span-4 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Lightbulb"
               title={<span className="flex items-center gap-1.5">My ideas & status<InfoTip title="Gain-share">{payoutNote}</InfoTip></span>}
-              subtitle={`${ownSubmitted.length} submitted · gain-share and live stage tracker`}
+              subtitle={`${ownSubmitted.length} submitted · ${gs.length ? `gain-share avg ${gsAvg.toFixed(1)}% on ${gs.length} · ≈ ${inrShort(gsValue)} / yr` : 'offer a gain-share when you submit'}`}
               actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>My Ideas</Button>}>
               {own.length ? (
                 <>

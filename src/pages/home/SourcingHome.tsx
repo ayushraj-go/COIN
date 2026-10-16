@@ -10,7 +10,7 @@ import { HomeHeader, HomeSkeleton, Reveal, RevealGrid, ViewPills, useDrill } fro
 import { RealisationCard, SavingsToValidateCard, TopIdeasCard } from './cards'
 import { CommodityHeatCard, FunnelCard, LeverMixCard, PortfolioCard, TrendCard } from './charts'
 import { SlaWatchCard } from './MyActions'
-import { InKpis } from './Kpis'
+import { HeadlineKpis } from './Kpis'
 import { SourcesCard } from './Sources'
 import { Leaderboard } from './Leaderboard'
 import { QueuePeek } from '../queue/QueuePeek'
@@ -44,8 +44,8 @@ export default function SourcingHome({ variant }: { variant: SourcingVariant }) 
 
       {view === 'dashboard' ? (
         <RevealGrid className="grid grid-cols-12 gap-4">
+          <Reveal className="col-span-12"><HeadlineKpis d={d} /></Reveal>
           <Reveal className="col-span-12"><QueuePeek /></Reveal>
-          <Reveal className="col-span-12"><InKpis d={d} /></Reveal>
           <Reveal className="col-span-12"><SourcesCard ideas={d.active.filter((i) => i.bucket !== 'Dropped')} mode="IN" fy={d.fy} /></Reveal>
         </RevealGrid>
       ) : (

@@ -63,10 +63,16 @@ choice is kept per browser.
 
 ## Workspaces and modules
 
-After sign-in the Home page shows the COIN coin mark, KPI tiles and the two workspaces:
+After sign-in the Home page shows the COIN coin mark, the headline KPI row and the two workspaces. A click anywhere on a
+workspace card opens it (LENS / PROOF / TRACE open their own page inside CO); in the sidebar the **CO | IN** switch opens
+the other workspace in one click and **Overview** (or the amber logo) returns to this page.
+
+The headline KPI row — **Pipeline · In execution · Implemented · Realised (MRN)** — is the same four tiles on the Home,
+the IN dashboard and the CO dashboard, for every role. Employees and suppliers count their own ideas and the tiles open
+My Ideas; everyone else counts the ideas they can see and the tiles open the register, Execution Hub or Savings proof.
 
 - **CO · Cost Optimisation** — **LENS** (Linked Evidence of Negotiation and Savings → dashboard), **PROOF** (Part-linked Realisation and Optimisation Output Framework → `/proof`), **TRACE** (Transition-linked Realisation of Actual CI Evidence → Execution Hub).
-- **IN · Innovation Network** — "Enter the world of ideas": ideas, campaigns, feasibility, evaluation and sourcing approval.
+- **IN · Innovation Network** — "Enter the world of ideas": ideas, campaigns, team feasibility check, department evaluation and department approval.
 
 Both dashboards show internal ideas (by commodity, department, individual) against external supplier ideas (Tier 1, Tier 2, via campaigns); Advanced analytics holds the idea portfolio, SLA watch, implementation pipeline and execution health.
 

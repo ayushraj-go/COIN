@@ -71,15 +71,28 @@ function Sidebar() {
     <aside className={cn('hidden md:flex flex-col transition-[width] duration-300 shrink-0 relative z-20 overflow-hidden border-r', collapsed ? 'w-[68px]' : 'w-[232px]')}
       style={{ background: 'var(--sb-bg)', borderColor: 'var(--sb-border)' }}>
       <div className="relative z-10 flex flex-col h-full min-h-0">
-      <Logo collapsed={collapsed} />
+      <button type="button" onClick={() => { setSpace(null); nav('/') }} title="COIN home — both workspaces" className="block w-full text-left"><Logo collapsed={collapsed} /></button>
       {meta && (
+        // CO | IN — one click opens the other workspace directly; "Overview" goes back to the home with both
         <div className="px-2.5 pb-2.5">
-          <button onClick={() => { setSpace(null); nav('/') }} title="Switch workspace (CO / IN)"
-            className={cn('group w-full flex items-center gap-2.5 rounded-xl border bg-[var(--sb-card)] border-[var(--sb-border)] hover:bg-[var(--sb-hover)] transition-colors', collapsed ? 'justify-center h-10' : 'px-2 py-1.5')}>
-            <span className={cn('h-8 w-8 rounded-lg text-white text-[11px] font-extrabold grid place-items-center shrink-0', space === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{meta.code}</span>
-            {!collapsed && <span className="flex-1 min-w-0 text-left leading-tight"><span className="block text-[12.5px] font-semibold text-[var(--sb-card-fg)] truncate">{meta.name}</span><span className="block text-[11px] text-[var(--sb-card-sub)] truncate">{meta.sub}</span></span>}
-            {!collapsed && <Icon name="ArrowLeftRight" size={14} className="text-[var(--sb-icon)] shrink-0" />}
-          </button>
+          {!collapsed && (
+            <div className="flex items-center justify-between px-1 mb-1">
+              <span className="text-[10.5px] font-semibold uppercase tracking-[.12em] text-[var(--sb-muted)]">Workspace</span>
+              <button type="button" onClick={() => { setSpace(null); nav('/') }} className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--sb-muted)] hover:text-[var(--sb-active-fg)]"><Icon name="House" size={12} />Overview</button>
+            </div>
+          )}
+          <div className={cn('rounded-xl border bg-[var(--sb-card)] border-[var(--sb-border)] p-1 grid gap-1', collapsed ? 'grid-cols-1' : 'grid-cols-2')}>
+            {(['CO', 'IN'] as const).map((k) => {
+              const on = space === k
+              return (
+                <button key={k} type="button" aria-pressed={on} title={SPACE_META[k].name} onClick={() => { if (!on) setSpace(k); nav('/') }}
+                  className={cn('min-w-0 flex items-center gap-[5px] rounded-lg py-1.5 text-left transition-colors', collapsed ? 'justify-center' : 'px-1', on ? 'bg-[var(--sb-active-bg)]' : 'hover:bg-[var(--sb-hover)]')}>
+                  <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0 transition-opacity', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad', !on && 'opacity-60')}>{k}</span>
+                  {!collapsed && <span className={cn('min-w-0 text-[10px] leading-[1.2]', on ? 'font-semibold text-[var(--sb-active-fg)]' : 'font-medium text-[var(--sb-card-sub)]')}>{k === 'CO' ? <>Cost<br />Optimisation</> : <>Innovation<br />Network</>}</span>}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
       <nav className="relative flex-1 min-h-0 overflow-hidden px-2.5 pt-1">
@@ -124,6 +137,8 @@ function MobileNav() {
   const me = useMe()
   const [open, setOpen] = useState(false)
   const space = useStore((s) => s.space)
+  const setSpace = useStore((s) => s.setSpace)
+  const nav = useNavigate()
   const items = navForSpace(me, space)
   return (
     <>
@@ -135,6 +150,15 @@ function MobileNav() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-slate-900)]/20 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }} className="absolute left-0 top-0 bottom-0 w-[270px] bg-white p-2 overflow-y-auto shadow-2xl">
               <Logo collapsed={false} tone="dark" />
+              {/* CO | IN — opens the workspace directly */}
+              <div className="grid grid-cols-2 gap-1.5 px-1 pb-2">
+                {(['CO', 'IN'] as const).map((k) => (
+                  <button key={k} type="button" onClick={() => { setSpace(k); nav('/'); setOpen(false) }}
+                    className={cn('h-11 rounded-xl flex items-center gap-2 px-2 text-left text-[11px] leading-tight font-semibold border', space === k ? 'bg-brand-50 border-brand-200 text-brand-800' : 'border-line text-ink-2')}>
+                    <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0', k === 'CO' ? 'bg-gradient-to-br from-accent-400 to-accent-600' : 'bg-brand-grad')}>{k}</span>{SPACE_META[k].name}
+                  </button>
+                ))}
+              </div>
               {items.map((i) => (
                 <NavLink key={i.key} to={i.path} end={i.path === '/'} onClick={() => setOpen(false)} className={({ isActive }) => cn('flex items-center gap-2.5 h-10 px-3 rounded-xl text-[13.5px] font-semibold', isActive ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200' : 'text-ink-2')}>
                   <Icon name={i.icon} size={17} />{i.label}

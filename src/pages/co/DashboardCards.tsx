@@ -1,74 +1,18 @@
-// CO Dashboard (one screen): implementation KPIs, implementation pipeline, execution health
+// CO cards: implementation pipeline and execution health (the KPI row is the shared HeadlineKpis)
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
 import { useStore } from '../../store/useStore'
 import type { Health, Idea } from '../../lib/types'
 import { BUCKET_STYLE, HEALTH_STYLE, ideaCommitted } from '../../lib/calc'
 import { daysBetween, fmtDate, inrShort, monthLong, pct, sum } from '../../lib/format'
-import { Avatar, Badge, Button, Card, Count, EmptyState, HealthBadge, Icon, InfoTip, Money, cn } from '../../components/ui'
+import { Avatar, Badge, Button, Card, Count, EmptyState, HealthBadge, Icon, InfoTip, cn } from '../../components/ui'
 import { AXIS_TICK, ChartTip, DrillModal, GRID_STROKE, drillUrl, useDrill } from '../home/shared'
 import { HEALTHS, coValue, type CoData, type CoStage } from './data'
-import { KpiTile, TileValue } from '../../components/KpiTile'
 
 const EXEC = BUCKET_STYLE['In Execution']
 const IMPL = BUCKET_STYLE.Implemented
 const RISK = 'var(--color-rose-600)'
-
-// ─── KPI tiles (shared CO-style tile) ─────────────────────────────────────────
-export function CoKpis({ c }: { c: CoData }) {
-  const drill = useDrill()
-  const nav = useNavigate()
-  const filters = useStore((s) => s.filters)
-  const [watchOpen, setWatchOpen] = useState(false)
-  const k = c.kpi
-  const vShare = k.realised ? (k.validated / k.realised) * 100 : 0
-  return (
-    <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-      <KpiTile label="In execution" icon="Rocket" color="var(--color-brand-600)" onClick={() => drill({ bucket: 'In Execution' })} spark={c.d.flows['In Execution'].values}
-        tip="Approved ideas being implemented — NPD sample, PAP price / source revision or internal execution. ₹ = FY-phased committed hard savings. Trend = ₹ approved each month.">
-        <TileValue value={<Money value={k.execCommitted} />} unit="committed" sub={<><b className="text-ink-2 num"><Count value={k.execCount} /></b> ideas · {inrShort(k.execAnnualised)} annualised</>} />
-      </KpiTile>
-
-      <KpiTile label="Implemented" icon="CircleCheckBig" color="var(--color-emerald-600)" onClick={() => drill({ bucket: 'Implemented' })} spark={c.d.flows.Implemented.values}
-        tip="Handed for verification with an effective date and approved price. ₹ = annualised impact at approved price; realisation flows from actual MRN. Trend = ₹ implemented each month.">
-        <TileValue value={<Money value={k.implAnnualised} />} unit="annualised" sub={<><b className="text-ink-2 num"><Count value={k.implCount} /></b> ideas · {inrShort(k.implCommitted)} live in {c.fy}</>} />
-      </KpiTile>
-
-      <KpiTile hero label={`Realised savings · ${c.fy} to date`} icon="BadgeIndianRupee" spark={c.d.trend.filter((t) => t.realised != null).map((t) => t.realised ?? 0)} onClick={() => nav('/reports/leakage')}
-        tip="MRN-based realised hard savings = (baseline − approved price) × MRN quantity after the effective date. Validated = accepted by Finance.">
-        <div className="text-[27px] leading-none font-bold tracking-[-0.02em]"><Money value={k.realised} /></div>
-        <div className="mt-3 flex h-1.5 rounded-full overflow-hidden bg-white/15">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${vShare}%` }} transition={{ duration: 0.9 }} className="bg-white rounded-full" />
-        </div>
-        <div className="flex items-center justify-between gap-2 mt-2 text-[11.5px] text-white/80">
-          <span className="truncate"><b className="text-white num">{inrShort(k.validated)}</b> validated</span>
-          <span className="truncate"><b className="text-white num">{inrShort(k.pending)}</b> pending</span>
-        </div>
-      </KpiTile>
-
-      <KpiTile label="Overdue / at risk" icon="Siren" color="var(--color-accent-500)" onClick={() => setWatchOpen(true)}
-        tip="Live executions past their due date (Delayed) or with an overdue milestone (At risk). ₹ = committed hard savings exposed.">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[27px] leading-none font-bold tracking-[-0.02em] num" style={{ color: k.watchCount ? 'var(--color-accent-600)' : undefined }}><Count value={k.watchCount} /></span>
-          <span className="text-[11.5px] text-muted">executions · <b className="text-ink-2 num">{inrShort(k.watchCommitted)}</b> exposed</span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-2.5 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: HEALTH_STYLE.Delayed.color, background: HEALTH_STYLE.Delayed.soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE.Delayed.color }} />{c.overdue.length} overdue</span>
-          <span className="inline-flex items-center gap-1 rounded-full px-2 h-5 font-semibold" style={{ color: 'var(--color-amber-700)', background: HEALTH_STYLE['At risk'].soft }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: HEALTH_STYLE['At risk'].color }} />{c.atRisk.length} at risk</span>
-        </div>
-      </KpiTile>
-
-      <DrillModal open={watchOpen} onClose={() => setWatchOpen(false)} title="Overdue and at-risk executions" ideas={c.watch}
-        valueFn={(i) => ideaCommitted(i, c.fy)} valueLabel="Committed"
-        links={[
-          { label: 'Delayed', url: drillUrl({ bucket: 'In Execution', health: 'Delayed' }, filters) },
-          { label: 'At risk', url: drillUrl({ bucket: 'In Execution', health: 'At risk' }, filters) },
-        ]} />
-    </div>
-  )
-}
 
 // ─── Implementation pipeline: post-approval stages + realised by month ────────
 const RM_COLORS = { validated: 'var(--color-emerald-600)', pendingPart: 'var(--color-emerald-300)' }

@@ -2,10 +2,11 @@
 import { useMemo } from 'react'
 import { useStore, useMe } from '../../store/useStore'
 import { useFilteredIdeas, useScopedTarget, useSummary } from '../../lib/hooks'
-import { ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, isHard, monthlyTrend } from '../../lib/calc'
+import { ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, isHard, monthlyTrend, summarise } from '../../lib/calc'
 import { fyMonths, monthShort, parse, sum, todayIso, ymOf } from '../../lib/format'
 import type { Bucket, Idea, LedgerEntry } from '../../lib/types'
 import { useFy } from './shared'
+import { headlineScope } from './headline'
 
 export const BUCKETS: Exclude<Bucket, 'Draft'>[] = ['Pipeline', 'In Execution', 'Implemented', 'Dropped']
 
@@ -99,13 +100,18 @@ export interface TrendPoint { month: string; label: string; realised: number | n
 
 /** Everything the Sourcing Home needs, derived once */
 export function useHomeData() {
-  const ideas = useFilteredIdeas()
-  const summary = useSummary()
+  const me = useMe()
+  const visible = useFilteredIdeas()
+  // employees and suppliers count their own ideas (the My Ideas list their tiles open); everyone else what they can see
+  const ideas = useMemo(() => headlineScope(me, visible), [me, visible])
+  const summaryVisible = useSummary()
   const target = useScopedTarget()
   const spend = useScopedSpend()
   const fy = useFy()
   const settings = useStore((s) => s.settings)
   const ledgerAll = useStore((s) => s.ledger)
+  const summary = useMemo(() => (ideas === visible ? summaryVisible : summarise(ideas, ledgerAll, target, fy, settings.financeValidation, settings.lastRealisationMonth)),
+    [ideas, visible, summaryVisible, ledgerAll, target, fy, settings.financeValidation, settings.lastRealisationMonth])
   const ledger = useScopedLedger(ideas, fy)
 
   return useMemo(() => {

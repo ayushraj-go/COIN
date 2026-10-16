@@ -8,8 +8,9 @@ import { ideaAnnualised, slaStatus } from '../../lib/calc'
 import { daysBetween, fmtDate, inrShort, monthLabel, sum, todayIso } from '../../lib/format'
 import { navFor } from '../../lib/nav'
 import { useFilteredIdeas } from '../../lib/hooks'
-import { Badge, Card, Chip, EmptyState, Icon, InfoTip, SlaPill, cn } from '../../components/ui'
+import { Badge, Card, Chip, Icon, InfoTip, SlaPill, cn } from '../../components/ui'
 import { SLA_RANK, drillUrl, slaFrom } from './shared'
+import { useRowsFit } from './fit'
 import { STAGE_SLA_KEY } from '../../lib/masters'
 
 const stagesOf = (key: string) => Object.keys(STAGE_SLA_KEY).filter((s) => STAGE_SLA_KEY[s] === key)
@@ -191,6 +192,9 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
   const breached = items.filter((a) => a.sla && (a.sla.state === 'breach' || a.sla.state === 'escalated')).length + items.filter((a) => a.kind === 'overdue').length
   const hasRegister = navFor(me).some((n) => n.key === 'register')
   const footer = me?.roles.includes('finance') ? { label: 'Open Reports', path: '/reports' } : hasRegister ? { label: 'Open Idea Register', path: '/ideas' } : { label: 'Open My Ideas', path: '/my-ideas' }
+  // rows are a fixed 52 px so the list shows exactly as many as fit the card (no spill past the card edge)
+  const [listRef, fit] = useRowsFit(52, slaWatch ? 3 : 6, 1, list.length)
+  const cap = slaWatch ? Math.min(3, fit) : fit
   return (
     <Card className={cn('h-full', className)} bodyClass="flex flex-col"
       title={<span className="flex items-center gap-1.5">{title}<InfoTip title="My actions">Everything waiting on you, sorted by SLA urgency (escalated → breached → due). Click an item to review it in the side panel without leaving the page.</InfoTip></span>}
@@ -203,13 +207,13 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
           {kinds.map((k) => <Chip key={k} active={kind === k} color={ACTION_META[k].color} onClick={() => setKind(k)}>{ACTION_META[k].label} {items.filter((a) => a.kind === k).length}</Chip>)}
         </div>
       )}
-      <div className="flex-1 -mx-1 px-1">
-        <div>
-          {list.slice(0, slaWatch ? 3 : 6).map((a) => {
+      <div ref={listRef} className="flex-1 min-h-0 overflow-hidden -mx-1 px-1">
+        <div className="h-full">
+          {list.slice(0, cap).map((a) => {
             const m = ACTION_META[a.kind]
             return (
               <button key={a.key} onClick={() => (a.route && a.kind === 'savings' ? nav(a.route) : a.ideaId ? openIdea(a.ideaId) : a.route && nav(a.route))}
-                className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
+                className="group w-full h-[52px] flex items-center gap-2.5 px-2 rounded-lg hover:bg-slate-50 text-left border-b border-slate-100 last:border-0">
                 <span className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${m.color} 7%, transparent)`, color: m.color }}><Icon name={m.icon} size={15} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[12.5px] font-semibold text-ink truncate group-hover:text-brand-700">{a.title}</span>
@@ -222,8 +226,13 @@ export function MyActionsCard({ className, title = 'My actions', only, slaWatch 
               </button>
             )
           })}
-          {list.length > (slaWatch ? 3 : 6) && <button onClick={() => nav(footer.path)} className="w-full text-left px-2 py-1.5 text-[11.5px] font-semibold text-muted hover:text-brand-700">+ {list.length - (slaWatch ? 3 : 6)} more waiting on you</button>}
-          {!list.length && <EmptyState icon="CheckCheck" title="You're all caught up" desc="No items need your action right now. New hand-offs appear here the moment they reach you." className="py-6" />}
+          {list.length > cap && <button onClick={() => nav(footer.path)} className="w-full h-7 text-left px-2 text-[11.5px] font-semibold text-muted hover:text-brand-700">+ {list.length - cap} more waiting on you</button>}
+          {!list.length && (
+            <div className="h-full min-h-[56px] flex items-center gap-3 px-2">
+              <span className="h-9 w-9 rounded-xl grid place-items-center shrink-0 bg-emerald-50 text-emerald-600"><Icon name="CheckCheck" size={17} /></span>
+              <span className="min-w-0"><span className="block text-[13px] font-semibold text-ink">You're all caught up</span><span className="block text-[11.5px] text-muted leading-snug">New hand-offs appear here the moment they reach you.</span></span>
+            </div>
+          )}
         </div>
       </div>
       {slaWatch && <SlaWatch />}

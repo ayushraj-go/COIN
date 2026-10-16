@@ -1,6 +1,7 @@
 // M2 — Idea Register (All Ideas) / My Ideas: table + Kanban, saved views, quick filter chips, drill-down URL contract.
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ownsIdea } from './home/headline'
 import type { Bucket, Idea, SavedView } from '../lib/types'
 import { hasRole, useMe, useStore } from '../store/useStore'
 import { useVisibleIdeas } from '../lib/hooks'
@@ -209,8 +210,7 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
 
   const scoped = useMemo(() => {
     if (!me) return [] as Idea[]
-    const own = (i: Idea) => i.submitterId === me.id || (me.roles.includes('supplier') && i.isSupplierSubmission && !!me.supplierCode && i.supplierCode === me.supplierCode)
-    const list = mode === 'mine' ? ideas.filter(own) : visible.filter((i) => i.stage !== 'Draft' || i.submitterId === me.id)
+    const list = mode === 'mine' ? ideas.filter((i) => ownsIdea(me, i)) : visible.filter((i) => i.stage !== 'Draft' || i.submitterId === me.id)
     return applyFilters(list, globalFilters, ctx.commodities)
   }, [mode, ideas, visible, me, globalFilters, ctx.commodities])
   const rows = useMemo(() => scoped.map((i) => toRow(i, ctx)), [scoped, ctx])

@@ -1,4 +1,4 @@
-// Submitter home — one screen at xl: ideas by bucket + submit banner, recent ideas with stage tracker, my actions, open campaigns
+// Submitter home — one screen at xl: the headline KPI row, then recent ideas with stage tracker | submit banner, my actions, open campaigns
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -6,31 +6,28 @@ import { useStore, useMe } from '../../store/useStore'
 import type { Bucket } from '../../lib/types'
 import { BUCKET_STYLE, ideaAnnualised, ideaRealised } from '../../lib/calc'
 import { fmtDate, inrShort, sum, timeAgo } from '../../lib/format'
-import { Badge, BucketBadge, Button, Card, Count, EmptyState, Icon, InfoTip, LeverChip, Money, useWarmup } from '../../components/ui'
-import { HomeHeader, HomeSkeleton, Reveal, RevealGrid, StageTrackerMini, useDrill } from './shared'
+import { Badge, BucketBadge, Button, Card, EmptyState, Icon, InfoTip, LeverChip, useWarmup } from '../../components/ui'
+import { HomeHeader, HomeSkeleton, Reveal, RevealGrid, StageTrackerMini } from './shared'
 import { MyActionsCard } from './MyActions'
 import { useFitHeight, useRowsFit } from './fit'
+import { useHomeData } from './data'
+import { HeadlineKpis } from './Kpis'
 
 const BUCKET_ORDER: Bucket[] = ['Draft', 'Pipeline', 'In Execution', 'Implemented', 'Dropped']
-const BUCKET_ICON: Record<Bucket, string> = { Draft: 'FilePen', Pipeline: 'Filter', 'In Execution': 'Rocket', Implemented: 'CircleCheckBig', Dropped: 'CircleSlash' }
 
-/** Compact submit banner (blue → teal) — sits in the top row of the people homes */
-export function SubmitCta({ title, desc, campaignHint }: { title: string; desc: string; campaignHint?: string }) {
+/** Header actions on the people homes (employee, supplier): a hint chip and the Submit idea button */
+export function SubmitActions({ hint, onHint }: { hint?: string; onHint?: () => void }) {
   const nav = useNavigate()
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-hero text-white p-4 h-full min-h-[96px] flex items-center gap-4 shadow-[0_18px_40px_-24px_rgb(36_89_224/.65)]">
-      <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-white/10" />
-      <div className="pointer-events-none absolute right-16 -bottom-20 h-36 w-36 rounded-full bg-white/[.07]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[.18]" style={{ backgroundImage: 'radial-gradient(rgb(255 255 255 / .55) 1px, transparent 1px)', backgroundSize: '14px 14px', maskImage: 'linear-gradient(90deg, transparent 35%, #000)' }} />
-      <div className="relative min-w-0 flex-1">
-        <h2 className="text-[15px] leading-snug font-bold tracking-[-0.01em]">{title}</h2>
-        <p className="text-[11.5px] text-white/80 mt-1 leading-snug line-clamp-2" title={desc}>{desc}</p>
-        {campaignHint && <p className="text-[11px] text-white/90 mt-1.5 flex items-center gap-1 font-medium"><Icon name="Megaphone" size={12} />{campaignHint}</p>}
-      </div>
-      <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => nav('/submit')} className="relative shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white text-brand-700 font-bold text-[13px] shadow-[0_8px_20px_-10px_rgb(15_27_51/.6)] hover:bg-brand-50">
-        <Icon name="CirclePlus" size={16} />Submit idea
-      </motion.button>
-    </div>
+    <>
+      {hint && (
+        <button type="button" onClick={onHint} disabled={!onHint}
+          className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-line bg-white text-[12px] font-medium text-ink-2 enabled:hover:border-brand-200 enabled:hover:text-brand-700 disabled:cursor-default">
+          <Icon name="Megaphone" size={13} className="text-accent-500" />{hint}
+        </button>
+      )}
+      <motion.span className="inline-flex" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}><Button variant="primary" icon="CirclePlus" onClick={() => nav('/submit')}>Submit idea</Button></motion.span>
+    </>
   )
 }
 
@@ -123,7 +120,7 @@ export default function SubmitterHome() {
   const campaigns = useStore((s) => s.campaigns)
   const commodities = useStore((s) => s.commodities)
   const openIdea = useStore((s) => s.openIdea)
-  const drill = useDrill()
+  const d = useHomeData()
   const nav = useNavigate()
   const [fitRef, fitH] = useFitHeight()
   const mine = useMemo(() => ideas.filter((i) => i.submitterId === me.id).sort((a, b) => (b.submittedAt ?? b.createdAt).localeCompare(a.submittedAt ?? a.createdAt)), [ideas, me.id])
@@ -139,34 +136,17 @@ export default function SubmitterHome() {
   if (!ready) return <HomeSkeleton variant="people" />
   return (
     <div>
-      <HomeHeader />
+      <HomeHeader actions={<SubmitActions hint={live.length ? `${live.length} campaign${live.length > 1 ? 's' : ''} open for ideas` : undefined} />} />
       <div ref={fitRef} style={fitH ? { height: fitH } : undefined}>
         <RevealGrid className="h-full grid grid-cols-12 gap-3 xl:grid-rows-[auto_minmax(0,1fr)]">
-          {/* Row 1 — my ideas by bucket + submit banner */}
-          <Reveal className="col-span-12 xl:col-span-8">
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 h-full">
-              {stats.map((s) => {
-                const st = BUCKET_STYLE[s.b]
-                return (
-                  <button key={s.b} onClick={() => drill({ bucket: s.b }, '/my-ideas', false)} className="card relative overflow-hidden text-left px-4 py-3.5 hover:-translate-y-0.5 hover:border-[var(--color-gray-300)] transition-all">
-                    <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: st.color }} />
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: st.text }}><Icon name={BUCKET_ICON[s.b]} size={13} />{s.b}</div>
-                    <div className="text-[24px] leading-none font-bold tracking-tight text-ink mt-2.5"><Count value={s.count} /></div>
-                    <div className="text-[11.5px] text-muted mt-1.5 num">{s.value ? <Money value={s.value} /> : '—'}</div>
-                  </button>
-                )
-              })}
-            </div>
-          </Reveal>
-          <Reveal className="col-span-12 xl:col-span-4">
-            <SubmitCta title="Have a cost-reduction idea?" desc="Put a rupee value on it in minutes — pick a lever and part, and the savings panel values it from LBP and last-FY MRN." campaignHint={live.length ? `${live.length} campaign${live.length > 1 ? 's' : ''} open for ideas` : undefined} />
-          </Reveal>
+          {/* Row 1 — the headline KPI row (same on every home and workspace) */}
+          <Reveal className="col-span-12"><HeadlineKpis d={d} /></Reveal>
 
           {/* Row 2 — recent ideas (fills) + actions & campaigns */}
           <Reveal className="col-span-12 xl:col-span-8 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Lightbulb"
               title={<span className="flex items-center gap-1.5">My recent ideas<InfoTip title="My ideas">Every idea you submitted, by bucket. Value = Σ annualised impact; realised comes from actual MRN after the effective date. Click an idea to open it in the side panel.</InfoTip></span>}
-              subtitle={`${submitted.length} submitted · ${inrShort(submittedValue)} annualised · ${inrShort(realised)} realised`}
+              subtitle={`${submitted.length} submitted${stats[0].count ? ` · ${stats[0].count} draft${stats[0].count > 1 ? 's' : ''}` : ''} · ${inrShort(submittedValue)} annualised · ${inrShort(realised)} realised`}
               actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>View all</Button>}>
               {mine.length ? (
                 <>
