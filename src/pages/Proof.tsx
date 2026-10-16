@@ -6,11 +6,12 @@ import { useFilteredIdeas } from '../lib/hooks'
 import type { Idea } from '../lib/types'
 import { STAGE } from '../lib/masters'
 import { partAnnualised } from '../lib/calc'
-import { inLockWindow, planVsActual } from '../lib/workflow'
+import { inLockWindow } from '../lib/workflow'
 import { inrPrice, inrShort, num, sum } from '../lib/format'
 import { Badge, Card, DataTable, PageHeader, Segmented, cn, type Column } from '../components/ui'
 import { FilterBar } from '../components/FilterBar'
 import { PlanVsActualBlock, portfolioPlan } from './idea/PlanVsActual'
+import { ideaPlan } from '../lib/mrn'
 
 interface PartRow { key: string; idea: Idea; partCode: string; description: string; supplier: string; baseline: number; approved: number; mrnQty: number; realised: number; leakage: number; planToDate: number; variance: number; status: 'Verified' | 'Awaiting verification' | 'In execution' }
 
@@ -26,7 +27,7 @@ export default function Proof({ embedded }: { embedded?: boolean } = {}) {
 
   const rows = useMemo<PartRow[]>(() => locked.flatMap((i) => {
     const led = ledger.filter((l) => l.ideaId === i.id)
-    const plan = planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: led, lastActualMonth: last })
+    const plan = ideaPlan(i, led, last)
     const total = sum(i.parts.map((p) => partAnnualised(p))) || 1
     const status: PartRow['status'] = i.verification?.verifiedAt ? 'Verified' : i.stage === STAGE.verification ? 'Awaiting verification' : 'In execution'
     return i.parts.map((p) => {

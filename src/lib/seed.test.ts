@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { buildSeed } from './seed'
 import { STAGE, WORKFLOW_STAGES } from './masters'
-import { inLockWindow, ladderOf, planVsActual, savingsTrack } from './workflow'
+import { ladderOf, savingsTrack } from './workflow'
+import { ideaPlan } from './mrn'
 import { USERS_DEFAULT } from './masters'
 
 const seed = buildSeed()
@@ -25,20 +26,24 @@ describe('demo seed — six-stage walkthrough', () => {
     expect(show(3).lock).toBeUndefined()
     expect(show(4).lock?.signatureName).toBeTruthy()
     expect(show(4).lock?.timelineMonths).toBe(6)
-    expect(Math.round(show(4).lock!.targetSaving)).toBe(12_00_000)
+    // ₹ 24 L a year locked Dec–May: the season-adjusted monthly plan (peak months) adds up to the target
+    const plan4 = show(4).lock!.monthlyPlan!
+    expect(plan4).toHaveLength(6)
+    expect(show(4).lock!.targetSaving).toBeCloseTo(plan4.reduce((a, b) => a + b, 0), 0)
+    expect(show(4).lock!.targetSaving).toBeGreaterThan(12_00_000)
     expect(show(5).execution?.effectiveDate).toBeTruthy()
   })
   it('walkthrough MRN savings meet the locked plan for S5 and S6', () => {
     for (const n of [5, 6]) {
       const i = show(n)
-      const p = planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: seed.ledger.filter((l) => l.ideaId === i.id), lastActualMonth: seed.lastRealisationMonth })
+      const p = ideaPlan(i, seed.ledger, seed.lastRealisationMonth)
       expect(p.actualToDate).toBeGreaterThan(0)
       expect(p.onTrack).toBe(true)
     }
   })
   it('live executions tell different stories month by month — most on track, some behind, a few off track', () => {
     const tracks = seed.ideas.filter((i) => i.stage === STAGE.execution && i.lock)
-      .map((i) => savingsTrack(planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: seed.ledger.filter((l) => l.ideaId === i.id && inLockWindow(i.lock!, l.month)), lastActualMonth: seed.lastRealisationMonth })))
+      .map((i) => savingsTrack(ideaPlan(i, seed.ledger, seed.lastRealisationMonth)))
       .filter((t) => t.elapsed > 0)
     const n = (v: string) => tracks.filter((t) => t.verdict === v).length
     expect(tracks.length).toBeGreaterThan(15)
@@ -53,7 +58,7 @@ describe('demo seed — six-stage walkthrough', () => {
   })
   it('at verification most ideas met the locked target in MRN and some fell short', () => {
     const ver = seed.ideas.filter((i) => i.stage === STAGE.verification && i.lock)
-      .map((i) => savingsTrack(planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: seed.ledger.filter((l) => l.ideaId === i.id && inLockWindow(i.lock!, l.month)), lastActualMonth: seed.lastRealisationMonth })))
+      .map((i) => savingsTrack(ideaPlan(i, seed.ledger, seed.lastRealisationMonth)))
     expect(ver.filter((t) => t.verdict === 'Target met').length).toBeGreaterThanOrEqual(ver.length * 0.5)
     expect(ver.filter((t) => t.verdict === 'Shortfall').length).toBeGreaterThanOrEqual(4)
   })

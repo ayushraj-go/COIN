@@ -6,12 +6,14 @@
 import React, { useMemo, useState } from 'react'
 import type { Idea, LedgerEntry } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
-import { ON_PLAN, inLockWindow, planVsActual, savingsTrack } from '../../lib/workflow'
-import { addDays, addMonthsYm, daysBetween, fmtDate, inrShort, monthLong, num, pct, sum, todayIso } from '../../lib/format'
+import { ON_PLAN, inLockWindow, savingsTrack } from '../../lib/workflow'
+import { addDays, addMonthsYm, daysBetween, fmtDate, inrPrice, inrShort, monthLong, num, pct, sum, todayIso } from '../../lib/format'
 import { Badge, Button, Card, EmptyState, Icon, InfoTip, ProgressBar, Segmented, UserChip, cn } from '../../components/ui'
 import { VerificationModal } from '../idea/StageForms'
 import { ideaPerms } from '../idea/model'
 import { MonthBars, SavingsTrackChart, savingsTrackOf } from '../idea/SavingsTrack'
+import { FIN_COLOR, MrnFeedPanel, MrnReceiptsModal, finStatusOf, monthVariance, receiptCounts } from './MrnPanels'
+import { ideaPlan } from '../../lib/mrn'
 
 type Track = ReturnType<typeof track>
 export { ON_PLAN }
@@ -19,7 +21,8 @@ export { ON_PLAN }
 export function track(i: Idea, ledger: LedgerEntry[], last: string) {
   const lock = i.lock!
   const rows = ledger.filter((l) => l.ideaId === i.id && inLockWindow(lock, l.month))
-  const p = planVsActual({ target: lock.targetSaving, months: lock.timelineMonths, startDate: lock.startDate, ledger: rows, lastActualMonth: last })
+  // MRN actual against the monthly plan signed with the lock (season-adjusted)
+  const p = ideaPlan(i, rows, last)
   const achievement = p.planToDate ? (p.actualToDate / p.planToDate) * 100 : null
   const started = lock.startDate <= todayIso()
   // on plan = MRN actual at least 90 % of the monthly forecast to date
@@ -37,7 +40,7 @@ export function MrnFeedBanner({ className }: { className?: string }) {
       <span className="h-10 w-10 rounded-xl grid place-items-center bg-co-grad text-white shrink-0"><Icon name="DatabaseZap" size={18} /></span>
       <div className="min-w-0 flex-1">
         <div className="text-[13.5px] font-bold text-ink">MRN feed from the ERP · posted up to {monthLong(last)}</div>
-        <div className="text-[12px] text-muted">Each completed month is read automatically (next: {monthLong(addMonthsYm(last, 1))}, on {fmtDate(next)}). Saving = (baseline − approved price) × MRN quantity — only MRN transactions count; no MRN, no saving.</div>
+        <div className="text-[12px] text-muted">Each completed month is read automatically (next: {monthLong(addMonthsYm(last, 1))}, on {fmtDate(next)}). Saving = (baseline − price billed) × MRN quantity — only receipts from the approved supplier at the new price count; no MRN, no saving.</div>
       </div>
       <Badge color="var(--color-teal-700)" icon="RefreshCw">Automatic, monthly</Badge>
     </div>
@@ -56,7 +59,7 @@ export function MrnTracking({ ideas }: { ideas: Idea[] }) {
   const count = (s: Track['status']) => all.filter((t) => t.status === s).length
   return (
     <div className="grid gap-3">
-      <MrnFeedBanner />
+      <MrnFeedPanel />
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <Stat label="Executions tracked" value={String(all.length)} sub="with a signed timeline" />
         <Stat label="Forecast to date" value={inrShort(plan)} sub="locked target spread by month" />
@@ -108,34 +111,46 @@ export function MrnTracking({ ideas }: { ideas: Idea[] }) {
 
 /** Month-by-month: forecast (locked target ÷ months) vs MRN actual, with the MRN quantity behind it */
 function Months({ t, last }: { t: Track; last: string }) {
-  const qty = (m: string) => sum(t.rows.filter((r) => r.month === m).map((r) => r.mrnQty))
-  const lines = (m: string) => t.rows.filter((r) => r.month === m).length
+  const mrn = useStore((s) => s.mrn)
+  const ledger = useStore((s) => s.ledger)
+  const [open, setOpen] = useState<string | null>(null)
+  const avg = (m: string) => { const e = t.rows.filter((r) => r.month === m && r.mrnQty > 0); const q = sum(e.map((r) => r.mrnQty)); return q ? sum(e.map((r) => r.mrnPrice * r.mrnQty)) / q : null }
+  const approved = t.i.parts.length === 1 ? t.i.parts[0].approvedPrice ?? t.i.parts[0].newPrice : null
   return (
     <div className="p-3 grid gap-3">
       <div className="card p-3 sticky left-0 max-w-[min(100%,1100px)]"><SavingsTrackChart t={t.s} view="monthly" height={200} /></div>
       <div className="card overflow-x-auto">
         <table className="tbl">
-          <thead><tr><th>Month</th><th style={{ textAlign: 'right' }}>Forecast</th><th style={{ textAlign: 'right' }}>MRN quantity</th><th style={{ textAlign: 'right' }}>MRN actual saving</th><th style={{ textAlign: 'right' }}>Variance</th><th style={{ textAlign: 'right' }}>Cumulative forecast</th><th style={{ textAlign: 'right' }}>Cumulative actual</th><th>MRN</th></tr></thead>
+          <thead><tr>
+            <th>Month</th><th style={{ textAlign: 'right' }}>Forecast</th><th style={{ textAlign: 'right' }}>Planned qty</th><th style={{ textAlign: 'right' }}>MRN qty</th><th style={{ textAlign: 'right' }}>Price billed{approved != null ? ` (approved ${inrPrice(approved)})` : ''}</th>
+            <th style={{ textAlign: 'right' }}>MRN actual</th><th style={{ textAlign: 'right' }}>Variance</th><th>Why</th><th>Receipts</th><th>Finance</th>
+          </tr></thead>
           <tbody>
             {t.p.rows.map((r) => {
               const posted = r.month <= last
-              const v = r.actual != null ? r.actual - r.plan : null
+              const v = posted ? monthVariance(t.i, r.month, ledger, last) : null
+              const c = receiptCounts(t.i, r.month, mrn)
+              const fs = finStatusOf(t.rows.filter((x) => x.month === r.month).map((x) => x.financeStatus))
+              const price = avg(r.month)
               return (
-                <tr key={r.month}>
-                  <td className="font-semibold">{monthLong(r.month)}</td>
+                <tr key={r.month} className={cn(posted && 'clickable')} onClick={() => posted && setOpen(r.month)} title={posted ? 'Open the MRN receipts of this month' : undefined}>
+                  <td className="font-semibold whitespace-nowrap">{monthLong(r.month)}</td>
                   <td className="num" style={{ textAlign: 'right' }}>{inrShort(r.plan)}</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{posted ? num(qty(r.month)) : '—'}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{v ? num(v.plannedQty) : '—'}</td>
+                  <td className={cn('num', v && v.qty < v.plannedQty * 0.9 && 'text-red-600 font-semibold')} style={{ textAlign: 'right' }}>{v ? num(v.qty) : '—'}</td>
+                  <td className={cn('num', price != null && approved != null && price > approved + 1e-9 && 'text-red-600 font-semibold')} style={{ textAlign: 'right' }}>{price != null ? inrPrice(price) : '—'}</td>
                   <td className="num font-semibold" style={{ textAlign: 'right' }}>{r.actual != null ? inrShort(r.actual) : '—'}</td>
-                  <td className={cn('num', v != null && (v < 0 ? 'text-red-600' : 'text-emerald-700'))} style={{ textAlign: 'right' }}>{v != null ? `${v >= 0 ? '+' : ''}${inrShort(v)}` : '—'}</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{inrShort(r.planCum)}</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{r.actualCum != null ? inrShort(r.actualCum) : '—'}</td>
-                  <td>{posted ? (lines(r.month) ? <Badge color="var(--color-emerald-600)" icon="Check">{lines(r.month)} MRN line{lines(r.month) === 1 ? '' : 's'}</Badge> : <Badge color="var(--color-rose-600)">No MRN — nothing claimed</Badge>) : <Badge color="var(--color-slate-500)">{r.month === addMonthsYm(last, 1) ? 'Read next month' : 'Future'}</Badge>}</td>
+                  <td className={cn('num font-semibold', v && (v.variance < 0 ? 'text-red-600' : 'text-emerald-700'))} style={{ textAlign: 'right' }}>{v ? `${v.variance >= 0 ? '+' : ''}${inrShort(v.variance)}` : '—'}</td>
+                  <td className="text-[11.5px] whitespace-nowrap">{v && Math.abs(v.variance) > 1 ? <>volume / timing <b className={cn('num', v.volume < 0 ? 'text-red-600' : 'text-emerald-700')}>{v.volume >= 0 ? '+' : ''}{inrShort(v.volume)}</b>{v.price < 0 && <> · price <b className="num text-red-600">{inrShort(v.price)}</b></>}</> : <span className="text-muted">—</span>}</td>
+                  <td>{posted ? (c.counted ? <Badge color="var(--color-emerald-600)" icon="ReceiptText">{c.counted} counted{c.notCounted ? ` · ${c.notCounted} not` : ''}</Badge> : <Badge color="var(--color-rose-600)">{c.notCounted ? `${c.notCounted} not counted` : 'No MRN'} — nothing claimed</Badge>) : <Badge color="var(--color-slate-500)">{r.month === addMonthsYm(last, 1) ? 'Read next month' : 'Future'}</Badge>}</td>
+                  <td>{fs ? <Badge color={FIN_COLOR[fs]}>{fs}</Badge> : <span className="text-muted text-[12px]">—</span>}</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
+      <MrnReceiptsModal idea={t.i} month={open} open={!!open} onClose={() => setOpen(null)} />
     </div>
   )
 }
@@ -188,7 +203,8 @@ export function VerificationList({ ideas }: { ideas: Idea[] }) {
                     <td style={{ minWidth: 120 }}><div className="text-[12px] font-semibold num">{pct(ach, 0)}</div><ProgressBar value={Math.min(100, ach)} color={ok ? 'var(--color-emerald-600)' : 'var(--color-orange-400)'} height={5} /></td>
                     <td className="num text-[12.5px] whitespace-nowrap">{fmtDate(i.verification?.handedAt?.slice(0, 10))}<div className="text-[11px] text-muted truncate max-w-[160px]">{i.verification?.handedBy ?? ''}</div></td>
                     <td>{view === 'awaiting'
-                      ? (ideaPerms(me, i).verify ? <Button size="sm" variant="primary" icon="ShieldCheck" onClick={() => setModalId(i.id)}>Verify</Button> : <Badge color="var(--color-orange-400)" icon="ShieldQuestion">With Finance</Badge>)
+                      ? (i.verification?.finalMrnMonth && i.verification.finalMrnMonth > last ? <div className="text-[11.5px] leading-tight"><Badge color="var(--color-slate-500)" icon="CalendarClock">Final MRN awaited</Badge><div className="text-muted mt-0.5">{monthLong(i.verification.finalMrnMonth)} · read {fmtDate(addDays(`${addMonthsYm(i.verification.finalMrnMonth, 1)}-01`, 4))}</div></div>
+                        : ideaPerms(me, i).verify ? <Button size="sm" variant="primary" icon="ShieldCheck" onClick={() => setModalId(i.id)}>Verify</Button> : <Badge color="var(--color-orange-400)" icon="ShieldQuestion">With Finance</Badge>)
                       : <div className="text-[12px]"><Badge color={i.verification?.targetAchieved ? 'var(--color-emerald-600)' : 'var(--color-orange-400)'} icon="ShieldCheck">{i.verification?.targetAchieved ? 'Target achieved' : 'With shortfall'}</Badge><div className="text-[11px] text-muted mt-0.5">{users.find((u) => u.name === i.verification?.verifiedBy)?.name ?? i.verification?.verifiedBy} · {fmtDate(i.verification?.verifiedAt?.slice(0, 10))}</div></div>}</td>
                   </tr>
                 )

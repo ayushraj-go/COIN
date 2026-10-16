@@ -5,8 +5,10 @@ import { useMemo, useState } from 'react'
 import { Area, Bar, CartesianGrid, Cell, ComposedChart, LabelList, Line, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
 import type { Idea, LedgerEntry } from '../../lib/types'
 import { useStore } from '../../store/useStore'
-import { inLockWindow, planVsActual, savingsTrack, type MonthVerdict, type SavingsTrack, type TrackVerdict } from '../../lib/workflow'
+import { savingsTrack, type MonthVerdict, type SavingsTrack, type TrackVerdict } from '../../lib/workflow'
 import { addDays, addMonthsYm, fmtDate, inrShort, monthLabel, monthLong } from '../../lib/format'
+import { ideaPlan } from '../../lib/mrn'
+import { MrnReceiptsModal } from '../exec/MrnPanels'
 import { Icon, Segmented, cn } from '../../components/ui'
 import { AXIS_TICK, GRID_STROKE } from '../home/shared'
 
@@ -39,13 +41,15 @@ function niceAxis(top: number) {
   return { max: step * n, ticks: Array.from({ length: n + 1 }, (_, k) => k * step) }
 }
 const axisMoney = (v: number) => inrShort(v, 1).replace(/\.0 (L|Cr)$/, ' $1')
+/** the monthly plan varies by month (AC season) */
+const seasonal = (t: SavingsTrack) => t.rows.some((r) => Math.abs(r.plan - t.planPerMonth) > t.planPerMonth * 0.01)
 const shortMonth = (ym: string) => monthLabel(ym).replace(/ 20(\d\d)$/, " '$1")
 
 /** Savings track of one idea from the store's MRN ledger (null until a lock is signed) */
 export function savingsTrackOf(i: Idea, ledger: LedgerEntry[], lastActualMonth: string): SavingsTrack | null {
   const lock = i.lock
   if (!lock) return null
-  return savingsTrack(planVsActual({ target: lock.targetSaving, months: lock.timelineMonths, startDate: lock.startDate, ledger: ledger.filter((l) => l.ideaId === i.id && inLockWindow(lock, l.month)), lastActualMonth }))
+  return savingsTrack(ideaPlan(i, ledger, lastActualMonth))
 }
 export function useSavingsTrack(idea: Idea) {
   const ledger = useStore((s) => s.ledger)
@@ -59,7 +63,7 @@ export function verdictSentence(t: SavingsTrack, lock: { startDate: string }) {
   const due = lastPosted ? `due by the end of ${monthLong(lastPosted)}` : ''
   const need = t.remaining > 0 ? ` The remaining ${t.remaining} month${t.remaining === 1 ? '' : 's'} need ${inrShort(t.neededPerMonth)} a month (${t.neededVsPlan.toFixed(1)}× the plan) to still reach ${inrShort(t.target)}${t.neededVsPlan > 2 ? ' — out of reach at the current run-rate' : ''}.` : ''
   switch (t.verdict) {
-    case 'Not started': return `Savings start on ${fmtDate(lock.startDate)} — ${inrShort(t.planPerMonth)} a month is expected from MRN; the first month is read from the ERP in early ${monthLong(addMonthsYm(t.rows[0].month, 1))}.`
+    case 'Not started': return `Savings start on ${fmtDate(lock.startDate)} — ${inrShort(t.rows[0].plan)} is expected from MRN in the first month (about ${inrShort(t.planPerMonth)} a month); the first month is read from the ERP in early ${monthLong(addMonthsYm(t.rows[0].month, 1))}.`
     case 'No MRN': return `No MRN at the new price in ${t.elapsed} posted month${t.elapsed === 1 ? '' : 's'}, so nothing is counted — ${inrShort(t.planToDate)} was ${due}.${need}`
     case 'On track': return `${inrShort(t.actualToDate)} from MRN against ${inrShort(t.planToDate)} ${due} (${pctOf(t.achievement)}) — ${t.monthsMet} of ${t.elapsed} months met the monthly target. At this run-rate: ${inrShort(t.projected)} of ${inrShort(t.target)}.`
     case 'Behind': return `${inrShort(t.actualToDate)} from MRN against ${inrShort(t.planToDate)} ${due} (${pctOf(t.achievement)}) — below plan.${need}`
@@ -102,6 +106,10 @@ function TrackTip({ active, payload }: any) {
       <div className="font-semibold text-ink mb-1">{monthLong(d.month)}</div>
       <Row label="Monthly target" value={inrShort(d.plan)} />
       <Row label="MRN actual" value={d.actual == null ? 'not posted yet' : inrShort(d.actual)} color={d.actual == null ? undefined : MONTH_COLOR[d.verdict as MonthVerdict]} />
+      {d.actual != null && Math.abs(d.actual - d.plan) > 1 && <>
+        <Row label="· volume / timing" value={`${d.actual - d.plan + (d.leak ?? 0) >= 0 ? '+' : ''}${inrShort(d.actual - d.plan + (d.leak ?? 0))}`} />
+        {(d.leak ?? 0) > 0 && <Row label="· price billed above approved" value={inrShort(-d.leak)} color="var(--color-red-600)" />}
+      </>}
       {d.needed != null && <Row label="Needed from now" value={inrShort(d.needed)} color={NEEDED_COLOR} />}
       <div className="h-px bg-line my-1" />
       <Row label="Target to date" value={inrShort(d.planCum)} />
@@ -121,7 +129,7 @@ const PctLabel = (rows: SavingsTrack['rows']) => (props: any) => {
   return <text x={props.x + props.width / 2} y={props.y - 5} textAnchor="middle" fontSize={10.5} fontWeight={700} fill={MONTH_COLOR[r.verdict]}>{r.verdict === 'no-mrn' ? 'No MRN' : `${Math.round((r.ratio ?? 0) * 100)}%`}</text>
 }
 
-export function SavingsTrackChart({ t, view, height = 220 }: { t: SavingsTrack; view: 'monthly' | 'cumulative'; height?: number }) {
+export function SavingsTrackChart({ t, view, height = 220, leak, onMonth }: { t: SavingsTrack; view: 'monthly' | 'cumulative'; height?: number; leak?: Record<string, number>; onMonth?: (month: string) => void }) {
   const lastKnown = [...t.rows].reverse().findIndex((r) => r.actualCum != null)
   const lk = lastKnown < 0 ? -1 : t.rows.length - 1 - lastKnown
   const n = t.rows.length
@@ -129,7 +137,9 @@ export function SavingsTrackChart({ t, view, height = 220 }: { t: SavingsTrack; 
   const data = t.rows.map((r, k) => ({
     ...r, label: shortMonth(r.month),
     ghost: r.actual == null ? r.plan : null,
-    needed: needLine && r.actual == null ? t.neededPerMonth : null,
+    // what each remaining month needs: its share (by the season) of what is still to come
+    needed: needLine && r.actual == null ? r.needed ?? t.neededPerMonth : null,
+    leak: leak?.[r.month] ?? 0,
     // straight line from the last posted cumulative to the run-rate projection at the end of the timeline
     projection: lk >= 0 && k >= lk && n - 1 > lk ? t.rows[lk].actualCum! + ((t.projected - t.rows[lk].actualCum!) * (k - lk)) / (n - 1 - lk) : null,
   }))
@@ -150,7 +160,7 @@ export function SavingsTrackChart({ t, view, height = 220 }: { t: SavingsTrack; 
               {data.map((d) => <Cell key={d.month} fill={MONTH_COLOR[d.verdict]} />)}
               <LabelList content={PctLabel(t.rows)} />
             </Bar>
-            <ReferenceLine y={t.planPerMonth} stroke={TARGET_COLOR} strokeDasharray="6 4" strokeWidth={1.5} ifOverflow="extendDomain" />
+            <Line dataKey="plan" name="Monthly target" stroke={TARGET_COLOR} strokeDasharray="6 4" strokeWidth={1.75} dot={{ r: 2.5, fill: TARGET_COLOR }} isAnimationActive={false} />
             {needLine && <Line dataKey="needed" name="Needed from now" stroke={NEEDED_COLOR} strokeDasharray="4 3" strokeWidth={2} dot={{ r: 3, fill: NEEDED_COLOR }} isAnimationActive={false} connectNulls />}
           </ComposedChart>
         ) : (
@@ -179,7 +189,7 @@ function Legend({ view, t }: { view: 'monthly' | 'cumulative'; t: SavingsTrack }
       {view === 'monthly' ? <>
         {item(MONTH_COLOR.met, 'Met')}{item(MONTH_COLOR.near, 'Within 10 %')}{item(MONTH_COLOR.short, 'Short')}{item(MONTH_COLOR['no-mrn'], 'No MRN')}
         {t.remaining > 0 && <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-[3px] border border-dashed border-slate-400 bg-slate-100" />Not posted yet</span>}
-        {item(TARGET_COLOR, `Monthly target ${inrShort(t.planPerMonth)}`, true)}{needsMore(t) && item(NEEDED_COLOR, `Needed from now ${inrShort(t.neededPerMonth)}`, true)}
+        {item(TARGET_COLOR, `Monthly target (${seasonal(t) ? 'by season' : inrShort(t.planPerMonth)})`, true)}{needsMore(t) && item(NEEDED_COLOR, `Needed from now (avg ${inrShort(t.neededPerMonth)})`, true)}
       </> : <>
         {item(TARGET_COLOR, 'Target path', true)}{item(t.verdict === 'On track' || t.verdict === 'Target met' ? MONTH_COLOR.met : MONTH_COLOR.short, 'MRN actual (cumulative)')}
         {!t.closed && t.elapsed > 0 && item('var(--color-slate-400)', 'At this run-rate', true)}
@@ -201,7 +211,10 @@ function Tile({ label, value, sub, tone }: { label: string; value: string; sub?:
 /** Verdict, tiles, the month-by-month (or cumulative) graph and the month strip for one locked execution */
 export function SavingsTrackPanel({ idea, t, compact, tiles = true }: { idea: Idea; t: SavingsTrack; compact?: boolean; tiles?: boolean }) {
   const [view, setView] = useState<'monthly' | 'cumulative'>('monthly')
+  const [month, setMonth] = useState<string | null>(null)
   const last = useStore((s) => s.settings.lastRealisationMonth)
+  const ledger = useStore((s) => s.ledger)
+  const leak = useMemo(() => { const m: Record<string, number> = {}; ledger.filter((l) => l.ideaId === idea.id).forEach((l) => { m[l.month] = (m[l.month] ?? 0) + l.leakage }); return m }, [ledger, idea.id])
   const lock = idea.lock!
   const st = VERDICT_STYLE[t.verdict]
   const tone = (v: TrackVerdict) => (v === 'On track' || v === 'Target met' ? 'good' : v === 'Behind' ? 'warn' : v === 'Not started' ? undefined : 'bad')
@@ -216,7 +229,7 @@ export function SavingsTrackPanel({ idea, t, compact, tiles = true }: { idea: Id
         </div>
       </div>
       {tiles && <div className={cn('grid gap-2', compact ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6')}>
-        <Tile label="Locked target" value={inrShort(t.target)} sub={`${t.months} month${t.months === 1 ? '' : 's'} · ${inrShort(t.planPerMonth)} a month`} />
+        <Tile label="Locked target" value={inrShort(t.target)} sub={`${t.months} month${t.months === 1 ? '' : 's'} · ${seasonal(t) ? `${inrShort(Math.min(...t.rows.map((r) => r.plan)))}–${inrShort(Math.max(...t.rows.map((r) => r.plan)))} a month` : `${inrShort(t.planPerMonth)} a month`}`} />
         {!compact && <Tile label={t.closed ? 'Target for the period' : 'Target to date'} value={inrShort(t.planToDate)} sub={t.elapsed ? `${t.elapsed} of ${t.months} months posted` : 'no month posted yet'} />}
         <Tile label="MRN actual" value={inrShort(t.actualToDate)} sub="from MRN transactions only" tone={t.elapsed ? tone(t.verdict) : undefined} />
         <Tile label={t.closed ? 'Achieved' : 'Achievement'} value={t.elapsed ? pctOf(t.achievement) : '—'} sub={t.closed ? 'MRN ÷ locked target' : 'MRN ÷ target to date'} tone={t.elapsed ? tone(t.verdict) : undefined} />
@@ -230,21 +243,22 @@ export function SavingsTrackPanel({ idea, t, compact, tiles = true }: { idea: Id
           <Legend view={view} t={t} />
           <Segmented size="sm" value={view} onChange={(k) => setView(k as typeof view)} options={[{ key: 'monthly', label: 'Month by month', icon: 'ChartColumnBig' }, { key: 'cumulative', label: 'Cumulative to target', icon: 'ChartLine' }]} />
         </div>
-        <SavingsTrackChart t={t} view={view} height={compact ? 190 : 240} />
+        <SavingsTrackChart t={t} view={view} height={compact ? 190 : 240} leak={leak} />
         <div className="mt-2 flex flex-wrap gap-1.5">
           {t.rows.map((r) => (
-            <span key={r.month} title={MONTH_LABEL[r.verdict]} className={cn('inline-flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-semibold border', r.verdict === 'pending' ? 'border-dashed border-slate-300 text-muted bg-white' : 'text-white border-transparent')}
+            <button type="button" key={r.month} disabled={r.verdict === 'pending'} onClick={() => setMonth(r.month)} title={r.verdict === 'pending' ? MONTH_LABEL[r.verdict] : `${MONTH_LABEL[r.verdict]} — open the MRN receipts`} className={cn('inline-flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-semibold border', r.verdict === 'pending' ? 'border-dashed border-slate-300 text-muted bg-white' : 'text-white border-transparent hover:brightness-110 cursor-pointer')}
               style={r.verdict === 'pending' ? undefined : { background: MONTH_COLOR[r.verdict] }}>
               <Icon name={r.verdict === 'met' ? 'Check' : r.verdict === 'near' ? 'Minus' : r.verdict === 'pending' ? 'Clock3' : 'X'} size={11} strokeWidth={3} />
               {shortMonth(r.month)}{r.ratio != null && <span className="num">· {r.verdict === 'no-mrn' ? 'no MRN' : `${Math.round(r.ratio * 100)}%`}</span>}
-            </span>
+            </button>
           ))}
         </div>
       </div>
       <div className="text-[11.5px] text-muted flex items-start gap-1.5">
         <Icon name="DatabaseZap" size={13} className="shrink-0 mt-px text-teal-700" />
-        <span>Only MRN transactions count: saving = (baseline − approved price) × MRN quantity. A month without MRN at the new price counts as zero. MRN is posted up to {monthLong(last)}; {monthLong(addMonthsYm(last, 1))} is read on {fmtDate(nextRead)}.{!t.closed && ` On ${fmtDate(lock.endDate)} COIN moves the idea to verification with this track.`}</span>
+        <span>Only MRN receipts count — from the approved supplier, on or after the savings start, below the baseline: saving = (baseline − price billed) × quantity received. A month without MRN at the new price counts as zero. Click a month for its receipts. MRN is posted up to {monthLong(last)}; {monthLong(addMonthsYm(last, 1))} is read on {fmtDate(nextRead)}.{!t.closed && ` On ${fmtDate(lock.endDate)} COIN moves the idea to verification with this track.`}</span>
       </div>
+      <MrnReceiptsModal idea={idea} month={month} open={!!month} onClose={() => setMonth(null)} />
     </div>
   )
 }
@@ -260,7 +274,7 @@ export function SavingsTrackCard({ idea }: { idea: Idea }) {
           <span className="h-9 w-9 rounded-xl grid place-items-center bg-co-grad text-white shrink-0"><Icon name="ChartColumnBig" size={17} /></span>
           <div className="min-w-0">
             <h3 className="text-[14.5px] font-bold text-ink">Monthly savings vs target (MRN)</h3>
-            <div className="text-[12px] text-muted">{inrShort(t.target)} locked over {t.months} month{t.months === 1 ? '' : 's'} = {inrShort(t.planPerMonth)} a month · {fmtDate(idea.lock.startDate)} → {fmtDate(idea.lock.endDate)} · signed at department approval</div>
+            <div className="text-[12px] text-muted">{inrShort(t.target)} locked over {t.months} month{t.months === 1 ? '' : 's'}{seasonal(t) ? ' — each month’s target follows the AC season (last-FY MRN pattern)' : ` = ${inrShort(t.planPerMonth)} a month`} · {fmtDate(idea.lock.startDate)} → {fmtDate(idea.lock.endDate)} · signed at department approval</div>
           </div>
         </div>
       </div>

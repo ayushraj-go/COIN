@@ -189,23 +189,26 @@ export function inLockWindow(lock: { startDate: string; timelineMonths: number }
 
 export interface PlanRow { month: string; plan: number; planCum: number; actual: number | null; actualCum: number | null }
 /** Plan vs actual for a locked target: plan = target spread evenly, actual = MRN savings by month, projection at the current run-rate */
-export function planVsActual(a: { target: number; months: number; startDate: string; ledger: { month: string; realised: number }[]; lastActualMonth: string }) {
+export function planVsActual(a: { target: number; months: number; startDate: string; ledger: { month: string; realised: number }[]; lastActualMonth: string; plan?: number[] }) {
   const n = Math.max(1, Math.round(a.months || 1))
-  const perMonth = (a.target || 0) / n
+  // the monthly plan signed with the lock (season-adjusted), else the target spread evenly
+  const planOf = (k: number) => (a.plan && a.plan.length === n ? a.plan[k] : (a.target || 0) / n)
   const start = ymOf(a.startDate)
   let planCum = 0, actualCum = 0
   const rows: PlanRow[] = Array.from({ length: n }, (_, k) => {
     const month = addMonthsYm(start, k)
-    planCum += perMonth
+    const plan = planOf(k)
+    planCum += plan
     const known = month <= a.lastActualMonth
     const actual = known ? a.ledger.filter((l) => l.month === month).reduce((s, l) => s + l.realised, 0) : null
     if (actual != null) actualCum += actual
-    return { month, plan: perMonth, planCum, actual, actualCum: known ? actualCum : null }
+    return { month, plan, planCum, actual, actualCum: known ? actualCum : null }
   })
   const elapsed = rows.filter((r) => r.actual != null).length
-  const planToDate = perMonth * elapsed
+  const planToDate = rows.filter((r) => r.actual != null).reduce((s, r) => s + r.plan, 0)
   const runRate = elapsed ? actualCum / elapsed : 0
-  const projected = elapsed ? runRate * n : 0
+  // at this pace: the target scaled by achievement to date (the same as run-rate × months when the plan is flat)
+  const projected = elapsed ? (planToDate ? (a.target || 0) * (actualCum / planToDate) : runRate * n) : 0
   return { rows, actualToDate: actualCum, planToDate, runRate, projected, onTrack: !a.target || actualCum >= planToDate * 0.95, elapsed, months: n, target: a.target || 0 }
 }
 
@@ -229,12 +232,15 @@ export type TrackVerdict = 'Not started' | 'No MRN' | 'On track' | 'Behind' | 'O
 /** Month-by-month savings track for a locked target: each posted month graded, the overall verdict to date, and what the
  *  remaining months need to still reach the target */
 export function savingsTrack(p: ReturnType<typeof planVsActual>) {
-  const rows = p.rows.map((r) => ({ ...r, verdict: monthVerdict(r.plan, r.actual), ratio: r.actual != null && r.plan ? r.actual / r.plan : null }))
+  const rows0 = p.rows.map((r) => ({ ...r, verdict: monthVerdict(r.plan, r.actual), ratio: r.actual != null && r.plan ? r.actual / r.plan : null }))
   const remaining = p.months - p.elapsed
   const closed = p.elapsed > 0 && remaining === 0
   const planPerMonth = p.target / p.months
   const toGo = Math.max(0, p.target - p.actualToDate)
   const neededPerMonth = remaining > 0 ? toGo / remaining : 0
+  // what the remaining months were planned to bring; each needs its share of what is left
+  const remainingPlan = p.rows.filter((r) => r.actual == null).reduce((s, r) => s + r.plan, 0)
+  const rows = rows0.map((r) => ({ ...r, needed: r.actual == null && remaining > 0 && remainingPlan ? (toGo * r.plan) / remainingPlan : null }))
   const achievement = closed ? (p.target ? p.actualToDate / p.target : 1) : p.planToDate ? p.actualToDate / p.planToDate : null
   const verdict: TrackVerdict = !p.elapsed ? 'Not started'
     : closed ? (achievement! >= TARGET_MET ? 'Target met' : 'Shortfall')
@@ -242,7 +248,7 @@ export function savingsTrack(p: ReturnType<typeof planVsActual>) {
         : achievement! >= ON_PLAN ? 'On track' : achievement! >= OFF_TRACK ? 'Behind' : 'Off track'
   return {
     ...p, rows, remaining, closed, planPerMonth, toGo, neededPerMonth, achievement, verdict,
-    neededVsPlan: planPerMonth ? neededPerMonth / planPerMonth : 0,
+    neededVsPlan: remainingPlan ? toGo / remainingPlan : 0,
     monthsMet: rows.filter((r) => r.verdict === 'met').length,
     monthsNear: rows.filter((r) => r.verdict === 'near').length,
     monthsShort: rows.filter((r) => r.verdict === 'short' || r.verdict === 'no-mrn').length,

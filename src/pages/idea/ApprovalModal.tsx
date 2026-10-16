@@ -9,7 +9,8 @@ import { hasRole, useMe, useStore } from '../../store/useStore'
 import { MILESTONE_TEMPLATES, RISK_FACTORS, STAGE } from '../../lib/masters'
 import { cbaFigures, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
 import { addMonthsIso, lockTarget, milestoneSchedule, monthsBetween, overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
-import { addDays, fmtDate, fmtDateTime, inrPrice, inrShort, quarterStart, sum, todayIso } from '../../lib/format'
+import { monthlyForecast, seasonProfile, windowTarget } from '../../lib/mrn'
+import { addDays, fmtDate, fmtDateTime, inrPrice, inrShort, monthLabel, quarterStart, sum, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, Modal, Money, cn } from '../../components/ui'
 import { SignaturePad } from './StageForms'
 import { Block, Kpi, Kv, Mark } from './formKit'
@@ -65,10 +66,13 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // a lock signed for a different saving (baseline changed since) must be signed again
-  const stale = !!idea.lock && Math.abs(idea.lock.targetSaving - lockTarget(annual, idea.lock.timelineMonths)) > 1
+  const stale = !!idea.lock && ((idea.lock.forecastAtLock != null && Math.abs(idea.lock.forecastAtLock - annual) > 1)
+    || (Math.abs(idea.lock.targetSaving - windowTarget(annual, idea.lock.startDate, idea.lock.timelineMonths, seasonProfile(idea))) > 1 && Math.abs(idea.lock.targetSaving - lockTarget(annual, idea.lock.timelineMonths)) > 1))
   const locked = stale ? undefined : idea.lock
   const months = monthsBetween(start || todayIso(), end || todayIso())
-  const target = lockTarget(annual, months)
+  // the locked target is the window's monthly forecasts added up — season-adjusted from the last-FY MRN pattern
+  const mplan = monthlyForecast(annual, start || todayIso(), Math.max(1, Math.round(months)), seasonProfile(idea))
+  const target = sum(mplan.map((m) => m.amount))
   const budgetTotal = sum(rows.map((r) => Math.max(0, Number(budgets[r.key]) || 0) * 1e5))
   const pending = idea.approvals.filter((a) => !a.decision)
   const head = hasRole(me, 'head')
@@ -106,7 +110,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   const approveNow = () => {
     const st = useStore.getState()
     if (!locked) st.signLock(idea.id, {
-      commercialOk, supplierAligned, budget: budgetTotal, timelineMonths: months, startDate: start, endDate: end, targetSaving: target,
+      commercialOk, supplierAligned, budget: budgetTotal, timelineMonths: months, startDate: start, endDate: end, targetSaving: target, monthlyPlan: mplan.map((m) => m.amount), forecastAtLock: annual,
       signatureName: sigName.trim(), signatureData: sig ?? undefined, commercialNote: commercialNote.trim() || undefined,
       parts: rows.map((x) => ({ partCode: x.key, budget: Math.max(0, Number(budgets[x.key]) || 0) * 1e5, note: notes[x.key]?.trim() || undefined })),
       milestones: plan,
@@ -355,7 +359,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                     </div>
                   </Block>
 
-                  <Block title="Timeline" icon="CalendarRange" hint="Pick the savings start (expected first MRN at the new price) and end on the calendar; target = forecast × months ÷ 12">
+                  <Block title="Timeline" icon="CalendarRange" hint={idea.buyingType === 'Indirect' ? 'Pick the savings start (expected first MRN at the new price) and end on the calendar; target = forecast ÷ 12 for each month' : 'Pick the savings start (expected first MRN at the new price) and end on the calendar; each month’s target follows the AC season (last-FY MRN pattern)'}>
                     <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] gap-3 items-end">
                       <Field label="Savings start (first MRN)" required><input type="date" className="input" min={todayIso()} value={start} onChange={(e) => { const s = e.target.value; setStart(s); if (s && end && end <= s) { const e2 = addMonthsIso(s, 6); setEnd(e2); replan(s, e2) } else if (s && end) replan(s, end) }} /></Field>
                       <Field label="Savings end" required><input type="date" className="input" min={start || todayIso()} value={end} onChange={(e) => { setEnd(e.target.value); if (start && e.target.value) replan(start, e.target.value) }} /></Field>
@@ -367,8 +371,16 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                     {!timelineOk && <div className="mt-2 text-[12px] text-red-600 flex items-center gap-1.5"><Icon name="TriangleAlert" size={13} />The savings start must be today or later and the end at least a month after it.</div>}
                     <div className="mt-3 rounded-xl bg-brand-50 border border-brand-100 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3">
                       <div><div className="text-[11px] font-medium text-brand-700">Locked target saving</div><div className="text-[22px] font-extrabold text-ink leading-tight"><Money value={target} /></div></div>
-                      <div className="text-right text-[12.5px] text-muted">{fmtDate(start)} → {fmtDate(end)} · <b className="text-ink-2 num">{months} months</b><br /><b className="text-ink-2 num">{inrShort(months ? target / months : 0)}</b> a month</div>
+                      <div className="text-right text-[12.5px] text-muted">{fmtDate(start)} → {fmtDate(end)} · <b className="text-ink-2 num">{months} months</b><br />average <b className="text-ink-2 num">{inrShort(months ? target / months : 0)}</b> a month</div>
                     </div>
+                    {months >= 1 && (
+                      <div className="mt-2" data-testid="monthly-plan">
+                        <div className="text-[11.5px] font-semibold text-muted mb-1">Monthly forecast signed with the lock {idea.buyingType === 'Indirect' ? '(flat — indirect buying)' : '(AC season — heavier Jan–May, lighter Jul–Sep)'}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {mplan.map((m) => <span key={m.month} className="inline-flex flex-col items-center rounded-lg border border-line bg-white px-2 py-1 min-w-[64px]"><span className="text-[10.5px] font-semibold text-muted">{monthLabel(m.month)}</span><span className="text-[12px] font-bold num text-ink">{inrShort(m.amount)}</span></span>)}
+                        </div>
+                      </div>
+                    )}
                   </Block>
 
                   <Block title="Execution plan" icon="ListTodo" hint="Milestones the execution owner works to — set each date on the calendar" right={<Button size="xs" variant="ghost" icon="RotateCcw" onClick={() => replan(start, end)}>Spread evenly</Button>}>

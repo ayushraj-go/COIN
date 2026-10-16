@@ -78,7 +78,12 @@ describe('an HR idea runs the whole department ladder', () => {
     expect(can('u-hr-head', id).verify).toBe(false)
     st().loginAs('u-fin')
     expect(can('u-fin', id).verify).toBe(true)
-    st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: idea(id).lock!.targetSaving })
+    // the locked window runs to April 2027 — Finance verifies once April's MRN is read
+    expect(idea(id).verification?.finalMrnMonth).toBe('2027-04')
+    expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: idea(id).lock!.targetSaving })).toBe(false)
+    st().syncMrn('2027-05-06')
+    expect(idea(id).verification?.actualAtClose).toBeTypeOf('number')
+    expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: idea(id).lock!.targetSaving })).toBe(true)
     expect(idea(id).verification?.verifiedBy).toBe('Meera Iyer')
     expect(inQueue('u-fin', id)).toBe(false)
   })

@@ -6,6 +6,7 @@ import type { Idea, LedgerEntry } from '../../lib/types'
 import { useStore } from '../../store/useStore'
 import { addMonthsYm, inrShort, monthLabel, sum } from '../../lib/format'
 import { planVsActual } from '../../lib/workflow'
+import { ideaPlan } from '../../lib/mrn'
 import { Icon, cn } from '../../components/ui'
 import { AXIS_TICK, ChartTip, GRID_STROKE } from '../home/shared'
 
@@ -17,13 +18,13 @@ export const BEHIND_COLOR = 'var(--color-accent-500)'
 export function useIdeaPlan(idea: Idea) {
   const ledger = useStore((s) => s.ledger)
   const last = useStore((s) => s.settings.lastRealisationMonth)
-  return useMemo(() => (idea.lock ? planVsActual({ target: idea.lock.targetSaving, months: idea.lock.timelineMonths, startDate: idea.lock.startDate, ledger: ledger.filter((l) => l.ideaId === idea.id), lastActualMonth: last }) : null), [idea.lock, idea.id, ledger, last])
+  return useMemo(() => (idea.lock ? ideaPlan(idea, ledger, last) : null), [idea, ledger, last])
 }
 
 /** Portfolio plan vs actual — Σ of every locked plan vs Σ MRN savings, by month */
 export function portfolioPlan(ideas: Idea[], ledger: LedgerEntry[], lastActualMonth: string) {
   const locked = ideas.filter((i) => i.lock && (i.bucket === 'In Execution' || i.bucket === 'Implemented'))
-  const per = locked.map((i) => planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: ledger.filter((l) => l.ideaId === i.id), lastActualMonth }))
+  const per = locked.map((i) => ideaPlan(i, ledger, lastActualMonth))
   const months = [...new Set(per.flatMap((p) => p.rows.map((r) => r.month)))].sort()
   if (!months.length) return { rows: [], target: 0, actualToDate: 0, planToDate: 0, projected: 0, onTrack: true, ideas: 0 }
   const all: string[] = []

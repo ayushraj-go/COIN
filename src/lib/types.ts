@@ -235,6 +235,10 @@ export interface ApprovalLock {
   startDate: string
   endDate: string
   targetSaving: number
+  /** the forecast for each month of the window, signed with the lock (season-adjusted) */
+  monthlyPlan?: number[]
+  /** the idea's forecast a year when the lock was signed — a later change asks for a new signature */
+  forecastAtLock?: number
   signatureName: string
   signatureData?: string
   signedAt: string
@@ -258,6 +262,8 @@ export interface Verification {
   targetAtVerification?: number
   /** captured when the locked timeline ended and COIN moved the idea to Verification: locked target vs MRN actual in the window */
   forecastAtClose?: number
+  /** the last month of the locked window — verification opens once its MRN is read */
+  finalMrnMonth?: string
   actualAtClose?: number
   verifiedAt?: string
   verifiedBy?: string
@@ -360,6 +366,38 @@ export interface Campaign {
   invitesSentAt?: string
 }
 
+/** Why an MRN receipt for a tracked part was not counted as saving */
+export type MrnReason = 'Other supplier' | 'Old price billed' | 'Before the savings start' | 'No live idea for this part'
+/** One MRN (material receipt) line as read from the ERP or uploaded in the ERP layout */
+export interface MrnLine {
+  id: string // MRN number
+  date: string // receipt (GRN) date, YYYY-MM-DD
+  month: string // YYYY-MM
+  plant: string
+  partCode: string
+  supplierCode: string
+  qty: number
+  price: number // unit price billed
+  poNo: string
+  source: 'ERP feed' | 'Upload'
+  /** set by the claim rules: the idea the saving is counted for */
+  ideaId?: string
+  status: 'Claimed' | 'Not claimed'
+  reason?: MrnReason
+}
+/** One read of MRN: the monthly ERP feed or an uploaded extract */
+export interface MrnRead {
+  id: string
+  month: string
+  at: string
+  source: 'ERP feed' | 'Upload'
+  by: string
+  lines: number
+  claimed: number
+  saving: number
+  notClaimed: Partial<Record<MrnReason, number>>
+}
+
 export interface LedgerEntry {
   id: string
   ideaId: string
@@ -375,6 +413,8 @@ export interface LedgerEntry {
   leakage: number
   exceptions: ('Price leakage' | 'No MRN received' | 'Volume below 50% of plan')[]
   financeStatus: 'Pending' | 'Validated' | 'Queried'
+  /** the MRN receipts behind this saving */
+  mrnIds?: string[]
   financeRemarks?: string
   financeBy?: string
   financeAt?: string

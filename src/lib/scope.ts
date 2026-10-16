@@ -110,7 +110,9 @@ export const FORMULAS: { name: string; expr: string }[] = [
   { name: 'Saving per unit', expr: 'P(baseline) − P(new)' },
   { name: 'Forecast impact', expr: '(P(baseline) − P(new)) × Q(last FY MRN)' },
   { name: 'Committed in FY', expr: 'Forecast impact × months live in FY ÷ 12' },
-  { name: 'Realised (FY to date)', expr: '(P(baseline) − P(approved)) × Q(MRN after effective date)' },
+  { name: 'Realised (FY to date)', expr: 'Σ counted MRN receipts: (P(baseline) − P(billed)) × Q(received)' },
+  { name: 'Monthly forecast', expr: 'Forecast ÷ 12 × season index of the month (last-FY MRN pattern)' },
+  { name: 'Locked target', expr: 'Σ monthly forecasts over the locked window' },
 ]
 
 export const WORKED_EXAMPLE =
@@ -126,7 +128,7 @@ export const SAVINGS_TYPES: { type: string; examples: string; counts: string }[]
 
 export const CREDIBILITY_RULES = [
   'Baseline and volume are auto-filled; a submitter or buyer can override them only with a mandatory reason, and every override is logged.',
-  'Savings move from Committed to Realised only from actual MRN data, never from manual entry.',
+  'Savings move from Committed to Realised only from MRN receipts that pass the claim rules — approved supplier, on or after the savings start, billed below the baseline, counted once — never from manual entry.',
   'Realised savings are reported as validated only after Finance validation (configurable on / off in Admin).',
   'An idea spanning several part codes stores price, volume and saving per part code and rolls them up.',
 ]
@@ -265,8 +267,10 @@ export const EXECUTION_RECORD: [string, string][] = [
   ['Idea owner', 'Commodity Buyer by default; reassignable by Commodity Lead'],
   ['Start date', 'Auto = approval date'],
   ['Deadline', 'The savings end signed in the lock at department approval; it does not move during execution'],
-  ['MRN tracking', 'Each completed month: forecast (locked target ÷ months) vs saving found in MRN transactions; no MRN, no saving'],
-  ['First MRN at the new price', 'Taken from the MRN feed (first MRN line at the new price), never typed by hand'],
+  ['MRN tracking', 'Each completed month: the monthly forecast signed with the lock vs the saving in the MRN receipts that pass the claim rules; no MRN, no saving'],
+  ['Claim rules', 'A receipt counts only from the approved supplier, on or after the savings start and billed below the baseline; each receipt counts once — the PO it was received against decides between two ideas on the same part, then the price billed'],
+  ['Saving', '(baseline − price billed) × quantity received; billing above the approved price is price leakage and lowers the saving'],
+  ['First MRN at the new price', 'The date of the first counted receipt in the MRN feed, never typed by hand'],
   ['Monthly savings track', 'One bar per month of the locked timeline: MRN saving against that month’s target (locked target ÷ months). Green = met, amber = within 10 %, red = short or no MRN; the graph also shows what the remaining months need to still reach the target'],
   ['Milestones', 'Generated from the route, e.g. Technical: Supplier sample → NPD ECN raised → Sample approved → PAP price approved → First MRN at new price'],
   ['Linked requests', 'NPD request ID and PAP request ID, status synced'],
@@ -283,7 +287,7 @@ export const EXECUTION_SCREEN = [
 ]
 /** Month-by-month savings graph: how each month and the idea as a whole are graded */
 export const MONTHLY_TRACK: [string, string][] = [
-  ['Monthly target', 'Locked target ÷ months of the timeline, e.g. ₹ 12 L over 6 months = ₹ 2 L a month'],
+  ['Monthly target', 'Forecast ÷ 12 × the month’s season index (AC season: heavier Jan–May, lighter Jul–Sep; flat for indirect buying), signed with the lock; the locked target is their sum'],
   ['Month met (green)', 'MRN saving of the month is at or above the monthly target'],
   ['Within 10 % (amber)', 'MRN saving is 90–100 % of the monthly target'],
   ['Short (red)', 'MRN saving is below 90 % of the monthly target'],
@@ -306,9 +310,10 @@ export const DROP_REASONS_DEFAULT = [
   'Other (remarks mandatory)',
 ]
 export const REALISATION_CYCLE = [
-  "On the 3rd working day of each month, COIN takes the previous month's MRN quantity and price for every implemented part code.",
-  'It computes realised saving per part as (baseline − approved price) × MRN quantity and posts it to the realisation ledger.',
-  'It flags exceptions: MRN price above the approved new price (price leakage), no MRN received, or volume below 50% of plan.',
+  "On the 5th of each month, COIN reads the previous month's MRN receipts (MRN no., date, plant, part, vendor, quantity, price billed, PO) for the parts of every tracked idea; an Excel / CSV extract in the same layout can be uploaded instead.",
+  'It applies the claim rules to each receipt and keeps the ones not counted with their reason (other supplier, old price billed, before the savings start).',
+  'It posts the saving per idea, part and month — (baseline − price billed) × quantity — and flags exceptions: price leakage, no MRN received, volume below 50% of plan.',
+  'An idea whose locked deadline has passed is verified once the last month of its window is read.',
   "Finance validates or queries each idea's month; validated amounts are reported as realised savings.",
   'The monthly Cost Optimisation Report is generated and emailed.',
   'At FY close (31 March), open ideas roll into the next FY with a new due date, and carry-over is booked.',
@@ -321,7 +326,7 @@ export const REALISATION_IN_APP = [
   'Idea 360: the value card shows estimated vs approved vs realised; the Monthly savings vs target card graphs each month’s MRN against the locked monthly target.',
 ]
 export const REALISATION_DEMO_NOTE =
-  'In this build the realisation ledger is pre-loaded with demo MRN data. Posting a month and the Finance validate / query action are not run from a screen; the validation status is shown everywhere above.'
+  'In this build the MRN feed is simulated: it generates realistic receipts for each completed month (including receipts at the old price and from an outgoing supplier). Finance validates or queries each month from the receipts view, and an MRN extract can be uploaded from Monthly MRN tracking.'
 export const LEAKAGE_NOTE =
   'Price leakage (paying above the agreed new price) is shown on the Execution Hub and the CO dashboards, because a saving that is agreed but not paid at the new price is not a saving.'
 

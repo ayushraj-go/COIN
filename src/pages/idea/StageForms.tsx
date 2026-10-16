@@ -7,10 +7,11 @@ import type { Idea, RiskItem, RiskLevel } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { RISK_FACTORS, STAGE } from '../../lib/masters'
 import { carryOver, committedInFy, duplicateCandidates, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
-import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, planVsActual, riskTotal, savingsTrack, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
-import { fmtDate, inrPrice, inrShort, quarterStart, todayIso } from '../../lib/format'
+import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, riskTotal, savingsTrack, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
+import { addDays, addMonthsYm, fmtDate, inrPrice, inrShort, monthLong, quarterStart, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, LinkText, Modal, Money, Segmented, cn } from '../../components/ui'
 import { SavingsTrackPanel } from './SavingsTrack'
+import { ideaPlan } from '../../lib/mrn'
 
 const toast = () => useStore.getState().toast
 const RISK_COLOR: Record<RiskLevel, string> = { Low: 'var(--color-emerald-600)', Medium: 'var(--color-orange-400)', High: 'var(--color-accent-500)' }
@@ -230,7 +231,7 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
   const ledger = useStore((s) => s.ledger)
   const last = useStore((s) => s.settings.lastRealisationMonth)
   const rows = useMemo(() => ledger.filter((l) => l.ideaId === idea.id), [ledger, idea.id])
-  const plan = useMemo(() => (idea.lock ? planVsActual({ target: idea.lock.targetSaving, months: idea.lock.timelineMonths, startDate: idea.lock.startDate, ledger: rows, lastActualMonth: last }) : null), [idea.lock, rows, last])
+  const plan = useMemo(() => (idea.lock ? ideaPlan(idea, rows, last) : null), [idea, rows, last])
   const [remarks, setRemarks] = useState('')
   useEffect(() => { if (open) setRemarks('') }, [open])
   // MRN inside the locked window only — the period the target covers
@@ -238,16 +239,22 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
   const target = idea.lock?.targetSaving ?? 0
   const actual = inWindow.reduce((a, r) => a + r.realised, 0)
   const ended = !!idea.lock && idea.lock.endDate <= todayIso()
-  const leakage = rows.reduce((a, r) => a + r.leakage, 0)
-  const mrnOk = rows.length > 0 && leakage === 0
-  const finOk = rows.length > 0 && rows.every((r) => r.financeStatus === 'Validated')
+  const leakage = inWindow.reduce((a, r) => a + r.leakage, 0)
+  const mrnOk = inWindow.length > 0 && leakage === 0
+  const finOk = inWindow.length > 0 && inWindow.every((r) => r.financeStatus === 'Validated')
+  // every month of the window is judged — the last month's MRN is read on the 5th after the deadline
+  const finalMonth = idea.verification?.finalMrnMonth
+  const waiting = !!finalMonth && finalMonth > last
+  const me = useStore((s) => s.users.find((u) => u.id === s.userId))
+  const canValidate = !!me && me.roles.some((r) => r === 'finance' || r === 'head' || r === 'admin')
+  const validateWindow = () => { useStore.getState().financeValidate(inWindow.filter((r) => r.financeStatus !== 'Validated').map((r) => r.id)); toast()('MRN of the locked window validated', 'success') }
   // the locked timeline has ended (that is why the idea is here): achieved = MRN actual reached 95 % of the locked target
   const targetOk = target > 0 ? actual >= target * 0.95 : !!plan && plan.elapsed > 0 && plan.onTrack
   const all = mrnOk && finOk && targetOk
   // the outcome is recorded either way; a shortfall or a failed check needs remarks and is logged as an exception
-  const canVerify = all || !!remarks.trim()
+  const canVerify = !waiting && (all || !!remarks.trim())
   const verify = () => {
-    useStore.getState().verifyIdea(idea.id, { mrnAtApproved: mrnOk, financeValidated: finOk, targetAchieved: targetOk, remarks: remarks.trim() || undefined, targetAtVerification: target || plan?.planToDate || 0 })
+    if (!useStore.getState().verifyIdea(idea.id, { mrnAtApproved: mrnOk, financeValidated: finOk, targetAchieved: targetOk, remarks: remarks.trim() || undefined, targetAtVerification: target || plan?.planToDate || 0 })) return
     toast()(all ? `${idea.id} verified — MRN savings met the locked target` : `${idea.id} verified with shortfall — logged with the failed checks`, all ? 'success' : 'warning'); onClose()
   }
   const items = [
@@ -270,6 +277,8 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
             <Kpi label="Variance" value={<Money value={actual - target} />} tone={actual - target >= 0 ? 'good' : 'bad'} />
           </div>
           <div className="text-[12px] text-muted flex items-center gap-1.5"><Icon name="Info" size={13} />{ended ? `The locked timeline ended on ${fmtDate(idea.lock!.endDate)} — COIN moved the idea here. Only MRN transactions count.` : 'Only MRN transactions inside the locked window count.'}</div>
+          {waiting && <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12.5px] text-amber-900 flex items-start gap-2"><Icon name="CalendarClock" size={15} className="shrink-0 mt-px" /><span><b>Waiting for {monthLong(finalMonth!)} MRN.</b> The last month of the locked window is read from the ERP on {fmtDate(addDays(`${addMonthsYm(finalMonth!, 1)}-01`, 4))}; verification opens once it is in.</span></div>}
+          {!waiting && !finOk && inWindow.length > 0 && canValidate && <div className="rounded-xl border border-line bg-white px-3.5 py-2.5 flex flex-wrap items-center gap-2 text-[12.5px]"><Icon name="BadgeCheck" size={15} className="text-brand-600" /><span className="flex-1 min-w-[200px]">{inWindow.filter((r) => r.financeStatus !== 'Validated').length} MRN saving line{inWindow.filter((r) => r.financeStatus !== 'Validated').length === 1 ? '' : 's'} of the window still to validate.</span><Button size="sm" variant="success" icon="BadgeCheck" onClick={validateWindow}>Validate the window's MRN</Button></div>}
           <div className="grid gap-1.5">
             {items.map((x) => (
               <div key={x.label} className="flex items-center gap-2.5 rounded-xl border border-line bg-white px-3 py-2">

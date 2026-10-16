@@ -1,8 +1,9 @@
-import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User } from './types'
+import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, MrnLine, MrnRead, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User } from './types'
+import { claimMrn, ledgerForMonth, monthlyForecast, seasonProfile, simulateMrnMonth } from './mrn'
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, daysBetween, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -717,81 +718,38 @@ function buildShowcase(): Idea[] {
 }
 const FINAL = ['First MRN at new price', 'Implementation confirmed', 'Handed for verification']
 
-// ─── Realisation ledger (Section 9) ───────────────────────────────────────────
-/** One month of MRN savings. `fromLock`: an idea without a recorded first MRN counts from the savings start in its lock
- *  (the live monthly feed); the seed history passes false and keeps only ideas whose first MRN is on record. */
-/** Each idea's MRN volume runs at its own steady pace against plan: most at or a little above plan, some slightly
- *  below, a few well short — so the monthly forecast vs MRN view shows ideas on track and ideas falling behind */
-export function mrnPace(id: string) {
-  let h = 2166136261
-  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
-  const u = ((h >>> 0) % 1000) / 1000
-  return u < 0.6 ? 1.03 + (u / 0.6) * 0.15 : u < 0.8 ? 0.88 + (u - 0.6) * 0.45 : 0.45 + (u - 0.8) * 1.5
-}
-
-export function realiseMonth(ideas: Idea[], month: string, rng: () => number = rnd, fromLock = true): LedgerEntry[] {
-  const out: LedgerEntry[] = []
+// ─── MRN receipts and the realisation ledger (Section 9) ──────────────────────
+/** Every lock carries the forecast it was signed on and its season-adjusted monthly plan; the locked target is their sum */
+function signedPlans(ideas: Idea[]) {
   for (const i of ideas) {
-    // MRN at the new price counts from the first MRN on record, else from the savings start signed in the lock
-    const eff = i.execution?.effectiveDate ?? (fromLock ? i.lock?.startDate : undefined)
-    if ((i.bucket !== 'Implemented' && i.bucket !== 'In Execution') || !i.execution || !eff) continue
-    if (ymOf(eff) > month) continue
-    for (const p of i.parts) {
-      const approved = p.approvedPrice ?? p.newPrice
-      const planned = Math.round(p.annualVolume / 12)
-      let frac = 1
-      if (ymOf(eff) === month) { const d = parse(eff); const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); frac = (dim - d.getDate() + 1) / dim }
-      const roll = rng()
-      let qty = Math.round(planned * frac * mrnPace(i.id) * (0.9 + rng() * 0.2))
-      if (roll < 0.01) qty = 0
-      else if (roll < 0.025) qty = Math.round(planned * frac * 0.35)
-      const leak = rng() < 0.08
-      const mrnPrice = leak ? +(approved * (1 + 0.01 + rng() * 0.04)).toFixed(approved > 100 ? 1 : 2) : approved
-      const realised = (p.baselinePrice - approved) * qty
-      const leakage = Math.max(0, mrnPrice - approved) * qty
-      const exceptions: LedgerEntry['exceptions'] = []
-      if (leakage > 0) exceptions.push('Price leakage')
-      if (qty === 0) exceptions.push('No MRN received')
-      else if (qty < planned * frac * 0.5) exceptions.push('Volume below 50% of plan')
-      out.push({
-        id: `LG-${i.id}-${p.partCode}-${month}`, ideaId: i.id, partCode: p.partCode, supplierCode: p.currentSupplier.split(' · ')[0], month,
-        mrnQty: qty, plannedQty: Math.round(planned * frac), mrnPrice, baseline: p.baselinePrice, approvedPrice: approved,
-        realised, leakage, exceptions, financeStatus: 'Pending', postedAt: new Date(parse(addMonthsYm(month, 1) + '-05')).toISOString(),
-      })
-    }
+    if (!i.lock) continue
+    const annual = ideaAnnualised(i)
+    const plan = monthlyForecast(annual, i.lock.startDate, i.lock.timelineMonths, seasonProfile(i)).map((m) => m.amount)
+    Object.assign(i.lock, { forecastAtLock: annual, monthlyPlan: plan, targetSaving: plan.reduce((a, x) => a + x, 0) })
   }
-  return out
 }
 
-export function seedLedger(ideas: Idea[]): LedgerEntry[] {
-  const out: LedgerEntry[] = []
-  const showcase = new Set(ideas.filter((i) => (i.showcase ?? 0) >= 5).map((i) => i.id))
+/** The MRN history of FY27 to date: each month's receipts from the ERP feed for the parts of tracked ideas, the claim
+ *  rules applied, and the ledger built from the claimed receipts. Earlier months are Finance-validated (a few queried). */
+export function seedMrn(ideas: Idea[]): { mrn: MrnLine[]; ledger: LedgerEntry[]; reads: MrnRead[] } {
+  const mrn: MrnLine[] = [], ledger: LedgerEntry[] = [], reads: MrnRead[] = []
   for (const m of fyMonths(FY).filter((m) => m <= LAST_REALISED)) {
-    const rows = realiseMonth(ideas, m, rnd, false)
-    rows.forEach((row) => {
-      if (showcase.has(row.ideaId)) {
-        // walkthrough ideas: MRN 5 % above plan at the approved price, validated by Finance
-        row.mrnQty = Math.round(row.plannedQty * 1.05)
-        row.mrnPrice = row.approvedPrice
-        row.realised = (row.baseline - row.approvedPrice) * row.mrnQty
-        row.leakage = 0
-        row.exceptions = []
-        row.financeStatus = 'Validated'
-        row.financeBy = 'Meera Iyer'
-        row.financeAt = row.postedAt
-        return
+    const postedAt = new Date(parse(addMonthsYm(m, 1) + '-05')).toISOString()
+    const lines = claimMrn(simulateMrnMonth(ideas, m, rnd, { newPriceFrom: (i) => i.execution?.effectiveDate, exact: (i) => (i.showcase ?? 0) >= 5 }), ideas)
+    const rows = ledgerForMonth(m, lines, ideas, { full: true, postedAt })
+    for (const row of rows) {
+      const showcase = (ideas.find((i) => i.id === row.ideaId)?.showcase ?? 0) >= 5
+      if (showcase || m < LAST_REALISED) {
+        const q = !showcase && rnd() < 0.05
+        Object.assign(row, { financeStatus: q ? 'Queried' : 'Validated', financeBy: 'Meera Iyer', financeAt: postedAt, financeRemarks: q ? 'MRN quantity mismatch with GRN register — please confirm.' : undefined })
       }
-      if (m < LAST_REALISED) {
-        const q = rnd() < 0.05
-        row.financeStatus = q ? 'Queried' : 'Validated'
-        row.financeBy = 'Meera Iyer'
-        row.financeAt = row.postedAt
-        if (q) row.financeRemarks = 'MRN quantity mismatch with GRN register — please confirm.'
-      }
-    })
-    out.push(...rows)
+    }
+    const notClaimed: MrnRead['notClaimed'] = {}
+    lines.filter((l) => l.status === 'Not claimed' && l.reason).forEach((l) => { notClaimed[l.reason!] = (notClaimed[l.reason!] ?? 0) + 1 })
+    reads.unshift({ id: `mr-${m}`, month: m, at: `${addMonthsYm(m, 1)}-05T01:00:00.000Z`, source: 'ERP feed', by: 'COIN · ERP MRN feed', lines: lines.length, claimed: lines.filter((l) => l.status === 'Claimed').length, saving: rows.reduce((a, r) => a + r.realised, 0), notClaimed })
+    mrn.push(...lines); ledger.push(...rows)
   }
-  return out
+  return { mrn, ledger, reads }
 }
 
 export function seedNotifications(ideas: Idea[]): Notification[] {
@@ -838,12 +796,14 @@ function closeEndedTimelines(ideas: Idea[], ledger: LedgerEntry[]) {
       i.execution.status = 'Done'
       i.execution.progress = 100
       i.execution.milestones = i.execution.milestones.map((m) => (m.name === 'Handed for verification' ? { ...m, doneDate: i.lock!.endDate } : m))
-      i.verification = { handedAt: at, handedBy: 'COIN — locked timeline ended', forecastAtClose: i.lock.targetSaving }
+      i.verification = { handedAt: at, handedBy: 'COIN — locked timeline ended', forecastAtClose: i.lock.targetSaving, finalMrnMonth: addMonthsYm(ymOf(i.lock.endDate), -1) }
       i.activity.push({ id: `a-${i.activity.length}-${i.id}`, at, userId: 'system', userName: 'COIN', action: 'Locked timeline ended — moved to verification', field: 'stage', oldValue: STAGE.execution, newValue: STAGE.verification })
     }
     if (i.lock && i.verification?.forecastAtClose != null) {
       const v = i.verification
-      v.actualAtClose = actual(i)
+      v.finalMrnMonth ??= addMonthsYm(ymOf(i.lock.endDate), -1)
+      v.forecastAtClose = i.lock.targetSaving
+      if (v.finalMrnMonth <= LAST_REALISED) v.actualAtClose = actual(i)
       // a verified idea records what MRN showed against the locked target — achieved at 95 % or more, else a shortfall
       if (v.verifiedAt) {
         const ok = v.actualAtClose >= i.lock.targetSaving * 0.95
@@ -860,9 +820,10 @@ export function buildSeed() {
   rnd = mulberry32(20261001)
   for (const k of Object.keys(seqByCommodity)) delete seqByCommodity[k]
   const ideas = seedIdeas()
-  const ledger = seedLedger(ideas)
+  signedPlans(ideas)
+  const { mrn, ledger, reads } = seedMrn(ideas)
   closeEndedTimelines(ideas, ledger)
-  return { ideas, ledger, campaigns: seedCampaigns(), notifications: seedNotifications(ideas), emails: seedEmails(), lastRealisationMonth: LAST_REALISED }
+  return { ideas, ledger, mrn, mrnReads: reads, campaigns: seedCampaigns(), notifications: seedNotifications(ideas), emails: seedEmails(), lastRealisationMonth: LAST_REALISED }
 }
 export type Seed = ReturnType<typeof buildSeed>
 export const SEED_USERS: User[] = USERS_DEFAULT
