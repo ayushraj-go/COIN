@@ -373,7 +373,8 @@ export function domainActions(set: SetFn, get: GetFn, hooks: EngineHooks): Domai
         },
         sendSupplierCheck: (id, sc) => {
           const u = me()
-          const token = `${id.slice(-8)}-${uid('sc').slice(-6)}`.toLowerCase()
+          // the form link is the only key a supplier has — 128 random bits, not guessable from the idea number
+          const token = Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')
           // the secure form link is filled in once the token exists
           const link = `${hooks.appUrl()}/supplier-form/${token}`
           const body = sc.body.replace(SUPPLIER_LINK_PLACEHOLDER, link)
@@ -680,7 +681,8 @@ export function domainActions(set: SetFn, get: GetFn, hooks: EngineHooks): Domai
         launchCampaign: (id) => {
           const c = get().campaigns.find((x) => x.id === id)!
           const sups = get().suppliers.filter((s) => c.suppliers.includes(s.code))
-          email(sups.map((s) => s.contactEmail), `COIN · Invitation: ${c.name}`, `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, 'Workshop invitation')
+          // one email per supplier — invited vendors never see each other's addresses
+          sups.forEach((s) => email([s.contactEmail], `COIN · Invitation: ${c.name}`, `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, 'Workshop invitation'))
           c.internalInvitees.forEach((u) => email([userEmail(u)], `COIN · Invitation: ${c.name}`, c.description, 'Workshop invitation'))
           sups.forEach((s) => { const u = get().users.find((x) => x.supplierCode === s.code); if (u) push({ userId: u.id, title: 'Workshop invitation', body: `${c.name}${c.workshopDate ? ' · ' + c.workshopDate : ''}`, trigger: 'Workshop invitation', channel: 'Email', link: '/workshops', severity: 'info' }) })
           c.internalInvitees.forEach((u) => push({ userId: u, title: 'Campaign invitation', body: c.name, trigger: 'Workshop invitation', channel: 'Email', link: `/campaigns/${c.id}`, severity: 'info' }))
@@ -747,7 +749,7 @@ export function domainActions(set: SetFn, get: GetFn, hooks: EngineHooks): Domai
           const sups = get().suppliers.filter((x) => codes.includes(x.code))
           if (!c || !sups.length) return
           set((st) => ({
-            emails: [{ id: uid('e'), at: now(), to: sups.map((x) => x.contactEmail), subject: `COIN · Invitation: ${c.name}`, body: `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, template: 'Workshop invitation' }, ...st.emails],
+            emails: [...sups.map((x) => ({ id: uid('e'), at: now(), to: [x.contactEmail], subject: `COIN · Invitation: ${c.name}`, body: `You are invited to "${c.name}"${c.workshopDate ? ' on ' + c.workshopDate : ''}.`, template: 'Workshop invitation' })), ...st.emails],
             campaigns: st.campaigns.map((x) => (x.id === c.id ? { ...x, attendance: { ...x.attendance, ...Object.fromEntries(codes.map((k) => [k, x.attendance[k] ?? 'Invited'])) } } : x)),
           }))
           sups.forEach((sp) => { const u = get().users.find((x) => x.supplierCode === sp.code); if (u) push({ userId: u.id, title: 'Workshop invitation', body: c.name, trigger: 'Workshop invitation', channel: 'Email', link: '/workshops', severity: 'info' }) })

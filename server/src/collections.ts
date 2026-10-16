@@ -70,7 +70,9 @@ export async function loadOrg(c: Tx, orgId: string): Promise<DomainData> {
   return out as DomainData
 }
 
-export interface BeforeRow { table: string; id: string; data: Rec | null }
+/** a row as it was before a command: op = what the command did to it; hash = the user's password hash then */
+export interface BeforeRow { table: string; id: string; data: Rec | null; op?: 'insert' | 'update' | 'delete'; hash?: string | null }
+const hashOf = async (c: Tx, orgId: string, id: string) => ((await c.query('select password_hash from users where org_id = $1 and id = $2', [orgId, id])).rows[0]?.password_hash ?? null) as string | null
 
 async function upsertRow(c: Tx, orgId: string, l: ListColl, item: Rec, sort: number, commandId: string | null) {
   let data = item
@@ -120,14 +122,16 @@ export async function persistDiff(c: Tx, orgId: string, before: DomainState | Do
       const old = prevById.get(id)
       // sorted masters re-write their position when the list order changed
       if (old === x && !(l.sorted && prev[k] !== x)) continue
+      const hash = l.key === 'users' && old ? await hashOf(c, orgId, id) : undefined
       await upsertRow(c, orgId, l, x, k, commandId)
-      beforeRows.push({ table: l.table, id, data: old ?? null })
+      beforeRows.push({ table: l.table, id, data: old ?? null, op: old ? 'update' : 'insert', ...(hash !== undefined ? { hash } : {}) })
       if (!old) (inserted[l.key] ??= []).push(id)
     }
     for (const [id, old] of prevById) {
       if (nextIds.has(id)) continue
+      const hash = l.key === 'users' ? await hashOf(c, orgId, id) : undefined
       await c.query(`delete from ${l.table} where org_id = $1 and id = $2`, [orgId, id])
-      beforeRows.push({ table: l.table, id, data: old })
+      beforeRows.push({ table: l.table, id, data: old, op: 'delete', ...(hash !== undefined ? { hash } : {}) })
     }
   }
   if (SETTINGS.some(([k]) => b[k] !== a[k])) {
@@ -154,7 +158,8 @@ export async function rowsTouchedSince(c: Tx, orgId: string, rows: BeforeRow[], 
       ? await c.query('select updated_by_command from org_settings where org_id = $1', [orgId])
       : await c.query(`select updated_by_command from ${table} where org_id = $1 and id = $2`, [orgId, r.id])
     const cur = q.rows[0]
-    if (!cur) continue // gone (deleted by this command, or since): restoring re-creates it
+    // gone: fine when this command deleted it (or created it); a row it only edited and someone deleted since stays deleted
+    if (!cur) { if (r.op === 'update') return `${table === 'org_settings' ? 'settings' : r.id} was deleted after this action`; continue }
     if (!allowed.has(cur.updated_by_command)) return `${table === 'org_settings' ? 'settings' : r.id} changed again after this action`
   }
   return null
@@ -171,11 +176,16 @@ export async function restoreRows(c: Tx, orgId: string, rows: BeforeRow[], comma
     }
     const l = BY_TABLE.get(r.table)
     if (!l) continue
-    if (r.data === null) await c.query(`delete from ${l.table} where org_id = $1 and id = $2`, [orgId, r.id])
-    else {
+    if (r.data === null) {
+      // an email that already went out stays in the outbox as a record of what was sent
+      if (l.table === 'emails') await c.query("delete from emails where org_id = $1 and id = $2 and status <> 'sent'", [orgId, r.id])
+      else await c.query(`delete from ${l.table} where org_id = $1 and id = $2`, [orgId, r.id])
+    } else {
       let sort = 0
       if (l.sorted) sort = (await c.query(`select sort from ${l.table} where org_id = $1 and id = $2`, [orgId, r.id])).rows[0]?.sort ?? 0
       await upsertRow(c, orgId, l, r.data, sort, commandId)
+      // a restored account signs in with the password it had
+      if (l.table === 'users' && r.hash !== undefined) await c.query('update users set password_hash = $3 where org_id = $1 and id = $2', [orgId, r.id, r.hash])
     }
   }
 }

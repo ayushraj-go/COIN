@@ -28,7 +28,7 @@ export class Sessions {
     if (!raw) return null
     const idHash = sha(raw)
     const r = (await this.db.query(
-      `select s.org_id, s.user_id, s.expires_at, s.last_seen_at, coalesce((o.settings->>'sessionTimeoutMin')::int, 30) as idle_min
+      `select s.org_id, s.user_id, s.expires_at, s.last_seen_at, case when (o.settings->>'sessionTimeoutMin') ~ '^[0-9]+(\\.[0-9]+)?$' then greatest(5, least(240, floor((o.settings->>'sessionTimeoutMin')::numeric)))::int else 30 end as idle_min
          from sessions s left join org_settings o on o.org_id = s.org_id where s.id_hash = $1`, [idHash])).rows[0]
     if (!r) return null
     const now = Date.now()

@@ -93,7 +93,7 @@ describe.skipIf(!enabled)('what each role receives', () => {
     const mine = await boot('u-sub1')
     expect(mine.data.ideas.length).toBeGreaterThan(0)
     expect(mine.data.ideas.every((i) => i.submitterId === 'u-sub1')).toBe(true)
-    const all = (await db.query("select count(*)::int as n from ideas where org_id = 'amber'")).rows[0].n
+    const all = (await db.query("select count(*)::int as n from ideas where org_id = 'amber' and (stage <> 'Draft' or submitter_id = 'u-head')")).rows[0].n
     expect((await boot('u-head')).data.ideas.length).toBe(all)
   })
   it('a department lead gets only their department’s ideas (plus their own)', async () => {
@@ -256,5 +256,76 @@ describe.skipIf(!enabled)('administration', () => {
     expect((await cmd('u-admin', 'upsert', 'users', { ...user, active: false })).status).toBe(200)
     expect((await app.inject({ url: '/api/auth/me', headers: { cookie: c } })).statusCode).toBe(401)
     expect((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'neha.test@ambergroupindia.com', password: 'Strong123' } })).statusCode).toBe(403)
+  })
+})
+
+// ─── independent security review — every finding reproduced before it was fixed ───
+describe.skipIf(!enabled)('security review', () => {
+  const upload = async (who: string, ideaId: string, att: Record<string, unknown>) => cmd(who, 'addAttachments', ideaId, [{ id: `att-${Math.random().toString(36).slice(2)}`, size: 10, uploadedAt: new Date().toISOString(), by: 'x', ...att }])
+  const fileUrls = async (who: string, ideaId: string) => (await ideaOf(who, ideaId)).attachments.map((a) => a.url).filter(Boolean) as string[]
+
+  it('#2 files are downloaded, not rendered — and a file link from someone else is not accepted', async () => {
+    const own = (await boot('u-sub1')).data.ideas.find((i) => i.bucket === 'Pipeline')!
+    const html = `data:text/html;base64,${Buffer.from('<script>alert(1)</script>').toString('base64')}`
+    expect((await upload('u-sub1', own.id, { name: 'x.html', type: 'text/html', dataUrl: html })).status).toBe(200)
+    const url = (await fileUrls('u-sub1', own.id)).pop()!
+    const r = await app.inject({ url, headers: { cookie: await as('u-sub1') } })
+    expect(r.headers['content-disposition']).toMatch(/^attachment/)
+    expect(String(r.headers['content-security-policy'])).toMatch(/sandbox/)
+    // another person tries to attach that stored file to their own idea to read it
+    const other = (await boot('u-so-emp')).data.ideas.find((i) => i.bucket === 'Pipeline' || i.stage === 'Draft')
+    if (other) {
+      await upload('u-so-emp', other.id, { name: 'steal.html', type: 'text/html', url })
+      expect(await fileUrls('u-so-emp', other.id)).not.toContain(url)
+    }
+  })
+
+  it('#9 a password set by Admin never appears in the audit log', async () => {
+    const u = { id: 'u-audit-1', name: 'Audit Test', employeeId: 'AEL-99002', email: 'audit.test@ambergroupindia.com', roles: ['submitter'], department: 'HR', plant: 'NDA', designation: 'x', commodities: [], avatarColor: '#000', active: true, password: 'Secret2026x' }
+    expect((await cmd('u-admin', 'upsert', 'users', u)).status).toBe(200)
+    const raw = JSON.stringify((await db.query("select args from command_log where command = 'upsert' and args::text like '%u-audit-1%'")).rows)
+    expect(raw).not.toContain('Secret2026x')
+  })
+
+  it('#7 a forged X-Forwarded-For does not reset the sign-in limit', async () => {
+    let last = 0
+    for (let k = 0; k < 12; k++) last = (await app.inject({ method: 'POST', url: '/api/auth/login', headers: { 'x-forwarded-for': `10.0.0.${k}` }, payload: { login: 'imtiaz.ali@ambergroupindia.com', password: 'nope' } })).statusCode
+    expect(last).toBe(429)
+  })
+
+  it('#8 a broken session-timeout setting cannot lock everyone out', async () => {
+    expect((await cmd('u-admin', 'updateSettings', { sessionTimeoutMin: 30.5 })).status).toBe(403)
+    await db.query(`update org_settings set settings = jsonb_set(settings, '{sessionTimeoutMin}', '30.5') where org_id = 'amber'`)
+    expect((await app.inject({ url: '/api/auth/me', headers: { cookie: await as('u-admin') } })).statusCode).toBe(200)
+    await db.query(`update org_settings set settings = jsonb_set(settings, '{sessionTimeoutMin}', '30') where org_id = 'amber'`)
+  })
+
+  it('#11 undo never brings back a row someone deleted after, and a restored account can sign in', async () => {
+    const lever = (await boot('u-admin')).data as unknown as { levers: { id: string; name: string }[] }
+    const l = { ...lever.levers.find((x) => x.id === 'L18')! }
+    const c = await as('u-admin')
+    const edit = await app.inject({ method: 'POST', url: '/api/commands/upsert', headers: { cookie: c }, payload: { args: ['levers', { ...l, name: 'Edited' }], commandId: 'undo-gone-0001' } })
+    expect(edit.statusCode).toBe(200)
+    expect((await cmd('u-admin', 'remove', 'levers', 'L18')).status).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/api/undo', headers: { cookie: c }, payload: { commandIds: ['undo-gone-0001'] } })).statusCode).toBe(409)
+    // remove an account, undo it, and the person still signs in with the same password
+    const u = { id: 'u-undo-1', name: 'Undo Test', employeeId: 'AEL-99003', email: 'undo.test@ambergroupindia.com', roles: ['submitter'], department: 'HR', plant: 'NDA', designation: 'x', commodities: [], avatarColor: '#000', active: true, password: 'Undo2026x' }
+    expect((await cmd('u-admin', 'upsert', 'users', u)).status).toBe(200)
+    const del = await app.inject({ method: 'POST', url: '/api/commands/remove', headers: { cookie: c }, payload: { args: ['users', 'u-undo-1'], commandId: 'undo-user-0001' } })
+    expect(del.statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/api/undo', headers: { cookie: c }, payload: { commandIds: ['undo-user-0001'] } })).statusCode).toBe(200)
+    expect((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'undo.test@ambergroupindia.com', password: 'Undo2026x' } })).statusCode).toBe(200)
+  })
+
+  it('#10 reset is refused without demo sign-in and never resets passwords to the public demo one', async () => {
+    const off = await buildApp({ db, config: loadConfig({ DATABASE_URL: config.DATABASE_URL, DEMO_LOGIN: 'false', LOG_LEVEL: 'silent' }) })
+    const login = await off.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'nikhil.agarwal@ambergroupindia.com', password: config.SEED_PASSWORD } })
+    const ck = String(login.headers['set-cookie']).split(';')[0]
+    expect((await off.inject({ method: 'POST', url: '/api/commands/resetDemo', headers: { cookie: ck }, payload: { args: [] } })).statusCode).toBe(403)
+    await off.close()
+    const before = (await db.query("select password_hash from users where org_id = 'amber' and id = 'u-head'")).rows[0].password_hash
+    expect((await cmd('u-admin', 'resetDemo')).status).toBe(200)
+    const after = (await db.query("select password_hash from users where org_id = 'amber' and id = 'u-head'")).rows[0].password_hash
+    expect(after).toBe(before)
   })
 })

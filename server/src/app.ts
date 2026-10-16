@@ -13,7 +13,7 @@ import { ROOT, type Config } from './config'
 import type { Db } from './db'
 import { HttpError, OrgData } from './orgdata'
 import { Sessions } from './sessions'
-import { hashPassword, passwordProblem, verifyPassword } from './passwords'
+import { hashPassword, passwordProblem, verifyAgainstNothing, verifyPassword } from './passwords'
 import { Mailer } from './email'
 
 export interface AppDeps { db: Db; config: Config }
@@ -39,6 +39,9 @@ const parse = <T>(schema: z.ZodType<T>, body: unknown): T => {
 function limiter(max: number, windowMs: number) {
   const hits = new Map<string, { n: number; reset: number }>()
   const live = (key: string) => { const h = hits.get(key); return h && h.reset > Date.now() ? h : null }
+  // forget expired entries so the table cannot grow without bound
+  const sweep = () => { const now = Date.now(); for (const [k, h] of hits) if (h.reset <= now) hits.delete(k) }
+  setInterval(sweep, windowMs).unref?.()
   return {
     check: (key: string) => { if ((live(key)?.n ?? 0) >= max) throw new HttpError(429, 'Too many attempts — wait a few minutes and try again') },
     hit: (key: string) => { const h = live(key); if (h) h.n++; else hits.set(key, { n: 1, reset: Date.now() + windowMs }) },
@@ -51,7 +54,9 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     logger: config.LOG_LEVEL === 'silent' ? false : { level: config.LOG_LEVEL, redact: ['req.headers.cookie', 'req.body.password'] },
     bodyLimit: 15 * 1024 * 1024,
     disableRequestLogging: config.LOG_LEVEL !== 'debug' && config.LOG_LEVEL !== 'trace',
-    trustProxy: true,
+    // X-Forwarded-For is trusted only when TRUST_PROXY says how many proxies sit in front (otherwise anyone could forge an address)
+    // (a hop count is valid at run time; Fastify's types only list it on another overload)
+    trustProxy: (!config.TRUST_PROXY || config.TRUST_PROXY === 'false' ? false : config.TRUST_PROXY === 'true' ? true : /^\d+$/.test(config.TRUST_PROXY) ? Number(config.TRUST_PROXY) : config.TRUST_PROXY) as boolean,
   })
   configureSupplierPortal(config.SUPPLIER_PORTAL_URL)
   await app.register(cookie)
@@ -61,6 +66,7 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
   // failed sign-ins only: 10 per account and address, 100 per address (an office shares one address) per 10 minutes
   const failedPerAccount = limiter(10, 10 * 60_000)
   const failedPerAddress = limiter(100, 10 * 60_000)
+  const failedAnyAddress = limiter(30, 10 * 60_000) // one account, from any address
   const publicLimit = limiter(60, 10 * 60_000)
 
   app.addHook('onSend', async (req, reply) => {
@@ -110,11 +116,12 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     const { login, password } = parse(LoginBody, req.body)
     const k = login.toLowerCase()
     const acct = `${req.ip}|${k}`
-    failedPerAccount.check(acct); failedPerAddress.check(req.ip)
+    failedPerAccount.check(acct); failedPerAddress.check(req.ip); failedAnyAddress.check(k)
     const row = (await db.query('select id, password_hash, active from users where org_id = $1 and (lower(email) = $2 or lower(employee_id) = $2)', [config.ORG_ID, k])).rows[0]
-    // same answer for unknown user and wrong password
+    // same answer — and the same time — for an unknown account and a wrong password
+    if (!row) await verifyAgainstNothing(password)
     if (!row || !(await verifyPassword(password, row.password_hash))) {
-      failedPerAccount.hit(acct); failedPerAddress.hit(req.ip)
+      failedPerAccount.hit(acct); failedPerAddress.hit(req.ip); failedAnyAddress.hit(k)
       throw new HttpError(401, 'Invalid email / employee ID or password')
     }
     failedPerAccount.clear(acct)
@@ -166,6 +173,8 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     const { orgId, me } = await requireUser(req)
     const name = req.params.name
     if (!COMMAND_NAMES.includes(name)) throw new HttpError(404, `Unknown action ${name}`)
+    // wiping the organisation back to the demo seed exists only while demo sign-in is on
+    if (name === 'resetDemo' && !config.DEMO_LOGIN) throw new HttpError(403, 'Resetting to demo data is switched off on this server')
     const body = parse(CommandBody, req.body ?? {})
     // an Admin setting a password must meet the rule; the hash is made when the user row is written
     if (name === 'upsert' && body.args[0] === 'users') {
@@ -208,8 +217,11 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     if (!idea || !canSeeIdea(me, idea)) throw new HttpError(404, 'File not found')
     const f = (await db.query('select name, type, bytes from files where org_id = $1 and id = $2', [orgId, id])).rows[0]
     if (!f) throw new HttpError(404, 'File not found')
-    reply.header('Content-Type', f.type || 'application/octet-stream')
-    reply.header('Content-Disposition', `inline; filename="${String(f.name).replace(/[^\w.\- ]/g, '_')}"`)
+    // only plain images open in the browser; everything else downloads, and nothing served here may run scripts
+    const image = /^image\/(png|jpeg|gif|webp)$/.test(String(f.type))
+    reply.header('Content-Type', image ? f.type : 'application/octet-stream')
+    reply.header('Content-Disposition', `${image ? 'inline' : 'attachment'}; filename="${String(f.name).replace(/[^\w.\- ]/g, '_')}"`)
+    reply.header('Content-Security-Policy', "sandbox; default-src 'none'")
     return reply.send(f.bytes)
   })
 

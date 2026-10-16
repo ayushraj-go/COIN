@@ -4,6 +4,7 @@ import type { User } from '../lib/types'
 import { canSeeIdea } from '../lib/calc'
 import { can } from '../lib/nav'
 import { DATA_KEYS, type DomainData, type DomainState } from './engine'
+import { ideaPerms } from './permissions'
 
 type Key = (typeof DATA_KEYS)[number]
 type Rec = Record<string, unknown>
@@ -21,13 +22,63 @@ export function scrubUser(viewer: User, u: User): User {
   return { id: u.id, name: u.name, roles: u.roles, department: u.department, designation: u.designation, avatarColor: u.avatarColor, active: u.active, plant: u.plant, commodities: [], employeeId: '', email: '' } as unknown as User
 }
 
+/** An idea this user may receive: the role rules, and a draft only for the person writing it */
+const ideaVisible = (me: User, i: { stage?: string; submitterId?: string }) => canSeeIdea(me, i as never) && (i.stage !== 'Draft' || i.submitterId === me.id)
 /** Ideas this user may see, as a set of ids (used for ledger rows and idea-related emails) */
-const visibleIdeaIds = (me: User, s: DomainData) => new Set(s.ideas.filter((i) => canSeeIdea(me, i)).map((i) => i.id))
+const visibleIdeaIds = (me: User, s: DomainData) => new Set(s.ideas.filter((i) => ideaVisible(me, i)).map((i) => i.id))
+
+/**
+ * Supplier-form tokens are keys: only the side that evaluates the idea (its department lead, or override users)
+ * receives them — never the submitter or other colleagues, who could otherwise answer as the supplier.
+ */
+function tokenRules(me: User, s: DomainData) {
+  let allowed: Set<string> | null = null
+  const ok = () => (allowed ??= new Set(s.ideas.filter((i) => i.evaluation?.supplier?.token && (hasRole(me, 'head', 'admin') || ideaPerms(me, i, s.users).evaluate)).map((i) => i.evaluation!.supplier!.token!)))
+  return {
+    idea: (i: Rec): Rec => {
+      const sc = (i.evaluation as Rec | undefined)?.supplier as Rec | undefined
+      if (!sc?.token || ok().has(String(sc.token))) return i
+      const { token: _t, ...rest } = sc
+      void _t
+      return { ...i, evaluation: { ...(i.evaluation as Rec), supplier: rest } }
+    },
+    email: (e: Rec): Rec => {
+      const body = String(e.body ?? '')
+      if (!body.includes('/supplier-form/')) return e
+      return { ...e, body: body.replace(/\/supplier-form\/([0-9a-z-]+)/gi, (m, t: string) => (ok().has(t) ? m : '/supplier-form/••••')) }
+    },
+  }
+}
+
+/** The shape of one record for this viewer (passwords, keys and competitors' details removed) */
+function shape(me: User, key: Key, item: Rec, tokens: ReturnType<typeof tokenRules>): Rec {
+  switch (key) {
+    case 'users': return scrubUser(me, item as unknown as User) as unknown as Rec
+    case 'ideas': return tokens.idea(item)
+    case 'emails': return tokens.email(item)
+    case 'campaigns': {
+      if (!isSupplier(me)) return item
+      // a supplier sees its own invitation — not who else was invited, their answers or Amber's targets
+      const code = me.supplierCode ?? ''
+      const att = (item.attendance as Record<string, unknown>) ?? {}
+      const { targetValue: _v, targetIdeas: _n, internalInvitees: _i, ...rest } = item
+      void _v; void _n; void _i
+      return { ...rest, suppliers: [code], attendance: code in att ? { [code]: att[code] } : {}, internalInvitees: [] }
+    }
+    case 'commodities': {
+      if (!isSupplier(me)) return item
+      const { target: _t, addressableSpend: _a, ...rest } = item
+      void _t; void _a
+      return rest
+    }
+    default: return item
+  }
+}
 
 /** Is one record of a collection visible to the user? */
 function recordVisible(me: User, key: Key, item: Rec, s: DomainData, ideaIds: () => Set<string>): boolean {
   switch (key) {
-    case 'ideas': return canSeeIdea(me, item as never)
+    case 'ideas': return ideaVisible(me, item)
     case 'ledger': return ideaIds().has(String(item.ideaId))
     case 'notifications': return item.userId === me.id
     case 'emails': {
@@ -67,12 +118,13 @@ const idOf = recordId
 export function visibleData(me: User, s: DomainData): DomainData {
   let ids: Set<string> | null = null
   const ideaIds = () => (ids ??= visibleIdeaIds(me, s))
+  const tokens = tokenRules(me, s)
   const out: Record<string, unknown> = {}
   for (const key of DATA_KEYS) {
     const v = s[key] as unknown
     if (Array.isArray(v)) {
       const list = (v as Rec[]).filter((x) => typeof x !== 'object' || recordVisible(me, key, x, s, ideaIds))
-      out[key] = key === 'users' ? (list as unknown as User[]).map((u) => scrubUser(me, u)) : list
+      out[key] = list.map((x) => (typeof x === 'object' ? shape(me, key, x, tokens) : x))
     } else out[key] = scopedValue(me, key, v)
   }
   return out as unknown as DomainData
@@ -84,6 +136,7 @@ export type Delta = Partial<Record<Key, { upsert: Rec[]; remove: string[] } | { 
 export function visibleDelta(me: User, before: DomainState, after: DomainState): Delta {
   let idsAfter: Set<string> | null = null
   const ideaIds = () => (idsAfter ??= visibleIdeaIds(me, after))
+  const tokens = tokenRules(me, after)
   const out: Delta = {}
   for (const key of DATA_KEYS) {
     const a = after[key] as unknown, b = before[key] as unknown
@@ -97,7 +150,7 @@ export function visibleDelta(me: User, before: DomainState, after: DomainState):
         const id = idOf(key, x)
         now.add(id)
         if (prev.get(id) === x) continue
-        if (recordVisible(me, key, x, after, ideaIds)) upsert.push(key === 'users' ? (scrubUser(me, x as unknown as User) as unknown as Rec) : x)
+        if (recordVisible(me, key, x, after, ideaIds)) upsert.push(shape(me, key, x, tokens))
         else if (prev.has(id)) remove.push(id)
       }
       for (const id of prev.keys()) if (!now.has(id)) remove.push(id)

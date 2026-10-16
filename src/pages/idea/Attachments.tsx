@@ -90,7 +90,8 @@ export function Attachments({ idea, compact }: { idea: Idea; compact?: boolean }
   }
 
   const open = (a: Attachment) => {
-    const href = a.dataUrl ?? a.url
+    const raw = a.dataUrl ?? a.url
+    const href = raw && (raw.startsWith('data:') || /^\/api\/files\/[0-9a-f-]{36}$/.test(raw)) ? raw : undefined
     if (href && isImage(a)) { setPreview(a); return }
     if (href) { const el = document.createElement('a'); el.href = href; el.download = a.name; el.click(); return }
     toast(`${a.name} is held in the document repository — preview not available here`, 'info')

@@ -22,5 +22,9 @@ export async function verifyPassword(password: string, stored: string | null | u
   return key.length === expected.length && timingSafeEqual(key, expected)
 }
 
+/** For unknown accounts: spend the same time as a real check, so timing never tells which accounts exist */
+let dummy: Promise<string> | null = null
+export async function verifyAgainstNothing(password: string) { dummy ??= hashPassword('not-a-real-password-0'); await verifyPassword(password, await dummy) }
+
 /** Password rule for accounts set by Admin */
 export const passwordProblem = (pw: string) => (pw.length < 8 ? 'at least 8 characters' : !/[A-Za-z]/.test(pw) || !/\d/.test(pw) ? 'letters and digits' : null)

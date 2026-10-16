@@ -65,6 +65,8 @@ export function remoteStore(setRaw: StoreApi<unknown>['setState'], getRaw: Store
 
   const refresh = async () => {
     const b = await call<{ version: number; userId: string; data: DomainData }>('GET', '/api/bootstrap')
+    // a command answered while this was in flight is newer — never roll the screen back to an older picture
+    if (b.version < (get().dataVersion ?? 0) || pending) return
     set({ ...b.data, userId: b.userId, dataVersion: b.version })
   }
 
@@ -160,8 +162,11 @@ export function remoteStore(setRaw: StoreApi<unknown>['setState'], getRaw: Store
     importData: (patch: unknown) => { void command('importData')(patch).then(refresh).catch(() => undefined) },
     beginUndo: () => {
       const mark = issued.length
+      // the action's own commands are sent in the same click; anything issued after this tick belongs to later actions
+      let end: number | null = null
+      setTimeout(() => { end = issued.length }, 0)
       return () => {
-        const ids = issued.slice(mark)
+        const ids = issued.slice(mark, end ?? issued.length)
         if (!ids.length) return
         void enqueue(() => call('POST', '/api/undo', { commandIds: ids }))
           .then(refresh)

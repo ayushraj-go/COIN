@@ -36,7 +36,8 @@ describe('internal roles', () => {
   it('every role receives exactly the ideas it may see', () => {
     for (const u of data.users) {
       const v = visibleData(u, state)
-      expect(v.ideas.length).toBe(data.ideas.filter((i) => canSeeIdea(u, i)).length)
+      // the role rules — and a draft only for the person writing it
+      expect(v.ideas.length).toBe(data.ideas.filter((i) => canSeeIdea(u, i) && (i.stage !== 'Draft' || i.submitterId === u.id)).length)
     }
   })
   it('nobody receives password hashes or passwords', () => {

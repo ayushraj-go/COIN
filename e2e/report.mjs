@@ -34,6 +34,18 @@ const FINDINGS = [
   ['Hard-coding', 'Supplier portal URL, app URL in emailed links and the default filter year were fixed in the code.', 'SUPPLIER_PORTAL_URL / APP_URL in .env; the filter year follows the organisation’s current FY.'],
   ['Resilience', 'The error screen offered “Reset demo data”.', 'With the server it offers Reload; data is never reset from a browser.'],
   ['Concurrency', 'Two people acting on the same idea at the same moment could overwrite each other.', 'Commands of one organisation run one at a time (database advisory lock); the second gets a clear refusal.'],
+  ['Security review', 'An NPD / PAP status update copied every field the browser sent onto the idea — an execution owner could jump stages or overwrite another department’s idea.', 'Only the two statuses are accepted; every form now passes a whitelist, and the server refuses any command that changes a record other than the one it names.'],
+  ['Security review', 'A crafted attachment link (javascript:) or an uploaded HTML file could run code in COIN when an admin opened it.', 'Only embedded files and COIN-stored files are accepted; files download instead of opening (images excepted) under a sandbox policy; nobody can attach someone else’s stored file.'],
+  ['Security review', 'A board move checked one stage but applied the raw stage sent, so Finance verification could be skipped.', 'The server applies the stage it checked.'],
+  ['Security review', 'Execution and evaluation updates accepted any field (erase slippage, backdate the first MRN, move the idea to another department, fake the supplier check).', 'Each form’s fields only.'],
+  ['Security review', 'The supplier-form link was short and guessable and was visible to the submitter, who could answer as the supplier.', '128-bit random token, shown only to the evaluating department lead and override users; hidden in everyone else’s copy of the email.'],
+  ['Security review', 'Campaign invitations went as one email to all suppliers; suppliers also saw each other’s codes, answers and Amber’s targets.', 'One email per supplier; a supplier sees only its own invitation and no targets.'],
+  ['Security review', 'Sign-in limits trusted a forgeable address header; unknown accounts answered faster than wrong passwords.', 'Proxy headers trusted only when TRUST_PROXY is set; a per-account limit from any address; the same work for unknown accounts.'],
+  ['Security review', 'A decimal session timeout (30.5) in Admin made every request fail for everyone.', 'Settings are validated; the server reads the timeout defensively.'],
+  ['Security review', 'A password set by Admin was written to the audit log in plain text.', 'Passwords are redacted from the audit log.'],
+  ['Security review', 'Reset demo data worked on a real server and reset every password to the public demo one; importing a backup wiped other people’s notifications and views.', 'Reset only while demo sign-in is on and never touches passwords; imports never touch per-person data or accounts.'],
+  ['Security review', 'Undo could bring back a record someone deleted afterwards; a restored account could not sign in; one undo could revert two actions.', 'Undo knows what each command did, restores password hashes, keeps sent emails, and covers exactly the action clicked.'],
+  ['Security review', 'Colleagues’ unsubmitted drafts were sent to team leads, heads and Admin.', 'A draft goes only to the person writing it.'],
 ]
 const HARDCODING = [
   ['src/store/useStore.ts → engine.ts', "buyerId: 'u-buyer1' on every new draft", 'Buyer of the chosen commodity (commodity master)'],

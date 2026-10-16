@@ -6,7 +6,7 @@
 import { randomUUID } from 'node:crypto'
 import { createStore } from 'zustand/vanilla'
 import { DATA_KEYS, domainActions, type DomainActions, type DomainData, type DomainState } from '../../src/domain/engine'
-import { authorise } from '../../src/domain/policies'
+import { POLICIES, authorise } from '../../src/domain/policies'
 import { visibleDelta, type Delta } from '../../src/domain/visibility'
 import type { Attachment, User } from '../../src/lib/types'
 import type { Config } from './config'
@@ -28,8 +28,20 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
 function trimArgs(v: unknown, depth = 0): unknown {
   if (typeof v === 'string') return v.length > 500 ? `${v.slice(0, 120)}… (${v.length} chars)` : v
   if (Array.isArray(v)) return depth > 6 ? '[…]' : v.slice(0, 200).map((x) => trimArgs(x, depth + 1))
-  if (v && typeof v === 'object') return depth > 6 ? '{…}' : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, trimArgs(x, depth + 1)]))
+  // passwords (set by Admin) never reach the audit log
+  if (v && typeof v === 'object') return depth > 6 ? '{…}' : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, /password/i.test(k) ? '•••' : trimArgs(x, depth + 1)]))
   return v
+}
+const withoutPasswords = <T,>(users: T[]): T[] => (users.some((u) => (u as { password?: string }).password) ? users.map((u) => { if (!(u as { password?: string }).password) return u; const { password: _p, ...rest } = u as T & { password?: string }; void _p; return rest as T }) : users)
+
+/** the records a scoped command changed, added or removed (by id) */
+function changedIds<T extends { id: string }>(before: T[], after: T[]): Set<string> {
+  const prev = new Map(before.map((x) => [x.id, x]))
+  const out = new Set<string>()
+  for (const x of after) if (prev.get(x.id) !== x) out.add(x.id)
+  const now = new Set(after.map((x) => x.id))
+  for (const id of prev.keys()) if (!now.has(id)) out.add(id)
+  return out
 }
 
 export class OrgData {
@@ -67,7 +79,13 @@ export class OrgData {
       const out: Attachment[] = []
       for (const a of list) {
         const m = typeof a?.dataUrl === 'string' ? /^data:([^;,]*)(;base64)?,(.*)$/s.exec(a.dataUrl) : null
-        if (!m) { out.push(a); continue }
+        if (!m) {
+          // a link to a stored file is accepted only for files this person uploaded — nobody can "borrow" someone else's
+          const id = typeof a?.url === 'string' ? a.url.replace('/api/files/', '') : ''
+          const own = id && (await c.query('select 1 from files where org_id = $1 and id = $2 and created_by = $3', [orgId, id, me?.id ?? null])).rowCount
+          if (own) out.push({ ...a, dataUrl: undefined } as Attachment)
+          continue
+        }
         const bytes = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]), 'utf8')
         if (bytes.length > MAX_FILE_BYTES) throw new HttpError(413, `${a.name} is larger than 10 MB`)
         const id = randomUUID()
@@ -127,10 +145,20 @@ export class OrgData {
         const result = (fn as (...x: unknown[]) => unknown)(...callArgs)
         if (warnings.length) throw new HttpError(409, warnings[0])
         const after: DomainState = { ...pickData(store.getState() as unknown as Record<string, unknown>), userId: before.userId }
+        // only Admin setting a password writes one; anything else (e.g. the demo seed inside resetDemo) never touches hashes
+        const settingPassword = name === 'upsert' && callArgs[0] === 'users'
+        if (!settingPassword) after.users = withoutPasswords(after.users)
+        // defence in depth: a command scoped to one idea / campaign may change only that record
+        const scope = POLICIES[name]?.scope
+        if (scope === 'idea' || scope === 'campaign') {
+          const key = scope === 'idea' ? 'ideas' : 'campaigns'
+          const touched = changedIds(before[key] as { id: string }[], after[key] as { id: string }[])
+          for (const id of touched) if (id !== callArgs[0]) throw new HttpError(403, `This action may only change ${String(callArgs[0])}`)
+        }
 
         const { beforeRows, inserted } = await persistDiff(c, orgId, before, after, commandId)
         // the hash is written; the plain password must not stay in the cached snapshot
-        if (after.users.some((u) => (u as { password?: string }).password)) after.users = after.users.map((u) => { const { password: _p, ...rest } = u as typeof u & { password?: string }; void _p; return rest as typeof u })
+        after.users = withoutPasswords(after.users)
         const next = version + 1
         await c.query('update organisations set version = $2 where id = $1', [orgId, next])
         await c.query('insert into command_log (id, org_id, actor_id, command, args, ok, before_rows, version) values ($1, $2, $3, $4, $5, true, $6, $7)',

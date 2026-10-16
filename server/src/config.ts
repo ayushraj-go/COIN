@@ -31,6 +31,8 @@ const Env = z.object({
   COOKIE_SECURE: bool(false),
   SESSION_HOURS: z.coerce.number().positive().default(12),
   SERVE_STATIC: bool(false),
+  /** behind a load balancer: number of proxy hops (e.g. 1) or its address range; unset = trust nobody's X-Forwarded-For */
+  TRUST_PROXY: z.string().optional(),
 })
 
 export type Config = z.infer<typeof Env>
