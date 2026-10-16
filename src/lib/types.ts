@@ -96,7 +96,7 @@ export interface IdeaPart {
   volumeOverrideReason?: string
 }
 
-export interface Attachment { id: string; name: string; size: number; type: string; dataUrl?: string; uploadedAt: string; by: string }
+export interface Attachment { id: string; name: string; size: number; type: string; dataUrl?: string; /** api mode: stored on the server, served from this link */ url?: string; uploadedAt: string; by: string }
 
 export interface ActivityEntry {
   id: string

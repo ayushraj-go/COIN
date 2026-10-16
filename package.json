@@ -8,7 +8,20 @@
     "dev:lan": "vite --port 8742 --strictPort --host",
     "build": "vite build",
     "preview": "vite preview --port 8742 --strictPort",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev:api": "tsx watch server/src/main.ts",
+    "build:api": "esbuild server/src/main.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=server/dist/main.mjs",
+    "start": "node server/dist/main.mjs",
+    "db:init": "node scripts/db.mjs init",
+    "db:start": "node scripts/db.mjs start",
+    "db:stop": "node scripts/db.mjs stop",
+    "db:status": "node scripts/db.mjs status",
+    "db:psql": "node scripts/db.mjs psql",
+    "db:migrate": "tsx server/src/cli.ts migrate",
+    "db:seed": "tsx server/src/cli.ts seed",
+    "db:reset": "tsx server/src/cli.ts reset",
+    "test:api": "tsx server/src/cli.ts reset --test && vitest run server",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p server"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.3",
