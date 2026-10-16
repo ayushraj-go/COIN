@@ -441,7 +441,13 @@ async function accessMatrix(qa, api, ctx) {
     if (idea === undefined) { rows.push({ action: label, idea: '—', person: '—', expected: '—', actual: 'no HR idea at this stage in the seed', reason: '', status: 'SKIP' }); continue }
     for (const who of people) {
       // a complete, valid request — only the person decides; nothing is changed (dry run)
-      const args = idea ? [idea.id] : cmd === 'upsert' ? ['users', { id: 'u-qa-check', name: 'QA Check', email: 'qa.check@ambergroupindia.com', employeeId: 'AEL-QA-1', department: 'HR', roles: ['submitter'], password: 'Strong2026' }] : cmd === 'financeValidate' ? [[]] : [{}]
+      const FORM = {
+        recordFeasibility: [{ technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] }],
+        recordEvaluation: ['Recommend'],
+        handOverForVerification: [today(), {}],
+        verifyIdea: [{ mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: 0 }],
+      }
+      const args = idea ? [idea.id, ...(FORM[cmd] ?? [])] : cmd === 'upsert' ? ['users', { id: 'u-qa-check', name: 'QA Check', email: 'qa.check@ambergroupindia.com', employeeId: 'AEL-QA-1', department: 'HR', roles: ['submitter'], password: 'Strong2026' }] : cmd === 'financeValidate' ? [[]] : [{}]
       const c = api.cookies.get(who) ?? (await api.login(who))
       const r = await fetch(`${qa.base}/api/authorise/${cmd}`, { method: 'POST', headers: { cookie: c, 'Content-Type': 'application/json' }, body: JSON.stringify({ args }) }).then((x) => x.json())
       const expected = allowed.includes(who)
