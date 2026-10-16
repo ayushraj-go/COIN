@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import type { BuyingType, Part, User } from '../lib/types'
-import { useMe, useStore } from '../store/useStore'
+import { useMe, useStore, API_MODE } from '../store/useStore'
 import { can } from '../lib/nav'
 import { EVIDENCE_TAGS, LAKH, LEVER_GROUP_STYLE } from '../lib/masters'
 import { DEFINITIONS, OUT_OF_SCOPE } from '../lib/scope'
@@ -195,6 +195,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   // ─── ID preview (COIN-FY27-FAS-0012) ──────────────────────────────────────────
   const idPreview = useMemo(() => {
     if (!form.commodity) return null
+    // api mode: the server issues the number on submit (this person does not see everyone's ideas to count them)
+    if (API_MODE) return `COIN-${currentFy}-${form.commodity}-····`
     const seqs = ideas.filter((i) => i.commodity === form.commodity && i.fy === currentFy).map((i) => i.seq)
     return `COIN-${currentFy}-${form.commodity}-${String((seqs.length ? Math.max(...seqs) : 0) + 1).padStart(4, '0')}`
   }, [ideas, form.commodity, currentFy])

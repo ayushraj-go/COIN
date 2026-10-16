@@ -392,7 +392,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
       {open && (
         <div className="fixed inset-0 z-[120] flex items-start sm:items-center justify-center p-3 sm:p-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-gray-900)]/40 backdrop-blur-[2px]" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
+          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined} className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
             <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-line">
               <div className="flex items-center gap-3">
                 {icon && <div className="h-9 w-9 rounded-lg border border-line text-brand-600 grid place-items-center"><Icon name={icon} size={17} /></div>}

@@ -308,6 +308,7 @@ export function UserAdmin() {
     { key: 'roles', label: 'Roles (one person can hold more than one)', type: 'multiselect', required: true, wide: true, options: ROLE_KEYS.map((r) => [r, ROLE_LABEL[r]] as [string, string]) },
     { key: 'commodities', label: 'Commodity mapping', type: 'multiselect', wide: true, options: commodities.map((c) => [c.code, c.code] as [string, string]), hint: 'Buyers and Leads see only mapped commodities; empty + an organisation-wide role = all' },
     { key: 'supplierCode', label: 'Vendor (supplier login)', type: 'select', options: suppliers.map((s) => [s.code, `${s.code} · ${s.name}`] as [string, string]), show: (d) => (d.roles ?? []).includes('supplier'), required: true },
+    { key: 'password', label: 'Password', type: 'password', placeholder: 'New users: 8+ characters with letters and digits', hint: 'Existing users: leave blank to keep the current password. A new password signs the person out everywhere.' },
     { key: 'active', label: 'Status', type: 'toggle' },
   ]
   const toggle = (u: User) => {
@@ -333,16 +334,18 @@ export function UserAdmin() {
       </div>
       {unmapped.length > 0 && <SectionIntro icon="TriangleAlert">No active buyer is mapped to {unmapped.map((c) => c.name).join(', ')} — new ideas there will have no validator.</SectionIntro>}
       <CrudSection<User> title="Users — user–role–commodity mapping" subtitle={roleF === 'All' ? `${users.length} users · identity from single sign-on / AD` : `Filtered: ${ROLE_LABEL[roleF as RoleKey]}`} icon="UserCog" entity="User" storeKey="users" rows={rows}
-        makeNew={() => ({ id: `u-${Date.now().toString(36)}`, name: '', employeeId: '', email: '', password: 'coin@2026', roles: ['submitter'], department: 'Sourcing', plant: plants[0]?.id ?? 'RJP', designation: '', commodities: [], avatarColor: AVATAR[users.length % AVATAR.length], active: true })}
+        makeNew={() => ({ id: `u-${Date.now().toString(36)}`, name: '', employeeId: '', email: '', password: '', roles: ['submitter'], department: 'Sourcing', plant: plants[0]?.id ?? 'RJP', designation: '', commodities: [], avatarColor: AVATAR[users.length % AVATAR.length], active: true })}
         fields={fields} searchKeys={(u) => `${u.name} ${u.employeeId} ${u.email} ${u.designation} ${u.department}`}
         validate={(d, isNew) => {
           if (users.some((u) => u.id !== d.id && u.email.toLowerCase() === String(d.email).toLowerCase())) return 'Email already used by another user'
           if (users.some((u) => u.id !== d.id && u.employeeId.toLowerCase() === String(d.employeeId).toLowerCase())) return 'Employee ID already used by another user'
           if ((d.roles ?? []).includes('supplier') && d.roles.length > 1) return 'Supplier is a single external role and cannot be combined'
-          void isNew
+          const pw = String(d.password ?? '')
+          if (isNew && !pw) return 'Set a password for the new user'
+          if (pw && (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw))) return 'Password needs at least 8 characters with letters and digits'
           return null
         }}
-        fromUi={(d) => ({ ...d, supplierCode: d.roles.includes('supplier') ? d.supplierCode : undefined })}
+        fromUi={(d) => { const { password, ...rest } = d; return { ...rest, ...(password ? { password } : {}), supplierCode: d.roles.includes('supplier') ? d.supplierCode : undefined } as User }}
         blockDelete={(u) => (ideas.some((i) => i.submitterId === u.id || i.buyerId === u.id || i.ownerId === u.id) || commodities.some((c) => c.buyerId === u.id || c.leadId === u.id) ? 'User is referenced by ideas or commodities — deactivate instead to keep the audit trail' : u.id === useStore.getState().userId ? 'You cannot delete your own account' : null)}
         toolbar={roleF !== 'All' && <Button size="sm" variant="ghost" icon="X" onClick={() => setRoleF('All')}>Clear role filter</Button>}
         columns={[

@@ -12,7 +12,7 @@ export type ListKey = 'levers' | 'categories' | 'commodities' | 'plants' | 'user
 export interface FieldSpec<T = any> {
   key: string
   label: string
-  type: 'text' | 'email' | 'number' | 'crore' | 'select' | 'multiselect' | 'toggle' | 'icon' | 'textarea'
+  type: 'text' | 'email' | 'password' | 'number' | 'crore' | 'select' | 'multiselect' | 'toggle' | 'icon' | 'textarea'
   options?: [string, string][] | ((draft: T) => [string, string][])
   required?: boolean
   hint?: React.ReactNode
@@ -91,7 +91,7 @@ export function FormField<T>({ f, draft, set, editing, ro }: { f: FieldSpec<T>; 
       )
       break
     default:
-      input = <input className="input" type={f.type === 'email' ? 'email' : 'text'} disabled={disabled} value={v ?? ''} onChange={(e) => set(f.key, e.target.value)} placeholder={f.placeholder} />
+      input = <input className="input" type={f.type === 'email' ? 'email' : f.type === 'password' ? 'password' : 'text'} autoComplete={f.type === 'password' ? 'new-password' : undefined} disabled={disabled} value={v ?? ''} onChange={(e) => set(f.key, e.target.value)} placeholder={f.placeholder} />
   }
   return <Field label={f.label} required={f.required} hint={f.hint} className={cn(f.wide && 'sm:col-span-2')}>{input}</Field>
 }

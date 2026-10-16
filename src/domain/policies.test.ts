@@ -69,6 +69,13 @@ describe('organisation actions', () => {
     for (const who of ['u-head', 'u-rd-head', 'u-sub1', 'u-sup1']) expect(run(who, 'upsert', 'users', { id: who, roles: ['admin'] }).ok).toBe(false)
     expect(run('u-head', 'updateSettings', { sessionTimeoutMin: 999 }).ok).toBe(false)
   })
+  it('a malformed admin change is refused with a reason instead of crashing the server', () => {
+    expect(run('u-admin', 'upsert', 'users', { active: false }).ok).toBe(false)
+    expect(run('u-admin', 'upsert', 'users', { id: 'u-x', name: 'X', email: 'x@a.com', employeeId: 'E1', department: 'HR', roles: ['submitter'] }).ok).toBe(false) // new user without a password
+    expect(run('u-admin', 'upsert', 'users', { id: 'u-x', name: 'X', email: data.users[0].email, employeeId: 'E1', department: 'HR', roles: ['submitter'], password: 'Strong123' }).ok).toBe(false) // email already used
+    expect(run('u-admin', 'upsert', 'ideas', { id: 'COIN-x' }).ok).toBe(false) // not a master list
+    expect(run('u-admin', 'upsert', 'users', { id: 'u-x', name: 'X', email: 'x@a.com', employeeId: 'E1', department: 'HR', roles: ['submitter'], password: 'Strong123' }).ok).toBe(true)
+  })
   it('a supplier answers only its own workshop invitation', () => {
     const sup = user('u-sup1')
     const c = data.campaigns.find((x) => x.suppliers.includes(sup.supplierCode!))!

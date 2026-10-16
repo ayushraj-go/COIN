@@ -6,7 +6,7 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify'
 import cookie from '@fastify/cookie'
 import { z } from 'zod'
 import { configureSupplierPortal } from '../../src/domain/engine'
-import { COMMAND_NAMES } from '../../src/domain/policies'
+import { COMMAND_NAMES, authorise } from '../../src/domain/policies'
 import { scrubUser, visibleData } from '../../src/domain/visibility'
 import type { User } from '../../src/lib/types'
 import { ROOT, type Config } from './config'
@@ -34,14 +34,14 @@ const parse = <T>(schema: z.ZodType<T>, body: unknown): T => {
   return r.data
 }
 
-/** small in-memory limiter for sign-in and the public supplier form (per IP) */
+/** small in-memory limiter: `check` refuses once `max` hits were counted in the window; `hit` counts one */
 function limiter(max: number, windowMs: number) {
   const hits = new Map<string, { n: number; reset: number }>()
-  return (key: string) => {
-    const now = Date.now()
-    const h = hits.get(key)
-    if (!h || h.reset < now) { hits.set(key, { n: 1, reset: now + windowMs }); return }
-    if (++h.n > max) throw new HttpError(429, 'Too many attempts — wait a few minutes and try again')
+  const live = (key: string) => { const h = hits.get(key); return h && h.reset > Date.now() ? h : null }
+  return {
+    check: (key: string) => { if ((live(key)?.n ?? 0) >= max) throw new HttpError(429, 'Too many attempts — wait a few minutes and try again') },
+    hit: (key: string) => { const h = live(key); if (h) h.n++; else hits.set(key, { n: 1, reset: Date.now() + windowMs }) },
+    clear: (key: string) => { hits.delete(key) },
   }
 }
 
@@ -57,8 +57,10 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
   const orgs = new OrgData(db, config, app.log)
   const sessions = new Sessions(db, config)
   const mailer = new Mailer(db, config, app.log)
-  const loginLimit = limiter(10, 10 * 60_000)
-  const publicLimit = limiter(30, 10 * 60_000)
+  // failed sign-ins only: 10 per account and address, 100 per address (an office shares one address) per 10 minutes
+  const failedPerAccount = limiter(10, 10 * 60_000)
+  const failedPerAddress = limiter(100, 10 * 60_000)
+  const publicLimit = limiter(60, 10 * 60_000)
 
   app.addHook('onSend', async (req, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff')
@@ -104,12 +106,17 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     return { accounts: snap.data.users.filter((u) => u.active !== false).map((u) => ({ id: u.id, name: u.name, roles: u.roles, department: u.department, designation: u.designation, supplierCode: u.supplierCode, avatarColor: u.avatarColor })) }
   })
   app.post('/api/auth/login', async (req, reply) => {
-    loginLimit(req.ip)
     const { login, password } = parse(LoginBody, req.body)
     const k = login.toLowerCase()
+    const acct = `${req.ip}|${k}`
+    failedPerAccount.check(acct); failedPerAddress.check(req.ip)
     const row = (await db.query('select id, password_hash, active from users where org_id = $1 and (lower(email) = $2 or lower(employee_id) = $2)', [config.ORG_ID, k])).rows[0]
     // same answer for unknown user and wrong password
-    if (!row || !(await verifyPassword(password, row.password_hash))) throw new HttpError(401, 'Invalid email / employee ID or password')
+    if (!row || !(await verifyPassword(password, row.password_hash))) {
+      failedPerAccount.hit(acct); failedPerAddress.hit(req.ip)
+      throw new HttpError(401, 'Invalid email / employee ID or password')
+    }
+    failedPerAccount.clear(acct)
     if (!row.active) throw new HttpError(403, 'Your account is deactivated — contact your COIN administrator')
     await sessions.create(reply, req, config.ORG_ID, row.id)
     const snap = await orgs.snapshot(config.ORG_ID)
@@ -161,6 +168,15 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     return { result: out.result ?? null, version: out.version, changes: out.changes, duplicate: !!out.duplicate }
   })
 
+  // "may I?" — runs only the policy, changes nothing (used by the QA access matrix and available to the UI)
+  app.post<{ Params: { name: string } }>('/api/authorise/:name', async (req) => {
+    const { orgId, me } = await requireUser(req)
+    const body = parse(CommandBody, req.body ?? {})
+    const snap = await orgs.snapshot(orgId)
+    const r = authorise(req.params.name, { me, state: { ...snap.data, userId: me.id }, args: body.args })
+    return r.ok ? { allowed: true } : { allowed: false, reason: (r as { reason: string }).reason }
+  })
+
   app.post('/api/undo', async (req) => {
     const { orgId, me } = await requireUser(req)
     const { commandIds } = parse(UndoBody, req.body)
@@ -190,7 +206,7 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     return idea?.evaluation?.supplier ? { idea, sc: idea.evaluation.supplier } : null
   }
   app.get<{ Params: { token: string } }>('/api/public/supplier-check/:token', async (req) => {
-    publicLimit(req.ip)
+    publicLimit.check(req.ip); publicLimit.hit(req.ip)
     const hit = await byToken(req.params.token)
     if (!hit) throw new HttpError(404, 'This link is not valid')
     const { sc } = hit
@@ -199,7 +215,7 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
       response: sc.response ? { contactName: sc.response.contactName, respondedAt: sc.response.respondedAt } : undefined }
   })
   app.post<{ Params: { token: string } }>('/api/public/supplier-check/:token', async (req) => {
-    publicLimit(req.ip)
+    publicLimit.check(req.ip); publicLimit.hit(req.ip)
     const r = parse(SupplierResponse, req.body)
     const hit = await byToken(req.params.token)
     if (!hit) throw new HttpError(404, 'This link is not valid')

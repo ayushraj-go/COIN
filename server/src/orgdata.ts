@@ -129,6 +129,8 @@ export class OrgData {
         const after: DomainState = { ...pickData(store.getState() as unknown as Record<string, unknown>), userId: before.userId }
 
         const { beforeRows, inserted } = await persistDiff(c, orgId, before, after, commandId)
+        // the hash is written; the plain password must not stay in the cached snapshot
+        if (after.users.some((u) => (u as { password?: string }).password)) after.users = after.users.map((u) => { const { password: _p, ...rest } = u as typeof u & { password?: string }; void _p; return rest as typeof u })
         const next = version + 1
         await c.query('update organisations set version = $2 where id = $1', [orgId, next])
         await c.query('insert into command_log (id, org_id, actor_id, command, args, ok, before_rows, version) values ($1, $2, $3, $4, $5, true, $6, $7)',

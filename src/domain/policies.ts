@@ -13,6 +13,8 @@ type Check = (ctx: PolicyCtx) => string | null
 export interface CommandPolicy { check: Check; sanitize?: (ctx: PolicyCtx) => unknown[] }
 
 const hasRole = (u: User, ...roles: User['roles']) => u.roles.some((r) => roles.includes(r))
+/** master lists Admin may edit through upsert / remove */
+const MASTER_KEYS = ['levers', 'categories', 'commodities', 'plants', 'users', 'suppliers', 'parts', 'emailTemplates', 'approvalRules', 'slaRules']
 const OVERRIDE = (u: User) => hasRole(u, 'head', 'admin')
 
 const ideaArg = (ctx: PolicyCtx): Idea | undefined => ctx.state.ideas.find((i) => i.id === ctx.args[0])
@@ -162,8 +164,25 @@ export const POLICIES: Record<string, CommandPolicy> = {
   deleteView: { check: (ctx) => { const v = ctx.state.savedViews.find((x) => x.id === ctx.args[0]); return !v ? 'View not found' : v.userId === ctx.me.id || OVERRIDE(ctx.me) ? null : 'You can only delete your own views' } },
 
   // ─── administration ───
-  upsert: { check: roles(['admin'], 'Admin') },
-  remove: { check: roles(['admin'], 'Admin') },
+  upsert: {
+    check: (ctx) => {
+      if (!ctx.me.roles.includes('admin')) return 'Only Admin can do this'
+      const [key, item, idKey = 'id'] = ctx.args as [string, Record<string, unknown> | undefined, string | undefined]
+      if (!MASTER_KEYS.includes(key)) return `Unknown master ${key}`
+      if (!item || typeof item !== 'object' || !String(item[idKey] ?? '').trim()) return `The record needs a ${idKey}`
+      if (key === 'users') {
+        const existing = ctx.state.users.find((u) => u.id === item.id)
+        const merged = { ...(existing ?? {}), ...item } as Record<string, unknown>
+        for (const f of ['name', 'email', 'employeeId', 'department']) if (!String(merged[f] ?? '').trim()) return `A user needs ${f === 'employeeId' ? 'an employee ID' : `a ${f}`}`
+        if (!Array.isArray(merged.roles) || !merged.roles.length) return 'A user needs at least one role'
+        const clash = ctx.state.users.find((u) => u.id !== item.id && (u.email.toLowerCase() === String(merged.email).toLowerCase() || u.employeeId.toLowerCase() === String(merged.employeeId).toLowerCase()))
+        if (clash) return `Email or employee ID already used by ${clash.name}`
+        if (!existing && !item.password) return 'A new user needs a password'
+      }
+      return null
+    },
+  },
+  remove: { check: (ctx) => (!ctx.me.roles.includes('admin') ? 'Only Admin can do this' : MASTER_KEYS.includes(String(ctx.args[0])) ? null : `Unknown master ${ctx.args[0]}`) },
   setList: { check: roles(['admin'], 'Admin') },
   updateSettings: { check: roles(['admin'], 'Admin') },
   setBuyerTarget: { check: roles(['admin', 'head'], 'Admin or the Sourcing Head') },

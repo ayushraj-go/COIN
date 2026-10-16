@@ -61,6 +61,15 @@ describe.skipIf(!enabled)('sign-in', () => {
     expect(bad.statusCode).toBe(401)
     expect(unknown.json()).toEqual(bad.json())
   })
+  it('only failed sign-ins are limited — a busy office is never locked out', async () => {
+    const ok = () => app.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'meera.iyer@ambergroupindia.com', password: config.SEED_PASSWORD } })
+    for (let k = 0; k < 15; k++) expect((await ok()).statusCode).toBe(200)
+    const bad = () => app.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'rajesh.khanna@ambergroupindia.com', password: 'nope' } })
+    for (let k = 0; k < 10; k++) expect((await bad()).statusCode).toBe(401)
+    expect((await bad()).statusCode).toBe(429)
+    // another account from the same address still signs in
+    expect((await ok()).statusCode).toBe(200)
+  })
   it('no session → 401 everywhere', async () => {
     for (const url of ['/api/bootstrap', '/api/auth/me', '/api/version']) expect((await app.inject({ url })).statusCode).toBe(401)
     expect((await app.inject({ method: 'POST', url: '/api/commands/approve', payload: { args: ['x'] } })).statusCode).toBe(401)
