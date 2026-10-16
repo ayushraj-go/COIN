@@ -18,8 +18,9 @@ const only = args.find((a) => a.startsWith('--only='))?.slice(7).split(',')
 const PORT = Number(process.env.QA_PORT || 8790)
 const BASE = `http://localhost:${PORT}`
 const OUT = path.join(ROOT, 'qa-output')
-const DB = process.env.TEST_DATABASE_URL
-if (!DB) { console.error('TEST_DATABASE_URL is not set (.env)'); process.exit(1) }
+// its own database, so the QA run and the API tests (coin_test) never touch each other's data
+const DB = process.env.QA_DATABASE_URL || process.env.TEST_DATABASE_URL
+if (!DB) { console.error('QA_DATABASE_URL is not set (.env)'); process.exit(1) }
 
 const run = (cmd, a, env = {}) => {
   const r = spawnSync(cmd, a, { cwd: ROOT, stdio: 'inherit', shell: true, env: { ...process.env, ...env } })
@@ -27,7 +28,7 @@ const run = (cmd, a, env = {}) => {
 }
 
 console.log('▸ resetting the QA database')
-run('npx', ['tsx', 'server/src/cli.ts', 'reset', '--test'])
+run('npx', ['tsx', 'server/src/cli.ts', 'reset'], { DATABASE_URL: DB })
 if (!args.includes('--skip-build')) {
   console.log('▸ building the web app (api mode)')
   run('npx', ['vite', 'build', '--logLevel', 'warn'], { VITE_DATA_MODE: 'api' })
@@ -72,6 +73,7 @@ const results = {
   started: ctx.started, finished: new Date().toISOString(), base: BASE, ctx,
   steps: qa.steps, issues: qa.issues, consoleErrors: qa.consoleErrors,
   emails: head.emails, notifications: head.notifications.slice(0, 400),
+  users: head.users.map((u) => ({ id: u.id, name: u.name, roles: u.roles, department: u.department, email: u.email })),
   ideas: head.ideas.filter((i) => (ctx.createdIdeas ?? []).includes(i.id)),
   serverErrors: serverLog.join('').split('\n').filter((l) => /"level":(50|60)/.test(l)).slice(0, 50),
 }

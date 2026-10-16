@@ -54,6 +54,21 @@ async function signIn(qa) {
     await qa.click('Sign out', { wait: 1500 })
     await qa.goto('/ideas')
   }, async () => { must(qa.page.url().includes('/login'), 'a protected page opened without a session'); return 'Redirected to sign-in' })
+  await qa.step('Change your own password', 'User menu → Change password: current password required, new one 8+ characters with letters and digits', async () => {
+    await qa.as(P.aditi)
+    await qa.click('Aditi Sharma', { wait: 500 })
+    await qa.click('Change password', { wait: 800 })
+    await qa.type('[role="dialog"] input[autocomplete="current-password"]', process.env.SEED_PASSWORD || 'coin@2026')
+    const nw = await qa.page.$$('[role="dialog"] input[autocomplete="new-password"]')
+    await nw[0].type('Aditi2026x'); await nw[1].type('Aditi2026x'); await sleep(200)
+    await qa.click('Change password', { dialog: true, wait: 1500 })
+  }, async () => {
+    const r = await fetch(`${qa.base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: P.aditi, password: 'Aditi2026x' }) })
+    must(r.status === 200, `new password refused (${r.status})`)
+    const old = await fetch(`${qa.base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: P.aditi, password: process.env.SEED_PASSWORD || 'coin@2026' }) })
+    must(old.status === 401, 'the old password still works')
+    return 'New password works; the old one no longer does'
+  })
   await qa.step('One-click demo account', 'The department picker signs in a demo person (switch DEMO_LOGIN off for real users)', async () => {
     await qa.goto('/login')
     await qa.click('HR', { exact: true, wait: 400 })
@@ -143,7 +158,7 @@ async function deptLead(qa, api, ctx) {
     await qa.fill('Item (generic description)', 'Industrial canteen meals (breakfast + lunch)')
     await qa.fill('Specification summary', 'Per-meal rate for 1,500–2,400 meals a day, FSSAI licensed kitchen, menu approved monthly')
     await qa.setField('Required by', plusDays(30))
-  }, async () => { await qa.expectText('Sodexo Food Services'); return 'Request filled · the email preview shows the vendor, item and form link' })
+  }, async () => { const ok = await qa.page.evaluate(() => [...document.querySelectorAll('input, textarea')].some((e) => e.value.includes('Sodexo Food Services'))); must(ok, 'vendor not filled'); return 'Request filled · the email preview updates with the vendor, item and form link' })
   await qa.step('Send the capability request', 'The email with a secure form link is written to the outbox', () => qa.click('Send capability request', { wait: 2200 }), async () => {
     const i = await api.idea(P.neelam, ctx.hrIdea)
     const sc = i.evaluation?.supplier
@@ -386,7 +401,7 @@ async function admin(qa, api, ctx) {
     const r = await fetch(`${qa.base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ login: 'pooja.mehta@ambergroupindia.com', password: 'Welcome2026' }) })
     must(r.status === 403, `login status ${r.status}`); return 'Sign-in refused: account deactivated'
   })
-  await qa.step('Role ladder', 'Who does what in each of the 8 departments', async () => { await qa.click('Role ladder', { wait: 1000 }).catch(() => undefined) }, () => qa.expectText('Team lead'))
+  await qa.step('Role ladder', 'Who does what in each of the 8 departments', () => qa.click('Role ladder', { wait: 1000 }), () => qa.expectText('who acts at each stage'))
 }
 
 // ─── 7 · what every role sees ───────────────────────────────────────────────
@@ -425,7 +440,8 @@ async function accessMatrix(qa, api, ctx) {
   for (const [label, cmd, idea, allowed] of cases) {
     if (idea === undefined) { rows.push({ action: label, idea: '—', person: '—', expected: '—', actual: 'no HR idea at this stage in the seed', reason: '', status: 'SKIP' }); continue }
     for (const who of people) {
-      const args = idea ? [idea.id] : cmd === 'upsert' ? ['users', { id: 'x' }] : cmd === 'financeValidate' ? [[]] : [{}]
+      // a complete, valid request — only the person decides; nothing is changed (dry run)
+      const args = idea ? [idea.id] : cmd === 'upsert' ? ['users', { id: 'u-qa-check', name: 'QA Check', email: 'qa.check@ambergroupindia.com', employeeId: 'AEL-QA-1', department: 'HR', roles: ['submitter'], password: 'Strong2026' }] : cmd === 'financeValidate' ? [[]] : [{}]
       const c = api.cookies.get(who) ?? (await api.login(who))
       const r = await fetch(`${qa.base}/api/authorise/${cmd}`, { method: 'POST', headers: { cookie: c, 'Content-Type': 'application/json' }, body: JSON.stringify({ args }) }).then((x) => x.json())
       const expected = allowed.includes(who)

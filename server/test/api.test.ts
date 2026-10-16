@@ -227,6 +227,22 @@ describe.skipIf(!enabled)('attachments', () => {
   })
 })
 
+describe.skipIf(!enabled)('own password', () => {
+  it('needs the current password and a strong new one; old sessions end, the new password works', async () => {
+    const login = (pw: string) => app.inject({ method: 'POST', url: '/api/auth/login', payload: { login: 'rahul.jain@ambergroupindia.com', password: pw } })
+    const a = String((await login(config.SEED_PASSWORD)).headers['set-cookie']).split(';')[0]
+    const other = String((await login(config.SEED_PASSWORD)).headers['set-cookie']).split(';')[0]
+    const change = (current: string, next: string) => app.inject({ method: 'POST', url: '/api/auth/password', headers: { cookie: a }, payload: { current, next } })
+    expect((await change('wrong', 'Better2026')).statusCode).toBe(400)
+    expect((await change(config.SEED_PASSWORD, 'weak')).statusCode).toBe(400)
+    const ok = await change(config.SEED_PASSWORD, 'Better2026')
+    expect(ok.statusCode).toBe(200)
+    expect((await app.inject({ url: '/api/auth/me', headers: { cookie: other } })).statusCode).toBe(401)
+    expect((await login(config.SEED_PASSWORD)).statusCode).toBe(401)
+    expect((await login('Better2026')).statusCode).toBe(200)
+  })
+})
+
 describe.skipIf(!enabled)('administration', () => {
   it('a new account gets a hashed password, can sign in, and is signed out when deactivated', async () => {
     const user = { id: 'u-new-1', name: 'Neha Test', employeeId: 'AEL-99001', email: 'neha.test@ambergroupindia.com', roles: ['submitter'], department: 'HR', plant: 'NDA', designation: 'Executive', commodities: [], avatarColor: '#4338ca', active: true }

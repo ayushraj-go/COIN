@@ -20,6 +20,7 @@ const PORT = process.env.PGPORT || '5433'
 const url = new URL(process.env.DATABASE_URL || `postgres://coin:coin@localhost:${PORT}/coin`)
 const USER = decodeURIComponent(url.username), PASS = decodeURIComponent(url.password), DB = url.pathname.slice(1)
 const TEST_DB = process.env.TEST_DATABASE_URL ? new URL(process.env.TEST_DATABASE_URL).pathname.slice(1) : `${DB}_test`
+const QA_DB = process.env.QA_DATABASE_URL ? new URL(process.env.QA_DATABASE_URL).pathname.slice(1) : `${DB}_qa`
 
 function findBin() {
   const exe = os.platform() === 'win32' ? 'pg_ctl.exe' : 'pg_ctl'
@@ -55,13 +56,21 @@ if (cmd === 'init') {
       if (r.status !== 0) process.exit(r.status ?? 1)
     } finally { fs.rmSync(pwfile, { force: true }) }
     start()
-    for (const d of [DB, TEST_DB]) psql('postgres', `CREATE DATABASE "${d}" OWNER "${USER}"`)
-    console.log(`Created databases ${DB} and ${TEST_DB} owned by ${USER}`)
+    for (const d of [DB, TEST_DB, QA_DB]) psql('postgres', `CREATE DATABASE "${d}" OWNER "${USER}"`)
+    console.log(`Created databases ${DB}, ${TEST_DB} and ${QA_DB} owned by ${USER}`)
   }
 } else if (cmd === 'start') start()
 else if (cmd === 'stop') { if (running()) run('pg_ctl', ['-D', DATA, '-m', 'fast', '-w', 'stop']); else console.log('PostgreSQL is not running') }
 else if (cmd === 'status') console.log(running() ? `PostgreSQL running on localhost:${PORT}` : 'PostgreSQL is not running')
 else if (cmd === 'psql') run('psql', ['-h', 'localhost', '-p', PORT, '-U', USER, '-d', DB])
+// add any database named in .env that the cluster does not have yet (e.g. coin_qa on an older cluster)
+else if (cmd === 'ensure') {
+  for (const d of [DB, TEST_DB, QA_DB]) {
+    const r = run('psql', ['-h', 'localhost', '-p', PORT, '-U', USER, '-d', 'postgres', '-tAc', `select 1 from pg_database where datname = '${d}'`], { capture: true })
+    if (!String(r.stdout).trim()) { psql('postgres', `CREATE DATABASE "${d}" OWNER "${USER}"`); console.log(`created database ${d}`) }
+  }
+  console.log('databases ready')
+}
 else if (cmd === 'reset') {
   if (running()) run('pg_ctl', ['-D', DATA, '-m', 'fast', '-w', 'stop'])
   fs.rmSync(DATA, { recursive: true, force: true })

@@ -1,0 +1,9 @@
+node_modules
+dist
+server/dist
+.pgdata
+qa-output
+.env
+.env.*
+!.env.example
+*.log

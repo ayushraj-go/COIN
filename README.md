@@ -1,23 +1,80 @@
 # COIN — Cost Optimisation & Innovation Network
 
-**In-app name: Cost Innovation Hub.** This is a front-end-only demo for Amber Enterprises India Ltd., built from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
+**In-app name: Cost Innovation Hub.** Built for Amber Enterprises India Ltd. from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
 
-- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v8`).
-- **Port 8742.** Uses `--strictPort`, so it won't quietly move to 5173 or another common port.
+COIN runs in two modes from the same code:
 
-## Run
+| Mode | Where the data lives | Who checks the role ladder | Used for |
+|---|---|---|---|
+| **api** (`VITE_DATA_MODE=api`) | PostgreSQL, through the COIN API server | the server, on every action | real development, AWS later |
+| **local** (no setting) | the browser's `localStorage` | the browser | the Vercel demo |
+
+The workflow rules are written once (`src/domain/engine.ts`) and run in both places. Port 8742 (web) uses `--strictPort`.
+
+## Run — full product (API + PostgreSQL)
+
+Needs Node 20+ and PostgreSQL 16–18 installed (the binaries only; no admin password needed).
 
 ```bash
 npm install
-npm run dev        # http://localhost:8742
-npm test           # workflow rules + demo seed (Vitest)
+cp .env.example .env     # then set a database password in DATABASE_URL / TEST_DATABASE_URL
+npm run db:init          # creates a COIN-only PostgreSQL in .pgdata (port 5433) with databases coin + coin_test
+npm run db:seed          # schema + demo data (55 accounts, password = SEED_PASSWORD)
+npm run dev:api          # API on http://localhost:8787
+npm run dev              # web app on http://localhost:8742 (forwards /api to the API)
 ```
 
-To serve a production build: `npm run build`, then `npm run preview` (also on port 8742).
+`npm run dev:all` starts the database, the API and the web app in one terminal. After a reboot run `npm run db:start`.
+
+| Command | What it does |
+|---|---|
+| `npm run db:start` / `db:stop` / `db:status` / `db:psql` | the local PostgreSQL cluster |
+| `npm run db:migrate` | apply new files in `db/migrations` |
+| `npm run db:seed` | re-create the organisation with the demo data (wipes it) |
+| `npm run db:reset` | drop every table, migrate and seed |
+| `npm test` | workflow rules, permissions, visibility, and the API against `coin_test` |
+| `npm run qa`, then `npm run qa:report` | Chrome drives every role through the real screens → `qa-output/COIN_QA_Workbook.xlsx` and `COIN_User_Story.pdf` |
+| `npm run build` + `npm run build:api` + `npm start` | production: one Node process serves the API and the web app (`SERVE_STATIC=true`) |
+
+### How the server works
+
+- **Sign-in**: email or employee ID + password (scrypt hashes, never sent back). The session is an httpOnly cookie; it
+  ends after `SESSION_HOURS` or the organisation's idle timeout, and when Admin deactivates the person or sets a new
+  password. Only failed sign-ins are rate-limited. One-click demo accounts exist only while `DEMO_LOGIN=true`.
+- **Reading**: `GET /api/bootstrap` sends exactly what the person may see — their department's ideas, their own
+  notifications, a scrubbed user directory; a supplier gets only its own vendor record, parts and submissions.
+  The app polls `GET /api/version` every 5 s and reloads when someone else changed something.
+- **Changing**: every action is `POST /api/commands/<name>`. The server checks the policy (`src/domain/policies.ts`,
+  the department ladder), runs the shared engine on the organisation's data under a database lock (no two people
+  overwrite each other), writes only what changed, and audits it in `command_log` with the rows as they were.
+  Refused actions return 403 / 409 with the reason; a repeated command id is not run twice.
+- **Undo**: the 5-second undo asks the server to put back the rows of the person's own action, unless someone changed
+  them since.
+- **Emails** are written to the `emails` table (the outbox, shown in the app). `EMAIL_DRIVER=smtp` + `SMTP_URL` also
+  sends them (AWS SES SMTP works).
+- **Supplier capability form**: the emailed link opens `/supplier-form/<token>` with no login; the public endpoints
+  show only what the email asked and accept one answer.
+- **Files**: attachments are stored in the `files` table and served only to people who can see the idea.
+
+### Configuration (`.env`)
+
+See `.env.example`. Never commit `.env`. For anything beyond local development set `DEMO_LOGIN=false`, give every
+account its own password, `COOKIE_SECURE=true` behind HTTPS, and a real `APP_URL`.
+
+### AWS later
+
+`Dockerfile` builds one image (API + web app); point `DATABASE_URL` at RDS PostgreSQL and run it on ECS / App Runner
+behind HTTPS. `docker-compose.yml` runs the same thing locally with a PostgreSQL container.
+
+## Run — browser-only demo (what Vercel serves)
+
+Set `VITE_DATA_MODE=local` (or remove it from `.env`) and run `npm run dev`. Every idea, approval, ledger entry,
+campaign, notification, email and setting is then kept in the browser's `localStorage` (key
+`coin-cost-innovation-hub-v8`). Vercel builds without a `.env`, so the live demo stays in this mode.
 
 ## Demo logins
 
-Every persona uses the password **`coin@2026`**. On the login page pick a **department**, then one of its five roles; the
+Every seeded account uses the password **`coin@2026`** (`SEED_PASSWORD` in api mode). On the login page pick a **department**, then one of its five roles; the
 cross-functional row has the Finance verifier, Sourcing Head, Admin, Management and a Supplier. The user menu's
 **Switch demo persona** uses the same picker. You can also sign in with the email or employee ID (for example `AEL-03108`).
 

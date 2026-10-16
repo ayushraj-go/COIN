@@ -13,13 +13,14 @@ import { ROOT, type Config } from './config'
 import type { Db } from './db'
 import { HttpError, OrgData } from './orgdata'
 import { Sessions } from './sessions'
-import { passwordProblem, verifyPassword } from './passwords'
+import { hashPassword, passwordProblem, verifyPassword } from './passwords'
 import { Mailer } from './email'
 
 export interface AppDeps { db: Db; config: Config }
 
 const LoginBody = z.object({ login: z.string().trim().min(1).max(200), password: z.string().min(1).max(200) })
 const DemoBody = z.object({ userId: z.string().min(1).max(100) })
+const PasswordBody = z.object({ current: z.string().min(1).max(200), next: z.string().min(1).max(200) })
 const CommandBody = z.object({ args: z.array(z.unknown()).max(8).default([]), commandId: z.string().min(8).max(100).optional() })
 const UndoBody = z.object({ commandIds: z.array(z.string().min(8).max(100)).min(1).max(50) })
 const SupplierResponse = z.object({
@@ -133,6 +134,19 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     return { user: scrubUser(me, me) }
   })
   app.post('/api/auth/logout', async (req, reply) => { await sessions.destroy(req, reply); return { ok: true } })
+  // change your own password: the current one is required; every other session of this person ends
+  app.post('/api/auth/password', async (req, reply) => {
+    const { orgId, me } = await requireUser(req)
+    const { current, next } = parse(PasswordBody, req.body)
+    const row = (await db.query('select password_hash from users where org_id = $1 and id = $2', [orgId, me.id])).rows[0]
+    if (!(await verifyPassword(current, row?.password_hash))) throw new HttpError(400, 'The current password is not right')
+    const p = passwordProblem(next)
+    if (p) throw new HttpError(400, `The new password needs ${p}`)
+    await db.query('update users set password_hash = $3, updated_at = now() where org_id = $1 and id = $2', [orgId, me.id, await hashPassword(next)])
+    await sessions.destroyUser(orgId, me.id)
+    await sessions.create(reply, req, orgId, me.id)
+    return { ok: true }
+  })
   app.get('/api/auth/me', async (req) => { const { me } = await requireUser(req); return { user: scrubUser(me, me) } })
 
   // ─── data ───

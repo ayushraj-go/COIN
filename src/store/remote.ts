@@ -173,5 +173,8 @@ export function remoteStore(setRaw: StoreApi<unknown>['setState'], getRaw: Store
   }
 }
 
+/** Change the signed-in person's own password */
+export const changeOwnPassword = (current: string, next: string) => call('POST', '/api/auth/password', { current, next })
+
 /** Public endpoints for the supplier capability form (no session) */
 export const publicSupplierCheck = (token: string) => call<{ supplierName: string; contactName: string; item: string; spec: string; requiredBy: string; status: string; response?: { contactName: string; respondedAt: string } }>('GET', `/api/public/supplier-check/${encodeURIComponent(token)}`)

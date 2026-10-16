@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import confetti from 'canvas-confetti'
-import { useStore, useMe } from '../store/useStore'
+import { useStore, useMe, API_MODE } from '../store/useStore'
+import { ChangePasswordModal } from './ChangePassword'
 import { navForSpace, spaceForPath, ROLE_LABEL, primaryRole } from '../lib/nav'
 import { Avatar, Icon, IconButton, cn, Badge } from './ui'
 import { timeAgo, inrShort } from '../lib/format'
@@ -242,7 +243,11 @@ function CommandPalette() {
 
 function UserMenu() {
   const me = useMe()!
-  const { logout, loginAs, users, resetDemo, toast } = useStore()
+  const { logout, loginAs, users, resetDemo, toast, publicConfig } = useStore()
+  // api mode: demo tools exist only while the server allows demo sign-in; only Admin may reset the data
+  const demo = !API_MODE || !!publicConfig?.demoLogin
+  const canReset = demo && (!API_MODE || me?.roles.includes('admin'))
+  const [pw, setPw] = useState(false)
   const [open, setOpen] = useState(false)
   const nav = useNavigate()
   const loc = useLocation()
@@ -285,15 +290,19 @@ function UserMenu() {
               </div>
               <div className="flex flex-wrap gap-1 px-2 pb-2">{me.roles.map((r) => <Badge key={r} color="var(--color-brand-600)">{ROLE_LABEL[r]}</Badge>)}</div>
               <div className="border-t border-line my-1" />
+              {demo && (<>
               <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch demo persona</div>
-              <div className="px-2 pb-2"><PersonaPicker compact currentUserId={me.id} onPick={(id, label) => { loginAs(id); setOpen(false); nav('/'); toast(`Switched to ${label}`, 'info') }} /></div>
+              <div className="px-2 pb-2"><PersonaPicker compact currentUserId={me.id} onPick={async (id, label) => { setOpen(false); await loginAs(id); nav('/'); toast(`Switched to ${label}`, 'info') }} /></div>
               <div className="border-t border-line my-1" />
-              <button onClick={() => { if (confirm('Reset all demo data to the original seed? Local changes will be lost.')) { resetDemo(); toast('Demo data reset', 'info') } setOpen(false) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="RotateCcw" size={15} />Reset demo data</button>
+              </>)}
+              {API_MODE && <button onClick={() => { setOpen(false); setPw(true) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="KeyRound" size={15} />Change password</button>}
+              {canReset && <button onClick={() => { if (confirm('Reset all demo data to the original seed? Local changes will be lost.')) { resetDemo(); toast('Demo data reset', 'info') } setOpen(false) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="RotateCcw" size={15} />Reset demo data</button>}
               <button onClick={() => { setOpen(false); logout(); nav('/login') }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] text-red-600 hover:bg-red-50"><Icon name="LogOut" size={15} />Sign out</button>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+      {API_MODE && <ChangePasswordModal open={pw} onClose={() => setPw(false)} />}
     </div>
   )
 }

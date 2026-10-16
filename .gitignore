@@ -11,3 +11,4 @@ dist/
 .pgdata/
 qa-output/
 server/dist/
+qa-run.log

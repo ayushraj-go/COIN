@@ -21,7 +21,11 @@
     "db:seed": "tsx server/src/cli.ts seed",
     "db:reset": "tsx server/src/cli.ts reset",
     "test:api": "tsx server/src/cli.ts reset --test && vitest run server",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p server"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p server",
+    "qa": "node scripts/db.mjs ensure && node e2e/run.mjs",
+    "qa:report": "node e2e/report.mjs",
+    "dev:all": "node scripts/dev.mjs",
+    "db:ensure": "node scripts/db.mjs ensure"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.3",

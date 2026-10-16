@@ -1,0 +1,19 @@
+# Run the whole product locally in containers (needs Docker): docker compose up --build → http://localhost:8787
+# Seed once: docker compose run --rm api node -e "" (or run "npm run db:seed" against DATABASE_URL below)
+services:
+  db:
+    image: postgres:18-alpine
+    environment: { POSTGRES_USER: coin, POSTGRES_PASSWORD: coin-local, POSTGRES_DB: coin }
+    ports: ["5434:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  api:
+    build: .
+    depends_on: [db]
+    environment:
+      DATABASE_URL: postgres://coin:coin-local@db:5432/coin
+      APP_URL: http://localhost:8787
+      DEMO_LOGIN: "true"
+      EMAIL_DRIVER: outbox
+    ports: ["8787:8787"]
+volumes:
+  pgdata:

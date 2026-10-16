@@ -26,7 +26,11 @@ export class Qa {
 
   async start() {
     if (!CHROME) throw new Error('Chrome not found — set CHROME_PATH')
-    this.browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--force-color-profile=srgb', '--lang=en-GB'] })
+    // Chrome occasionally fails to start (updates, a busy machine) — try a few times before giving up
+    for (let k = 1; ; k++) {
+      try { this.browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--force-color-profile=srgb', '--lang=en-GB'] }); break }
+      catch (e) { if (k >= 4) throw e; console.log(`Chrome did not start (attempt ${k}) — retrying`); await sleep(3000) }
+    }
     await this.newPage()
   }
   async newPage() {

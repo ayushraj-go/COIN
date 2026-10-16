@@ -135,3 +135,15 @@ for thousands of ideas; split per idea later if needed).
 ## Ledger
 
 (appended as tasks complete)
+- Task 1 done (c13bf74): local cluster `.pgdata` on 5433, `db/migrations/001_init.sql`, `.env` / `.env.example`.
+- Task 2 done (c13bf74): engine extracted; hard-coded ids → role lookups; direct store writes → actions; async value actions.
+- Task 3 done (86c4f6c, b86d102): permissions / policies / visibility in `src/domain`; fixed the supplier visibility leak.
+- Task 4 done (e3529e1): API server + 17 integration tests (mutation check: disabling the policy fails 7 of them).
+- Task 5 done (56fcb4e): web app api mode; smoke-tested password sign-in in Chrome.
+- Tasks 6–7 (065cdcc …): browser QA found and fixed — login limiter counted successes; Admin had no password field and a
+  hard-coded `coin@2026`; malformed Admin change → 500; Submit Idea predicted the COIN number client-side.
+- Ruling: undo restores every data set in local mode (single user) and before-images on the server — cost if wrong:
+  local-mode undo within 5 s could also revert another change by the same person.
+- Ruling: suppliers see only their own parts (other vendors' prices are confidential), not every part of their
+  commodities — cost if wrong: a supplier must type part codes it does not supply.
+- Ruling: a full-org snapshot per command, cached by version — cost if wrong: slow commands beyond ~10k ideas.
