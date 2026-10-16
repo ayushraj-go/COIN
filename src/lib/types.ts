@@ -205,7 +205,13 @@ export interface SupplierCheck {
 export interface Evaluation {
   dept: string
   /** cost-benefit inputs the evaluator changed (auto values come from the idea); see cbaFigures */
-  cbaInputs?: { investment?: number; goLive?: string; payback?: number; carryOver?: number }
+  cbaInputs?: {
+    /** forecast saving a year as evaluated — replaces the part-wise forecast for the idea (see ideaAnnualised) */
+    annual?: number
+    investment?: number; goLive?: string; payback?: number; carryOver?: number; committed?: number
+    netYear1?: number; net3yr?: number
+    phasing?: { Q1: number; Q2: number; Q3: number; Q4: number }
+  }
   /** forecast below ₹ 5 L — the idea went from the team feasibility check straight to department approval */
   skipped?: boolean
   skippedReason?: string

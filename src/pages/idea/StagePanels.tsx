@@ -1,7 +1,6 @@
 // Idea page — one card per stage form (2 feasibility, 3 evaluation, 4 sourcing approval, 6 verification), read-only
 // summaries with "Open" when the signed-in user can act on that stage.
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { STAGE, WORKFLOW_STAGES } from '../../lib/masters'
@@ -39,9 +38,8 @@ const GREEN = 'var(--color-emerald-600)', ORANGE = 'var(--color-orange-400)', GR
 
 export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }) {
   const me = useMe()
-  const nav = useNavigate()
   const p = ideaPerms(me, idea)
-  const [open, setOpen] = useState<null | 'feas' | 'eval' | 'appr' | 'verify'>(null)
+  const [open, setOpen] = useState<null | 'feas' | 'eval' | 'evalSupplier' | 'appr' | 'verify'>(null)
   const close = () => setOpen(null)
   const f = idea.feasibilityCheck
   const ev = idea.evaluation
@@ -72,7 +70,7 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       {/* Stage 3 */}
       <Shell n={3} title={stageLabel(idea, STAGE.evaluation)} icon="FlaskConical" tone={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}
         status={<Badge color={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.evaluation) ? ORANGE : GREY}>{ev?.skipped ? 'Skipped · below ₹ 5 L' : ev?.decision ? (ev.decision === 'Recommend' ? 'Recommended' : 'Rejected') : at(STAGE.evaluation) ? 'In evaluation' : 'Pending'}</Badge>}
-        action={p.evaluate ? <div className="flex flex-wrap gap-1.5"><Button size="sm" variant="primary" icon="FlaskConical" onClick={() => setOpen('eval')}>Open evaluation</Button>{ev?.supplier && (ev.supplier.status === 'Not sent' || ev.supplier.status === 'Sent') && <Button size="sm" icon="Mail" onClick={() => nav(`/ideas/${idea.id}/supplier-check`)}>Supplier check</Button>}</div> : undefined}>
+        action={p.evaluate ? <div className="flex flex-wrap gap-1.5"><Button size="sm" variant="primary" icon="FlaskConical" onClick={() => setOpen('eval')}>Open evaluation</Button>{ev?.supplier && (ev.supplier.status === 'Not sent' || ev.supplier.status === 'Sent') && <Button size="sm" icon="Mail" onClick={() => setOpen('evalSupplier')}>Supplier check</Button>}</div> : undefined}>
         {ev?.skipped ? (
           <Waiting>{ev.skippedReason ?? 'Forecast below ₹ 5 L'} — the idea went from the team feasibility check straight to the {stageLabel(idea, STAGE.approval)}.</Waiting>
         ) : ev && reached(idea, STAGE.evaluation) ? (
@@ -122,7 +120,7 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       {!compact && ev?.supplier?.status === 'Responded' && <div className="md:col-span-2 2xl:col-span-4"><SupplierResponseCard idea={idea} /></div>}
 
       <FeasibilityCheckModal idea={idea} open={open === 'feas'} onClose={close} />
-      <EvaluationModal idea={idea} open={open === 'eval'} onClose={close} />
+      <EvaluationModal idea={idea} open={open === 'eval' || open === 'evalSupplier'} tab={open === 'evalSupplier' ? 'supplier' : 'cba'} onClose={close} />
       <SourcingApprovalModal idea={idea} open={open === 'appr'} onClose={close} />
       <VerificationModal idea={idea} open={open === 'verify'} onClose={close} />
     </div>

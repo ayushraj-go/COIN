@@ -10,7 +10,14 @@ export const savingPct = (p: IdeaPart) => (p.baselinePrice ? (savingPerUnit(p) /
 /** Forecast impact = (P(baseline) − P(new)) × Q(last FY MRN) */
 export const partAnnualised = (p: IdeaPart, useApproved = false) => savingPerUnit(p, useApproved) * (p.annualVolume || 0)
 
-export function ideaAnnualised(idea: Pick<Idea, 'parts' | 'scope' | 'openEstimateLakh'>, useApproved = false): number {
+export function ideaAnnualised(idea: Pick<Idea, 'parts' | 'scope' | 'openEstimateLakh'> & { evaluation?: Idea['evaluation'] }, useApproved = false): number {
+  // the forecast corrected at the department evaluation is the idea's forecast from then on
+  const evaluated = idea.evaluation?.cbaInputs?.annual
+  if (!useApproved && evaluated != null) return evaluated
+  return partsForecast(idea, useApproved)
+}
+/** Forecast from the parts (or the estimate of an open idea), before any correction at evaluation */
+export function partsForecast(idea: Pick<Idea, 'parts' | 'scope' | 'openEstimateLakh'>, useApproved = false): number {
   if (idea.scope === 'Open' || !idea.parts?.length) return (idea.openEstimateLakh || 0) * LAKH
   return sum(idea.parts.map((p) => partAnnualised(p, useApproved)))
 }
@@ -68,10 +75,23 @@ export function cbaFigures(idea: Idea, fy: string) {
   const investment = x.investment ?? (idea.oneTimeInvestment || 0)
   const goLive = x.goLive ?? autoGoLive
   const payback = x.payback ?? paybackMonths(annual, investment)
-  const carryOver = x.carryOver ?? carryOverFrom(annual, goLive, fy)
-  const committed = annual - carryOver
-  const edited = (['investment', 'goLive', 'payback', 'carryOver'] as const).filter((k) => x[k] != null)
-  return { annual, investment, goLive, payback, carryOver, committed, edited, auto: { investment: idea.oneTimeInvestment || 0, goLive: autoGoLive, payback: paybackMonths(annual, investment), carryOver: carryOverFrom(annual, goLive, fy) } }
+  // committed and carry-over split the forecast: whichever is typed by hand, the other is the rest
+  const autoCarry = x.committed != null ? annual - x.committed : carryOverFrom(annual, goLive, fy)
+  const carryOver = x.carryOver ?? autoCarry
+  const autoCommitted = annual - carryOver
+  const committed = x.committed ?? autoCommitted
+  const autoNetYear1 = annual - investment, autoNet3yr = annual * 3 - investment
+  // auto phasing: the forecast by quarter from the go-live, scaled to the committed figure
+  const base = phaseByQuarter(annual, goLive, fy)
+  const baseSum = base.Q1 + base.Q2 + base.Q3 + base.Q4
+  const k = baseSum ? committed / baseSum : 0
+  const autoPhasing = { Q1: base.Q1 * k, Q2: base.Q2 * k, Q3: base.Q3 * k, Q4: base.Q4 * k }
+  const edited = (['annual', 'investment', 'goLive', 'payback', 'carryOver', 'committed', 'netYear1', 'net3yr', 'phasing'] as const).filter((key) => x[key] != null)
+  return {
+    annual, investment, goLive, payback, carryOver, committed,
+    netYear1: x.netYear1 ?? autoNetYear1, net3yr: x.net3yr ?? autoNet3yr, phasing: x.phasing ?? autoPhasing, edited,
+    auto: { annual: partsForecast(idea), investment: idea.oneTimeInvestment || 0, goLive: autoGoLive, payback: paybackMonths(annual, investment), carryOver: autoCarry, committed: autoCommitted, netYear1: autoNetYear1, net3yr: autoNet3yr, phasing: autoPhasing },
+  }
 }
 const carryOverFrom = (annual: number, goLive: string, fy: string) => annual - (annual * fyMonthsFrom(goLive, fy)) / 12
 

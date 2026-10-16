@@ -10,7 +10,7 @@ export function Block({ title, icon, hint, children, right }: { title: string; i
       <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="h-7 w-7 rounded-lg grid place-items-center bg-brand-50 text-brand-700 shrink-0"><Icon name={icon} size={14} /></span>
-          <div className="min-w-0"><div className="text-[13.5px] font-semibold text-ink">{title}</div>{hint && <div className="text-[11.5px] text-muted">{hint}</div>}</div>
+          <div className="min-w-0"><div className="text-[13.5px] font-semibold text-ink">{title}</div>{hint && <div className="block-hint text-[11.5px] text-muted">{hint}</div>}</div>
         </div>
         {right}
       </div>
@@ -23,7 +23,7 @@ export function Kpi({ label, value, tone, tip, sub }: { label: string; value: Re
     <div className="rounded-xl border border-line bg-white px-3 py-2 min-w-0">
       <div className="text-[11px] font-medium text-muted flex items-center gap-1 truncate">{label}{tip && <InfoTip title={label}>{tip}</InfoTip>}</div>
       <div className={cn('text-[16px] font-bold num truncate', tone === 'good' ? 'text-emerald-700' : tone === 'bad' ? 'text-red-600' : 'text-ink')}>{value}</div>
-      {sub && <div className="text-[11px] text-muted truncate">{sub}</div>}
+      {sub && <div className="kpi-sub text-[11px] text-muted truncate">{sub}</div>}
     </div>
   )
 }

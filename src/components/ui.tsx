@@ -379,20 +379,22 @@ export function SourceTag({ children, color = 'var(--color-accent-700)' }: { chi
 }
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
-export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', icon }: { open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'; icon?: string }) {
+export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md', icon }: { open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'; icon?: string }) {
   useEffect(() => {
     if (!open) return
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [open, onClose])
-  const w = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-7xl' }[size]
+  // full: a working sheet that fills the screen at a fixed height, so its steps lay out without page scrolling
+  const full = size === 'full'
+  const w = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-7xl', full: 'max-w-[min(1720px,97vw)]' }[size]
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[120] flex items-start sm:items-center justify-center p-3 sm:p-6">
+        <div className={cn('fixed inset-0 z-[120] flex items-start sm:items-center justify-center', full ? 'p-2 sm:p-3' : 'p-3 sm:p-6')}>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-gray-900)]/40 backdrop-blur-[2px]" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} role="dialog" aria-modal="true" className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col max-h-[90vh] overflow-hidden', w)}>
+          <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={{ type: 'spring', duration: 0.35, bounce: 0.15 }} role="dialog" aria-modal="true" className={cn('relative w-full bg-white rounded-2xl shadow-[0_24px_48px_-12px_rgb(16_24_40/.25)] flex flex-col overflow-hidden', full ? 'h-[min(95vh,1000px)]' : 'max-h-[90vh]', w)}>
             <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-line">
               <div className="flex items-center gap-3">
                 {icon && <div className="h-9 w-9 rounded-lg border border-line text-brand-600 grid place-items-center"><Icon name={icon} size={17} /></div>}
@@ -400,7 +402,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
               </div>
               <IconButton icon="X" onClick={onClose} />
             </div>
-            <div className="px-5 py-4 overflow-y-auto">{children}</div>
+            <div className={cn('px-5 overflow-y-auto', full ? 'flex-1 min-h-0 py-3' : 'py-4')}>{children}</div>
             {footer && <div className="px-5 py-3 border-t border-line bg-[var(--color-slate-50)] flex items-center justify-end gap-2">{footer}</div>}
           </motion.div>
         </div>

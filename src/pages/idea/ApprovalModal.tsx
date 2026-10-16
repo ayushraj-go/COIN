@@ -4,7 +4,6 @@
 // 3 budget + timeline lock (part-wise budget, calendar start / end, dated milestone plan)
 // 4 sign & approve (signature, name, date, approval levels)
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { ApprovalLock, Idea } from '../../lib/types'
 import { hasRole, useMe, useStore } from '../../store/useStore'
 import { MILESTONE_TEMPLATES, RISK_FACTORS, STAGE } from '../../lib/masters'
@@ -22,7 +21,6 @@ type Tab = 'commercial' | 'supplier' | 'lock' | 'sign'
 
 export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const me = useMe()
-  const nav = useNavigate()
   const users = useStore((s) => s.users)
   const levers = useStore((s) => s.levers)
   const commodities = useStore((s) => s.commodities)
@@ -320,7 +318,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                 <Block title="Supplier alignment — no answer yet" icon="MailQuestion" hint={sc?.status === 'Sent' ? `Sent to ${sc.supplierName} · ${sc.email} · ${fmtDateTime(sc.sentAt)}` : 'No capability request was sent'}>
                   <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
                     <span>{sc?.status === 'Sent' ? 'The supplier has not answered the capability form yet.' : 'The department evaluation did not send a capability request.'} The lock records supplier alignment as <b>Not confirmed</b>.</span>
-                    {sc?.status === 'Sent' && <Button size="sm" icon="ArrowUpRight" onClick={() => { onClose(); nav(`/ideas/${idea.id}/supplier-check`) }}>Open the supplier check</Button>}
+                    {sc?.status === 'Sent' && sc.token && <Button size="sm" icon="ExternalLink" onClick={() => window.open(`/supplier-form/${sc.token}`, '_blank')}>Open the supplier form</Button>}
                   </div>
                 </Block>
               )}
