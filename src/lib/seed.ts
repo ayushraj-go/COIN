@@ -1,8 +1,8 @@
 import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User } from './types'
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
-import { addDays, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
+import { addDays, daysBetween, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, monthsBetween, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, planVsActual, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -382,15 +382,16 @@ function buildIdea(opts: {
     let effectiveDate: string | undefined
     let handedAt: string | undefined
     if (t === 'Implemented') {
-      effectiveDate = addDays(L.startDate, ri(0, 9))
+      effectiveDate = addDays(L.startDate, ri(0, 4))
       if (ymOf(effectiveDate) > LAST_REALISED) effectiveDate = `${LAST_REALISED}-0${ri(1, 9)}`
       if (effectiveDate < approvedDay) effectiveDate = addDays(approvedDay, 5)
       let reached = addDays(effectiveDate, ri(25, 70))
       if (reached >= TODAY) reached = addDays(TODAY, -ri(2, 9))
       if (reached <= effectiveDate) reached = addDays(effectiveDate, 3)
-      // an implemented idea reached verification because its locked timeline ended: the timeline is the whole months
-      // from the savings start to when it reached verification, and COIN moved it on that end date
-      let m = Math.max(1, Math.floor(monthsBetween(L.startDate, reached)))
+      // an implemented idea reached verification because its locked timeline ended: it ran two to four months of MRN
+      // (fewer when it started recently) and COIN moved it on that end date — taken from the draw above without a new
+      // one, so every other idea in the demo data stays the same
+      let m = 2 + (daysBetween(effectiveDate, reached) % 3)
       while (m > 1 && addMonthsIso(L.startDate, m) > TODAY) m--
       if (addMonthsIso(L.startDate, m) > TODAY) { L.startDate = firstOfMonth(addMonthsIso(TODAY, -1)); m = 1 }
       Object.assign(L, { timelineMonths: m, endDate: addMonthsIso(L.startDate, m), targetSaving: lockTarget(annual, m) })
@@ -445,7 +446,8 @@ function buildIdea(opts: {
       idea.papRequestId = `PAP-${ri(40000, 49999)}`
       idea.papStatus = t === 'Implemented' || papMs.doneDate ? 'Price approved' : 'Raised'
     }
-    if (effectiveDate) idea.parts = idea.parts.map((p) => ({ ...p, approvedPrice: +(p.newPrice * r(0.985, 1.02)).toFixed(p.newPrice > 100 ? 1 : 2) }))
+    // PAP approves the price signed in the lock (the draw keeps the rest of the demo data unchanged)
+    if (effectiveDate) idea.parts = idea.parts.map((p) => { void r(0.985, 1.02); return { ...p, approvedPrice: p.newPrice } })
     if (t === 'Implemented') {
       idea.implementedAt = `${handedAt}T00:00:00.000Z`
       exec.approvedPrice = idea.parts[0]?.approvedPrice
@@ -718,6 +720,15 @@ const FINAL = ['First MRN at new price', 'Implementation confirmed', 'Handed for
 // ─── Realisation ledger (Section 9) ───────────────────────────────────────────
 /** One month of MRN savings. `fromLock`: an idea without a recorded first MRN counts from the savings start in its lock
  *  (the live monthly feed); the seed history passes false and keeps only ideas whose first MRN is on record. */
+/** Each idea's MRN volume runs at its own steady pace against plan: most at or a little above plan, some slightly
+ *  below, a few well short — so the monthly forecast vs MRN view shows ideas on track and ideas falling behind */
+export function mrnPace(id: string) {
+  let h = 2166136261
+  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
+  const u = ((h >>> 0) % 1000) / 1000
+  return u < 0.6 ? 1.03 + (u / 0.6) * 0.15 : u < 0.8 ? 0.88 + (u - 0.6) * 0.45 : 0.45 + (u - 0.8) * 1.5
+}
+
 export function realiseMonth(ideas: Idea[], month: string, rng: () => number = rnd, fromLock = true): LedgerEntry[] {
   const out: LedgerEntry[] = []
   for (const i of ideas) {
@@ -731,9 +742,9 @@ export function realiseMonth(ideas: Idea[], month: string, rng: () => number = r
       let frac = 1
       if (ymOf(eff) === month) { const d = parse(eff); const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); frac = (dim - d.getDate() + 1) / dim }
       const roll = rng()
-      let qty = Math.round(planned * frac * (0.72 + rng() * 0.5))
-      if (roll < 0.03) qty = 0
-      else if (roll < 0.08) qty = Math.round(planned * frac * 0.35)
+      let qty = Math.round(planned * frac * mrnPace(i.id) * (0.9 + rng() * 0.2))
+      if (roll < 0.01) qty = 0
+      else if (roll < 0.025) qty = Math.round(planned * frac * 0.35)
       const leak = rng() < 0.08
       const mrnPrice = leak ? +(approved * (1 + 0.01 + rng() * 0.04)).toFixed(approved > 100 ? 1 : 2) : approved
       const realised = (p.baselinePrice - approved) * qty

@@ -17,11 +17,11 @@ import {
 } from '../components/ui'
 import { FilterBar } from '../components/FilterBar'
 import { MenuItem, MiniHead, Popover, ReassignModal, nextReminder, snapshot, toast } from './exec/shared'
-import { DropModal, LinkedEditor, MilestoneNoteModal, PhasingEditor, ProgressModal, npdColor, papColor } from './exec/ExecModals'
+import { DropModal, LinkedEditor, MilestoneNoteModal, ProgressModal, npdColor, papColor } from './exec/ExecModals'
 import { ExecTimeline, TimelineLegend } from './exec/Timeline'
-import { PlanVsActualBlock, useIdeaPlan } from './idea/PlanVsActual'
+import { MonthBars, SavingsTrackPanel, savingsTrackOf, useSavingsTrack } from './idea/SavingsTrack'
 import { execRights, ownerCandidates } from './idea/model'
-import { MrnFeedBanner, MrnTracking, UpcomingDeadlines, VerificationList, track } from './exec/Tabs'
+import { MrnFeedBanner, MrnTracking, ON_PLAN, UpcomingDeadlines, VerificationList, track } from './exec/Tabs'
 import Proof from './Proof'
 
 type Kpi = 'all' | 'due' | 'nomrn' | 'risk' | 'done' | 'dropped'
@@ -29,8 +29,7 @@ type ModalState = { kind: 'progress' | 'note' | 'drop' | 'reassign'; id: string;
 type Tab = 'execution' | 'mrn' | 'proof' | 'verification'
 /** set by the MRN feed — never ticked by hand */
 const AUTO_MILESTONES = ['First MRN at new price', 'Handed for verification']
-type PopState = { kind: 'phasing' | 'linked' | 'menu'; id: string; el: HTMLElement } | null
-const QS = ['Q1', 'Q2', 'Q3', 'Q4'] as const
+type PopState = { kind: 'linked' | 'menu'; id: string; el: HTMLElement } | null
 /** The execution "target date" is a deadline — shown as the due date. COIN has no savings target / landing. */
 const dueWording = (s: string) => s.replace(/\btarget date\b/g, 'due date').replace(/\bTarget date\b/g, 'Due date').replace(/removed from landing/g, 'removed from committed savings')
 
@@ -245,7 +244,7 @@ export default function ExecutionHub() {
                     <tr>
                       <th style={{ width: 34 }} />
                       <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at department approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
-                      <th><span className="inline-flex items-center gap-1">Quarter phasing Q1–Q4<InfoTip title="Quarter phasing" formula="Σ Q1..Q4 vs committedInFy(forecast, due date)">Pre-filled from due date and forecast impact; click to edit. Green dot = matches the system pre-fill.</InfoTip></span></th>
+                      <th><span className="inline-flex items-center gap-1">Month by month · MRN vs target<InfoTip title="Month by month" formula="MRN saving of the month ÷ (locked target ÷ months)">One bar per month of the locked timeline. Green = monthly target met, amber = within 10 %, red = short or no MRN, dashed = not posted yet. The % is MRN actual ÷ target to date. Open the row for the graph.</InfoTip></span></th>
                       <th>Progress</th><th>Health</th>
                       <th className="max-[1700px]:hidden"><span className="inline-flex items-center gap-1">Next reminder<InfoTip title="Implementation reminder">Every 15 days; weekly in the last 30 days before the due date. After the due date passes: the day after, then weekly.</InfoTip></span></th>
                       <th>NPD / PAP</th><th style={{ textAlign: 'right' }}>Committed {fy}</th><th style={{ width: 44 }} />
@@ -259,11 +258,7 @@ export default function ExecutionHub() {
                       const status = ex.status
                       const health = healthOf(i)
                       const hcol = status === 'Done' ? 'var(--color-emerald-600)' : status === 'Dropped' ? 'var(--color-gray-500)' : HEALTH_STYLE[health].color
-                      const p = ex.phasing
-                      const psum = p.Q1 + p.Q2 + p.Q3 + p.Q4
-                      const sys = committedInFy(ideaAnnualised(i), ex.targetDate, fy)
-                      const match = Math.abs(psum - sys) < Math.max(1000, sys * 0.005)
-                      const pmax = Math.max(p.Q1, p.Q2, p.Q3, p.Q4)
+                      const st = tracks.get(i.id)?.s ?? savingsTrackOf(i, ledger, lastMrn)
                       const slip = ex.originalTargetDate && ex.originalTargetDate !== ex.targetDate ? daysBetween(ex.originalTargetDate, ex.targetDate) : 0
                       const nr = nextReminder(ex)
                       const commodity = commodities.find((c) => c.code === i.commodity)
@@ -292,12 +287,8 @@ export default function ExecutionHub() {
                               <div className="text-[10.5px] text-muted">{daysBetween(t, ex.targetDate) > 0 ? `in ${daysBetween(t, ex.targetDate)} days` : 'today'}</div>
                             </td>
                             <td>
-                              <button onClick={(e) => setPop({ kind: 'phasing', id: i.id, el: e.currentTarget })} className="flex items-center gap-2 h-9 px-1.5 -mx-1.5 rounded-md hover:bg-slate-100">
-                                <span className="flex items-end gap-[3px] h-[22px]">
-                                  {QS.map((qq) => <span key={qq} className="w-[8px] rounded-[2px]" style={{ height: `${pmax ? Math.max(10, (p[qq] / pmax) * 100) : 10}%`, background: p[qq] > 0 ? 'var(--color-orange-400)' : 'var(--color-slate-200)' }} />)}
-                                </span>
-                                <span className="text-left leading-tight"><span className="block text-[12px] font-semibold num">{inrShort(psum)}</span><span className="block text-[10px] text-muted whitespace-nowrap">Q1 Q2 Q3 Q4</span></span>
-                                <Tooltip content={match ? 'Sum matches the system pre-fill (committedInFy)' : `Differs from system ${inrShort(sys)}`}><span className="h-2 w-2 rounded-full" style={{ background: match ? 'var(--color-emerald-600)' : 'var(--color-orange-400)' }} /></Tooltip>
+                              <button onClick={() => setExpanded((s) => { const n = new Set(s); n.add(i.id); return n })} className="flex items-center h-9 px-1.5 -mx-1.5 rounded-md hover:bg-slate-100" title="Open the month-by-month graph">
+                                <MonthBars t={st} />
                               </button>
                             </td>
                             <td>
@@ -340,7 +331,7 @@ export default function ExecutionHub() {
                     <tfoot>
                       <tr className="bg-slate-50 font-semibold">
                         <td /><td colSpan={2} className="text-[12px] text-muted">Total · {list.length} idea{list.length === 1 ? '' : 's'}</td><td className="max-[1700px]:hidden" /><td /><td className="max-[1700px]:hidden" /><td />
-                        <td className="num text-[12.5px]">{inrShort(sum(list.map((i) => { const p = i.execution!.phasing; return p.Q1 + p.Q2 + p.Q3 + p.Q4 })))}</td>
+                        <td className="num text-[12px]">{(() => { const ts = list.map((i) => tracks.get(i.id)?.s).filter(Boolean); const due = sum(ts.map((x) => x!.planToDate)), got = sum(ts.map((x) => x!.actualToDate)); return due ? <span className={got >= due * ON_PLAN ? 'text-emerald-700' : 'text-red-600'}>{inrShort(got)} of {inrShort(due)} to date</span> : '—' })()}</td>
                         <td /><td /><td className="max-[1700px]:hidden" /><td />
                         <td style={{ textAlign: 'right' }} className="num text-[13px]">{inrShort(cm(list))}</td><td />
                       </tr>
@@ -365,9 +356,6 @@ export default function ExecutionHub() {
       )}
 
       {/* Popovers */}
-      <Popover open={pop?.kind === 'phasing' && !!pIdea} onClose={() => setPop(null)} anchor={pop?.el ?? null} width={320}>
-        {pIdea && pop?.kind === 'phasing' && <PhasingEditor idea={pIdea} fy={fy} canEdit={editable(pIdea)} onClose={() => setPop(null)} />}
-      </Popover>
       <Popover open={pop?.kind === 'linked' && !!pIdea} onClose={() => setPop(null)} anchor={pop?.el ?? null} width={300}>
         {pIdea && pop?.kind === 'linked' && <LinkedEditor idea={pIdea} canEdit={editable(pIdea)} onClose={() => setPop(null)} />}
       </Popover>
@@ -412,7 +400,7 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
   const add = () => { if (!text.trim()) return; const undo = snapshot([idea.id]); useStore.getState().addExecutionNote(idea.id, text.trim()); setText(''); toast('Note added', 'success', undo) }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 p-3">
-      <PlanCard idea={idea} />
+      <TrackCard idea={idea} />
       <CoCard idea={idea} editable={editable} />
       <div className="card p-3">
         <MiniHead icon="ListChecks" right={<span className="text-[11px] text-muted">generated from the {idea.route} route</span>}>Milestones</MiniHead>
@@ -473,13 +461,13 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
   )
 }
 
-/** Plan vs actual for the locked target (stage 4 lock) — MRN-based actuals */
-function PlanCard({ idea }: { idea: Idea }) {
-  const p = useIdeaPlan(idea)
+/** Month by month: MRN saving against the locked monthly target, with the verdict and what the remaining months need */
+function TrackCard({ idea }: { idea: Idea }) {
+  const t = useSavingsTrack(idea)
   return (
-    <div className="card p-3 lg:col-span-2">
-      <MiniHead icon="ChartLine" right={<span className="text-[11px] text-muted">{idea.lock ? `${idea.lock.timelineMonths} months from ${fmtDate(idea.lock.startDate)}` : 'No lock'}</span>}>Plan vs actual</MiniHead>
-      {p ? <PlanVsActualBlock p={p} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at the department approval.</div>}
+    <div className="card p-3 lg:col-span-2 min-w-0">
+      <MiniHead icon="ChartColumnBig" right={<span className="text-[11px] text-muted">{idea.lock ? `${inrShort(idea.lock.targetSaving)} over ${idea.lock.timelineMonths} months from ${fmtDate(idea.lock.startDate)}` : 'No lock'}</span>}>Monthly savings vs target (MRN)</MiniHead>
+      {t ? <SavingsTrackPanel idea={idea} t={t} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at the department approval.</div>}
     </div>
   )
 }

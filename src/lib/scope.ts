@@ -1,4 +1,4 @@
-// COIN — Cost Optimisation & Innovation Network: Scope of Work (v2.0, 01 Oct 2026).
+// COIN — Cost Optimisation & Innovation Network: Scope of Work (v3.0, 16 Oct 2026).
 // Describes the current build. Used by the Scope & Methodology page, tooltips, reports and admin screens.
 import { NPD_COMMODITIES, NPD_SOURCE, NPD_SPOC_COLUMNS, PAYMENT_METHODS, VENDOR_GROUPS } from './npd'
 
@@ -7,15 +7,15 @@ export type DocSpace = 'CO' | 'IN' | 'Both'
 
 export const DOC_META = {
   title: 'COIN — Cost Optimisation & Innovation Network: Scope of Work',
-  version: 'v2.0',
+  version: 'v3.0',
   status: 'for review',
-  date: '01 Oct 2026',
+  date: '16 Oct 2026',
   author: '@Bagish',
   table: [
     ['Client', 'Amber Enterprises India Ltd.'],
     ['Product', 'COIN — Cost Optimisation & Innovation Network (in-app name: Cost Innovation Hub)'],
     ['Business owner', 'Sourcing / Procurement'],
-    ['Document', 'Scope of Work, v2.0 for review — describes the current build'],
+    ['Document', 'Scope of Work, v3.0 for review — describes the current build'],
     ['Prepared by', 'Vagish Kumar Mishra, Genessence'],
     ['Financial year', 'April to March; quarters Q1 (Apr–Jun) to Q4 (Jan–Mar)'],
   ] as [string, string][],
@@ -29,7 +29,7 @@ export const PURPOSE = [
 
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
-  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub (execution, monthly MRN tracking, savings proof, verification) · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-emerald-600)' },
+  { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub (execution, monthly MRN tracking, savings proof, verification) · a month-by-month MRN vs target graph on every request in execution or verification · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-teal-600)' },
   { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
 ]
 export const WORKSPACE_NOTE =
@@ -193,9 +193,9 @@ export const FORM_BEHAVIOUR = [
 export const MODULES_INTRO = 'The portal is delivered as ten modules across the two workspaces; the sidebar shows each user only the pages their role needs.'
 export const MODULES: { id: string; name: string; tag: DocSpace; space: string; screens: string; scope: string; path: string }[] = [
   { id: 'M1', name: 'Entry and dashboards', tag: 'Both', space: 'CO and IN', screens: 'Entry screen, workspace dashboards, role homes', scope: 'Four status cards and the CO / IN choice; per workspace a one-screen Dashboard and an Advanced analytics view; own homes for Submitter, Supplier and Technical Evaluator in IN', path: '/' },
-  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for Validate, feasibility, Go / No-go, Approve / Reject, Send back (the department head chooses the stage: submitter, team feasibility check or department evaluation), Request info, Reassign (execution), Mark Done and Drop', path: '/ideas/:id' },
+  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for Validate, feasibility, Go / No-go, Approve / Reject, Send back (the department head chooses the stage: submitter, team feasibility check or department evaluation), Request info, Reassign (execution) and Drop; from execution on, the "Monthly savings vs target (MRN)" card graphs every month of the locked timeline', path: '/ideas/:id' },
   { id: 'M10', name: 'MIS', tag: 'Both', space: 'Pinned in CO and IN', screens: 'Report library, KPI library, monthly mailer, scheduled emails', scope: '12 standard reports with filter bar and Excel / PDF export; monthly management mailer', path: '/reports' },
-  { id: 'M8', name: 'Execution Hub', tag: 'CO', space: 'CO', screens: 'Execution dashboard', scope: 'Approved ideas with owner, due date, quarter phasing, milestones, reminder schedule, health, Done / Drop and slippage log', path: '/execution' },
+  { id: 'M8', name: 'Execution Hub', tag: 'CO', space: 'CO', screens: 'Execution dashboard', scope: 'Tabs Execution · Monthly MRN tracking · Savings proof · Verification; approved ideas with owner, locked deadline, month-by-month MRN vs target bars and graph, milestones, NPD / PAP, reminder schedule, health and drop; ideas move to verification by themselves on the deadline', path: '/execution' },
   { id: 'NPD', name: 'NPD development master', tag: 'CO', space: 'CO (also listed in IN)', screens: 'Read-only master', scope: 'Commodity codes, development SPOC per plant / product line, DQA SPOC, performance and reliability testing days, vendor groups and payment methods — synced from VMS', path: '/npd' },
   { id: 'M2', name: 'Idea Register / My Ideas', tag: 'IN', space: 'IN (Implemented ideas view in CO)', screens: 'Table + Kanban', scope: 'Filter bar, saved views, quick filters as chips, Kanban by stage with drag to move (permission-checked), Excel export, ageing badge on each row', path: '/ideas' },
   { id: 'M3', name: 'Submit Idea', tag: 'IN', space: 'IN', screens: 'Collapsible form', scope: 'Collapsible steps A–E, fixed summary panel, duplicate check, route preview, campaign pre-fill, auto-saved draft', path: '/submit' },
@@ -267,19 +267,33 @@ export const EXECUTION_RECORD: [string, string][] = [
   ['Deadline', 'The savings end signed in the lock at department approval; it does not move during execution'],
   ['MRN tracking', 'Each completed month: forecast (locked target ÷ months) vs saving found in MRN transactions; no MRN, no saving'],
   ['First MRN at the new price', 'Taken from the MRN feed (first MRN line at the new price), never typed by hand'],
-  ['Quarter phasing', 'Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and forecast impact'],
+  ['Monthly savings track', 'One bar per month of the locked timeline: MRN saving against that month’s target (locked target ÷ months). Green = met, amber = within 10 %, red = short or no MRN; the graph also shows what the remaining months need to still reach the target'],
   ['Milestones', 'Generated from the route, e.g. Technical: Supplier sample → NPD ECN raised → Sample approved → PAP price approved → First MRN at new price'],
   ['Linked requests', 'NPD request ID and PAP request ID, status synced'],
-  ['Health', 'On plan / Behind plan (MRN below 90 % of the forecast to date) / No MRN yet / At risk (milestone overdue)'],
+  ['Health', 'On track (MRN at least 90 % of the target to date) / Behind (70–90 %) / Off track (below 70 %) / No MRN yet / At risk (milestone overdue); at the deadline: Target met (95 % or more of the locked target) or Shortfall'],
 ]
 export const EXECUTION_SCREEN = [
   'Tabs: Execution · Monthly MRN tracking · Savings proof · Verification. Top strip: ideas in execution (count, ₹ committed), deadline this month, no MRN yet, behind plan / at risk, moved to verification this month, dropped this month.',
-  'Main view toggles between a table and a quarter timeline (each idea as a bar from start to due date, milestones as dots); the table shows the next reminder date for each idea.',
+  'Main view toggles between a table and a quarter timeline (each idea as a bar from start to due date, milestones as dots); the table shows each idea’s month-by-month MRN bars against its monthly target and the next reminder date. Opening a row shows the full graph.',
+  'Every request in execution or verification carries the graph on its idea page, in the Execution Hub row, in Monthly MRN tracking and in the Verify dialog: month by month (bars against the monthly target) or cumulative (MRN against the target path), with the verdict and the saving the remaining months need.',
   'Row actions: Update progress, Add milestone note, Drop, Reassign (department head). No manual hand-over and no change of the deadline.',
   'On the deadline COIN moves the idea to verification with the locked target and the MRN actual for the locked window; Finance verifies (MRN at the approved price, Finance validation, target achieved from MRN).',
   'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.',
   'Side cards list ideas recently moved to verification or dropped, and the locked deadlines of the next 60 days.',
 ]
+/** Month-by-month savings graph: how each month and the idea as a whole are graded */
+export const MONTHLY_TRACK: [string, string][] = [
+  ['Monthly target', 'Locked target ÷ months of the timeline, e.g. ₹ 12 L over 6 months = ₹ 2 L a month'],
+  ['Month met (green)', 'MRN saving of the month is at or above the monthly target'],
+  ['Within 10 % (amber)', 'MRN saving is 90–100 % of the monthly target'],
+  ['Short (red)', 'MRN saving is below 90 % of the monthly target'],
+  ['No MRN (dark red)', 'No MRN at the new price in a posted month — counted as zero, nothing is claimed'],
+  ['Not posted yet (dashed)', 'Months after the last MRN month read from the ERP'],
+  ['Verdict to date', 'On track ≥ 90 % · Behind 70–90 % · Off track < 70 % of the target to date; No MRN when posted months found nothing'],
+  ['Needed per month', '(Locked target − MRN to date) ÷ months left, shown against the plan (e.g. 1.5× the plan)'],
+  ['At the deadline', 'Target met at 95 % or more of the locked target, else Shortfall — Finance verifies with this graph'],
+]
+
 export const DROP_REASONS_DEFAULT = [
   'Supplier not feasible',
   'Sample failed (R&D / DQA)',
@@ -304,7 +318,7 @@ export const REALISATION_IN_APP = [
   'IN Dashboard for Finance: the "Savings to validate" card lists pending months with their SLA, the exceptions found and any lines queried back to buyers.',
   'CO Advanced analytics: savings trend, realisation rate (realised ÷ committed) and quarter phasing.',
   'MIS: report 11 "Realisation & leakage" and report 12 "FY closure & carry-over"; the Monthly mailer tab sends the report manually and keeps the sent history.',
-  'Idea 360: the value card shows estimated vs approved vs realised for the idea.',
+  'Idea 360: the value card shows estimated vs approved vs realised; the Monthly savings vs target card graphs each month’s MRN against the locked monthly target.',
 ]
 export const REALISATION_DEMO_NOTE =
   'In this build the realisation ledger is pre-loaded with demo MRN data. Posting a month and the Finance validate / query action are not run from a screen; the validation status is shown everywhere above.'
@@ -454,7 +468,7 @@ export const UI_INTERACTIVITY = [
   'Every chart segment drills down to the ideas behind it.',
   'Kanban board with drag-and-drop stage moves (permission-checked).',
   'Side-panel review: open an idea from any list without losing your place.',
-  'Execution Hub row actions for progress, due date (with reason), quarter phasing and owner.',
+  'Execution Hub row actions for progress, milestone notes, owner (department head) and drop; the deadline is locked at department approval.',
   'Live stage tracker on each idea (stepper with dates and who acted).',
   'Global search (Ctrl + K) across ideas, parts, suppliers, campaigns and pages.',
   'Toasts for every action, with undo on non-final actions.',

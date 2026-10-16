@@ -274,7 +274,7 @@ export default function Login() {
 
         <footer className="shrink-0 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
           <span>© 2026 Amber Enterprises India Ltd. All rights reserved.</span>
-          <span>Scope of Work v1.0 · Prepared by Genessence · FY27 (Apr 2026 – Mar 2027)</span>
+          <span>Scope of Work v3.0 · Prepared by Genessence · FY27 (Apr 2026 – Mar 2027)</span>
         </footer>
       </div>
 

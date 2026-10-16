@@ -6,7 +6,6 @@ import { useMe, useStore } from '../../store/useStore'
 import { Badge, Button, Card, HealthBadge, Icon, InfoTip, KV, LeverChip, ProgressBar, SavingsTypeBadge, SourceTag, UserChip, cn } from '../../components/ui'
 import { approvalLevels, healthOf, ideaAnnualised } from '../../lib/calc'
 import { EVALUATION_STAGES, LEVER_GROUP_STYLE, STAGE } from '../../lib/masters'
-import { PlanVsActualBlock, useIdeaPlan } from './PlanVsActual'
 import { fmtDate, inr, inrPrice, inrShort, num, todayIso } from '../../lib/format'
 import { ROUTE_ICON, ideaPerms, stagesOf, supplierName, useCtx } from './model'
 
@@ -83,11 +82,6 @@ function PanelShell({ title, icon, status, children, tone = 'var(--color-slate-5
 }
 const NA = ({ children }: { children: ReactNode }) => <div className="text-[12px] text-muted leading-relaxed">{children}</div>
 
-function PlanBlock({ idea }: { idea: Idea }) {
-  const p = useIdeaPlan(idea)
-  return p ? <PlanVsActualBlock p={p} compact /> : null
-}
-
 // ─── Execution summary ────────────────────────────────────────────────────────
 export function ExecutionSummary({ idea }: { idea: Idea }) {
   const nav = useNavigate()
@@ -111,7 +105,7 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
           {ex.effectiveDate ? <div className="text-[13px] font-semibold mt-1 text-emerald-700">{fmtDate(ex.effectiveDate)}</div> : <div className="mt-2 flex items-center gap-2"><ProgressBar value={ex.progress} color="var(--color-orange-400)" className="flex-1" /><span className="text-[12px] font-semibold num">{ex.progress}%</span></div>}
         </div>
       </div>
-      {idea.lock && <div className="mt-3 rounded-xl border border-line p-3"><div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center justify-between gap-2"><span>Plan vs actual · locked {idea.lock.timelineMonths}-month target</span><span className="normal-case tracking-normal font-medium">CO date {fmtDate(idea.coDate ?? idea.lock.startDate)} · MRN link: ERP feed (future)</span></div><PlanBlock idea={idea} /></div>}
+      {idea.lock && <button onClick={() => document.getElementById('savings-track')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="mt-3 w-full text-left rounded-xl border border-teal-200 bg-teal-50/60 px-3 py-2 text-[12px] text-teal-800 hover:bg-teal-50 flex items-center gap-2"><Icon name="ChartColumnBig" size={14} /><span>Month-by-month MRN against the locked {idea.lock.timelineMonths}-month target is in <b>Monthly savings vs target</b> above.</span></button>}
       <div className="mt-3 grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="md:col-span-3">
           <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5">Milestones</div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, sourceBreakdown, costFlags, milestoneSchedule, inLockWindow } from './workflow'
+import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, savingsTrack, monthVerdict, sourceBreakdown, costFlags, milestoneSchedule, inLockWindow } from './workflow'
 
 describe('evaluation department', () => {
   it('uses the submitter department', () => {
@@ -74,6 +74,55 @@ describe('plan vs actual', () => {
     const p = planVsActual({ target: 0, months: 6, startDate: '2026-09-01', ledger: [], lastActualMonth: '2026-09' })
     expect(p.projected).toBe(0)
     expect(p.onTrack).toBe(true)
+  })
+})
+
+describe('monthly savings track — ₹ 12 L over 6 months = ₹ 2 L a month', () => {
+  const base = { target: 12_00_000, months: 6, startDate: '2026-07-01' }
+  const run = (actuals: (number | undefined)[], last = '2026-09') =>
+    savingsTrack(planVsActual({ ...base, lastActualMonth: last, ledger: actuals.flatMap((v, k) => (v == null ? [] : [{ month: `2026-${String(7 + k).padStart(2, '0')}`, realised: v }])) }))
+
+  it('grades a month: met at the monthly target, near from 90 %, short below, no MRN at zero, pending until posted', () => {
+    expect(monthVerdict(2_00_000, 2_00_000)).toBe('met')
+    expect(monthVerdict(2_00_000, 1_80_000)).toBe('near')
+    expect(monthVerdict(2_00_000, 1_79_999)).toBe('short')
+    expect(monthVerdict(2_00_000, 0)).toBe('no-mrn')
+    expect(monthVerdict(2_00_000, null)).toBe('pending')
+  })
+  it('a month with no MRN line at all counts as no MRN — nothing is claimed', () => {
+    const t = run([2_10_000, 1_85_000, undefined])
+    expect(t.rows.map((r) => r.verdict)).toEqual(['met', 'near', 'no-mrn', 'pending', 'pending', 'pending'])
+    expect(t.monthsMet).toBe(1)
+    expect(t.monthsNear).toBe(1)
+    expect(t.monthsShort).toBe(1)
+  })
+  it('on track at 90 % or more of the target to date', () => {
+    const t = run([2_00_000, 1_90_000, 1_60_000])
+    expect(t.achievement).toBeCloseTo(0.9167, 3)
+    expect(t.verdict).toBe('On track')
+  })
+  it('behind from 70 % to 90 %', () => {
+    expect(run([1_60_000, 1_60_000, 1_60_000]).verdict).toBe('Behind')
+  })
+  it('off track below 70 % — the remaining months need ₹ 3 L a month (1.5× the plan) to still reach ₹ 12 L', () => {
+    const t = run([1_00_000, 1_00_000, 1_00_000])
+    expect(t.verdict).toBe('Off track')
+    expect(t.remaining).toBe(3)
+    expect(t.toGo).toBe(9_00_000)
+    expect(t.neededPerMonth).toBe(3_00_000)
+    expect(t.neededVsPlan).toBeCloseTo(1.5)
+  })
+  it('not started before the first month is posted; no MRN when posted months found nothing', () => {
+    expect(run([], '2026-06').verdict).toBe('Not started')
+    expect(run([0, 0]).verdict).toBe('No MRN')
+  })
+  it('closed timeline: every month posted — target met at 95 % of the locked target, else a shortfall; nothing left to need', () => {
+    const met = run([2_00_000, 2_00_000, 2_00_000, 2_00_000, 2_00_000, 1_50_000], '2026-12')
+    expect(met.closed).toBe(true)
+    expect(met.verdict).toBe('Target met')
+    expect(met.neededPerMonth).toBe(0)
+    const short = run([2_00_000, 2_00_000, 2_00_000, 2_00_000, 1_00_000, 1_00_000], '2026-12')
+    expect(short.verdict).toBe('Shortfall')
   })
 })
 

@@ -6,15 +6,15 @@
 import React, { useMemo, useState } from 'react'
 import type { Idea, LedgerEntry } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
-import { inLockWindow, planVsActual } from '../../lib/workflow'
+import { ON_PLAN, inLockWindow, planVsActual, savingsTrack } from '../../lib/workflow'
 import { addDays, addMonthsYm, daysBetween, fmtDate, inrShort, monthLong, num, pct, sum, todayIso } from '../../lib/format'
 import { Badge, Button, Card, EmptyState, Icon, InfoTip, ProgressBar, Segmented, UserChip, cn } from '../../components/ui'
 import { VerificationModal } from '../idea/StageForms'
 import { ideaPerms } from '../idea/model'
+import { MonthBars, SavingsTrackChart, savingsTrackOf } from '../idea/SavingsTrack'
 
 type Track = ReturnType<typeof track>
-/** MRN actual ÷ forecast to date at or above this is "On plan" */
-export const ON_PLAN = 0.9
+export { ON_PLAN }
 /** Plan vs MRN actual for one locked execution */
 export function track(i: Idea, ledger: LedgerEntry[], last: string) {
   const lock = i.lock!
@@ -24,7 +24,7 @@ export function track(i: Idea, ledger: LedgerEntry[], last: string) {
   const started = lock.startDate <= todayIso()
   // on plan = MRN actual at least 90 % of the monthly forecast to date
   const status: 'Not started' | 'No MRN yet' | 'On plan' | 'Behind plan' = !started || p.elapsed === 0 ? 'Not started' : p.actualToDate <= 0 ? 'No MRN yet' : p.actualToDate >= p.planToDate * ON_PLAN ? 'On plan' : 'Behind plan'
-  return { i, lock, rows, p, achievement, status, daysLeft: daysBetween(todayIso(), lock.endDate) }
+  return { i, lock, rows, p, s: savingsTrack(p), achievement, status, daysLeft: daysBetween(todayIso(), lock.endDate) }
 }
 const STATUS_COLOR: Record<Track['status'], string> = { 'Not started': 'var(--color-slate-500)', 'No MRN yet': 'var(--color-rose-600)', 'On plan': 'var(--color-emerald-600)', 'Behind plan': 'var(--color-orange-400)' }
 
@@ -70,7 +70,7 @@ export function MrnTracking({ ideas }: { ideas: Idea[] }) {
         <div className="overflow-x-auto">
           <table className="tbl">
             <thead><tr>
-              <th style={{ width: 34 }} /><th>Idea</th><th>Owner</th><th>Locked timeline</th><th style={{ textAlign: 'right' }}>Locked target</th><th>Months</th>
+              <th style={{ width: 34 }} /><th>Idea</th><th>Owner</th><th>Locked timeline</th><th style={{ textAlign: 'right' }}>Locked target</th><th>Month by month</th>
               <th style={{ textAlign: 'right' }}>Forecast to date</th><th style={{ textAlign: 'right' }}>MRN actual</th><th style={{ textAlign: 'right' }}>Variance</th><th>Achievement</th><th>Status</th><th>Moves to verification</th>
             </tr></thead>
             <tbody>
@@ -85,7 +85,7 @@ export function MrnTracking({ ideas }: { ideas: Idea[] }) {
                       <td><UserChip userId={t.i.execution?.ownerId} /></td>
                       <td className="num text-[12.5px] whitespace-nowrap">{fmtDate(t.lock.startDate)} → {fmtDate(t.lock.endDate)}</td>
                       <td className="num" style={{ textAlign: 'right' }}>{inrShort(t.lock.targetSaving)}</td>
-                      <td className="num text-[12.5px]">{t.p.elapsed} / {t.p.months}</td>
+                      <td><MonthBars t={t.s} /></td>
                       <td className="num" style={{ textAlign: 'right' }}>{inrShort(t.p.planToDate)}</td>
                       <td className="num font-semibold" style={{ textAlign: 'right' }}>{inrShort(t.p.actualToDate)}</td>
                       <td className={cn('num font-semibold', v < 0 ? 'text-red-600' : 'text-emerald-700')} style={{ textAlign: 'right' }}>{t.p.elapsed ? `${v >= 0 ? '+' : ''}${inrShort(v)}` : '—'}</td>
@@ -111,7 +111,8 @@ function Months({ t, last }: { t: Track; last: string }) {
   const qty = (m: string) => sum(t.rows.filter((r) => r.month === m).map((r) => r.mrnQty))
   const lines = (m: string) => t.rows.filter((r) => r.month === m).length
   return (
-    <div className="p-3">
+    <div className="p-3 grid gap-3">
+      <div className="card p-3 sticky left-0 max-w-[min(100%,1100px)]"><SavingsTrackChart t={t.s} view="monthly" height={200} /></div>
       <div className="card overflow-x-auto">
         <table className="tbl">
           <thead><tr><th>Month</th><th style={{ textAlign: 'right' }}>Forecast</th><th style={{ textAlign: 'right' }}>MRN quantity</th><th style={{ textAlign: 'right' }}>MRN actual saving</th><th style={{ textAlign: 'right' }}>Variance</th><th style={{ textAlign: 'right' }}>Cumulative forecast</th><th style={{ textAlign: 'right' }}>Cumulative actual</th><th>MRN</th></tr></thead>
@@ -143,6 +144,7 @@ export function VerificationList({ ideas }: { ideas: Idea[] }) {
   const me = useMe()
   const ledger = useStore((s) => s.ledger)
   const users = useStore((s) => s.users)
+  const last = useStore((s) => s.settings.lastRealisationMonth)
   const openIdea = useStore((s) => s.openIdea)
   const [view, setView] = useState<'awaiting' | 'verified'>('awaiting')
   const [modalId, setModalId] = useState<string | null>(null)
@@ -166,7 +168,7 @@ export function VerificationList({ ideas }: { ideas: Idea[] }) {
         <div className="overflow-x-auto">
           <table className="tbl">
             <thead><tr>
-              <th>Idea</th><th>Owner</th><th>Locked timeline</th><th style={{ textAlign: 'right' }}>Forecast (locked target)</th><th style={{ textAlign: 'right' }}>MRN actual</th><th style={{ textAlign: 'right' }}>Variance</th><th>Achieved</th><th>In verification since</th><th>{view === 'awaiting' ? 'Action' : 'Verified'}</th>
+              <th>Idea</th><th>Owner</th><th>Locked timeline</th><th>Month by month</th><th style={{ textAlign: 'right' }}>Forecast (locked target)</th><th style={{ textAlign: 'right' }}>MRN actual</th><th style={{ textAlign: 'right' }}>Variance</th><th>Achieved</th><th>In verification since</th><th>{view === 'awaiting' ? 'Action' : 'Verified'}</th>
             </tr></thead>
             <tbody>
               {list.map((i) => {
@@ -179,6 +181,7 @@ export function VerificationList({ ideas }: { ideas: Idea[] }) {
                     <td><button onClick={() => openIdea(i.id)} className="font-mono text-[11.5px] font-semibold text-brand-700 hover:underline">{i.id}</button><div className="text-[12px] text-ink truncate max-w-[240px]" title={i.title}>{i.title}</div></td>
                     <td><UserChip userId={i.execution?.ownerId ?? i.ownerId} /></td>
                     <td className="num text-[12.5px] whitespace-nowrap">{i.lock ? `${fmtDate(i.lock.startDate)} → ${fmtDate(i.lock.endDate)}` : '—'}<div className="text-[11px] text-muted">{i.lock ? `${i.lock.timelineMonths} month${i.lock.timelineMonths === 1 ? '' : 's'}` : ''}</div></td>
+                    <td><button onClick={() => openIdea(i.id)} title="Open the idea for the month-by-month graph"><MonthBars t={savingsTrackOf(i, ledger, last)} /></button></td>
                     <td className="num" style={{ textAlign: 'right' }}>{inrShort(target)}</td>
                     <td className="num font-semibold" style={{ textAlign: 'right' }}>{inrShort(actual)}</td>
                     <td className={cn('num font-semibold', actual - target < 0 ? 'text-red-600' : 'text-emerald-700')} style={{ textAlign: 'right' }}>{actual - target >= 0 ? '+' : ''}{inrShort(actual - target)}</td>

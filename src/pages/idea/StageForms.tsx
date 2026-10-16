@@ -7,10 +7,10 @@ import type { Idea, RiskItem, RiskLevel } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { RISK_FACTORS, STAGE } from '../../lib/masters'
 import { carryOver, committedInFy, duplicateCandidates, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
-import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, planVsActual, riskTotal, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
+import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, planVsActual, riskTotal, savingsTrack, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
 import { fmtDate, inrPrice, inrShort, quarterStart, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, LinkText, Modal, Money, Segmented, cn } from '../../components/ui'
-import { PlanVsActualBlock } from './PlanVsActual'
+import { SavingsTrackPanel } from './SavingsTrack'
 
 const toast = () => useStore.getState().toast
 const RISK_COLOR: Record<RiskLevel, string> = { Low: 'var(--color-emerald-600)', Medium: 'var(--color-orange-400)', High: 'var(--color-accent-500)' }
@@ -278,7 +278,7 @@ export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: b
               </div>
             ))}
           </div>
-          {plan && <PlanVsActualBlock p={plan} compact />}
+          {plan && idea.lock && <SavingsTrackPanel idea={idea} t={savingsTrack(plan)} compact tiles={false} />}
           <Field label="Verification remarks" hint={all ? 'Optional' : 'Required — a shortfall or a failed check is logged as an exception with these remarks'}>
             <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Target met for July–September; MRN at ₹ 14.50 every month" />
           </Field>

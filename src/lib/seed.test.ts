@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildSeed } from './seed'
 import { STAGE, WORKFLOW_STAGES } from './masters'
-import { ladderOf, planVsActual } from './workflow'
+import { inLockWindow, ladderOf, planVsActual, savingsTrack } from './workflow'
 import { USERS_DEFAULT } from './masters'
 
 const seed = buildSeed()
@@ -35,6 +35,27 @@ describe('demo seed — six-stage walkthrough', () => {
       expect(p.actualToDate).toBeGreaterThan(0)
       expect(p.onTrack).toBe(true)
     }
+  })
+  it('live executions tell different stories month by month — most on track, some behind, a few off track', () => {
+    const tracks = seed.ideas.filter((i) => i.stage === STAGE.execution && i.lock)
+      .map((i) => savingsTrack(planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: seed.ledger.filter((l) => l.ideaId === i.id && inLockWindow(i.lock!, l.month)), lastActualMonth: seed.lastRealisationMonth })))
+      .filter((t) => t.elapsed > 0)
+    const n = (v: string) => tracks.filter((t) => t.verdict === v).length
+    expect(tracks.length).toBeGreaterThan(15)
+    expect(n('On track')).toBeGreaterThanOrEqual(tracks.length * 0.4)
+    expect(n('Behind') + n('Off track') + n('No MRN')).toBeGreaterThanOrEqual(4)
+    expect(n('Off track') + n('No MRN')).toBeGreaterThanOrEqual(2)
+  })
+  it('ideas in verification ran a multi-month locked timeline (not one month each)', () => {
+    const ver = seed.ideas.filter((i) => i.stage === STAGE.verification && i.lock)
+    const multi = ver.filter((i) => i.lock!.timelineMonths >= 3)
+    expect(multi.length).toBeGreaterThanOrEqual(ver.length * 0.5)
+  })
+  it('at verification most ideas met the locked target in MRN and some fell short', () => {
+    const ver = seed.ideas.filter((i) => i.stage === STAGE.verification && i.lock)
+      .map((i) => savingsTrack(planVsActual({ target: i.lock!.targetSaving, months: i.lock!.timelineMonths, startDate: i.lock!.startDate, ledger: seed.ledger.filter((l) => l.ideaId === i.id && inLockWindow(i.lock!, l.month)), lastActualMonth: seed.lastRealisationMonth })))
+    expect(ver.filter((t) => t.verdict === 'Target met').length).toBeGreaterThanOrEqual(ver.length * 0.5)
+    expect(ver.filter((t) => t.verdict === 'Shortfall').length).toBeGreaterThanOrEqual(4)
   })
   it('uses only the six-stage names', () => {
     const allowed = new Set(['Draft', 'Dropped', 'Rejected', ...WORKFLOW_STAGES])

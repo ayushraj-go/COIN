@@ -6,7 +6,7 @@ import { useStore, useMe } from '../store/useStore'
 import type { LeverGroup, RouteKey } from '../lib/types'
 import {
   APPROVAL_MATRIX_DOC, APPROVAL_NOTE, ASSUMPTIONS, CAMPAIGN_FLOW, CAMPAIGN_POINTS, CREDIBILITY_RULES, DASHBOARDS, DASHBOARDS_INTRO, DECISIONS, DEFINITIONS, DOC_META, DROP_REASONS_DEFAULT,
-  EXECUTION_INTRO, EXECUTION_RECORD, EXECUTION_SCREEN, FORM_BEHAVIOUR, FORM_FIELDS, FORM_INTRO, FORM_LAYOUT, FORMULAS,
+  EXECUTION_INTRO, EXECUTION_RECORD, EXECUTION_SCREEN, MONTHLY_TRACK, FORM_BEHAVIOUR, FORM_FIELDS, FORM_INTRO, FORM_LAYOUT, FORMULAS,
   INTEGRATION_FALLBACK, INTEGRATION_INTRO, INTEGRATIONS, KPI_INTRO, KPIS, LEAKAGE_NOTE, LEVER_FOOTNOTE, LEVER_INTRO, LEVER_SPLIT_NOTE, MAILER, METHOD_INTRO,
   MODULES, MODULES_INTRO, NAV_BY_ROLE, NAV_NOTE, NFRS, NOTIF_FOOTNOTE, NOTIF_INTRO, NOTIF_TRIGGERS, OBJECTIVES, OUT_OF_SCOPE, PERM_COLS, PERMISSION_MATRIX,
   PROBLEM_INTRO, PROBLEMS, PURPOSE, REALISATION_CYCLE, REALISATION_DEMO_NOTE, REALISATION_IN_APP, REMINDERS_ON_SCREEN, REPORTS, REPORTS_INTRO, REPORTS_NOTE, ROLES, ROLES_INTRO,
@@ -449,6 +449,7 @@ export default function Scope() {
                 </Sub>
               </div>
             </div>
+            <Sub title="Month-by-month savings graph on every request" icon="ChartColumnBig"><DocTable head={['Item', 'Rule']} widths={['24%']} dense rows={MONTHLY_TRACK.map(([a, b]) => [a, b])} /></Sub>
             <Sub title="Realisation cycle (monthly)" icon="RefreshCw" aside={<Badge color="var(--color-emerald-600)" icon="CalendarClock">Next run {fmtDate(nextRun)}</Badge>}>
               <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 {REALISATION_CYCLE.map((s, k) => (

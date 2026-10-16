@@ -13,6 +13,7 @@ import { ValueCard } from './idea/ValueCard'
 import { PartsTable } from './idea/PartsTable'
 import { DetailsCard, ExecutionSummary, IdeaMetaChips, KeyFacts, LinkedRequests } from './idea/Panels'
 import { StagePanels } from './idea/StagePanels'
+import { SavingsTrackCard } from './idea/SavingsTrack'
 import { Attachments } from './idea/Attachments'
 import { Comments } from './idea/Comments'
 import { ActivityLog } from './idea/ActivityLog'
@@ -168,6 +169,8 @@ export default function Idea360() {
       </Card>
 
       {idea.stage !== 'Draft' && <StagePanels idea={idea} />}
+
+      {idea.lock && idea.execution && <SavingsTrackCard idea={idea} />}
 
       <PartsTable idea={idea} />
 

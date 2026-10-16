@@ -209,6 +209,47 @@ export function planVsActual(a: { target: number; months: number; startDate: str
   return { rows, actualToDate: actualCum, planToDate, runRate, projected, onTrack: !a.target || actualCum >= planToDate * 0.95, elapsed, months: n, target: a.target || 0 }
 }
 
+/** MRN actual ÷ forecast to date at or above this is "On plan" / "On track" */
+export const ON_PLAN = 0.9
+/** below this share of the forecast to date the execution is "Off track" */
+export const OFF_TRACK = 0.7
+/** the locked target counts as achieved at verification from this share */
+export const TARGET_MET = 0.95
+
+export type MonthVerdict = 'met' | 'near' | 'short' | 'no-mrn' | 'pending'
+/** One month of a locked timeline: MRN actual against that month's target (locked target ÷ months) */
+export function monthVerdict(plan: number, actual: number | null): MonthVerdict {
+  if (actual == null) return 'pending'
+  if (actual <= 0) return 'no-mrn'
+  if (actual >= plan) return 'met'
+  return actual >= plan * ON_PLAN ? 'near' : 'short'
+}
+
+export type TrackVerdict = 'Not started' | 'No MRN' | 'On track' | 'Behind' | 'Off track' | 'Target met' | 'Shortfall'
+/** Month-by-month savings track for a locked target: each posted month graded, the overall verdict to date, and what the
+ *  remaining months need to still reach the target */
+export function savingsTrack(p: ReturnType<typeof planVsActual>) {
+  const rows = p.rows.map((r) => ({ ...r, verdict: monthVerdict(r.plan, r.actual), ratio: r.actual != null && r.plan ? r.actual / r.plan : null }))
+  const remaining = p.months - p.elapsed
+  const closed = p.elapsed > 0 && remaining === 0
+  const planPerMonth = p.target / p.months
+  const toGo = Math.max(0, p.target - p.actualToDate)
+  const neededPerMonth = remaining > 0 ? toGo / remaining : 0
+  const achievement = closed ? (p.target ? p.actualToDate / p.target : 1) : p.planToDate ? p.actualToDate / p.planToDate : null
+  const verdict: TrackVerdict = !p.elapsed ? 'Not started'
+    : closed ? (achievement! >= TARGET_MET ? 'Target met' : 'Shortfall')
+      : p.actualToDate <= 0 ? 'No MRN'
+        : achievement! >= ON_PLAN ? 'On track' : achievement! >= OFF_TRACK ? 'Behind' : 'Off track'
+  return {
+    ...p, rows, remaining, closed, planPerMonth, toGo, neededPerMonth, achievement, verdict,
+    neededVsPlan: planPerMonth ? neededPerMonth / planPerMonth : 0,
+    monthsMet: rows.filter((r) => r.verdict === 'met').length,
+    monthsNear: rows.filter((r) => r.verdict === 'near').length,
+    monthsShort: rows.filter((r) => r.verdict === 'short' || r.verdict === 'no-mrn').length,
+  }
+}
+export type SavingsTrack = ReturnType<typeof savingsTrack>
+
 export interface Seg { key: string; label: string; count: number; value: number; ids: string[] }
 const group = (list: Idea[], key: (i: Idea) => string, label: (i: Idea) => string, value: (i: Idea) => number): Seg[] => {
   const m = new Map<string, Seg>()
