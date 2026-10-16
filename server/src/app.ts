@@ -49,6 +49,7 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
   const app = Fastify({
     logger: config.LOG_LEVEL === 'silent' ? false : { level: config.LOG_LEVEL, redact: ['req.headers.cookie', 'req.body.password'] },
     bodyLimit: 15 * 1024 * 1024,
+    disableRequestLogging: config.LOG_LEVEL !== 'debug' && config.LOG_LEVEL !== 'trace',
     trustProxy: true,
   })
   configureSupplierPortal(config.SUPPLIER_PORTAL_URL)
@@ -86,7 +87,15 @@ export async function buildApp({ db, config }: AppDeps): Promise<FastifyInstance
     const v = (await db.query('select version from organisations where id = $1', [config.ORG_ID])).rows[0]
     return { ok: true, database: 'up', organisation: v ? 'ready' : 'not seeded', version: v?.version ?? null }
   })
-  app.get('/api/config', async () => ({ demoLogin: config.DEMO_LOGIN, orgName: config.ORG_NAME, emailDriver: config.EMAIL_DRIVER }))
+  app.get('/api/config', async () => {
+    // three headline counts for the sign-in page — totals only, nothing about any single idea or supplier
+    let stats: { implemented: number; inNetwork: number; suppliers: number } | undefined
+    try {
+      const d = (await orgs.snapshot(config.ORG_ID)).data
+      stats = { implemented: d.ideas.filter((i) => i.bucket === 'Implemented').length, inNetwork: d.ideas.filter((i) => i.stage !== 'Draft').length, suppliers: d.suppliers.length }
+    } catch { /* not seeded yet */ }
+    return { demoLogin: config.DEMO_LOGIN, orgName: config.ORG_NAME, emailDriver: config.EMAIL_DRIVER, stats }
+  })
 
   // ─── sign-in ───
   app.get('/api/auth/demo-accounts', async () => {

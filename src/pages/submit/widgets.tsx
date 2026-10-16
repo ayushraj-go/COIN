@@ -357,7 +357,7 @@ export function Attachments({ value, onChange, me }: { value: Attachment[]; onCh
             {value.map((a) => (
               <motion.div key={a.id} layout initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="group relative rounded-lg border border-line bg-white overflow-hidden">
                 <div className="h-16 bg-slate-50 grid place-items-center overflow-hidden">
-                  {a.dataUrl && a.type.startsWith('image/') ? <img src={a.dataUrl} alt={a.name} className="h-full w-full object-cover" /> : <Icon name={fileIcon(a)} size={22} className="text-slate-400" />}
+                  {(a.dataUrl ?? a.url) && a.type.startsWith('image/') ? <img src={a.dataUrl ?? a.url} alt={a.name} className="h-full w-full object-cover" /> : <Icon name={fileIcon(a)} size={22} className="text-slate-400" />}
                 </div>
                 <div className="px-2 py-1.5">
                   <div className="text-[11.5px] font-semibold text-ink truncate" title={a.name}>{a.name}</div>

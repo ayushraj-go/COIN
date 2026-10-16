@@ -21,7 +21,10 @@ import Queue from './pages/Queue'
 
 function Protected({ children }: { children: JSX.Element }) {
   const userId = useStore((s) => s.userId)
+  const ready = useStore((s) => s.authReady)
   const loc = useLocation()
+  // api mode: the session check runs on page load — show a calm splash instead of flashing the login page
+  if (!ready) return <div className="min-h-dvh grid place-items-center text-[13px] text-muted">Loading COIN…</div>
   if (!userId) return <Navigate to="/login" state={{ from: loc.pathname }} replace />
   return children
 }

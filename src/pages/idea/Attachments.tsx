@@ -90,8 +90,9 @@ export function Attachments({ idea, compact }: { idea: Idea; compact?: boolean }
   }
 
   const open = (a: Attachment) => {
-    if (a.dataUrl && isImage(a)) { setPreview(a); return }
-    if (a.dataUrl) { const el = document.createElement('a'); el.href = a.dataUrl; el.download = a.name; el.click(); return }
+    const href = a.dataUrl ?? a.url
+    if (href && isImage(a)) { setPreview(a); return }
+    if (href) { const el = document.createElement('a'); el.href = href; el.download = a.name; el.click(); return }
     toast(`${a.name} is held in the document repository — preview not available here`, 'info')
   }
 
@@ -114,8 +115,8 @@ export function Attachments({ idea, compact }: { idea: Idea; compact?: boolean }
               const [icon, color] = fileIcon(a)
               return (
                 <button key={a.id} onClick={() => open(a)} className="group text-left rounded-xl border border-line bg-white overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  {a.dataUrl && isImage(a) ? (
-                    <div className="h-24 bg-slate-100 overflow-hidden"><img src={a.dataUrl} alt={a.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>
+                  {(a.dataUrl ?? a.url) && isImage(a) ? (
+                    <div className="h-24 bg-slate-100 overflow-hidden"><img src={a.dataUrl ?? a.url} alt={a.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>
                   ) : (
                     <div className="h-24 grid place-items-center" style={{ background: `color-mix(in srgb, ${color} 5%, transparent)` }}>
                       <div className="flex flex-col items-center gap-1" style={{ color }}>
@@ -140,7 +141,7 @@ export function Attachments({ idea, compact }: { idea: Idea; compact?: boolean }
         )}
       </div>
       <Modal open={!!preview} onClose={() => setPreview(null)} title={preview?.name ?? ''} subtitle={preview ? `${fileSize(preview.size)} · uploaded by ${preview.by} on ${fmtDate(preview.uploadedAt.slice(0, 10))}` : ''} icon="FileImage" size="xl">
-        {preview?.dataUrl && <img src={preview.dataUrl} alt={preview.name} className="max-h-[70vh] mx-auto rounded-lg" />}
+        {(preview?.dataUrl ?? preview?.url) && <img src={preview!.dataUrl ?? preview!.url} alt={preview!.name} className="max-h-[70vh] mx-auto rounded-lg" />}
       </Modal>
     </Card>
   )

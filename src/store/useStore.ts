@@ -9,9 +9,10 @@ import type { Filters, RoleKey, User } from '../lib/types'
 import { LAKH } from '../lib/masters'
 import { DATA_KEYS, configureSupplierPortal, domainActions, freshData, type DomainActions, type DomainData } from '../domain/engine'
 import { uid } from '../lib/format'
-import { API_MODE, remoteStore } from './remote'
+import { API_MODE, remoteStore, type PublicConfig } from './remote'
 
 export { commodityShort, supplierPortalLink, outreachRecipients, supplierTemplateVars, renderSupplierTemplate } from '../domain/engine'
+export { API_MODE } from './remote'
 
 configureSupplierPortal(import.meta.env?.VITE_SUPPLIER_PORTAL_URL as string | undefined)
 
@@ -28,6 +29,8 @@ interface UiState {
   authReady: boolean
   /** api mode: the server's data version this copy reflects */
   dataVersion: number
+  /** api mode: what the server tells everyone before sign-in (demo sign-in on/off, organisation name) */
+  publicConfig: PublicConfig | null
   // ui
   filters: Filters
   navCollapsed: boolean
@@ -57,6 +60,8 @@ interface UiActions {
   dismissToast: (id: string) => void
   /** Mark the start of an undoable change; the returned function puts the data back (api mode: server-side undo) */
   beginUndo: () => () => void
+  /** api mode: reload everything this user may see from the server */
+  refreshData?: () => Promise<void>
 }
 
 // Actions that return a value are async, so the same screens work in local and api mode
@@ -103,6 +108,7 @@ export const useStore = create<Store>()(
         lastActivity: Date.now(),
         authReady: !API_MODE,
         dataVersion: 0,
+        publicConfig: null,
         filters: defaultFilters(freshData().settings.currentFy),
         navCollapsed: false,
         space: null,

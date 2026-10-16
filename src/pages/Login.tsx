@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { useStore } from '../store/useStore'
+import { useStore, API_MODE } from '../store/useStore'
 import { PersonaPicker } from '../components/PersonaPicker'
 import { Avatar, Icon, Modal, Button, cn } from '../components/ui'
 import { AmberWordmark } from '../components/Logo'
@@ -114,7 +114,9 @@ const STEPS = [
 
 
 export default function Login() {
-  const { login, loginAs, users, toast, ideas, suppliers } = useStore()
+  const { login, loginAs, users, toast, ideas, suppliers, publicConfig } = useStore()
+  // api mode: the one-click demo accounts exist only when the server allows demo sign-in
+  const demo = !API_MODE || !!publicConfig?.demoLogin
   const nav = useNavigate()
   const loc = useLocation() as any
   const [email, setEmail] = useState('')
@@ -128,12 +130,12 @@ export default function Login() {
     e.preventDefault()
     if (!email.trim() || !password) { setErr('Enter your work email / employee ID and password.'); return }
     if (await login(email, password)) { toast('Welcome to COIN · Cost Innovation Hub'); go() }
-    else setErr('Invalid credentials. For this demo every persona uses the password coin@2026.')
+    else setErr(API_MODE ? `Invalid email / employee ID or password.${demo ? ' Demo accounts use the seed password (coin@2026 unless changed in .env).' : ''}` : 'Invalid credentials. For this demo every persona uses the password coin@2026.')
   }
   const stats: [string, string, string][] = [
-    ['CircleCheckBig', 'Ideas implemented', String(ideas.filter((i) => i.bucket === 'Implemented').length)],
-    ['Lightbulb', 'Ideas in the network', String(ideas.filter((i) => i.stage !== 'Draft').length)],
-    ['Factory', 'Suppliers in VMS', String(suppliers.length)],
+    ['CircleCheckBig', 'Ideas implemented', String(API_MODE ? publicConfig?.stats?.implemented ?? '—' : ideas.filter((i) => i.bucket === 'Implemented').length)],
+    ['Lightbulb', 'Ideas in the network', String(API_MODE ? publicConfig?.stats?.inNetwork ?? '—' : ideas.filter((i) => i.stage !== 'Draft').length)],
+    ['Factory', 'Suppliers in VMS', String(API_MODE ? publicConfig?.stats?.suppliers ?? '—' : suppliers.length)],
     ['LayoutGrid', 'Modules · 25 KPIs', '12'],
   ]
 
@@ -264,11 +266,14 @@ export default function Login() {
                 </button>
               </form>
 
+              {demo && users.length > 0 && (<>
               <div className="flex items-center gap-3 my-[clamp(10px,2vh,18px)] text-[10px] font-semibold uppercase tracking-[.2em] text-muted"><span className="h-px flex-1 bg-black/[.07]" />Quick demo access<span className="h-px flex-1 bg-black/[.07]" /></div>
-              <PersonaPicker onPick={(id, label) => { loginAs(id); toast(`Signed in as ${label}`); go() }} />
+              <PersonaPicker onPick={async (id, label) => { await loginAs(id); if (useStore.getState().userId) { toast(`Signed in as ${label}`); go() } }} />
+              </>)}
+              {API_MODE && !publicConfig && <p className="mt-3 text-[12px] text-center text-accent-700">Cannot reach the COIN server — is it running? (npm run dev:api)</p>}
 
             </div>
-            <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />Front-end demo · data stays in this browser · password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></p>
+            <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />{API_MODE ? <>Secure sign-in · {publicConfig?.orgName ?? 'COIN server'}{demo ? <> · demo password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></> : null}</> : <>Front-end demo · data stays in this browser · password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></>}</p>
           </motion.div>
         </main>
 
@@ -283,7 +288,7 @@ export default function Login() {
         <div className="text-[13px] text-ink-2 space-y-2">
           <p>Employee passwords are managed by Amber's Active Directory. Use the standard IT self-service reset, or contact <b>Sourcing Excellence / IT</b> (COIN Admin).</p>
           <p>Suppliers access COIN through time-bound secure links sent with each feasibility request or workshop invitation.</p>
-          <p className="text-muted">Demo: every persona's password is <code className="font-mono text-ink">coin@2026</code>.</p>
+          {demo && <p className="text-muted">Demo: every persona's password is <code className="font-mono text-ink">coin@2026</code>.</p>}
         </div>
       </Modal>
     </div>

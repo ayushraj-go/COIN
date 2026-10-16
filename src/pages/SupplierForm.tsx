@@ -1,8 +1,9 @@
 // Public supplier capability form — opened from the emailed link, no login and no app shell.
 // Shows only what the email asked (item, specification, required-by date); never Amber prices, volumes or suppliers.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStore } from '../store/useStore'
+import { useStore, API_MODE } from '../store/useStore'
+import { publicSupplierCheck } from '../store/remote'
 import type { SupplierCheck } from '../lib/types'
 import { fmtDate, nowIso } from '../lib/format'
 import { Button, Field, Icon, cn } from '../components/ui'
@@ -24,10 +25,14 @@ function Choice<T extends string>({ value, options, onChange }: { value: T | '';
 
 export default function SupplierForm() {
   const { token } = useParams()
-  const req = useStore((s) => {
+  const local = useStore((s) => {
     const i = s.ideas.find((x) => x.evaluation?.supplier?.token === token)
     return i?.evaluation?.supplier
   })
+  // api mode: the supplier is not signed in — the request comes from the public endpoint (only what the email showed)
+  const [remote, setRemote] = useState<SupplierCheck | null | undefined>(API_MODE ? undefined : null)
+  useEffect(() => { if (API_MODE && token) publicSupplierCheck(token).then((r) => setRemote(r as unknown as SupplierCheck)).catch(() => setRemote(null)) }, [token])
+  const req = API_MODE ? remote ?? undefined : local
   const [canSupply, setCanSupply] = useState<Resp['canSupply'] | ''>('')
   const [meetsSpec, setMeetsSpec] = useState<Resp['meetsSpec'] | ''>('')
   const [capacity, setCapacity] = useState('')
@@ -37,6 +42,7 @@ export default function SupplierForm() {
   const [remarks, setRemarks] = useState('')
   const [contact, setContact] = useState(req?.contactName ?? '')
   const [done, setDone] = useState(false)
+  useEffect(() => { if (req?.contactName) setContact((c) => c || req.contactName!) }, [req?.contactName])
   const [failed, setFailed] = useState(false)
 
   const shell = (children: React.ReactNode) => (
@@ -51,6 +57,7 @@ export default function SupplierForm() {
     </div>
   )
 
+  if (API_MODE && remote === undefined) return shell(<div className="card p-8 text-center text-[13px] text-muted">Loading the request…</div>)
   if (!req || !token) return shell(
     <div className="card p-8 text-center"><Icon name="LinkOff" size={28} className="mx-auto text-muted" /><h1 className="mt-3 text-[18px] font-bold text-ink">This link is not valid</h1><p className="text-[13px] text-muted mt-1">The request may have been withdrawn, or the link was copied incompletely. Please contact the sender.</p></div>,
   )

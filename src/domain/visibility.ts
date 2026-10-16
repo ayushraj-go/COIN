@@ -59,7 +59,9 @@ function scopedValue(me: User, key: Key, value: unknown): unknown {
   }
 }
 
-const idOf = (key: Key, item: Rec) => String(key === 'suppliers' || key === 'commodities' || key === 'parts' ? item.code : key === 'slaRules' ? item.stage : item.id)
+/** The key of a record in its collection (masters use code / stage) */
+export const recordId = (key: string, item: Rec) => String(key === 'suppliers' || key === 'commodities' || key === 'parts' ? item.code : key === 'slaRules' ? item.stage : item.id)
+const idOf = recordId
 
 /** The whole organisation as one user may see it — the /api/bootstrap payload */
 export function visibleData(me: User, s: DomainData): DomainData {
