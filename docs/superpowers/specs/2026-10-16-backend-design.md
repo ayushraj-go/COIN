@@ -147,3 +147,9 @@ for thousands of ideas; split per idea later if needed).
 - Ruling: suppliers see only their own parts (other vendors' prices are confidential), not every part of their
   commodities — cost if wrong: a supplier must type part codes it does not supply.
 - Ruling: a full-org snapshot per command, cached by version — cost if wrong: slow commands beyond ~10k ideas.
+- Final review (fresh reviewer, read-only): 2 Critical, 8 Important, 2 Minor — all fixed in 9ef3b3c, each with a test
+  that failed first (src/domain/review.test.ts, server/test/api.test.ts › security review); suite 127/127.
+- Ruling: Minor #11 (undo edge cases) and #12 (drafts sent to others) fixed rather than deferred — #12 is a privacy
+  leak and #11 could silently revert another admin's delete — cost if wrong: none beyond the extra tests.
+- Ruling: the per-account sign-in limit is 30 failures / 10 min from any address (plus 10 per address+account) —
+  cost if wrong: an attacker can still lock one account for 10 minutes by failing 30 times.
