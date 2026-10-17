@@ -138,7 +138,7 @@ export default function SupplierPortal() {
         <FormStep n={2} title="Your idea" hint="What changes, why it costs less or works better, what trials or approvals it needs" done={!!subject.trim() && body.trim().length >= 10}>
         <Field label="Title" required><input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Replace Zn-Ni plating with Zn-flake coating on the M6 flange bolt" /></Field>
         <Field label="Describe it" required hint={body.trim().length < 10 ? 'At least a sentence or two' : undefined}><textarea className="input" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="e.g. Zn-flake gives the same 720 h salt-spray at a lower cost; we can run a 500-piece trial in 3 weeks" /></Field>
-        <Field label="Estimated saving to Amber a year (optional)"><div className="relative sm:max-w-[280px]"><input type="number" min="0" step="0.5" className="input num" style={{ paddingRight: 64 }} aria-label="Estimated saving" value={est} onChange={(e) => setEst(e.target.value)} placeholder="0" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted">₹ lakh</span></div></Field>
+        <Field label="Estimated saving to Amber a year (optional)"><div className="relative flex items-center sm:max-w-[280px]"><input type="number" min="0" step="0.5" className="input num" style={{ paddingRight: 64 }} aria-label="Estimated saving" value={est} onChange={(e) => setEst(e.target.value)} placeholder="0" /><span className="absolute right-3 text-[12px] leading-none text-muted pointer-events-none">₹ lakh</span></div></Field>
         </FormStep>
         <div className="h-px bg-line" />
         <FormStep n={3} title="Your details" done={!!contact.trim()}>
