@@ -62,7 +62,7 @@ export const ROLES_INTRO =
 
 export const ROLES: { key: string; role: string; who: string; job: string; visibility: string }[] = [
   { key: 'submitter', role: 'Employee', who: 'Any employee in the eight departments', job: 'Stage 1 — submits ideas, tracks own ideas, answers queries', visibility: 'Own ideas' },
-  { key: 'teamlead', role: 'Team lead', who: 'One per department (Sourcing: the commodity leads)', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
+  { key: 'teamlead', role: 'Team lead', who: 'One per department — every idea raised in the department goes to them', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
   { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check — only for ideas forecast at ₹ 5 L and above; smaller ideas skip stage 3', visibility: 'Own department' },
   { key: 'depthead', role: 'Department head', who: 'Head of each department (Sourcing: Head of Sourcing)', job: 'Stage 4 — <dept> approval: commercial assessment, supplier confirmation, budget + timeline lock, signature', visibility: 'Own department' },
   { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones and NPD / PAP until the locked deadline; MRN tracked monthly, verification starts by itself on the deadline', visibility: 'Own department' },

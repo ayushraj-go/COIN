@@ -196,15 +196,16 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const evalStage = EVALUATION_STAGES.includes(stage)
   const dept = ideaDept(idea)
   const inDept = me.department === dept
-  // stage 2 — the team lead of the submitter's department, never on their own idea (then the department lead steps in)
-  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) &&
-    (head || (hasRole(me, 'teamlead') && inDept && idea.submitterId !== me.id) || stageAssignee(idea, stage, usersNow()) === me.id)
-  // stage 3 — the department lead; stage 4 — the department head
-  const evaluate = pipeline && evalStage && (head || (hasRole(me, 'deptlead') && inDept))
-  const approve = pipeline && stage === STAGE.approval && idea.approvals.some((a) => !a.decision) && (head || (hasRole(me, 'depthead') && inDept))
+  // each stage is acted on by the one person the department ladder routes it to (stageAssignee): stage 2 the team lead
+  // of the submitter's department (the department lead on the team lead's own idea), stage 3 the department lead,
+  // stage 4 the department head — never a colleague holding the same role
+  const assigned = stageAssignee(idea, stage, usersNow()) === me.id
+  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || assigned)
+  const evaluate = pipeline && evalStage && (head || assigned)
+  const approve = pipeline && stage === STAGE.approval && idea.approvals.some((a) => !a.decision) && (head || assigned)
   const actor = feasibilityCheck || evaluate || approve
-  // stage 5 — the department's execution owner, or whoever the execution was reassigned to
-  const executor = head || idea.ownerId === me.id || (hasRole(me, 'execowner') && inDept)
+  // stage 5 — the execution owner (the commodity buyer, or whoever the execution was reassigned to)
+  const executor = head || stageAssignee(idea, STAGE.execution, usersNow()) === me.id
   return {
     feasibilityCheck, evaluate, approve,
     sendBack: pipeline && actor,

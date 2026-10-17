@@ -17,13 +17,14 @@ export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Fi
 export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'] as const
 
 export interface Ladder { dept: string; teamLead?: string; deptLead?: string; deptHead?: string; execOwner?: string; verifier?: string }
-/** Who holds each ladder role for a department; inside Sourcing the holder mapped to the idea's commodity wins */
+/** Who holds each ladder role for a department: one person per role — the ladder the persona switcher shows — so an
+ *  employee's idea always goes to the team lead, department lead and head of their own department. Only the execution
+ *  owner follows the idea's commodity (in Sourcing, the commodity buyer who places the orders). */
 export function ladderOf(dept: string, commodity: string, users: User[]): Ladder {
-  const pick = (role: RoleKey) => {
-    const holders = users.filter((u) => u.active !== false && u.department === dept && u.roles.includes(role))
-    return (holders.find((u) => u.commodities.includes(commodity)) ?? holders[0])?.id
-  }
-  return { dept, teamLead: pick('teamlead'), deptLead: pick('deptlead'), deptHead: pick('depthead'), execOwner: pick('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
+  const holders = (role: RoleKey) => users.filter((u) => u.active !== false && u.department === dept && u.roles.includes(role))
+  const first = (role: RoleKey) => holders(role)[0]?.id
+  const byCommodity = (role: RoleKey) => { const h = holders(role); return (h.find((u) => u.commodities.includes(commodity)) ?? h[0])?.id }
+  return { dept, teamLead: first('teamlead'), deptLead: first('deptlead'), deptHead: first('depthead'), execOwner: byCommodity('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
 }
 /** The department whose ladder runs this idea: the evaluation's department once set, else the submitter's (mapped) */
 export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept: string } }) => idea.evaluation?.dept ?? evalDeptOf(idea.department)

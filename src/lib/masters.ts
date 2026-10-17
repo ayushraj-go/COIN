@@ -146,7 +146,7 @@ const u = (id: string, name: string, employeeId: string, roles: User['roles'], d
 })
 
 /** Demo people — every department has the five-role ladder: Employee (submitter), Team lead, Department lead,
- *  Department head and Execution owner. Sourcing uses its commodity leads as team leads and its buyers as execution owners. */
+ *  Department head and Execution owner. Each department has one ladder (the persona switcher); in Sourcing the commodity buyers execute. */
 export const USERS_DEFAULT: User[] = [
   // R&D
   u('u-sub1', 'Neha Verma', 'AEL-20417', ['submitter'], 'R&D', 'Senior Engineer, R&D', [], 'RJP'),
@@ -185,7 +185,8 @@ export const USERS_DEFAULT: User[] = [
   u('u-fi-head', 'Vinod Agarwal', 'AEL-03377', ['depthead', 'submitter'], 'Finance', 'Head of Finance', [], 'NDA'),
   u('u-fi-exec', 'Rohit Kapoor', 'AEL-19177', ['execowner', 'submitter'], 'Finance', 'Finance Executive — implementation owner', [], 'NDA'),
   u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — savings verification', [], 'NDA'),
-  // Sourcing — commodity leads are the team leads, commodity buyers the execution owners
+  // Sourcing — Sanjay Kapoor is the team lead of the ladder (the other commodity leads also hold the role but are not
+  // routed ideas); the commodity buyers are the execution owners
   u('u-so-emp', 'Aditi Sharma', 'AEL-20877', ['submitter'], 'Sourcing', 'Executive, Sourcing', [], 'NDA'),
   u('u-lead1', 'Sanjay Kapoor', 'AEL-07215', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Metals', ['CUT', 'ALU', 'STL', 'FAS'], 'RJP'),
   u('u-lead2', 'Anita Sharma', 'AEL-07544', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Electricals', ['CMP', 'PCB', 'MOT', 'HAR'], 'NDA'),

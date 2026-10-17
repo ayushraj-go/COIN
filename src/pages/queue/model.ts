@@ -1,20 +1,14 @@
 // My queue — the ideas waiting for one person's action, one row per idea, with how long it has waited.
-// Who a row belongs to comes from stageAssignee (the department ladder). Colleagues who hold the same role in the same
-// department may act on it too (the idea page allows it — e.g. any Sourcing commodity lead can do a team check), so it is
-// listed for them as well, marked as their team's. Sourcing Head and Admin also see every open item.
-import type { Idea, RoleKey, SlaRule, User } from '../../lib/types'
+// Who a row belongs to comes from stageAssignee (the department ladder) — only that person sees it, and only that
+// person may act on it (ideaPerms uses the same rule). Sourcing Head and Admin also see every open item.
+import type { Idea, SlaRule, User } from '../../lib/types'
 import { SLA_RULES_DEFAULT, STAGE } from '../../lib/masters'
-import { ideaDept, stageAssignee } from '../../lib/workflow'
+import { stageAssignee } from '../../lib/workflow'
 import { healthOf, slaStatus } from '../../lib/calc'
 
 export type QueueAction = 'feasibility' | 'evaluate' | 'approve' | 'execute' | 'verify'
 export type QueueSla = 'ok' | 'due' | 'breach'
-export interface QueueRow {
-  idea: Idea; action: QueueAction; assignee?: string; assignedToMe: boolean
-  /** assigned to a colleague with the same role in my department — I may act on it too */
-  team: boolean
-  waitingHours: number; sla: QueueSla; slaDays?: number
-}
+export interface QueueRow { idea: Idea; action: QueueAction; assignee?: string; assignedToMe: boolean; waitingHours: number; sla: QueueSla; slaDays?: number }
 
 export const ACTION_META: Record<QueueAction, { label: string; verb: string; icon: string }> = {
   feasibility: { label: 'Team feasibility check', verb: 'Check feasibility', icon: 'UsersRound' },
@@ -35,21 +29,10 @@ export function pendingAction(i: Idea): QueueAction | null {
   return null
 }
 
-/** My role lets me act on this idea — the same rules as the idea page's action bar (ideaPerms) */
-export function roleCanAct(me: User, idea: Idea, action: QueueAction): boolean {
-  const has = (r: RoleKey) => me.roles.includes(r)
-  const inDept = me.department === ideaDept(idea)
-  if (action === 'feasibility') return has('teamlead') && inDept && idea.submitterId !== me.id
-  if (action === 'evaluate') return has('deptlead') && inDept
-  if (action === 'approve') return has('depthead') && inDept
-  if (action === 'execute') return idea.ownerId === me.id || (has('execowner') && inDept)
-  return has('finance')
-}
-
 const RANK: Record<QueueSla, number> = { breach: 0, due: 1, ok: 2 }
 
-/** mine = assigned to me; team = assigned to a colleague I may stand in for; all = mine then team (override users: every open item) */
-export function queueFor(me: User, ideas: Idea[], users: User[], now = Date.now(), rules: SlaRule[] = SLA_RULES_DEFAULT): { mine: QueueRow[]; team: QueueRow[]; all: QueueRow[] } {
+/** mine = assigned to me; all = mine, or every open item for the Sourcing Head and Admin */
+export function queueFor(me: User, ideas: Idea[], users: User[], now = Date.now(), rules: SlaRule[] = SLA_RULES_DEFAULT): { mine: QueueRow[]; all: QueueRow[] } {
   const override = me.roles.includes('head') || me.roles.includes('admin')
   const rows: QueueRow[] = []
   for (const idea of ideas) {
@@ -57,8 +40,7 @@ export function queueFor(me: User, ideas: Idea[], users: User[], now = Date.now(
     if (!action) continue
     const assignee = stageAssignee(idea, idea.stage, users)
     const assignedToMe = assignee === me.id
-    const team = !assignedToMe && roleCanAct(me, idea, action)
-    if (!assignedToMe && !team && !override) continue
+    if (!assignedToMe && !override) continue
     let sla: QueueSla = 'ok'
     let slaDays: number | undefined
     if (action === 'execute') {
@@ -70,12 +52,11 @@ export function queueFor(me: User, ideas: Idea[], users: User[], now = Date.now(
       slaDays = st.sla || undefined
     }
     const waitingHours = Math.max(0, Math.floor((now - Date.parse(idea.stageEnteredAt)) / 3.6e6))
-    rows.push({ idea, action, assignee, assignedToMe, team, waitingHours, sla, slaDays })
+    rows.push({ idea, action, assignee, assignedToMe, waitingHours, sla, slaDays })
   }
   rows.sort((a, b) => RANK[a.sla] - RANK[b.sla] || b.waitingHours - a.waitingHours)
   const mine = rows.filter((r) => r.assignedToMe)
-  const team = rows.filter((r) => r.team)
-  return { mine, team, all: override ? rows : [...mine, ...team] }
+  return { mine, all: override ? rows : mine }
 }
 
 /** "3 d 4 h" / "5 h" */

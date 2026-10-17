@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { USERS_DEFAULT, STAGE } from './masters'
-import { DEPARTMENTS, ladderOf, stageAssignee } from './workflow'
+import { DEPARTMENTS, ladderOf, personaFor, stageAssignee } from './workflow'
 import type { Idea } from './types'
 
 const idea = (o: Partial<Idea> & Record<string, unknown> = {}) => ({ id: 'X', department: 'R&D', commodity: 'CMP', submitterId: 'u-sub1', stage: STAGE.feasibility, ...o }) as unknown as Idea
@@ -23,9 +23,19 @@ describe('role ladder', () => {
     expect(stageAssignee(i, STAGE.verification, USERS_DEFAULT)).toBe('u-fin')
     expect(stageAssignee(i, 'Draft', USERS_DEFAULT)).toBeUndefined()
   })
-  it('Sourcing uses the commodity lead and buyer; supplier ideas go to Sourcing', () => {
+  it('a Sourcing idea goes to the Sourcing team lead of the ladder, whatever its commodity', () => {
+    // Aditi (Sourcing employee) → Sanjay Kapoor, never the commodity lead of another team
+    for (const commodity of ['HAR', 'CMP', 'PLM', 'STL']) {
+      expect(stageAssignee(idea({ department: 'Sourcing', commodity, submitterId: 'u-so-emp' }), STAGE.feasibility, USERS_DEFAULT), commodity).toBe('u-lead1')
+    }
+    // the same ladder as the persona switcher shows
+    expect(ladderOf('Sourcing', 'HAR', USERS_DEFAULT).teamLead).toBe(personaFor('Sourcing', 'teamlead', USERS_DEFAULT))
+    // the team lead's own idea goes to the department lead
+    expect(stageAssignee(idea({ department: 'Sourcing', commodity: 'STL', submitterId: 'u-lead1' }), STAGE.feasibility, USERS_DEFAULT)).toBe('u-so-lead')
+  })
+  it('supplier ideas run on the Sourcing ladder; execution goes to the commodity buyer', () => {
     const i = idea({ department: 'Supplier', commodity: 'CMP', submitterId: 'u-sup2' })
-    expect(stageAssignee(i, STAGE.feasibility, USERS_DEFAULT)).toBe('u-lead2')
+    expect(stageAssignee(i, STAGE.feasibility, USERS_DEFAULT)).toBe('u-lead1')
     expect(stageAssignee(i, STAGE.evaluation, USERS_DEFAULT)).toBe('u-so-lead')
     expect(stageAssignee(i, STAGE.approval, USERS_DEFAULT)).toBe('u-head')
     expect(stageAssignee(i, STAGE.execution, USERS_DEFAULT)).toBe('u-buyer3')
@@ -66,6 +76,16 @@ describe('who may act', () => {
     expect(ideaPerms(U('u-fin'), at(STAGE.verification)).verify).toBe(true)
     expect(ideaPerms(U('u-rd-head'), at(STAGE.verification)).verify).toBe(false)
   })
+  it('only the person the ladder routes it to acts — another team lead of the same department cannot', () => {
+    const har = at(STAGE.feasibility, { department: 'Sourcing', commodity: 'HAR', submitterId: 'u-so-emp', evaluation: undefined })
+    expect(ideaPerms(U('u-lead1'), har).feasibilityCheck).toBe(true)
+    expect(ideaPerms(U('u-lead2'), har).feasibilityCheck).toBe(false)
+    expect(ideaPerms(U('u-lead3'), har).feasibilityCheck).toBe(false)
+    // an execution is updated by its owner, not by every execution owner of the department
+    const ex = at(STAGE.execution, { department: 'Sourcing', commodity: 'HAR', evaluation: { dept: 'Sourcing' }, ownerId: 'u-buyer4' })
+    expect(ideaPerms(U('u-buyer4'), ex).execute).toBe(true)
+    expect(ideaPerms(U('u-buyer1'), ex).execute).toBe(false)
+  })
   it('a team lead cannot clear their own idea — the department lead does it instead', () => {
     const own = at(STAGE.feasibility, { submitterId: 'u-rd-tl' })
     expect(ideaPerms(U('u-rd-tl'), own).feasibilityCheck).toBe(false)
@@ -93,7 +113,6 @@ describe('who may act', () => {
   })
 })
 
-import { personaFor } from './workflow'
 describe('demo personas by department', () => {
   it('gives one account per ladder role for every department', () => {
     expect(personaFor('R&D', 'submitter', USERS_DEFAULT)).toBe('u-sub1')

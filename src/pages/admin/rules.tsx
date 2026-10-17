@@ -19,7 +19,7 @@ function LadderCard() {
   const fin = users.find((u) => u.roles.includes('finance'))
   return (
     <Card className="rounded-2xl" title="Department role ladder — who acts at each stage" icon="GitBranch" pad={false}
-      subtitle="Stage 4 is approved by the head of the idea's department (one level). Sourcing: commodity leads are team leads and commodity buyers execute.">
+      subtitle="Stage 4 is approved by the head of the idea's department (one level). Every idea goes to the team lead, department lead and head of its own department; in Sourcing the commodity buyer executes.">
       <div className="overflow-x-auto">
         <table className="tbl">
           <thead><tr><th>Department</th><th>2 · Team feasibility check</th><th>3 · Evaluation</th><th>4 · Approval + lock</th><th>5 · Execution</th></tr></thead>
