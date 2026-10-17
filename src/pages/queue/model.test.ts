@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { buildSeed } from '../../lib/seed'
 import { STAGE, USERS_DEFAULT } from '../../lib/masters'
 import { stageAssignee } from '../../lib/workflow'
-import { queueFor } from './model'
+import { pendingAction, queueFor } from './model'
+import { ideaPerms } from '../idea/model'
 
 const s = buildSeed()
 const U = (id: string) => USERS_DEFAULT.find((u) => u.id === id)!
@@ -43,6 +44,40 @@ describe('My queue', () => {
     expect(q.every((r) => r.waitingHours >= 0)).toBe(true)
     const firstOk = q.findIndex((r) => r.sla !== 'breach')
     expect(q.slice(firstOk).every((r) => r.sla !== 'breach')).toBe(true)
+  })
+  it('a Sourcing team lead also sees team checks routed to another commodity lead, and can act on them', () => {
+    // Aditi (Sourcing employee) raises a Wiring harness idea: it is assigned to the harness commodity lead (Anita),
+    // but every Sourcing team lead may do the check — so it must be in Sanjay's queue too, marked as his team's
+    const base = s.ideas.find((x) => x.stage === STAGE.feasibility)!
+    const har = { ...base, id: 'COIN-FY27-HAR-9001', department: 'Sourcing', commodity: 'HAR', submitterId: 'u-so-emp', submitterName: 'Aditi Sharma', evaluation: undefined }
+    const ideas = [...s.ideas, har]
+    expect(stageAssignee(har, STAGE.feasibility, USERS_DEFAULT)).toBe('u-lead2')
+    const anita = queueFor(U('u-lead2'), ideas, USERS_DEFAULT)
+    expect(anita.mine.some((r) => r.idea.id === har.id)).toBe(true)
+    const sanjay = queueFor(U('u-lead1'), ideas, USERS_DEFAULT)
+    expect(sanjay.mine.some((r) => r.idea.id === har.id)).toBe(false)
+    const row = sanjay.team.find((r) => r.idea.id === har.id)
+    expect(row?.assignee).toBe('u-lead2')
+    expect(row?.team).toBe(true)
+    expect(sanjay.all.some((r) => r.idea.id === har.id)).toBe(true)
+    // his own items come first
+    expect(sanjay.all.slice(0, sanjay.mine.length).every((r) => r.assignedToMe)).toBe(true)
+    // never their own idea, never another department's
+    const own = { ...har, id: 'COIN-FY27-HAR-9002', submitterId: 'u-lead1' }
+    const rd = { ...har, id: 'COIN-FY27-HAR-9003', department: 'R&D' }
+    const q2 = queueFor(U('u-lead1'), [own, rd], USERS_DEFAULT)
+    expect(q2.all).toEqual([])
+  })
+  it('My queue lists exactly what the idea page lets each person act on', () => {
+    const flag = { feasibility: 'feasibilityCheck', evaluate: 'evaluate', approve: 'approve', execute: 'execute', verify: 'verify' } as const
+    for (const me of USERS_DEFAULT.filter((u) => !u.roles.includes('head') && !u.roles.includes('admin'))) {
+      const listed = new Set(queueFor(me, s.ideas, USERS_DEFAULT).all.map((r) => r.idea.id))
+      for (const idea of s.ideas) {
+        const action = pendingAction(idea)
+        if (!action) continue
+        expect(listed.has(idea.id), `${me.id} · ${idea.id} · ${action}`).toBe(ideaPerms(me, idea)[flag[action]])
+      }
+    }
   })
   it('a reassigned execution moves to the new owner', () => {
     const i = s.ideas.find((x) => x.stage === STAGE.execution && x.ownerId === 'u-buyer2')!

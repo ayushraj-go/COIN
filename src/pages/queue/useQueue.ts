@@ -8,5 +8,5 @@ export function useMyQueue() {
   const ideas = useStore((s) => s.ideas)
   const users = useStore((s) => s.users)
   const rules = useStore((s) => s.slaRules)
-  return useMemo(() => (me ? queueFor(me, ideas, users, Date.now(), rules) : { mine: [], all: [] }), [me, ideas, users, rules])
+  return useMemo(() => (me ? queueFor(me, ideas, users, Date.now(), rules) : { mine: [], team: [], all: [] }), [me, ideas, users, rules])
 }
