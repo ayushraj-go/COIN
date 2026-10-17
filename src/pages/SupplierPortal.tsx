@@ -8,7 +8,7 @@ import { commodityShort, useStore } from '../store/useStore'
 import type { SupplierResponse, SupplierResponseType } from '../lib/types'
 import { fmtDate } from '../lib/format'
 import { Button, Field, Icon, cn } from '../components/ui'
-import { CoinMark } from '../components/Logo'
+import { Fact, FormStep, SupplierShell } from '../components/SupplierShell'
 
 const TYPES: { key: SupplierResponseType; label: string; hint: string; icon: string }[] = [
   { key: 'Idea', label: 'Cost idea', hint: 'A design, material, process, packing or logistics change that lowers cost', icon: 'Lightbulb' },
@@ -41,20 +41,10 @@ export default function SupplierPortal() {
   const myParts = useMemo(() => parts.filter((p) => p.supplierCode === code && p.commodity === commodity), [parts, code, commodity])
   const nameOf = (c: string) => commodityShort(commodities.find((x) => x.code === c)?.name ?? c)
 
-  const shell = (children: React.ReactNode) => (
-    <div className="min-h-full bg-[var(--color-slate-100)]">
-      <header className="bg-white border-b border-line">
-        <div className="max-w-[820px] mx-auto px-4 h-14 flex items-center gap-2.5">
-          <CoinMark size={30} />
-          <div className="leading-tight"><div className="text-[14px] font-bold text-ink">Amber Supplier Portal</div><div className="text-[11.5px] text-muted">Share ideas with Amber Sourcing · no login needed</div></div>
-        </div>
-      </header>
-      <main className="max-w-[820px] mx-auto px-4 py-6">{children}</main>
-    </div>
-  )
+  const shell = (children: React.ReactNode) => <SupplierShell title="Amber Supplier Portal" subtitle={sup ? `For ${sup.name}` : 'Share ideas with Amber Sourcing'}>{children}</SupplierShell>
 
   if (!sup) return shell(
-    <div className="card p-8 text-center"><Icon name="LinkOff" size={28} className="mx-auto text-muted" /><h1 className="mt-3 text-[18px] font-bold text-ink">This link is not valid</h1><p className="text-[13px] text-muted mt-1">The link may have been copied incompletely. Please use the link in the email from Amber Sourcing, or reply to that email.</p></div>,
+    <div className="card p-8 text-center max-w-[560px] mx-auto"><span className="h-12 w-12 rounded-full bg-slate-100 text-slate-500 grid place-items-center mx-auto"><Icon name="Link2Off" size={22} /></span><h1 className="mt-3 text-[18px] font-bold text-ink">This link is not valid</h1><p className="text-[13px] text-muted mt-1">The link may have been copied incompletely. Please use the link in the email from Amber Sourcing, or reply to that email.</p></div>,
   )
 
   const valid = !!commodity && !!subject.trim() && body.trim().length >= 10 && !!contact.trim() && (scope === 'Open idea' || chosen.length > 0)
@@ -64,24 +54,45 @@ export default function SupplierPortal() {
   }
 
   if (sent) return shell(
-    <div className="card p-8 text-center">
-      <span className="h-12 w-12 rounded-full bg-emerald-600 text-white grid place-items-center mx-auto"><Icon name="Check" size={24} strokeWidth={3} /></span>
-      <h1 className="mt-3 text-[19px] font-bold text-ink">Thank you — Amber Sourcing has received it</h1>
-      <p className="text-[13px] text-muted mt-1">Reference <b className="text-ink font-mono">{sent}</b>. The sourcing team reviews every submission and contacts you if it moves ahead.</p>
-      <Button className="mt-4" icon="Plus" onClick={() => setSent(null)}>Send another</Button>
+    <div className="grid gap-4 max-w-[640px] mx-auto">
+      <div className="card p-7 text-center">
+        <span className="h-14 w-14 rounded-full bg-emerald-600 text-white grid place-items-center mx-auto shadow-[0_8px_24px_-8px_rgb(5_150_105/.6)]"><Icon name="Check" size={28} strokeWidth={3} /></span>
+        <h1 className="mt-3 text-[20px] font-bold text-ink">Thank you{contact ? `, ${contact.split(' ')[0]}` : ''} — Amber Sourcing has received it</h1>
+        <p className="text-[13px] text-muted mt-1">Your reference is <b className="text-ink font-mono">{sent}</b> — quote it when you write to Amber about this.</p>
+        <Button className="mt-4" icon="Plus" onClick={() => setSent(null)}>Send another idea</Button>
+      </div>
+      <div className="card p-5">
+        <div className="text-[13px] font-bold text-ink mb-2">What happens next</div>
+        <ol className="grid gap-2 text-[13px] text-ink-2">
+          {['Amber Sourcing reads every submission and shares it with the right buyer and engineers.', 'If it moves ahead, the buyer contacts you for drawings, samples or a quotation.', 'Sending an idea carries no commitment from either side.'].map((t, k) => (
+            <li key={t} className="flex gap-2.5"><span className="h-5 w-5 rounded-full bg-[#1b2f63] text-white text-[11px] font-bold grid place-items-center shrink-0 mt-px">{k + 1}</span>{t}</li>
+          ))}
+        </ol>
+      </div>
     </div>,
   )
 
   return shell(
     <div className="grid gap-4">
-      <section className="card p-5">
-        <div className="text-[12px] text-muted">For <b className="text-ink">{sup.name}</b>{sup.contactName ? ` · ${sup.contactName}` : ''} · vendor code {sup.code}</div>
-        <h1 className="text-[20px] font-bold text-ink mt-1">Send your idea to Amber</h1>
-        <p className="text-[13px] text-ink-2 mt-1">{batch ? <>For <b>{batch.name ?? batch.templateName}</b>{batch.replyBy ? <> · please send by <b>{fmtDate(batch.replyBy)}</b></> : null}{batch.workshopDate ? <> · workshop on <b>{fmtDate(batch.workshopDate)}</b></> : null}. </> : null}Commodities: {comms.map(nameOf).join(', ') || '—'}.</p>
+      <section className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
+          <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-[#1b2f63]/[.07] text-[#1b2f63] font-semibold"><Icon name="Megaphone" size={13} />{batch ? (batch.name ?? batch.templateName) : 'Supplier ideas for Amber'}</span>
+        </div>
+        <h1 className="text-[22px] sm:text-[24px] font-extrabold text-ink mt-2 tracking-tight">Share an idea with Amber</h1>
+        <p className="text-[13.5px] text-ink-2 mt-0.5">For <b className="text-ink">{sup.name}</b>{sup.contactName ? ` · ${sup.contactName}` : ''} · vendor code {sup.code}</p>
+        <div className="mt-4 grid sm:grid-cols-2 gap-2">
+          <Fact icon="Boxes" label="Commodities">{comms.map(nameOf).join(', ') || '—'}</Fact>
+          <Fact icon="CalendarCheck" label={batch?.workshopDate ? 'Workshop' : 'Please send by'}>{batch?.workshopDate ? fmtDate(batch.workshopDate) : batch?.replyBy ? fmtDate(batch.replyBy) : 'Any time'}</Fact>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11.5px]">
+          <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-slate-100 text-ink-2"><Icon name="Timer" size={12} />About 3 minutes</span>
+          <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-emerald-50 text-emerald-800"><Icon name="ShieldCheck" size={12} />Goes to Amber Sourcing only · no commitment</span>
+        </div>
       </section>
 
-      <section className="card p-5 grid gap-4">
-        <Field label="What are you sending?" required>
+      <section className="card p-5 sm:p-6 grid gap-6">
+        <FormStep n={1} title="What are you sending?" hint="An idea, a problem in the current supply, or a complaint" done={!!type && !!commodity && (scope === 'Open idea' || chosen.length > 0)}>
+        <Field label="Type" required>
           <div className="grid sm:grid-cols-3 gap-2">
             {TYPES.map((t) => (
               <button key={t.key} type="button" onClick={() => setType(t.key)} className={cn('text-left rounded-xl border-2 px-3 py-2.5 transition-colors', type === t.key ? 'border-brand-600 bg-brand-50' : 'border-line bg-white hover:border-slate-300')}>
@@ -122,15 +133,20 @@ export default function SupplierPortal() {
             ) : <div className="text-[12.5px] text-muted">No parts on record for you in this commodity — choose “Any part / general”.</div>}
           </Field>
         )}
+        </FormStep>
+        <div className="h-px bg-line" />
+        <FormStep n={2} title="Your idea" hint="What changes, why it costs less or works better, what trials or approvals it needs" done={!!subject.trim() && body.trim().length >= 10}>
         <Field label="Title" required><input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Replace Zn-Ni plating with Zn-flake coating on the M6 flange bolt" /></Field>
-        <Field label="Describe it" required hint="What changes, why it is cheaper or better, what trials or approvals it needs"><textarea className="input" rows={5} value={body} onChange={(e) => setBody(e.target.value)} /></Field>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Estimated saving to Amber a year (₹ lakh, optional)"><input type="number" min="0" step="0.5" className="input num" value={est} onChange={(e) => setEst(e.target.value)} /></Field>
-          <Field label="Your name" required><input className="input" value={contact} onChange={(e) => setContact(e.target.value)} /></Field>
-        </div>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <span className="text-[11.5px] text-muted">Sent to Amber Sourcing only. It carries no commitment from either side.</span>
-          <Button variant="primary" icon="Send" disabled={!valid} onClick={submit}>Send to Amber</Button>
+        <Field label="Describe it" required hint={body.trim().length < 10 ? 'At least a sentence or two' : undefined}><textarea className="input" rows={5} value={body} onChange={(e) => setBody(e.target.value)} placeholder="e.g. Zn-flake gives the same 720 h salt-spray at a lower cost; we can run a 500-piece trial in 3 weeks" /></Field>
+        <Field label="Estimated saving to Amber a year (optional)"><div className="relative sm:max-w-[280px]"><input type="number" min="0" step="0.5" className="input num" style={{ paddingRight: 64 }} aria-label="Estimated saving" value={est} onChange={(e) => setEst(e.target.value)} placeholder="0" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted">₹ lakh</span></div></Field>
+        </FormStep>
+        <div className="h-px bg-line" />
+        <FormStep n={3} title="Your details" done={!!contact.trim()}>
+          <div className="sm:max-w-[360px]"><Field label="Your name" required><input className="input" value={contact} onChange={(e) => setContact(e.target.value)} /></Field></div>
+        </FormStep>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 pt-1">
+          <span className="text-[12px] text-muted flex-1">{valid ? <span className="text-emerald-700 font-semibold inline-flex items-center gap-1"><Icon name="CircleCheck" size={14} />Ready to send</span> : 'Fill the type, a title, a short description and your name'}</span>
+          <Button variant="primary" icon="Send" disabled={!valid} onClick={submit} className="sm:min-w-[200px] justify-center">Send to Amber</Button>
         </div>
       </section>
 
