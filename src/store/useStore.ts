@@ -9,6 +9,7 @@ import {
   MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
 } from '../lib/masters'
 import { buildSeed } from '../lib/seed'
+import { mergePersisted, persistedPart, readSession, writeSession } from './session'
 import { claimMrn, ledgerForMonth, liveForMrn, lockPlan, seasonProfile, simulateMrnMonth, windowTarget } from '../lib/mrn'
 import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, sendBackTargets, stageAssignee, stageLabel, SUPPLIER_LINK_PLACEHOLDER, type SendBackTo } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort, ymOf } from '../lib/format'
@@ -214,10 +215,17 @@ const safeStorage: Storage = {
         const o = JSON.parse(v)
         if (o?.state) { o.state.emails = (o.state.emails ?? []).slice(0, 50); o.state.notifications = (o.state.notifications ?? []).slice(0, 50) }
         localStorage.setItem(k, JSON.stringify(o))
-      } catch { /* storage full or blocked — keep working in memory */ }
+      } catch {
+        // storage full or blocked: keep working in memory, and tell the user their changes are not being kept
+        try { window.dispatchEvent(new Event('coin-storage-full')) } catch { /* no window */ }
+      }
     }
   },
 }
+/** this tab's own storage (sign-in per tab); absent outside a browser */
+const tabStorage = (() => { try { return typeof sessionStorage === 'undefined' ? null : sessionStorage } catch { return null } })()
+const sharedStorage = (() => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } })()
+const startSession = readSession(tabStorage, sharedStorage)
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
 try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8', 'coin-cost-innovation-hub-v9', 'coin-cost-innovation-hub-v10'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
@@ -407,12 +415,13 @@ export const useStore = create<Store>()(
       }
 
       return {
-        userId: null,
-        lastActivity: Date.now(),
+        // who is signed in, the workspace and the filters belong to this tab (see ./session)
+        userId: startSession.userId,
+        lastActivity: startSession.lastActivity,
         ...freshData(),
-        filters: DEFAULT_FILTERS,
+        filters: (startSession.filters as Filters | null) ?? DEFAULT_FILTERS,
         navCollapsed: false,
-        space: null,
+        space: startSession.space,
         drawerIdeaId: null,
         searchOpen: false,
         celebrate: 0,
@@ -990,23 +999,11 @@ export const useStore = create<Store>()(
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
       // so a demo never crashes on a missing list or setting. Anything that is not an array/object of the right shape is ignored.
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Record<string, unknown>
-        const out: Record<string, unknown> = { ...current }
-        for (const [k, v] of Object.entries(p)) {
-          const cur = (current as unknown as Record<string, unknown>)[k]
-          if (typeof cur === 'function' || v === undefined) continue
-          if (Array.isArray(cur)) { if (Array.isArray(v)) out[k] = v; continue }
-          if (cur && typeof cur === 'object') { if (v && typeof v === 'object' && !Array.isArray(v)) out[k] = { ...(cur as object), ...(v as object) }; continue }
-          out[k] = v
-        }
-        return out as unknown as Store
-      },
-      partialize: (s) => {
-        const { toasts, drawerIdeaId, searchOpen, celebrate, ...rest } = s as any
-        void toasts; void drawerIdeaId; void searchOpen; void celebrate
-        return Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== 'function')) as any
-      },
+      // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved, so a
+      // demo never crashes on a missing list or setting. This tab's sign-in is never taken from the shared data.
+      merge: (persisted, current) => mergePersisted(persisted, current),
+      // the shared data: everything but this tab's sign-in, UI-only state and the actions
+      partialize: (s) => persistedPart(s as unknown as Record<string, unknown>) as any,
     },
   ),
 )
@@ -1046,4 +1043,8 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v11') void useStore.persist.rehydrate() })
+  // keep this tab's sign-in in this tab (and as the default for a new tab)
+  useStore.subscribe((st, prev) => {
+    if (st.userId !== prev.userId || st.space !== prev.space || st.filters !== prev.filters) writeSession(tabStorage, sharedStorage, { userId: st.userId, space: st.space, filters: st.filters, lastActivity: st.lastActivity })
+  })
 }

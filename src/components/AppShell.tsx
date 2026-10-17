@@ -351,6 +351,20 @@ function Celebration() {
   return null
 }
 
+/** Shown when the browser refuses to keep the data (storage full or blocked) — changes would be lost on reload */
+function StorageWarning() {
+  const [full, setFull] = useState(false)
+  useEffect(() => { const on = () => setFull(true); window.addEventListener('coin-storage-full', on); return () => window.removeEventListener('coin-storage-full', on) }, [])
+  if (!full) return null
+  return (
+    <div role="alert" className="sticky top-0 z-30 mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[12.5px] text-red-800 flex flex-wrap items-center gap-2">
+      <Icon name="DatabaseZap" size={15} />
+      <span className="flex-1 min-w-[240px]"><b>This browser could not save the latest change</b> — its storage is full or blocked, so changes would be lost on reload. Export a backup (Admin → Data), then reset the demo data or free browser storage.</span>
+      <button type="button" onClick={() => setFull(false)} className="font-semibold underline">Dismiss</button>
+    </div>
+  )
+}
+
 export default function AppShell() {
   const setSearchOpen = useStore((s) => s.setSearchOpen)
   const loc = useLocation()
@@ -387,6 +401,7 @@ export default function AppShell() {
         <main ref={mainRef} className="relative flex-1 overflow-y-auto overflow-x-hidden">
           <div className="canvas-texture pointer-events-none absolute inset-x-0 top-0 h-[420px]" />
           <div className="relative mx-auto w-full max-w-[1480px] px-3 py-4 md:px-7 md:py-6">
+            <StorageWarning />
             <AnimatePresence mode="wait">
               <motion.div key={loc.pathname} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
                 <PageErrorBoundary key={loc.pathname}><Outlet /></PageErrorBoundary>

@@ -22,7 +22,9 @@ export default function Queue() {
   const users = useStore((s) => s.users)
   const openIdea = useStore((s) => s.openIdea)
   const override = !!me && (me.roles.includes('head') || me.roles.includes('admin'))
-  const [tab, setTab] = useState<'mine' | 'all'>('mine')
+  // the Sourcing Head and Admin see everything pending when nothing is assigned to them
+  const [picked, setTab] = useState<'mine' | 'all' | null>(null)
+  const tab = picked ?? (override && !q.mine.length ? 'all' : 'mine')
   if (!me) return null
   const rows = tab === 'all' ? q.all : q.mine
   const nameOf = (id?: string) => users.find((u) => u.id === id)?.name ?? '—'
