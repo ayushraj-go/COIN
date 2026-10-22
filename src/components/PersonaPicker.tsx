@@ -8,6 +8,7 @@ import { useStore } from '../store/useStore'
 import { CROSS_LOGINS, LADDER_ROLES } from '../lib/masters'
 import { DEPARTMENTS, personaFor } from '../lib/workflow'
 import { Avatar, Icon, cn } from './ui'
+import { CommodityDirectory } from './CommodityDirectory'
 
 const SOURCING = 'Sourcing'
 const OTHER_DEPTS = DEPARTMENTS.filter((d) => d !== SOURCING)
@@ -41,6 +42,9 @@ export function PersonaPicker({ onPick, currentUserId, compact }: { onPick: Pick
   const [tab, setTab] = useState<Tab>(isCross ? 'cross' : current && OTHER_DEPTS.includes(current.department as never) ? 'depts' : 'sourcing')
   const [dept, setDept] = useState<string>(current && OTHER_DEPTS.includes(current.department as never) ? current.department : OTHER_DEPTS[0])
   const [leadsOpen, setLeadsOpen] = useState(false)
+  // (i) — who leads which commodity; with a lead, opens on that lead's commodities
+  const [dir, setDir] = useState<{ open: boolean; lead?: string | null }>({ open: false })
+  const openDir = (lead?: string | null) => setDir({ open: true, lead })
   const leads = users.filter((u) => u.active !== false && u.department === SOURCING && u.roles.includes('teamlead'))
   const grid = cn('grid gap-1.5', compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')
   const tabs: { key: Tab; label: string; icon: string }[] = [
@@ -75,7 +79,7 @@ export function PersonaPicker({ onPick, currentUserId, compact }: { onPick: Pick
                     onClick={() => onPick(u.id, `${u.name} · Sourcing ${r.label.toLowerCase()}`)} />)}
             </div>
           )}
-          {tab === 'sourcing' && leadsOpen && <CommodityLeads leads={leads} currentUserId={currentUserId} onPick={onPick} onBack={() => setLeadsOpen(false)} compact={compact} />}
+          {tab === 'sourcing' && leadsOpen && <CommodityLeads leads={leads} currentUserId={currentUserId} onPick={onPick} onBack={() => setLeadsOpen(false)} onInfo={openDir} compact={compact} />}
 
           {tab === 'depts' && (
             <div className="flex flex-col gap-1.5">
@@ -105,12 +109,13 @@ export function PersonaPicker({ onPick, currentUserId, compact }: { onPick: Pick
           )}
         </motion.div>
       </AnimatePresence>
+      <CommodityDirectory open={dir.open} focusLeadId={dir.lead} onClose={() => setDir({ open: false })} onPick={onPick} currentUserId={currentUserId} />
     </div>
   )
 }
 
 /** Sourcing stage 2 — the team lead depends on the idea's commodity: every commodity team lead, searchable by commodity */
-function CommodityLeads({ leads, currentUserId, onPick, onBack, compact }: { leads: User[]; currentUserId?: string | null; onPick: Pick; onBack: () => void; compact?: boolean }) {
+function CommodityLeads({ leads, currentUserId, onPick, onBack, onInfo, compact }: { leads: User[]; currentUserId?: string | null; onPick: Pick; onBack: () => void; onInfo: () => void; compact?: boolean }) {
   const commodities = useStore((s) => s.commodities)
   const [q, setQ] = useState('')
   const k = q.trim().toLowerCase()
@@ -133,15 +138,20 @@ function CommodityLeads({ leads, currentUserId, onPick, onBack, compact }: { lea
             onKeyDown={(e) => { if (e.key === 'Enter' && rows.length === 1) onPick(rows[0].u.id, `${rows[0].u.name} · Sourcing team lead`) }}
             className="w-full h-8 pl-8 pr-2 rounded-lg border border-black/[.08] bg-white text-[12px] outline-none focus:border-brand-300" />
         </div>
+        <button type="button" onClick={() => onInfo()} aria-label="Who leads which commodity" title="Who leads which commodity — every commodity and its team lead in one view"
+          className="h-8 w-8 shrink-0 rounded-lg border border-black/[.08] bg-white grid place-items-center text-ink-2 hover:text-brand-700 hover:border-brand-300 transition-colors">
+          <Icon name="Info" size={15} />
+        </button>
       </div>
       <div className={cn('grid gap-1', compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2')}>
         {rows.map(({ u, hits }) => {
           const me = u.id === currentUserId
           return (
-            <button key={u.id} type="button" onClick={() => onPick(u.id, `${u.name} · Sourcing team lead`)}
-              title={`Team lead for ${u.commodities.length} commodities: ${u.commodities.map(nameOf).join(', ')}`}
-              className={cn('group flex items-center gap-2 rounded-lg border px-2 h-[38px] text-left transition-all min-w-0',
+            <div key={u.id} className={cn('group flex items-center rounded-lg border h-[38px] transition-all min-w-0',
                 me ? 'bg-brand-50 border-brand-300' : 'bg-white border-black/[.07] hover:border-brand-300 hover:shadow-[0_6px_16px_-12px_rgb(15_27_51/.45)]')}>
+            <button type="button" onClick={() => onPick(u.id, `${u.name} · Sourcing team lead`)}
+              title={`Team lead for ${u.commodities.length} commodities: ${u.commodities.map(nameOf).join(', ')}`}
+              className="flex-1 min-w-0 h-full flex items-center gap-2 px-2 text-left rounded-lg">
               <Avatar name={u.name} color={u.avatarColor} size={24} />
               <span className="min-w-0 flex-1">
                 <span className="block text-[11.5px] font-semibold text-ink leading-tight truncate">{u.name}</span>
@@ -151,6 +161,7 @@ function CommodityLeads({ leads, currentUserId, onPick, onBack, compact }: { lea
               </span>
               {me && <Icon name="Check" size={13} className="text-brand-700 shrink-0" />}
             </button>
+            </div>
           )
         })}
         {!rows.length && <div className="text-[11.5px] text-muted px-1 py-2 sm:col-span-2">No team lead looks after “{q}”.</div>}

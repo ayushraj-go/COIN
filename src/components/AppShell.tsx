@@ -250,7 +250,8 @@ function UserMenu() {
   // close on any click / tap outside the menu, on Esc, and when the page changes
   useEffect(() => {
     if (!open) return
-    const onDown = (e: PointerEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    // a dialog opened from the menu (e.g. "Who leads which commodity") renders outside it — clicks there keep the menu open
+    const onDown = (e: PointerEvent) => { if ((e.target as Element | null)?.closest?.('[role="dialog"]')) return; if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('pointerdown', onDown)
     document.addEventListener('keydown', onKey)
