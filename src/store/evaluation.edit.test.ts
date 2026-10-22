@@ -15,7 +15,7 @@ const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meal
 /** An HR idea of ₹ 33.6 L waiting at the HR evaluation */
 function inEvaluation() {
   st().loginAs('u-hr-emp')
-  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
+  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
   st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
   st().loginAs('u-hr-lead')
   return id

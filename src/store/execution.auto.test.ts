@@ -18,7 +18,7 @@ const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meal
 /** An HR idea taken to Execution started with the lock window given */
 function approved(start: string, end: string, months: number) {
   st().loginAs('u-hr-emp')
-  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
+  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
   st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
   st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
   st().loginAs('u-hr-head')
@@ -99,7 +99,7 @@ describe('the locked deadline closes execution', () => {
 describe('cost-benefit inputs in the department evaluation', () => {
   it('investment, go-live, payback and carry-over can be changed, and the approval uses them', () => {
     st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
+    const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
     const annual = ideaAnnualised(idea(id))
     const auto = cbaFigures(idea(id), 'FY27')
     expect(auto.investment).toBe(100000)
@@ -123,7 +123,7 @@ describe('cost-benefit inputs in the department evaluation', () => {
 describe('no free reassign in the pipeline', () => {
   it('Sourcing Head and Admin send an idea back to a stage it has passed instead of picking any SPOC', () => {
     st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'x', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
+    const id = st().submitIdea({ title: 'x', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
     st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
     expect(idea(id).stage).toBe(STAGE.evaluation)
     expect(ideaPerms(user('u-head'), idea(id)).reassign).toBe(false)
@@ -136,7 +136,7 @@ describe('no free reassign in the pipeline', () => {
 describe('evaluation inputs survive a send back to the evaluation', () => {
   it('the evaluator starts again from the inputs already entered', () => {
     st().loginAs('u-hr-emp')
-    const j = st().submitIdea({ title: 'y', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
+    const j = st().submitIdea({ title: 'y', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
     st().loginAs('u-hr-tl'); st().recordFeasibility(j, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
     st().loginAs('u-hr-lead'); st().saveEvaluation(j, { cbaVerified: true, cbaInputs: { investment: 200000, payback: 6 } }); st().recordEvaluation(j, 'Recommend', 'ok')
     st().loginAs('u-hr-head'); st().sendBack(j, 'redo risks', STAGE.evaluation)

@@ -152,7 +152,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const buyer = users.find((u) => u.id === commodity?.buyerId)
   const head = users.find((u) => u.id === 'u-head') ?? users.find((u) => u.roles.includes('head'))
   // stages 2–4 for this submitter's department (supplier ideas go to Sourcing)
-  const route = useMemo(() => approvalRoute(evalDeptOf(me?.department), commodity?.code ?? '', users, me?.id).map((r) => ({ label: r.label, name: users.find((u) => u.id === r.userId)?.name })), [me, commodity, users])
+  const route = useMemo(() => approvalRoute(evalDeptOf(me?.department), commodity?.code ?? '', users, me?.id).map((r) => ({ label: r.label, role: r.role, name: users.find((u) => u.id === r.userId)?.name })), [me, commodity, users])
   const myCommodities = isSupplier && me.commodities.length ? commodities.filter((c) => me.commodities.includes(c.code)) : commodities
   // every commodity, grouped by its commodity category — groups matching the buying type first
   const commodityGroups = categories
@@ -213,6 +213,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     if (!hasText(f.currentState)) e.currentState = 'Describe how it is done / bought today'
     if (!hasText(f.proposedChange)) e.proposedChange = 'Describe what changes'
     if (f.scope === 'Part-specific' && !f.parts.length) e.parts = 'Add at least one part code for a part-specific idea'
+    // one idea = one commodity: every part must belong to the commodity chosen in A
+    else if (f.commodity && f.parts.some((p) => p.commodity && p.commodity !== f.commodity)) e.parts = 'An idea covers one commodity — remove the parts of other commodities'
     if (takesParts(f)) {
       f.parts.forEach((p) => {
         if (toNum(p.baselinePrice) <= 0) e[`base:${p.partCode}`] = 'Baseline price is required'
@@ -360,7 +362,10 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     const cat = categories.find((c) => c.id === cm?.categoryId)
     const sup = suppliers.find((s) => s.code === form.scopeSupplierCode)
     const keepSupplier = !cm || !sup || sup.commodities.includes(cm.code)
-    update({ commodity: code, categoryId: cm?.categoryId ?? '', ...(cat ? { buyingType: cat.buyingType } : {}), ...(keepSupplier ? {} : { scopeSupplierCode: '' }) }, [5])
+    // one idea = one commodity: parts of the previous commodity are taken off
+    const keepParts = form.parts.filter((p) => !code || !p.commodity || p.commodity === code)
+    if (keepParts.length < form.parts.length) toast(`Removed ${form.parts.length - keepParts.length} part code${form.parts.length - keepParts.length === 1 ? '' : 's'} of another commodity — an idea covers one commodity`, 'info')
+    update({ commodity: code, categoryId: cm?.categoryId ?? '', parts: keepParts, ...(cat ? { buyingType: cat.buyingType } : {}), ...(keepSupplier ? {} : { scopeSupplierCode: '' }) }, [5])
   }
   const setLever = (id: string) => update({ leverId: id }, [6])
   const setScope = (k: FormScope) => {
@@ -369,6 +374,11 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     update(patch, [7])
   }
   const addPart = (p: Part) => {
+    // one idea = one commodity: a part of another commodity cannot be added
+    if (form.commodity && p.commodity !== form.commodity) {
+      toast(`Part ${p.code} is in ${commodities.find((c) => c.code === p.commodity)?.name ?? p.commodity}, not ${commodity?.name ?? form.commodity} — an idea covers one commodity`, 'warning')
+      return
+    }
     const patch: Partial<FormState> = { parts: [...form.parts, fromPart(p, suppliers)] }
     if (!form.commodity) {
       const cm = commodities.find((c) => c.code === p.commodity)
@@ -821,7 +831,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
               <Button variant="primary" size="lg" icon="Send" className="w-full" onClick={submit}>Submit for validation</Button>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
                 <span className="font-mono">{idPreview ?? 'COIN-FY27-···-····'}</span>
-                <span className="truncate">{route[0]?.name ? `Goes to ${route[0].name} · team lead` : 'Goes to your team lead'}</span>
+                <span className="truncate">{route[0]?.name ? `Goes to ${route[0].name} · ${route[0].role}` : 'Goes to your team lead'}</span>
               </div>
             </div>
           </div>

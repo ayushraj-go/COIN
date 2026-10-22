@@ -45,14 +45,14 @@ describe('My queue', () => {
     const firstOk = q.findIndex((r) => r.sla !== 'breach')
     expect(q.slice(firstOk).every((r) => r.sla !== 'breach')).toBe(true)
   })
-  it('a Sourcing employee’s idea goes to the Sourcing team lead’s queue only, whatever its commodity', () => {
-    // Aditi (Sourcing employee) raises a Wiring harness idea: it goes to Sanjay Kapoor (Sourcing team lead),
-    // not to the commodity lead of another team, and nobody else's queue lists it
+  it('a Sourcing employee’s idea goes only to the queue of its commodity’s team lead', () => {
+    // Aditi (Sourcing employee) raises a Wire idea: it goes to Abhishek Sharma (team lead for Wire),
+    // not to another team lead, and nobody else's queue lists it
     const base = s.ideas.find((x) => x.stage === STAGE.feasibility)!
-    const har = { ...base, id: 'COIN-FY27-HAR-9001', department: 'Sourcing', commodity: 'HAR', submitterId: 'u-so-emp', submitterName: 'Aditi Sharma', evaluation: undefined }
+    const har = { ...base, id: 'COIN-FY27-HAR-9001', department: 'Sourcing', commodity: 'BL', submitterId: 'u-so-emp', submitterName: 'Aditi Sharma', evaluation: undefined }
     const ideas = [...s.ideas, har]
-    expect(queueFor(U('u-lead1'), ideas, USERS_DEFAULT).mine.some((r) => r.idea.id === har.id)).toBe(true)
-    for (const other of ['u-lead2', 'u-lead3', 'u-so-lead', 'u-buyer4']) {
+    expect(queueFor(U('u-lead6'), ideas, USERS_DEFAULT).mine.some((r) => r.idea.id === har.id)).toBe(true)
+    for (const other of ['u-lead1', 'u-lead2', 'u-lead3', 'u-so-lead', 'u-buyer4']) {
       expect(queueFor(U(other), ideas, USERS_DEFAULT).all.some((r) => r.idea.id === har.id), other).toBe(false)
     }
     // only what is assigned to you — no colleagues' items

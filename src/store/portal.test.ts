@@ -7,8 +7,8 @@ beforeEach(() => { st().resetDemo() })
 
 describe('Supplier Portal', () => {
   it('the emailed link points at the app, never at a dead external domain', () => {
-    const link = supplierPortalLink('V10021', ['FAS', 'CUT'], 'OB-001')
-    expect(link).toMatch(/\/supplier-portal\?s=V10021&c=FAS,CUT&b=OB-001$/)
+    const link = supplierPortalLink('V10021', ['BN', 'BV'], 'OB-001')
+    expect(link).toMatch(/\/supplier-portal\?s=V10021&c=BN,BV&b=OB-001$/)
     expect(link).not.toContain('coin.amber')
   })
   it('a supplier submission becomes a New supplier response linked to its campaign, and the sender is told', () => {
@@ -23,7 +23,7 @@ describe('Supplier Portal', () => {
     expect(st().notifications.some((n) => n.userId === batch.sentBy && n.body.includes(id!))).toBe(true)
   })
   it('refuses an unknown vendor or an empty submission', () => {
-    expect(st().submitPortalResponse({ supplierCode: 'V99999', commodity: 'FAS', type: 'Idea', scope: 'Open idea', subject: 'x', body: 'y', contactName: 'z' })).toBeNull()
-    expect(st().submitPortalResponse({ supplierCode: 'V10021', commodity: 'FAS', type: 'Idea', scope: 'Open idea', subject: ' ', body: 'y', contactName: 'z' })).toBeNull()
+    expect(st().submitPortalResponse({ supplierCode: 'V99999', commodity: 'BN', type: 'Idea', scope: 'Open idea', subject: 'x', body: 'y', contactName: 'z' })).toBeNull()
+    expect(st().submitPortalResponse({ supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Open idea', subject: ' ', body: 'y', contactName: 'z' })).toBeNull()
   })
 })

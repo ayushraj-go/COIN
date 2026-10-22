@@ -129,9 +129,9 @@ describe('monthly savings track — ₹ 12 L over 6 months = ₹ 2 L a month', (
 describe('source breakdown', () => {
   it('splits internal vs external and tiers', () => {
     const ideas: any[] = [
-      { id: 'a', isSupplierSubmission: false, commodity: 'FAS', department: 'R&D', submitterId: 'u1', submitterName: 'Neha' },
-      { id: 'b', isSupplierSubmission: true, supplierCode: 'V1', commodity: 'FAS', department: 'Supplier', submitterId: 'u2', submitterName: 'Rakesh', campaignId: 'CMP-003' },
-      { id: 'c', isSupplierSubmission: true, supplierCode: 'V2', commodity: 'CMP', department: 'Supplier', submitterId: 'u3', submitterName: 'Lakshmi' },
+      { id: 'a', isSupplierSubmission: false, commodity: 'BN', department: 'R&D', submitterId: 'u1', submitterName: 'Neha' },
+      { id: 'b', isSupplierSubmission: true, supplierCode: 'V1', commodity: 'BN', department: 'Supplier', submitterId: 'u2', submitterName: 'Rakesh', campaignId: 'CMP-003' },
+      { id: 'c', isSupplierSubmission: true, supplierCode: 'V2', commodity: 'AO', department: 'Supplier', submitterId: 'u3', submitterName: 'Lakshmi' },
     ]
     const s = sourceBreakdown(ideas, [{ code: 'V1', tier: 'Tier 2' }, { code: 'V2', tier: 'Tier 1' }] as any, () => 100)
     expect(s.internal.count).toBe(1)

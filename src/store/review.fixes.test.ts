@@ -89,8 +89,8 @@ describe('I4 — MIS for department leads and heads', () => {
 describe('I5 — Submit shows the department route', () => {
   it('team lead → department lead → department head of the submitter\'s department', () => {
     const names = (r: { userId?: string }[]) => r.map((x) => user(x.userId!).name)
-    expect(names(approvalRoute('R&D', 'CMP', st().users, 'u-sub1'))).toEqual(['Arvind Rao', 'Dr. Priya Nair', 'Dr. Sameer Kulkarni'])
-    expect(approvalRoute('R&D', 'CMP', st().users, 'u-sub1').map((r) => r.label)).toEqual(['Team feasibility check', 'R&D evaluation', 'R&D approval'])
-    expect(names(approvalRoute('R&D', 'CMP', st().users, 'u-rd-tl'))[0]).toBe('Dr. Priya Nair')
+    expect(names(approvalRoute('R&D', 'AO', st().users, 'u-sub1'))).toEqual(['Arvind Rao', 'Dr. Priya Nair', 'Dr. Sameer Kulkarni'])
+    expect(approvalRoute('R&D', 'AO', st().users, 'u-sub1').map((r) => r.label)).toEqual(['Team feasibility check', 'R&D evaluation', 'R&D approval'])
+    expect(names(approvalRoute('R&D', 'AO', st().users, 'u-rd-tl'))[0]).toBe('Dr. Priya Nair')
   })
 })

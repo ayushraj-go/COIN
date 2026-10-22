@@ -21,7 +21,7 @@ beforeEach(() => { st().resetDemo() })
 describe('an HR idea runs the whole department ladder', () => {
   it('employee → team lead → department lead → department head → execution owner → Finance', () => {
     st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate' })
+    const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate' })
     expect(idea(id).department).toBe('HR')
     expect(idea(id).stage).toBe(STAGE.feasibility)
 

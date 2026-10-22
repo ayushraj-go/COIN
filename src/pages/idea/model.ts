@@ -197,7 +197,7 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const dept = ideaDept(idea)
   const inDept = me.department === dept
   // each stage is acted on by the one person the department ladder routes it to (stageAssignee): stage 2 the team lead
-  // of the submitter's department (the department lead on the team lead's own idea), stage 3 the department lead,
+  // of the submitter's department — in Sourcing the team lead of the idea's commodity (the department lead on a team lead's own idea), stage 3 the department lead,
   // stage 4 the department head — never a colleague holding the same role
   const assigned = stageAssignee(idea, stage, usersNow()) === me.id
   const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || assigned)

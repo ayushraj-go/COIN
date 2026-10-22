@@ -116,9 +116,11 @@ export function PartSearch({ parts, commodity, selected, onPick, restrictNote }:
   const results = useMemo(() => {
     const k = q.trim().toLowerCase()
     const cname = (code: string) => commodities.find((c) => c.code === code)?.name.toLowerCase() ?? ''
+    // one idea = one commodity: once a commodity is chosen only its parts are offered
+    const pool = commodity ? parts.filter((p) => p.commodity === commodity) : parts
     const list = k
-      ? parts.filter((p) => p.code.includes(k) || p.description.toLowerCase().includes(k) || p.commodity.toLowerCase().includes(k) || cname(p.commodity).includes(k))
-      : parts.filter((p) => !commodity || p.commodity === commodity)
+      ? pool.filter((p) => p.code.includes(k) || p.description.toLowerCase().includes(k) || p.commodity.toLowerCase().includes(k) || cname(p.commodity).includes(k))
+      : pool
     return [...list].sort((a, b) => Number(b.commodity === commodity) - Number(a.commodity === commodity)).slice(0, 8)
   }, [q, parts, commodity, commodities])
   const pick = (p: Part) => { if (selected.includes(p.code)) return; onPick(p); setQ(''); setIdx(0); ref.current?.focus() }

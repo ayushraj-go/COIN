@@ -462,7 +462,7 @@ export const useStore = create<Store>()(
           const lever = leverOf(draft.leverId ?? 'L01')
           const idea: Idea = {
             id, seq: 0, fy: get().settings.currentFy, title: '', currentState: '', proposedChange: '', evidence: '', evidenceTags: [], attachments: [],
-            submitterId: u.id, submitterName: u.name, employeeId: u.employeeId, department: u.department, plant: u.plant, buyingType: 'Direct', categoryId: 'MET', commodity: 'FAS',
+            submitterId: u.id, submitterName: u.name, employeeId: u.employeeId, department: u.department, plant: u.plant, buyingType: 'Direct', categoryId: 'MET', commodity: 'BN',
             leverId: lever.id, scope: 'Part-specific', parts: [], savingsType: lever.defaultSavingsType, oneTimeInvestment: 0, expectedQuarter: `Q3 ${get().settings.currentFy}`,
             isSupplierSubmission: u.roles.includes('supplier'), supplierCode: u.supplierCode, route: lever.route, stage: 'Draft', bucket: 'Draft',
             stageEnteredAt: now(), createdAt: now(), buyerId: 'u-buyer1', approvals: [], stageHistory: [{ stage: 'Draft', enteredAt: now() }],
@@ -994,7 +994,7 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v11',
+      name: 'coin-cost-innovation-hub-v12',
       version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
@@ -1042,7 +1042,7 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v11') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v12') void useStore.persist.rehydrate() })
   // keep this tab's sign-in in this tab (and as the default for a new tab)
   useStore.subscribe((st, prev) => {
     if (st.userId !== prev.userId || st.space !== prev.space || st.filters !== prev.filters) writeSession(tabStorage, sharedStorage, { userId: st.userId, space: st.space, filters: st.filters, lastActivity: st.lastActivity })

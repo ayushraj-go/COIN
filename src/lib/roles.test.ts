@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { USERS_DEFAULT, STAGE } from './masters'
+import { COMMODITIES_DEFAULT, USERS_DEFAULT, STAGE } from './masters'
 import { DEPARTMENTS, ladderOf, personaFor, stageAssignee } from './workflow'
 import type { Idea } from './types'
 
-const idea = (o: Partial<Idea> & Record<string, unknown> = {}) => ({ id: 'X', department: 'R&D', commodity: 'CMP', submitterId: 'u-sub1', stage: STAGE.feasibility, ...o }) as unknown as Idea
+const idea = (o: Partial<Idea> & Record<string, unknown> = {}) => ({ id: 'X', department: 'R&D', commodity: 'AO', submitterId: 'u-sub1', stage: STAGE.feasibility, ...o }) as unknown as Idea
 
 describe('role ladder', () => {
   it('every one of the 8 departments has all five roles', () => {
     expect([...DEPARTMENTS]).toEqual(['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'])
     for (const d of DEPARTMENTS) {
-      const l = ladderOf(d, 'CMP', USERS_DEFAULT)
+      const l = ladderOf(d, 'AO', USERS_DEFAULT)
       expect([l.teamLead, l.deptLead, l.deptHead, l.execOwner].every(Boolean), d).toBe(true)
       for (const id of [l.teamLead, l.deptLead, l.deptHead]) expect(USERS_DEFAULT.find((u) => u.id === id)?.department, `${d} ${id}`).toBe(d)
     }
@@ -23,25 +23,39 @@ describe('role ladder', () => {
     expect(stageAssignee(i, STAGE.verification, USERS_DEFAULT)).toBe('u-fin')
     expect(stageAssignee(i, 'Draft', USERS_DEFAULT)).toBeUndefined()
   })
-  it('a Sourcing idea goes to the Sourcing team lead of the ladder, whatever its commodity', () => {
-    // Aditi (Sourcing employee) → Sanjay Kapoor, never the commodity lead of another team
-    for (const commodity of ['HAR', 'CMP', 'PLM', 'STL']) {
-      expect(stageAssignee(idea({ department: 'Sourcing', commodity, submitterId: 'u-so-emp' }), STAGE.feasibility, USERS_DEFAULT), commodity).toBe('u-lead1')
+  it('a Sourcing idea goes to the team lead of its commodity (npd data SPOC)', () => {
+    // Aditi (Sourcing employee) → the team lead who owns the idea's commodity
+    const cases: [string, string][] = [['BV', 'u-lead1'], ['AO', 'u-lead2'], ['FI', 'u-lead3'], ['AJ', 'u-lead4'], ['BP', 'u-lead5'], ['BL', 'u-lead6'],
+      ['BN', 'u-lead7'], ['BQ', 'u-lead8'], ['BW', 'u-lead9'], ['CO', 'u-lead10'], ['CV', 'u-lead11'], ['LPG', 'u-lead8']]
+    for (const [commodity, lead] of cases) {
+      expect(stageAssignee(idea({ department: 'Sourcing', commodity, submitterId: 'u-so-emp' }), STAGE.feasibility, USERS_DEFAULT), commodity).toBe(lead)
     }
-    // the same ladder as the persona switcher shows
-    expect(ladderOf('Sourcing', 'HAR', USERS_DEFAULT).teamLead).toBe(personaFor('Sourcing', 'teamlead', USERS_DEFAULT))
-    // the team lead's own idea goes to the department lead
-    expect(stageAssignee(idea({ department: 'Sourcing', commodity: 'STL', submitterId: 'u-lead1' }), STAGE.feasibility, USERS_DEFAULT)).toBe('u-so-lead')
+    // every commodity has exactly one team lead, who holds the teamlead role in Sourcing
+    for (const c of COMMODITIES_DEFAULT) {
+      const holders = USERS_DEFAULT.filter((u) => u.department === 'Sourcing' && u.roles.includes('teamlead') && u.commodities.includes(c.code))
+      expect(holders.map((u) => u.id), c.code).toEqual([c.leadId])
+    }
+    // the persona switcher shows the first team lead
+    expect(personaFor('Sourcing', 'teamlead', USERS_DEFAULT)).toBe(ladderOf('Sourcing', 'BV', USERS_DEFAULT).teamLead)
+    // an idea raised by any team lead goes to the department lead — in their own commodity or another team lead's
+    expect(stageAssignee(idea({ department: 'Sourcing', commodity: 'AJ', submitterId: 'u-lead4' }), STAGE.feasibility, USERS_DEFAULT)).toBe('u-so-lead')
+    expect(stageAssignee(idea({ department: 'Sourcing', commodity: 'AJ', submitterId: 'u-lead1' }), STAGE.feasibility, USERS_DEFAULT)).toBe('u-so-lead')
+    // stages 3 and 4 are the same for every commodity: department lead, then department head
+    for (const commodity of ['BV', 'CV', 'LPG']) {
+      const i = idea({ department: 'Sourcing', commodity, submitterId: 'u-so-emp' })
+      expect(stageAssignee(i, STAGE.evaluation, USERS_DEFAULT)).toBe('u-so-lead')
+      expect(stageAssignee(i, STAGE.approval, USERS_DEFAULT)).toBe('u-head')
+    }
   })
   it('supplier ideas run on the Sourcing ladder; execution goes to the commodity buyer', () => {
-    const i = idea({ department: 'Supplier', commodity: 'CMP', submitterId: 'u-sup2' })
-    expect(stageAssignee(i, STAGE.feasibility, USERS_DEFAULT)).toBe('u-lead1')
+    const i = idea({ department: 'Supplier', commodity: 'AO', submitterId: 'u-sup2' })
+    expect(stageAssignee(i, STAGE.feasibility, USERS_DEFAULT)).toBe('u-lead2')
     expect(stageAssignee(i, STAGE.evaluation, USERS_DEFAULT)).toBe('u-so-lead')
     expect(stageAssignee(i, STAGE.approval, USERS_DEFAULT)).toBe('u-head')
     expect(stageAssignee(i, STAGE.execution, USERS_DEFAULT)).toBe('u-buyer3')
   })
   it('HR ideas follow the HR ladder', () => {
-    const i = idea({ department: 'HR', commodity: 'FAC', submitterId: 'u-hr-emp' })
+    const i = idea({ department: 'HR', commodity: 'CA', submitterId: 'u-hr-emp' })
     expect(stageAssignee(i, STAGE.feasibility, USERS_DEFAULT)).toBe('u-hr-tl')
     expect(stageAssignee(i, STAGE.approval, USERS_DEFAULT)).toBe('u-hr-head')
   })
@@ -77,12 +91,12 @@ describe('who may act', () => {
     expect(ideaPerms(U('u-rd-head'), at(STAGE.verification)).verify).toBe(false)
   })
   it('only the person the ladder routes it to acts — another team lead of the same department cannot', () => {
-    const har = at(STAGE.feasibility, { department: 'Sourcing', commodity: 'HAR', submitterId: 'u-so-emp', evaluation: undefined })
-    expect(ideaPerms(U('u-lead1'), har).feasibilityCheck).toBe(true)
+    const har = at(STAGE.feasibility, { department: 'Sourcing', commodity: 'BL', submitterId: 'u-so-emp', evaluation: undefined })
+    expect(ideaPerms(U('u-lead6'), har).feasibilityCheck).toBe(true)
+    expect(ideaPerms(U('u-lead1'), har).feasibilityCheck).toBe(false)
     expect(ideaPerms(U('u-lead2'), har).feasibilityCheck).toBe(false)
-    expect(ideaPerms(U('u-lead3'), har).feasibilityCheck).toBe(false)
     // an execution is updated by its owner, not by every execution owner of the department
-    const ex = at(STAGE.execution, { department: 'Sourcing', commodity: 'HAR', evaluation: { dept: 'Sourcing' }, ownerId: 'u-buyer4' })
+    const ex = at(STAGE.execution, { department: 'Sourcing', commodity: 'BL', evaluation: { dept: 'Sourcing' }, ownerId: 'u-buyer4' })
     expect(ideaPerms(U('u-buyer4'), ex).execute).toBe(true)
     expect(ideaPerms(U('u-buyer1'), ex).execute).toBe(false)
   })

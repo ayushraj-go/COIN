@@ -22,7 +22,7 @@ const go = { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', 
 /** An HR idea submitted by the HR employee and cleared by the HR team lead */
 function cleared(part: IdeaPart, title = 'HR idea') {
   st().loginAs('u-hr-emp')
-  const id = st().submitIdea({ title, commodity: 'FAC', leverId: 'L01', parts: [part], currentState: 'Today', proposedChange: 'Change' })
+  const id = st().submitIdea({ title, commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Today', proposedChange: 'Change' })
   st().loginAs('u-hr-tl')
   st().recordFeasibility(id, { ...go, departments: [...go.departments] })
   return id

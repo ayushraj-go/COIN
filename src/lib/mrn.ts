@@ -115,11 +115,16 @@ export function ledgerForMonth(month: string, lines: MrnLine[], ideas: Idea[], o
   return out
 }
 
+const DEMO_PACE_CODE: Record<string, string> = { BV: 'CUT', AA: 'ALU', AJ: 'STL', BN: 'FAS', AO: 'CMP', DX: 'PCB', AP: 'MOT', BL: 'HAR', FI: 'PLM', BW: 'RES', BP: 'COR', AV: 'EPS', BX: 'FRT', CM: 'MRO', CA: 'FAC' }
+
 /** Each idea's MRN volume runs at its own steady pace against plan (demo feed): most at or a little above plan, some
  *  slightly below, a few well short — so the monthly forecast vs MRN view shows ideas on track and ideas falling behind */
 export function mrnPace(id: string) {
+  // demo feed: the pace is keyed on the idea number with the sample commodity codes the demo ideas were first built
+  // with, so the stories stay the same now that the commodities carry the real Amber codes
+  const key = id.replace(/^(COIN-FY\d+-)([A-Z0-9]+)-/, (m, pre: string, code: string) => `${pre}${DEMO_PACE_CODE[code] ?? code}-`)
   let h = 2166136261
-  for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
+  for (const c of key) h = Math.imul(h ^ c.charCodeAt(0), 16777619)
   const u = ((h >>> 0) % 1000) / 1000
   return u < 0.6 ? 1.03 + (u / 0.6) * 0.15 : u < 0.8 ? 0.88 + (u - 0.6) * 0.45 : 0.45 + (u - 0.8) * 1.5
 }

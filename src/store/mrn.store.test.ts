@@ -14,7 +14,7 @@ const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meal
 
 function approved(start: string, end: string, months: number) {
   st().loginAs('u-hr-emp')
-  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
+  const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
   st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
   st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
   st().loginAs('u-hr-head')
@@ -106,7 +106,7 @@ describe('verification after the final month’s MRN', () => {
 describe('the lock keeps the forecast it was signed on', () => {
   it('signing records the forecast and the monthly plan; a later forecast change asks for a new signature', () => {
     st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'FAC', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
+    const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
     st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
     st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
     st().loginAs('u-hr-head')

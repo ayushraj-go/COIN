@@ -3,7 +3,7 @@ import { claimMrn, ledgerForMonth, monthlyForecast, seasonProfile, simulateMrnMo
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, daysBetween, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, feasibilityOwner, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -30,23 +30,25 @@ const LEVER_PCT: Record<string, [number, number]> = {
   L09: [5, 12], L10: [4, 10], L11: [6, 14], L12: [3, 7], L13: [2, 5], L14: [5, 12], L15: [6, 15], L16: [3, 8], L17: [5, 10], L18: [4, 10],
 }
 const COMMODITY_LEVERS: Record<string, string[]> = {
-  CUT: ['L01', 'L03', 'L04', 'L05', 'L07', 'L09', 'L10', 'L12', 'L17', 'L01', 'L03'],
-  ALU: ['L01', 'L03', 'L04', 'L05', 'L09', 'L11', 'L13', 'L17'],
-  STL: ['L01', 'L04', 'L05', 'L07', 'L09', 'L10', 'L11', 'L12', 'L13'],
-  FAS: ['L01', 'L05', 'L07', 'L09', 'L11', 'L13', 'L04'],
-  CMP: ['L01', 'L03', 'L04', 'L05', 'L06', 'L09', 'L10', 'L01', 'L08'],
-  PCB: ['L01', 'L03', 'L05', 'L06', 'L09', 'L10', 'L11', 'L06'],
-  MOT: ['L01', 'L05', 'L06', 'L09', 'L11', 'L10'],
-  HAR: ['L01', 'L05', 'L07', 'L09', 'L11', 'L12'],
-  PLM: ['L01', 'L04', 'L05', 'L07', 'L09', 'L11', 'L12', 'L16', 'L17'],
-  RES: ['L01', 'L03', 'L04', 'L05', 'L11'],
-  COR: ['L01', 'L05', 'L07', 'L15', 'L15'],
-  EPS: ['L01', 'L05', 'L15', 'L11'],
-  FRT: ['L14', 'L14', 'L01', 'L04', 'L18'],
-  MRO: ['L01', 'L04', 'L16', 'L18', 'L02'],
-  FAC: ['L01', 'L02', 'L16', 'L18'],
+  BV: ['L01', 'L03', 'L04', 'L05', 'L07', 'L09', 'L10', 'L12', 'L17', 'L01', 'L03'],
+  AA: ['L01', 'L03', 'L04', 'L05', 'L09', 'L11', 'L13', 'L17'],
+  AJ: ['L01', 'L04', 'L05', 'L07', 'L09', 'L10', 'L11', 'L12', 'L13'],
+  BN: ['L01', 'L05', 'L07', 'L09', 'L11', 'L13', 'L04'],
+  AO: ['L01', 'L03', 'L04', 'L05', 'L06', 'L09', 'L10', 'L01', 'L08'],
+  DX: ['L01', 'L03', 'L05', 'L06', 'L09', 'L10', 'L11', 'L06'],
+  AP: ['L01', 'L05', 'L06', 'L09', 'L11', 'L10'],
+  BL: ['L01', 'L05', 'L07', 'L09', 'L11', 'L12'],
+  FI: ['L01', 'L04', 'L05', 'L07', 'L09', 'L11', 'L12', 'L16', 'L17'],
+  BW: ['L01', 'L03', 'L04', 'L05', 'L11'],
+  BP: ['L01', 'L05', 'L07', 'L15', 'L15'],
+  AV: ['L01', 'L05', 'L15', 'L11'],
+  BX: ['L14', 'L14', 'L01', 'L04', 'L18'],
+  CM: ['L01', 'L04', 'L16', 'L18', 'L02'],
+  CA: ['L01', 'L02', 'L16', 'L18'],
 }
-const IDEAS_PER_COMMODITY: Record<string, number> = { CUT: 14, ALU: 10, STL: 11, FAS: 9, CMP: 13, PCB: 11, MOT: 8, HAR: 7, PLM: 9, RES: 7, COR: 6, EPS: 5, FRT: 8, MRO: 5, FAC: 5 }
+/** Where each commodity starts in the stage mix (keeps the demo's spread of stages per commodity) */
+const MIX_OFFSET: Record<string, number> = { BV: 67, AA: 65, AJ: 83, BN: 70, AO: 67, DX: 80, AP: 77, BL: 72, FI: 80, BW: 82, BP: 67, AV: 69, BX: 70, CM: 77, CA: 70 }
+const IDEAS_PER_COMMODITY: Record<string, number> = { BV: 14, AA: 10, AJ: 11, BN: 9, AO: 13, DX: 11, AP: 8, BL: 7, FI: 9, BW: 7, BP: 6, AV: 5, BX: 8, CM: 5, CA: 5 }
 
 const TITLES: Record<string, string[]> = {
   L01: ['Annual rate renegotiation for {part}', 'Index-linked price reset on {part} with {supplier}', 'Should-price based negotiation for {part}'],
@@ -114,7 +116,7 @@ const ALT_SUPPLIER_NEW = ['Metro Precision Components', 'Ganga Industrial Works'
 const users = USERS_DEFAULT
 // employees and leads from every department raise ideas; indirect spend (freight, MRO, facilities) leans to HR and Finance
 const submitterPool = ['u-sub1', 'u-sub2', 'u-sub3', 'u-sub4', 'u-sub5', 'u-fi-emp', 'u-hr-emp', 'u-so-emp', 'u-eval1', 'u-eval2', 'u-eval3', 'u-eval4', 'u-rd-tl', 'u-qa-tl', 'u-pe-tl', 'u-pr-lead', 'u-fi-tl', 'u-hr-tl']
-const INDIRECT = ['FRT', 'MRO', 'FAC']
+const INDIRECT = ['BX', 'CM', 'CA']
 const HR_FIN = ['u-hr-emp', 'u-hr-tl', 'u-fi-emp', 'u-fi-tl']
 const userById = (id: string) => users.find((u) => u.id === id)!
 
@@ -139,7 +141,7 @@ function mkPart(p: Part, lever: string, share: number, pctRange: [number, number
 const seqByCommodity: Record<string, number> = {}
 function nextSeq(c: string) {
   seqByCommodity[c] = (seqByCommodity[c] || 0) + 1
-  if (c === 'FAS' && seqByCommodity[c] === 12) seqByCommodity[c]++
+  if (c === 'BN' && seqByCommodity[c] === 12) seqByCommodity[c]++
   return seqByCommodity[c]
 }
 
@@ -159,7 +161,7 @@ type Target = 'Draft' | 'Pipeline' | 'In Execution' | 'Implemented' | 'Dropped' 
 /** The department ladder for an idea: team lead (department lead on their own idea), department lead, head, execution owner */
 function ladderFor(dept: string, commodity: string, submitterId: string) {
   const l = ladderOf(dept, commodity, users)
-  return { feas: (l.teamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead)!, evaluator: l.deptLead!, head: l.deptHead!, exec: l.execOwner!, verifier: l.verifier ?? 'u-fin' }
+  return { feas: feasibilityOwner(l, submitterId, users)!, evaluator: l.deptLead!, head: l.deptHead!, exec: l.execOwner!, verifier: l.verifier ?? 'u-fin' }
 }
 const LEVEL_FRAC: Record<RiskLevel, [number, number]> = { Low: [0, 0.015], Medium: [0.015, 0.05], High: [0.05, 0.1] }
 function makeRisks(annual: number, levels?: RiskLevel[]): RiskItem[] {
@@ -491,12 +493,12 @@ function buildIdea(opts: {
 export function seedCampaigns(): Campaign[] {
   const att = (codes: string[], states: Campaign['attendance'][string][]) => Object.fromEntries(codes.map((c, i) => [c, states[i % states.length]]))
   return [
-    { id: 'CMP-001', name: 'Compressor cost-down summit FY27', type: 'Workshop', commodity: 'CMP', categoryId: 'ELE', startDate: '2026-07-01', endDate: '2026-07-31', workshopDate: '2026-07-16', venue: 'Amber Noida HQ, Board Room 2', suppliers: ['V10007', 'V10008'], internalInvitees: ['u-buyer3', 'u-lead2', 'u-eval1', 'u-eval2'], targetIdeas: 12, targetValue: 12 * 1e7, status: 'Closed', description: 'Joint cost-down workshop with compressor partners covering VA/VE, localisation of sub-components and forex mechanisms.', attendance: att(['V10007', 'V10008'], ['Attended', 'Attended']), summary: '14 ideas captured; 5 approved in 3 weeks; motor-winding localisation and shell gauge VE taken to NPD.', createdBy: 'u-lead2', createdAt: '2026-06-10T09:00:00.000Z', invitesSentAt: '2026-06-12T10:00:00.000Z' },
-    { id: 'CMP-002', name: 'Metals VA/VE sprint — Copper & Aluminium', type: 'Campaign', commodity: 'CUT', categoryId: 'MET', startDate: '2026-08-15', endDate: '2026-10-31', suppliers: ['V10001', 'V10002', 'V10003', 'V10004'], internalInvitees: ['u-buyer2', 'u-lead1', 'u-eval1', 'u-eval3', 'u-sub4'], targetIdeas: 15, targetValue: 10 * 1e7, status: 'Live', description: 'Sprint to cut copper and aluminium intensity per TR: tube wall thickness, fin density, hairpin optimisation, scrap LME linkage.', attendance: att(['V10001', 'V10002', 'V10003', 'V10004'], ['Accepted', 'Accepted', 'Invited', 'Accepted']), createdBy: 'u-lead1', createdAt: '2026-08-05T09:00:00.000Z', invitesSentAt: '2026-08-06T10:00:00.000Z' },
-    { id: 'CMP-003', name: 'Fasteners supplier improvement workshop', type: 'Workshop', commodity: 'FAS', categoryId: 'MET', startDate: '2026-09-20', endDate: '2026-10-20', workshopDate: '2026-10-08', venue: 'Amber Rajpura Plant, Training Hall', suppliers: ['V10021', 'V10022'], internalInvitees: ['u-buyer1', 'u-lead1', 'u-eval2', 'u-sub2'], targetIdeas: 8, targetValue: 1.2 * 1e7, status: 'Live', description: 'Plating, standardisation and packaging ideas for fasteners; suppliers to bring 3 ideas each with gain-share offers.', attendance: att(['V10021', 'V10022'], ['Accepted', 'Invited']), createdBy: 'u-buyer1', createdAt: '2026-09-15T09:00:00.000Z', invitesSentAt: '2026-09-16T10:00:00.000Z' },
-    { id: 'CMP-004', name: 'Packing sustainability challenge', type: 'Campaign', commodity: 'COR', categoryId: 'PKG', startDate: '2026-05-01', endDate: '2026-06-30', suppliers: ['V10018', 'V10019'], internalInvitees: ['u-buyer6', 'u-lead3', 'u-eval3', 'u-eval4'], targetIdeas: 6, targetValue: 1.5 * 1e7, status: 'Closed', description: 'Reduce packing material and move to returnable packaging for high-runner models.', attendance: att(['V10018', 'V10019'], ['Attended', 'Attended']), summary: '7 ideas; ply reduction and EPS density trials cleared; returnable packaging parked for FY28.', createdBy: 'u-lead3', createdAt: '2026-04-20T09:00:00.000Z', invitesSentAt: '2026-04-22T10:00:00.000Z' },
-    { id: 'CMP-005', name: 'Electronics localisation drive', type: 'Campaign', commodity: 'PCB', categoryId: 'ELE', startDate: '2026-09-01', endDate: '2026-12-15', suppliers: ['V10009', 'V10010'], internalInvitees: ['u-buyer4', 'u-lead2', 'u-eval1', 'u-eval2'], targetIdeas: 10, targetValue: 6 * 1e7, status: 'Live', description: 'Localise imported ICs, relays and connectors on inverter PCBAs with R&D + DQA validation.', attendance: att(['V10009', 'V10010'], ['Accepted', 'Accepted']), createdBy: 'u-lead2', createdAt: '2026-08-25T09:00:00.000Z', invitesSentAt: '2026-08-26T10:00:00.000Z' },
-    { id: 'CMP-006', name: 'Indirect spend hackathon', type: 'Campaign', commodity: 'FRT', categoryId: 'LOG', startDate: '2026-11-01', endDate: '2026-11-30', suppliers: ['V10020', 'V10023', 'V10024', 'V10025'], internalInvitees: ['u-buyer7', 'u-lead3', 'u-eval4', 'u-sub2'], targetIdeas: 10, targetValue: 2 * 1e7, status: 'Draft', description: 'Freight backhaul, MRO catalogue buying and utilities automation ideas.', attendance: {}, createdBy: 'u-lead3', createdAt: '2026-09-28T09:00:00.000Z' },
+    { id: 'CMP-001', name: 'Compressor cost-down summit FY27', type: 'Workshop', commodity: 'AO', categoryId: 'ELE', startDate: '2026-07-01', endDate: '2026-07-31', workshopDate: '2026-07-16', venue: 'Amber Noida HQ, Board Room 2', suppliers: ['V10007', 'V10008'], internalInvitees: ['u-buyer3', 'u-lead2', 'u-eval1', 'u-eval2'], targetIdeas: 12, targetValue: 12 * 1e7, status: 'Closed', description: 'Joint cost-down workshop with compressor partners covering VA/VE, localisation of sub-components and forex mechanisms.', attendance: att(['V10007', 'V10008'], ['Attended', 'Attended']), summary: '14 ideas captured; 5 approved in 3 weeks; motor-winding localisation and shell gauge VE taken to NPD.', createdBy: 'u-lead2', createdAt: '2026-06-10T09:00:00.000Z', invitesSentAt: '2026-06-12T10:00:00.000Z' },
+    { id: 'CMP-002', name: 'Metals VA/VE sprint — Copper & Aluminium', type: 'Campaign', commodity: 'BV', categoryId: 'MET', startDate: '2026-08-15', endDate: '2026-10-31', suppliers: ['V10001', 'V10002', 'V10003', 'V10004'], internalInvitees: ['u-buyer2', 'u-lead1', 'u-eval1', 'u-eval3', 'u-sub4'], targetIdeas: 15, targetValue: 10 * 1e7, status: 'Live', description: 'Sprint to cut copper and aluminium intensity per TR: tube wall thickness, fin density, hairpin optimisation, scrap LME linkage.', attendance: att(['V10001', 'V10002', 'V10003', 'V10004'], ['Accepted', 'Accepted', 'Invited', 'Accepted']), createdBy: 'u-lead1', createdAt: '2026-08-05T09:00:00.000Z', invitesSentAt: '2026-08-06T10:00:00.000Z' },
+    { id: 'CMP-003', name: 'Fasteners supplier improvement workshop', type: 'Workshop', commodity: 'BN', categoryId: 'MET', startDate: '2026-09-20', endDate: '2026-10-20', workshopDate: '2026-10-08', venue: 'Amber Rajpura Plant, Training Hall', suppliers: ['V10021', 'V10022'], internalInvitees: ['u-buyer1', 'u-lead7', 'u-eval2', 'u-sub2'], targetIdeas: 8, targetValue: 1.2 * 1e7, status: 'Live', description: 'Plating, standardisation and packaging ideas for fasteners; suppliers to bring 3 ideas each with gain-share offers.', attendance: att(['V10021', 'V10022'], ['Accepted', 'Invited']), createdBy: 'u-buyer1', createdAt: '2026-09-15T09:00:00.000Z', invitesSentAt: '2026-09-16T10:00:00.000Z' },
+    { id: 'CMP-004', name: 'Packing sustainability challenge', type: 'Campaign', commodity: 'BP', categoryId: 'PKG', startDate: '2026-05-01', endDate: '2026-06-30', suppliers: ['V10018', 'V10019'], internalInvitees: ['u-buyer6', 'u-lead5', 'u-eval3', 'u-eval4'], targetIdeas: 6, targetValue: 1.5 * 1e7, status: 'Closed', description: 'Reduce packing material and move to returnable packaging for high-runner models.', attendance: att(['V10018', 'V10019'], ['Attended', 'Attended']), summary: '7 ideas; ply reduction and EPS density trials cleared; returnable packaging parked for FY28.', createdBy: 'u-lead5', createdAt: '2026-04-20T09:00:00.000Z', invitesSentAt: '2026-04-22T10:00:00.000Z' },
+    { id: 'CMP-005', name: 'Electronics localisation drive', type: 'Campaign', commodity: 'DX', categoryId: 'ELE', startDate: '2026-09-01', endDate: '2026-12-15', suppliers: ['V10009', 'V10010'], internalInvitees: ['u-buyer4', 'u-lead2', 'u-eval1', 'u-eval2'], targetIdeas: 10, targetValue: 6 * 1e7, status: 'Live', description: 'Localise imported ICs, relays and connectors on inverter PCBAs with R&D + DQA validation.', attendance: att(['V10009', 'V10010'], ['Accepted', 'Accepted']), createdBy: 'u-lead2', createdAt: '2026-08-25T09:00:00.000Z', invitesSentAt: '2026-08-26T10:00:00.000Z' },
+    { id: 'CMP-006', name: 'Indirect spend hackathon', type: 'Campaign', commodity: 'BX', categoryId: 'SRV', startDate: '2026-11-01', endDate: '2026-11-30', suppliers: ['V10020', 'V10023', 'V10024', 'V10025'], internalInvitees: ['u-buyer7', 'u-lead8', 'u-eval4', 'u-sub2'], targetIdeas: 10, targetValue: 2 * 1e7, status: 'Draft', description: 'Freight backhaul, MRO catalogue buying and utilities automation ideas.', attendance: {}, createdBy: 'u-lead8', createdAt: '2026-09-28T09:00:00.000Z' },
   ]
 }
 
@@ -504,12 +506,13 @@ export function seedCampaigns(): Campaign[] {
 export function seedIdeas(): Idea[] {
   const ideas: Idea[] = []
   const mix: Target[] = ['Pipeline', 'Implemented', 'Pipeline', 'In Execution', 'Implemented', 'In Execution', 'Pipeline', 'Implemented', 'Dropped', 'In Execution', 'Pipeline', 'Implemented', 'In Execution', 'Rejected']
-  const campaignFor: Record<string, string> = { CMP: 'CMP-001', CUT: 'CMP-002', ALU: 'CMP-002', FAS: 'CMP-003', COR: 'CMP-004', EPS: 'CMP-004', PCB: 'CMP-005' }
-  for (const c of COMMODITIES_DEFAULT) {
+  const campaignFor: Record<string, string> = { AO: 'CMP-001', BV: 'CMP-002', AA: 'CMP-002', BN: 'CMP-003', BP: 'CMP-004', AV: 'CMP-004', DX: 'CMP-005' }
+  // demo ideas only in the commodities that have sample parts and suppliers, in a fixed order (the seed is deterministic)
+  for (const c of Object.keys(IDEAS_PER_COMMODITY).map((code) => COMMODITIES_DEFAULT.find((x) => x.code === code)!)) {
     const n = IDEAS_PER_COMMODITY[c.code]
     for (let k = 0; k < n; k++) {
       const leverId = pick(COMMODITY_LEVERS[c.code])
-      let target = mix[(k + c.code.charCodeAt(0)) % mix.length]
+      let target = mix[(k + MIX_OFFSET[c.code]) % mix.length]
       const supplierUser = users.find((u) => u.roles.includes('supplier') && u.commodities.includes(c.code))
       const supplierCode = supplierUser && chance(0.4) ? supplierUser.supplierCode : undefined
       const campaignId = campaignFor[c.code] && chance(0.4) ? campaignFor[c.code] : undefined
@@ -518,13 +521,13 @@ export function seedIdeas(): Idea[] {
     }
   }
   // Drafts
-  ideas.push(buildIdea({ commodity: 'STL', leverId: 'L09', target: 'Draft', submitterId: 'u-sub1' }))
-  ideas.push(buildIdea({ commodity: 'PLM', leverId: 'L16', target: 'Draft', submitterId: 'u-sub1' }))
+  ideas.push(buildIdea({ commodity: 'AJ', leverId: 'L09', target: 'Draft', submitterId: 'u-sub1' }))
+  ideas.push(buildIdea({ commodity: 'FI', leverId: 'L16', target: 'Draft', submitterId: 'u-sub1' }))
 
   // Worked example (Section 4): fastener ₹ 4.20 → ₹ 3.85 on 24,00,000 units, live 1 October → ₹ 8.40 L annual, ₹ 4.20 L committed, ₹ 4.20 L carry-over
   const fasPart = PARTS_DEFAULT.find((p) => p.code === '3100045612')!
   const we = buildIdea({
-    commodity: 'FAS', leverId: 'L11', target: 'In Execution', stageOverride: STAGE.execution, createdAt: '2026-06-18', supplierCode: 'V10021', campaignId: undefined, seq: 12,
+    commodity: 'BN', leverId: 'L11', target: 'In Execution', stageOverride: STAGE.execution, createdAt: '2026-06-18', supplierCode: 'V10021', campaignId: undefined, seq: 12,
     title: 'Switch M6×16 flange bolt plating from Zn-Ni to trivalent Zn with sealer',
     partsOverride: [{ partCode: fasPart.code, description: fasPart.description, uom: 'Nos', currentSupplier: 'V10021 · Sunrise Fasteners Pvt Ltd', baselinePrice: 4.2, baselineSource: 'LBP', newPrice: 3.85, annualVolume: 2400000, volumeSource: 'MRN FY26' }],
   })
@@ -569,26 +572,26 @@ interface ShowSpec {
 function buildShowcase(): Idea[] {
   const buyerOf = (code: string) => COMMODITIES_DEFAULT.find((c) => c.code === code)!.buyerId
   const specs: ShowSpec[] = [
-    { n: 1, commodity: 'CMP', leverId: 'L06', submitterId: 'u-sub1', title: 'Localise the terminal cover and discharge muffler of the 1.5 TR inverter compressor',
+    { n: 1, commodity: 'AO', leverId: 'L06', submitterId: 'u-sub1', title: 'Localise the terminal cover and discharge muffler of the 1.5 TR inverter compressor',
       current: 'Terminal cover and discharge muffler of the 1.5 TR inverter compressor come with the imported compressor kit; their landed cost moves with USD.',
       proposed: 'Localise both sub-components with an Indian moulder and press shop; the compressor maker fits the local parts from Q4.',
       evidence: 'R&D teardown and should-cost done; two local vendors shortlisted.', partCode: '3500040012', newPrice: 7775, volume: 120000, investment: 18 * LAKH, months: 6, risks: ['Medium', 'High', 'Medium', 'High', 'Low'] },
-    { n: 2, commodity: 'STL', leverId: 'L12', submitterId: 'u-sub3', title: 'Cut the condenser side bracket from a drawing-nominal blank',
+    { n: 2, commodity: 'AJ', leverId: 'L12', submitterId: 'u-sub3', title: 'Cut the condenser side bracket from a drawing-nominal blank',
       current: 'The condenser side bracket is cut from an oversize blank; about 6 % offcut goes to scrap.', proposed: 'Correct the blank to drawing nominal and nest two brackets per strip.',
       evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: '3400031187', newPrice: 37.9, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
-    { n: 3, commodity: 'ALU', leverId: 'L11', submitterId: 'u-sub4', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
+    { n: 3, commodity: 'AA', leverId: 'L11', submitterId: 'u-sub4', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
       current: 'Indoor coils use 0.105 mm blue-coated fin stock.', proposed: 'Move to 0.100 mm hydrophilic fin stock with the same heat-transfer performance at a lower gauge.',
       evidence: 'Thermal performance test on a 1.5 TR coil passed at the R&D lab; vendor quote attached.', partCode: '3300021019', newPrice: 316, volume: 600000, investment: 0, months: 6, alt: 'V10003', risks: ['Medium', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '120 MT per month', lead: 30, price: 0, certs: 'IATF 16949 · ISO 14001', remarks: 'Hydrophilic 0.100 mm grade is in regular production; trial coils in 3 weeks.' } },
-    { n: 4, commodity: 'PCB', leverId: 'L05', submitterId: buyerOf('PCB'), title: 'Second source for the indoor display PCB assembly',
+    { n: 4, commodity: 'DX', leverId: 'L05', submitterId: buyerOf('DX'), title: 'Second source for the indoor display PCB assembly',
       current: 'The indoor display PCB assembly is single-sourced; the price has not moved in 18 months.', proposed: 'Develop an alternate source on the same drawing; split volume 60 / 40 after PPAP.',
       evidence: 'Capability audit and quote completed; sample lot planned.', partCode: '3600050118', newPrice: 184.4, volume: 1500000, investment: 4 * LAKH, months: 6, alt: 'V10009', risks: ['Medium', 'Low', 'Medium', 'Medium', 'Low'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '180 k assemblies per month', lead: 45, certs: 'IATF 16949 · IPC-A-610 class 2', remarks: 'SMT line capacity reserved from December.' } },
-    { n: 5, commodity: 'CUT', leverId: 'L09', submitterId: 'u-sub2', title: 'Shorter hairpin bend leg length on 7 mm coils',
+    { n: 5, commodity: 'BV', leverId: 'L09', submitterId: 'u-sub2', title: 'Shorter hairpin bend leg length on 7 mm coils',
       current: 'Pre-formed hairpin bends carry 4 mm extra leg length that is trimmed after expansion.', proposed: 'Order hairpins at the trimmed length; the supplier passes on the copper saving.',
       evidence: 'Expansion trial on line 3 passed; no leak at 45 bar.', partCode: '3200011277', newPrice: 14.5, volume: 8000000, investment: 2 * LAKH, months: 3, alt: 'V10001', risks: ['Low', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '900 k pieces per month', lead: 21, certs: 'IATF 16949', remarks: 'Can supply trimmed-length hairpins from the existing die set.' } },
-    { n: 6, commodity: 'MOT', leverId: 'L01', submitterId: buyerOf('MOT'), title: 'Annual rate reset for the BLDC indoor fan motor',
+    { n: 6, commodity: 'AP', leverId: 'L01', submitterId: buyerOf('AP'), title: 'Annual rate reset for the BLDC indoor fan motor',
       current: 'The BLDC 40 W fan motor is bought at the FY26 rate; copper and magnet indices have since eased.', proposed: 'Index-linked rate reset with the current supplier for FY27.',
       evidence: 'Should-cost and index workings attached.', partCode: '3700060210', newPrice: 1117.5, volume: 980000, investment: 0, months: 3, alt: 'V10011', risks: ['Low', 'Low', 'Low', 'Low', 'Medium'],
       response: { canSupply: 'Partly', meetsSpec: 'Yes', capacity: '40 k motors per month', lead: 60, certs: 'IATF 16949', remarks: 'Can take up to 40 % of the volume from Q4.' } },

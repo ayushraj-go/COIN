@@ -17,21 +17,27 @@ export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Fi
 export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'] as const
 
 export interface Ladder { dept: string; teamLead?: string; deptLead?: string; deptHead?: string; execOwner?: string; verifier?: string }
-/** Who holds each ladder role for a department: one person per role — the ladder the persona switcher shows — so an
- *  employee's idea always goes to the team lead, department lead and head of their own department. Only the execution
- *  owner follows the idea's commodity (in Sourcing, the commodity buyer who places the orders). */
+/** Who holds each ladder role for a department — an employee's idea goes to the ladder of their own department.
+ *  The team lead and the execution owner follow the idea's commodity: in Sourcing each commodity has its own team lead
+ *  (the commodity's SPOC) and its own commodity buyer. Departments whose team leads carry no commodities have one team lead. */
 export function ladderOf(dept: string, commodity: string, users: User[]): Ladder {
   const holders = (role: RoleKey) => users.filter((u) => u.active !== false && u.department === dept && u.roles.includes(role))
   const first = (role: RoleKey) => holders(role)[0]?.id
   const byCommodity = (role: RoleKey) => { const h = holders(role); return (h.find((u) => u.commodities.includes(commodity)) ?? h[0])?.id }
-  return { dept, teamLead: first('teamlead'), deptLead: first('deptlead'), deptHead: first('depthead'), execOwner: byCommodity('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
+  return { dept, teamLead: byCommodity('teamlead'), deptLead: first('deptlead'), deptHead: first('depthead'), execOwner: byCommodity('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
+}
+/** Stage 2 — who does the team feasibility check: the team lead (in Sourcing, the team lead of the idea's commodity).
+ *  An idea raised by a team lead — any team lead of that department, whatever the commodity — goes to the department lead. */
+export function feasibilityOwner(l: Ladder, submitterId: string | undefined, users: User[]): string | undefined {
+  const byTeamLead = !!submitterId && users.some((u) => u.id === submitterId && u.department === l.dept && u.roles.includes('teamlead'))
+  return l.teamLead && !byTeamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead
 }
 /** The department whose ladder runs this idea: the evaluation's department once set, else the submitter's (mapped) */
 export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept: string } }) => idea.evaluation?.dept ?? evalDeptOf(idea.department)
 /** The person expected to act at `stage` — used by permissions, "waiting on", queues, notifications and the seed */
 export function stageAssignee(idea: Idea, stage: string, users: User[]): string | undefined {
   const l = ladderOf(ideaDept(idea), idea.commodity, users)
-  if (stage === STAGE.feasibility) return l.teamLead && l.teamLead !== idea.submitterId ? l.teamLead : l.deptLead
+  if (stage === STAGE.feasibility) return feasibilityOwner(l, idea.submitterId, users)
   if (stage === STAGE.evaluation) return l.deptLead
   if (stage === STAGE.approval) return l.deptHead
   if (stage === STAGE.execution) return idea.ownerId ?? l.execOwner
@@ -311,12 +317,13 @@ export function milestoneSchedule(execStart: string, savingsStart: string, end: 
 }
 
 /** Stages 2–4 for an idea from `dept`, with the person at each — shown on Submit Idea */
-export function approvalRoute(dept: string, commodity: string, users: User[], submitterId?: string): { label: string; userId?: string }[] {
+export function approvalRoute(dept: string, commodity: string, users: User[], submitterId?: string): { label: string; userId?: string; role: string }[] {
   const l = ladderOf(dept, commodity, users)
+  const feas = feasibilityOwner(l, submitterId, users)
   return [
-    { label: 'Team feasibility check', userId: l.teamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead },
-    { label: `${dept} evaluation`, userId: l.deptLead },
-    { label: `${dept} approval`, userId: l.deptHead },
+    { label: 'Team feasibility check', userId: feas, role: feas && feas === l.deptLead ? 'department lead' : 'team lead' },
+    { label: `${dept} evaluation`, userId: l.deptLead, role: 'department lead' },
+    { label: `${dept} approval`, userId: l.deptHead, role: 'department head' },
   ]
 }
 

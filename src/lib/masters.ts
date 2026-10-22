@@ -118,25 +118,173 @@ export const CATEGORIES_DEFAULT: Category[] = [
   { id: 'LOG', name: 'Logistics', buyingType: 'Indirect' },
   { id: 'MRO', name: 'MRO & Consumables', buyingType: 'Indirect' },
   { id: 'SRV', name: 'Services & Facilities', buyingType: 'Indirect' },
+  { id: 'CHE', name: 'Chemicals & Gases', buyingType: 'Direct' },
+  { id: 'CAP', name: 'Tooling & Capex', buyingType: 'Indirect' },
 ]
 
-export const COMMODITIES_DEFAULT: Commodity[] = [
-  { code: 'CUT', name: 'Copper tube (Cu)', categoryId: 'MET', target: 25.5 * CR, buyerId: 'u-buyer2', leadId: 'u-lead1', addressableSpend: 2450 * CR },
-  { code: 'ALU', name: 'Aluminium fin stock (Al)', categoryId: 'MET', target: 13 * CR, buyerId: 'u-buyer2', leadId: 'u-lead1', addressableSpend: 1120 * CR },
-  { code: 'STL', name: 'Steel sheet (CRCA / GI)', categoryId: 'MET', target: 9.5 * CR, buyerId: 'u-buyer1', leadId: 'u-lead1', addressableSpend: 860 * CR },
-  { code: 'FAS', name: 'Fasteners', categoryId: 'MET', target: 3 * CR, buyerId: 'u-buyer1', leadId: 'u-lead1', addressableSpend: 145 * CR },
-  { code: 'CMP', name: 'Compressor', categoryId: 'ELE', target: 24 * CR, buyerId: 'u-buyer3', leadId: 'u-lead2', addressableSpend: 2980 * CR },
-  { code: 'PCB', name: 'PCB / PCBA', categoryId: 'ELE', target: 11 * CR, buyerId: 'u-buyer4', leadId: 'u-lead2', addressableSpend: 1340 * CR },
-  { code: 'MOT', name: 'Motors (BLDC / PSC)', categoryId: 'ELE', target: 7 * CR, buyerId: 'u-buyer3', leadId: 'u-lead2', addressableSpend: 780 * CR },
-  { code: 'HAR', name: 'Wiring harness & cables', categoryId: 'ELE', target: 4 * CR, buyerId: 'u-buyer4', leadId: 'u-lead2', addressableSpend: 410 * CR },
-  { code: 'PLM', name: 'Plastic moulded parts', categoryId: 'PLA', target: 5.5 * CR, buyerId: 'u-buyer5', leadId: 'u-lead3', addressableSpend: 520 * CR },
-  { code: 'RES', name: 'Engineering resins (ABS / PP)', categoryId: 'PLA', target: 5 * CR, buyerId: 'u-buyer5', leadId: 'u-lead3', addressableSpend: 610 * CR },
-  { code: 'COR', name: 'Corrugated boxes', categoryId: 'PKG', target: 2.5 * CR, buyerId: 'u-buyer6', leadId: 'u-lead3', addressableSpend: 190 * CR },
-  { code: 'EPS', name: 'EPS / thermocol', categoryId: 'PKG', target: 1.5 * CR, buyerId: 'u-buyer6', leadId: 'u-lead3', addressableSpend: 120 * CR },
-  { code: 'FRT', name: 'Freight & logistics', categoryId: 'LOG', target: 5 * CR, buyerId: 'u-buyer7', leadId: 'u-lead3', addressableSpend: 540 * CR },
-  { code: 'MRO', name: 'MRO & consumables', categoryId: 'MRO', target: 2 * CR, buyerId: 'u-buyer7', leadId: 'u-lead3', addressableSpend: 160 * CR },
-  { code: 'FAC', name: 'Facility & utilities', categoryId: 'SRV', target: 1.5 * CR, buyerId: 'u-buyer7', leadId: 'u-lead3', addressableSpend: 210 * CR },
+/** Sourcing commodity master — from the "npd data" sheet (Development SPOC · Sourcing Corporate). The SPOC named for a
+ *  commodity is its team lead: a Sourcing idea in that commodity goes to them for the team feasibility check (stage 2).
+ *  The six gases / oils without a code in the sheet carry a short made-up code (O2, N2, HEL, CO2, PNO, LPG). */
+type CommodityRow = [code: string, name: string, categoryId: string, leadId: string]
+const COMMODITY_ROWS: CommodityRow[] = [
+  ['AA', 'Aluminium', 'MET', 'u-lead1'],
+  ['AH', 'FG-PLC', 'PLA', 'u-lead3'],
+  ['AI', 'FG-SMC', 'PLA', 'u-lead3'],
+  ['AJ', 'Steel', 'MET', 'u-lead4'],
+  ['AO', 'Compressor', 'ELE', 'u-lead2'],
+  ['AP', 'Motor', 'ELE', 'u-lead2'],
+  ['AS', 'Sticker & Label', 'PKG', 'u-lead5'],
+  ['AT', 'Remote', 'ELE', 'u-lead6'],
+  ['AU', 'Foam', 'PLA', 'u-lead7'],
+  ['AV', 'EPS', 'PKG', 'u-lead3'],
+  ['AX', 'Brass Parts', 'MET', 'u-lead6'],
+  ['AY', 'Capacitor', 'ELE', 'u-lead6'],
+  ['AZ', 'Cross Flow Fan', 'PLA', 'u-lead3'],
+  ['BB', 'Fan', 'PLA', 'u-lead3'],
+  ['BC', 'Gas', 'CHE', 'u-lead2'],
+  ['BD', 'Hardware', 'MET', 'u-lead7'],
+  ['BF', 'Poly Bag', 'PKG', 'u-lead5'],
+  ['BG', 'Rear Grill', 'PLA', 'u-lead7'],
+  ['BH', 'Hardware Other', 'MET', 'u-lead7'],
+  ['BI', 'Rubber Parts', 'PLA', 'u-lead6'],
+  ['BJ', 'Service Valve', 'MET', 'u-lead6'],
+  ['BK', 'Tape', 'PKG', 'u-lead5'],
+  ['BL', 'Wire', 'ELE', 'u-lead6'],
+  ['BN', 'Bolt', 'MET', 'u-lead7'],
+  ['BO', 'Brazing Rod', 'MET', 'u-lead1'],
+  ['BP', 'Carton Box', 'PKG', 'u-lead5'],
+  ['BQ', 'Chemical', 'CHE', 'u-lead8'],
+  ['BR', 'FG-Copper Tubing', 'MET', 'u-lead3'],
+  ['BS', 'Powder', 'CHE', 'u-lead3'],
+  ['BT', 'Terminal Block', 'ELE', 'u-lead7'],
+  ['BU', 'Packing Material', 'PKG', 'u-lead5'],
+  ['BV', 'Copper Tube', 'MET', 'u-lead1'],
+  ['BW', 'Plastic Granules', 'PLA', 'u-lead9'],
+  ['BX', 'General', 'SRV', 'u-lead8'],
+  ['BY', 'Printing & Stationery', 'PKG', 'u-lead5'],
+  ['BZ', 'Electrical & Electronics Store & Spares', 'MRO', 'u-lead8'],
+  ['CA', 'Mechanical', 'MRO', 'u-lead8'],
+  ['CB', 'Plastic Grinding', 'PLA', 'u-lead3'],
+  ['CM', 'Oil & Lubricants', 'MRO', 'u-lead8'],
+  ['CO', 'Tools & Die', 'CAP', 'u-lead10'],
+  ['CT', 'EPS Assembly', 'PKG', 'u-lead3'],
+  ['CV', 'Controller', 'ELE', 'u-lead11'],
+  ['CW', 'Display PCB', 'ELE', 'u-lead11'],
+  ['CX', 'Blower', 'ELE', 'u-lead3'],
+  ['CZ', 'Lab Equipments', 'CAP', 'u-lead8'],
+  ['DB', 'Brazing Ring-Imp', 'MET', 'u-lead1'],
+  ['DG', 'RM-Aluminium', 'MET', 'u-lead1'],
+  ['DP', 'Capillary Tube', 'MET', 'u-lead1'],
+  ['DR', 'Louver/Stepping Motor', 'ELE', 'u-lead2'],
+  ['DT', 'Main PCB', 'ELE', 'u-lead2'],
+  ['DV', 'Master Batch', 'PLA', 'u-lead9'],
+  ['DW', 'Glass', 'MRO', 'u-lead8'],
+  ['DX', 'PCB', 'ELE', 'u-lead2'],
+  ['DY', 'Gas AC', 'CHE', 'u-lead2'],
+  ['DZ', 'Compressor-Cust', 'ELE', 'u-lead2'],
+  ['EA', 'Compressor-Imp', 'ELE', 'u-lead2'],
+  ['EB', 'Controller IDU-Cust', 'ELE', 'u-lead11'],
+  ['EC', 'Controller ODU-Cust', 'ELE', 'u-lead11'],
+  ['ED', 'Controller WAC-Cust', 'ELE', 'u-lead11'],
+  ['EF', 'Controller IDU', 'ELE', 'u-lead11'],
+  ['EG', 'Controller IDU-Imp', 'ELE', 'u-lead11'],
+  ['EH', 'Controller ODU-Imp', 'ELE', 'u-lead11'],
+  ['EI', 'Controller WAC-Imp', 'ELE', 'u-lead11'],
+  ['EJ', 'Controller WAC', 'ELE', 'u-lead11'],
+  ['EK', 'Copper Part RM-Cust', 'MET', 'u-lead1'],
+  ['EL', 'FG-Electrical And Electronics Parts', 'ELE', 'u-lead2'],
+  ['EM', 'Copper Tube-Imp', 'MET', 'u-lead1'],
+  ['EN', 'Copper Capillary Tube RM', 'MET', 'u-lead1'],
+  ['EO', 'Copper Capillary Tube BOP', 'MET', 'u-lead1'],
+  ['EQ', 'Display PCB IDU-Cust', 'ELE', 'u-lead11'],
+  ['ER', 'Electrical And Electronics Parts RM', 'ELE', 'u-lead2'],
+  ['ES', 'Display PCB IDU', 'ELE', 'u-lead11'],
+  ['ET', 'Display PCB IDU-Imp', 'ELE', 'u-lead11'],
+  ['EU', 'Display PCB WAC-Imp', 'ELE', 'u-lead11'],
+  ['EV', 'Display PCB WAC', 'ELE', 'u-lead11'],
+  ['EW', 'Electrical And Electronics Parts RM-Cust', 'ELE', 'u-lead2'],
+  ['EX', 'Electrical And Electronics Parts RM-Imp', 'ELE', 'u-lead2'],
+  ['EY', 'Remote-Cust', 'ELE', 'u-lead6'],
+  ['EZ', 'Remote-Imp', 'ELE', 'u-lead6'],
+  ['FA', 'Sleeve', 'PLA', 'u-lead7'],
+  ['FB', 'Insulation Tube', 'PLA', 'u-lead7'],
+  ['FC', 'Jacket', 'PLA', 'u-lead7'],
+  ['FE', 'Rubber Part RM', 'PLA', 'u-lead6'],
+  ['FF', 'Aluminium Parts RM', 'MET', 'u-lead3'],
+  ['FG', 'Copper Part RM', 'MET', 'u-lead3'],
+  ['FI', 'Plastic Part RM', 'PLA', 'u-lead3'],
+  ['FJ', 'Sheet Metal Part RM', 'MET', 'u-lead3'],
+  ['FK', 'Motor-Cust', 'ELE', 'u-lead2'],
+  ['FL', 'Filter', 'PLA', 'u-lead3'],
+  ['FM', 'Wire-Cust', 'ELE', 'u-lead6'],
+  ['FO', 'Aluminium Strip-Imp', 'MET', 'u-lead1'],
+  ['FP', 'Aluminium Brazing Filler-Imp', 'MET', 'u-lead1'],
+  ['FQ', 'Aluminium Pipe-Imp', 'MET', 'u-lead1'],
+  ['FR', 'Aluminium Foil-Imp', 'MET', 'u-lead1'],
+  ['FS', 'Brass Part-Imp', 'MET', 'u-lead6'],
+  ['FT', 'Brazing Rod-Imp', 'MET', 'u-lead1'],
+  ['FU', 'Cross Flow Fan-Imp', 'PLA', 'u-lead3'],
+  ['FV', 'Moulding RM', 'PLA', 'u-lead9'],
+  ['FW', 'Louver/Stepping Motor-Imp', 'ELE', 'u-lead2'],
+  ['FX', 'Motor-Imp', 'ELE', 'u-lead2'],
+  ['FY', 'Plastic Part RM-Imp', 'PLA', 'u-lead9'],
+  ['FZ', 'Service Valve-Imp', 'MET', 'u-lead6'],
+  ['GA', 'Battery', 'ELE', 'u-lead8'],
+  ['GB', 'Putty', 'CHE', 'u-lead8'],
+  ['GD', 'Edge Angle', 'PKG', 'u-lead5'],
+  ['GE', 'Corrugated Separator', 'PKG', 'u-lead5'],
+  ['GF', 'P.P Band', 'PKG', 'u-lead8'],
+  ['GG', 'Staple Pin', 'PKG', 'u-lead8'],
+  ['GH', 'Wiring Diagram Sticker', 'PKG', 'u-lead5'],
+  ['GI', 'Strip Sticker', 'PKG', 'u-lead5'],
+  ['GJ', 'SOWM Label', 'PKG', 'u-lead5'],
+  ['GK', 'Ribbon', 'PKG', 'u-lead5'],
+  ['GL', 'Rating Label Sticker', 'PKG', 'u-lead5'],
+  ['GM', 'Manual', 'PKG', 'u-lead5'],
+  ['GN', 'Logo Sticker', 'PKG', 'u-lead5'],
+  ['GO', 'Escutcheon Sticker', 'PKG', 'u-lead5'],
+  ['GP', 'BEE Label Sticker', 'PKG', 'u-lead5'],
+  ['GR', 'IDU Front Grill', 'PLA', 'u-lead3'],
+  ['GS', 'ODU Fan Guard', 'PLA', 'u-lead3'],
+  ['GT', 'IDU Drain Hose', 'PLA', 'u-lead3'],
+  ['GU', 'WAC Front Grill', 'PLA', 'u-lead3'],
+  ['GV', 'Master Batch-Cust', 'PLA', 'u-lead9'],
+  ['GW', 'Plastic Granules-Cust', 'PLA', 'u-lead9'],
+  ['GY', 'Aluminium Foil-Local', 'MET', 'u-lead1'],
+  ['GZ', 'Internal EPS', 'PKG', 'u-lead3'],
+  ['HA', 'Copper Tube Plain Domestic', 'MET', 'u-lead1'],
+  ['HB', 'Copper Tube IGT Domestic', 'MET', 'u-lead1'],
+  ['HC', 'Copper Tube Plain-Imp', 'MET', 'u-lead1'],
+  ['HD', 'Copper Tube IGT-Imp', 'MET', 'u-lead1'],
+  ['HE', 'Copper Capillary Tube', 'MET', 'u-lead1'],
+  ['HF', 'Tool & Die Parts', 'CAP', 'u-lead10'],
+  ['HL', 'Fixed Asset', 'CAP', 'u-lead6'],
+  ['O2', 'O2', 'MRO', 'u-lead8'],
+  ['N2', 'N2', 'MRO', 'u-lead8'],
+  ['HEL', 'Helium', 'MRO', 'u-lead8'],
+  ['CO2', 'CO2', 'MRO', 'u-lead8'],
+  ['PNO', 'Punching Oil', 'MRO', 'u-lead8'],
+  ['LPG', 'LPG', 'MRO', 'u-lead8'],
 ]
+/** Each team lead's commodities are bought by one of the demo commodity buyers (the execution owners) */
+const BUYER_OF_LEAD: Record<string, string> = {
+  'u-lead1': 'u-buyer2', 'u-lead2': 'u-buyer3', 'u-lead3': 'u-buyer5', 'u-lead4': 'u-buyer1', 'u-lead5': 'u-buyer6', 'u-lead6': 'u-buyer4',
+  'u-lead7': 'u-buyer1', 'u-lead8': 'u-buyer7', 'u-lead9': 'u-buyer5', 'u-lead10': 'u-buyer7', 'u-lead11': 'u-buyer4',
+}
+/** FY target and addressable spend (sample figures) for the commodities the demo ideas, parts and suppliers use; buyer where it differs */
+const COMMODITY_SAMPLE: Record<string, { target: number; spend: number; buyerId?: string }> = {
+  BV: { target: 25.5 * CR, spend: 2450 * CR }, AA: { target: 13 * CR, spend: 1120 * CR }, AJ: { target: 9.5 * CR, spend: 860 * CR },
+  BN: { target: 3 * CR, spend: 145 * CR }, AO: { target: 24 * CR, spend: 2980 * CR }, DX: { target: 11 * CR, spend: 1340 * CR, buyerId: 'u-buyer4' },
+  AP: { target: 7 * CR, spend: 780 * CR }, BL: { target: 4 * CR, spend: 410 * CR }, FI: { target: 5.5 * CR, spend: 520 * CR },
+  BW: { target: 5 * CR, spend: 610 * CR }, BP: { target: 2.5 * CR, spend: 190 * CR }, AV: { target: 1.5 * CR, spend: 120 * CR, buyerId: 'u-buyer6' },
+  BX: { target: 5 * CR, spend: 540 * CR }, CM: { target: 2 * CR, spend: 160 * CR }, CA: { target: 1.5 * CR, spend: 210 * CR },
+}
+export const COMMODITIES_DEFAULT: Commodity[] = COMMODITY_ROWS.map(([code, name, categoryId, leadId]) => {
+  const s = COMMODITY_SAMPLE[code]
+  return { code, name, categoryId, leadId, buyerId: s?.buyerId ?? BUYER_OF_LEAD[leadId], target: s?.target ?? 0, addressableSpend: s?.spend ?? 0 }
+})
+const leadCodes = (leadId: string) => COMMODITIES_DEFAULT.filter((c) => c.leadId === leadId).map((c) => c.code)
+const buyerCodes = (buyerId: string) => COMMODITIES_DEFAULT.filter((c) => c.buyerId === buyerId).map((c) => c.code)
 
 const COLORS = ['#b8142a', '#2f4a9a', '#0f9f6e', '#ec8a1c', '#7c3aed', '#0d9488', '#db2777', '#0284c7', '#4f46e5', '#ca8a04', '#059669', '#9333ea']
 const pw = 'coin@2026'
@@ -185,21 +333,29 @@ export const USERS_DEFAULT: User[] = [
   u('u-fi-head', 'Vinod Agarwal', 'AEL-03377', ['depthead', 'submitter'], 'Finance', 'Head of Finance', [], 'NDA'),
   u('u-fi-exec', 'Rohit Kapoor', 'AEL-19177', ['execowner', 'submitter'], 'Finance', 'Finance Executive — implementation owner', [], 'NDA'),
   u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — savings verification', [], 'NDA'),
-  // Sourcing — Sanjay Kapoor is the team lead of the ladder (the other commodity leads also hold the role but are not
-  // routed ideas); the commodity buyers are the execution owners
+  // Sourcing — the 11 commodity team leads from the "npd data" sheet: a Sourcing idea goes at stage 2 to the team lead
+  // of its commodity (a team lead's own idea goes straight to the department lead); the commodity buyers are the execution owners
   u('u-so-emp', 'Aditi Sharma', 'AEL-20877', ['submitter'], 'Sourcing', 'Executive, Sourcing', [], 'NDA'),
-  u('u-lead1', 'Sanjay Kapoor', 'AEL-07215', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Metals', ['CUT', 'ALU', 'STL', 'FAS'], 'RJP'),
-  u('u-lead2', 'Anita Sharma', 'AEL-07544', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Electricals', ['CMP', 'PCB', 'MOT', 'HAR'], 'NDA'),
-  u('u-lead3', 'Deepak Joshi', 'AEL-07698', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Commodity Lead — Plastics, Packing & Indirect', ['PLM', 'RES', 'COR', 'EPS', 'FRT', 'MRO', 'FAC'], 'DDN'),
+  u('u-lead1', 'Shubham Verma', 'AEL-07215', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Copper, Aluminium & Brazing', leadCodes('u-lead1'), 'RJP'),
+  u('u-lead2', 'Ashutosh Sharma', 'AEL-07544', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Compressor, Motors, PCB & Gas', leadCodes('u-lead2'), 'NDA'),
+  u('u-lead3', 'Rakesh Kumar', 'AEL-07698', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Plastic Parts, Fans, Grills & EPS', leadCodes('u-lead3'), 'DDN'),
+  u('u-lead4', 'Rohit Gandhi', 'AEL-07702', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Steel', leadCodes('u-lead4'), 'RJP'),
+  u('u-lead5', 'Pallav Roy', 'AEL-07719', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Packing, Labels & Stickers', leadCodes('u-lead5'), 'JHJ'),
+  u('u-lead6', 'Abhishek Sharma', 'AEL-07733', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Remote, Wire, Brass, Rubber & Valves', leadCodes('u-lead6'), 'NDA'),
+  u('u-lead7', 'Manish Kumar', 'AEL-07746', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Hardware, Bolts, Foam & Insulation', leadCodes('u-lead7'), 'RJP'),
+  u('u-lead8', 'Karan Nanda', 'AEL-07758', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Indirect, Chemicals & Gases', leadCodes('u-lead8'), 'NDA'),
+  u('u-lead9', 'Sandeep Agarwal', 'AEL-07761', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Plastic Granules & Master Batch', leadCodes('u-lead9'), 'DDN'),
+  u('u-lead10', 'Raghuvendra', 'AEL-07774', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Tools & Dies', leadCodes('u-lead10'), 'RJP'),
+  u('u-lead11', 'Satya Vijay', 'AEL-07789', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Controllers & Display PCBs', leadCodes('u-lead11'), 'NDA'),
   u('u-so-lead', 'Ashok Menon', 'AEL-06120', ['deptlead', 'submitter'], 'Sourcing', 'Senior Manager, Sourcing', [], 'NDA'),
   u('u-head', 'Girish Saluja', 'AEL-03108', ['head', 'depthead', 'submitter'], 'Sourcing', 'Head of Sourcing', [], 'NDA'),
-  u('u-buyer1', 'Arjun Mehta', 'AEL-11873', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Fasteners & Steel', ['FAS', 'STL'], 'RJP'),
-  u('u-buyer2', 'Kavita Rao', 'AEL-11902', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Copper & Aluminium', ['CUT', 'ALU'], 'DDN'),
-  u('u-buyer3', 'Rohan Desai', 'AEL-12011', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Compressor & Motors', ['CMP', 'MOT'], 'SRC'),
-  u('u-buyer4', 'Sneha Kulkarni', 'AEL-12167', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — PCB & Harness', ['PCB', 'HAR'], 'NDA'),
-  u('u-buyer5', 'Imran Sheikh', 'AEL-12230', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Plastics', ['PLM', 'RES'], 'DDN'),
-  u('u-buyer6', 'Pooja Bansal', 'AEL-12388', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Packing', ['COR', 'EPS'], 'JHJ'),
-  u('u-buyer7', 'Manish Tiwari', 'AEL-12415', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Indirect', ['FRT', 'MRO', 'FAC'], 'NDA'),
+  u('u-buyer1', 'Arjun Mehta', 'AEL-11873', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Steel, Hardware & Bolts', buyerCodes('u-buyer1'), 'RJP'),
+  u('u-buyer2', 'Kavita Rao', 'AEL-11902', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Copper & Aluminium', buyerCodes('u-buyer2'), 'DDN'),
+  u('u-buyer3', 'Rohan Desai', 'AEL-12011', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Compressor & Motors', buyerCodes('u-buyer3'), 'SRC'),
+  u('u-buyer4', 'Sneha Kulkarni', 'AEL-12167', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — PCB, Controllers & Wire', buyerCodes('u-buyer4'), 'NDA'),
+  u('u-buyer5', 'Imran Sheikh', 'AEL-12230', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Plastics', buyerCodes('u-buyer5'), 'DDN'),
+  u('u-buyer6', 'Pooja Bansal', 'AEL-12388', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Packing', buyerCodes('u-buyer6'), 'JHJ'),
+  u('u-buyer7', 'Manish Tiwari', 'AEL-12415', ['buyer', 'execowner', 'submitter'], 'Sourcing', 'Commodity Buyer — Indirect & Tooling', buyerCodes('u-buyer7'), 'NDA'),
   // HR
   u('u-hr-emp', 'Simran Kaur', 'AEL-20932', ['submitter'], 'HR', 'Executive, HR', [], 'NDA'),
   u('u-hr-tl', 'Varun Malhotra', 'AEL-15744', ['teamlead', 'submitter'], 'HR', 'Team Lead, HR Operations', [], 'NDA'),
@@ -210,10 +366,10 @@ export const USERS_DEFAULT: User[] = [
   u('u-mgmt', 'Rajesh Khanna', 'AEL-00112', ['mgmt'], 'Management', 'Chief Operating Officer', [], 'NDA'),
   u('u-admin', 'Nikhil Agarwal', 'AEL-12440', ['admin'], 'Sourcing Excellence', 'Manager, Sourcing Excellence', [], 'NDA'),
   // suppliers
-  u('u-sup1', 'Rakesh Gupta', 'V10021', ['supplier'], 'Supplier', 'Key Account Manager, Sunrise Fasteners Pvt Ltd', ['FAS'], 'RJP', { supplierCode: 'V10021', email: 'rakesh.gupta@sunrisefasteners.in' }),
-  u('u-sup2', 'Lakshmi Narayan', 'V10007', ['supplier'], 'Supplier', 'Sales Head, Coolmax Compressors India', ['CMP'], 'SRC', { supplierCode: 'V10007', email: 'lakshmi@coolmaxindia.com' }),
-  u('u-sup3', 'Gurpreet Sandhu', 'V10005', ['supplier'], 'Supplier', 'Director, Shakti Steel Processors', ['STL'], 'RJP', { supplierCode: 'V10005', email: 'gurpreet@shaktisteel.in' }),
-  u('u-sup4', 'Ankit Jain', 'V10009', ['supplier'], 'Supplier', 'Business Head, Circuitek Electronics', ['PCB'], 'NDA', { supplierCode: 'V10009', email: 'ankit.jain@circuitek.in' }),
+  u('u-sup1', 'Rakesh Gupta', 'V10021', ['supplier'], 'Supplier', 'Key Account Manager, Sunrise Fasteners Pvt Ltd', ['BN'], 'RJP', { supplierCode: 'V10021', email: 'rakesh.gupta@sunrisefasteners.in' }),
+  u('u-sup2', 'Lakshmi Narayan', 'V10007', ['supplier'], 'Supplier', 'Sales Head, Coolmax Compressors India', ['AO'], 'SRC', { supplierCode: 'V10007', email: 'lakshmi@coolmaxindia.com' }),
+  u('u-sup3', 'Gurpreet Sandhu', 'V10005', ['supplier'], 'Supplier', 'Director, Shakti Steel Processors', ['AJ'], 'RJP', { supplierCode: 'V10005', email: 'gurpreet@shaktisteel.in' }),
+  u('u-sup4', 'Ankit Jain', 'V10009', ['supplier'], 'Supplier', 'Business Head, Circuitek Electronics', ['DX'], 'NDA', { supplierCode: 'V10009', email: 'ankit.jain@circuitek.in' }),
 ]
 
 /** The five ladder roles every department has, in workflow order, with what each does */
@@ -236,105 +392,105 @@ export const CROSS_LOGINS: { userId: string; role: string; blurb: string }[] = [
 
 
 export const SUPPLIERS_DEFAULT: Supplier[] = [
-  { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd', commodities: ['CUT'], contactEmail: 'sales@kirancopper.in', contactName: 'Mahesh Kiran', city: 'Silvassa', spend: 1480 * CR },
-  { code: 'V10002', name: 'Northstar Metal Mills', commodities: ['CUT', 'ALU'], contactEmail: 'kam@northstarmetal.in', contactName: 'Ravi Northey', city: 'Bhiwadi', spend: 965 * CR },
-  { code: 'V10003', name: 'Alfa Foils & Fins Ltd', commodities: ['ALU'], contactEmail: 'orders@alfafoils.in', contactName: 'Sunita Alva', city: 'Pune', spend: 640 * CR },
-  { code: 'V10004', name: 'Greenline Aluminium', commodities: ['ALU'], contactEmail: 'sales@greenlineal.in', contactName: 'Prakash Green', city: 'Hosur', spend: 310 * CR },
-  { code: 'V10005', name: 'Shakti Steel Processors', commodities: ['STL'], contactEmail: 'gurpreet@shaktisteel.in', contactName: 'Gurpreet Sandhu', city: 'Faridabad', spend: 520 * CR },
-  { code: 'V10006', name: 'Tricity Coil Centre', commodities: ['STL'], contactEmail: 'coil@tricitycoil.in', contactName: 'Harjeet Mann', city: 'Ludhiana', spend: 290 * CR },
-  { code: 'V10007', name: 'Coolmax Compressors India', commodities: ['CMP'], contactEmail: 'lakshmi@coolmaxindia.com', contactName: 'Lakshmi Narayan', city: 'Chennai', spend: 1820 * CR },
-  { code: 'V10008', name: 'Rotary Cool Systems', commodities: ['CMP'], contactEmail: 'sales@rotarycool.in', contactName: 'Venkat Rao', city: 'Sri City', spend: 1040 * CR },
-  { code: 'V10009', name: 'Circuitek Electronics', commodities: ['PCB'], contactEmail: 'ankit.jain@circuitek.in', contactName: 'Ankit Jain', city: 'Noida', spend: 760 * CR },
-  { code: 'V10010', name: 'Nova PCB Solutions', commodities: ['PCB'], contactEmail: 'bd@novapcb.in', contactName: 'Shweta Nair', city: 'Bengaluru', spend: 480 * CR },
-  { code: 'V10011', name: 'Dynamo Motors Pvt Ltd', commodities: ['MOT'], contactEmail: 'sales@dynamomotors.in', contactName: 'K. Selvam', city: 'Coimbatore', spend: 430 * CR },
-  { code: 'V10012', name: 'Vega BLDC Drives', commodities: ['MOT'], contactEmail: 'info@vegabldc.in', contactName: 'Aditya Vega', city: 'Pune', spend: 290 * CR },
-  { code: 'V10013', name: 'Linkwire Harness Systems', commodities: ['HAR'], contactEmail: 'kam@linkwire.in', contactName: 'Rahul Link', city: 'Gurugram', spend: 240 * CR },
-  { code: 'V10014', name: 'Omkar Cables', commodities: ['HAR'], contactEmail: 'sales@omkarcables.in', contactName: 'Omkar Patil', city: 'Manesar', spend: 150 * CR },
-  { code: 'V10015', name: 'Polymould Industries', commodities: ['PLM'], contactEmail: 'sales@polymould.in', contactName: 'Nitin Arora', city: 'Dehradun', spend: 310 * CR },
-  { code: 'V10016', name: 'Apex Plastomers', commodities: ['PLM'], contactEmail: 'apex@plastomers.in', contactName: 'Simran Kaur', city: 'Baddi', spend: 180 * CR },
-  { code: 'V10017', name: 'Resinova Polymers', commodities: ['RES'], contactEmail: 'trade@resinova.in', contactName: 'Hemant Shah', city: 'Vadodara', spend: 560 * CR },
-  { code: 'V10018', name: 'Boxcraft Packaging', commodities: ['COR'], contactEmail: 'orders@boxcraft.in', contactName: 'Jaspreet Gill', city: 'Rajpura', spend: 140 * CR },
-  { code: 'V10019', name: 'Thermopack EPS', commodities: ['EPS'], contactEmail: 'sales@thermopack.in', contactName: 'Rajiv Thomas', city: 'Jhajjar', spend: 95 * CR },
-  { code: 'V10020', name: 'Swiftline Logistics', commodities: ['FRT'], contactEmail: 'ops@swiftline.in', contactName: 'Arvind Swift', city: 'Delhi NCR', spend: 310 * CR },
-  { code: 'V10021', name: 'Sunrise Fasteners Pvt Ltd', commodities: ['FAS'], contactEmail: 'rakesh.gupta@sunrisefasteners.in', contactName: 'Rakesh Gupta', city: 'Ludhiana', spend: 86 * CR },
-  { code: 'V10022', name: 'Precision Bolt Works', commodities: ['FAS'], contactEmail: 'sales@precisionbolt.in', contactName: 'Jignesh Patel', city: 'Rajkot', spend: 44 * CR },
-  { code: 'V10023', name: 'RoadRunner Freight Carriers', commodities: ['FRT'], contactEmail: 'bookings@roadrunner.in', contactName: 'Sukhwinder Brar', city: 'Ludhiana', spend: 180 * CR },
-  { code: 'V10024', name: 'Toolkart Industrial Supplies', commodities: ['MRO'], contactEmail: 'b2b@toolkart.in', contactName: 'Neeraj Kart', city: 'Noida', spend: 120 * CR },
-  { code: 'V10025', name: 'Facilitas Services', commodities: ['FAC'], contactEmail: 'contracts@facilitas.in', contactName: 'Maria D\'Souza', city: 'Gurugram', spend: 150 * CR },
+  { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd', commodities: ['BV'], contactEmail: 'sales@kirancopper.in', contactName: 'Mahesh Kiran', city: 'Silvassa', spend: 1480 * CR },
+  { code: 'V10002', name: 'Northstar Metal Mills', commodities: ['BV', 'AA'], contactEmail: 'kam@northstarmetal.in', contactName: 'Ravi Northey', city: 'Bhiwadi', spend: 965 * CR },
+  { code: 'V10003', name: 'Alfa Foils & Fins Ltd', commodities: ['AA'], contactEmail: 'orders@alfafoils.in', contactName: 'Sunita Alva', city: 'Pune', spend: 640 * CR },
+  { code: 'V10004', name: 'Greenline Aluminium', commodities: ['AA'], contactEmail: 'sales@greenlineal.in', contactName: 'Prakash Green', city: 'Hosur', spend: 310 * CR },
+  { code: 'V10005', name: 'Shakti Steel Processors', commodities: ['AJ'], contactEmail: 'gurpreet@shaktisteel.in', contactName: 'Gurpreet Sandhu', city: 'Faridabad', spend: 520 * CR },
+  { code: 'V10006', name: 'Tricity Coil Centre', commodities: ['AJ'], contactEmail: 'coil@tricitycoil.in', contactName: 'Harjeet Mann', city: 'Ludhiana', spend: 290 * CR },
+  { code: 'V10007', name: 'Coolmax Compressors India', commodities: ['AO'], contactEmail: 'lakshmi@coolmaxindia.com', contactName: 'Lakshmi Narayan', city: 'Chennai', spend: 1820 * CR },
+  { code: 'V10008', name: 'Rotary Cool Systems', commodities: ['AO'], contactEmail: 'sales@rotarycool.in', contactName: 'Venkat Rao', city: 'Sri City', spend: 1040 * CR },
+  { code: 'V10009', name: 'Circuitek Electronics', commodities: ['DX'], contactEmail: 'ankit.jain@circuitek.in', contactName: 'Ankit Jain', city: 'Noida', spend: 760 * CR },
+  { code: 'V10010', name: 'Nova PCB Solutions', commodities: ['DX'], contactEmail: 'bd@novapcb.in', contactName: 'Shweta Nair', city: 'Bengaluru', spend: 480 * CR },
+  { code: 'V10011', name: 'Dynamo Motors Pvt Ltd', commodities: ['AP'], contactEmail: 'sales@dynamomotors.in', contactName: 'K. Selvam', city: 'Coimbatore', spend: 430 * CR },
+  { code: 'V10012', name: 'Vega BLDC Drives', commodities: ['AP'], contactEmail: 'info@vegabldc.in', contactName: 'Aditya Vega', city: 'Pune', spend: 290 * CR },
+  { code: 'V10013', name: 'Linkwire Harness Systems', commodities: ['BL'], contactEmail: 'kam@linkwire.in', contactName: 'Rahul Link', city: 'Gurugram', spend: 240 * CR },
+  { code: 'V10014', name: 'Omkar Cables', commodities: ['BL'], contactEmail: 'sales@omkarcables.in', contactName: 'Omkar Patil', city: 'Manesar', spend: 150 * CR },
+  { code: 'V10015', name: 'Polymould Industries', commodities: ['FI'], contactEmail: 'sales@polymould.in', contactName: 'Nitin Arora', city: 'Dehradun', spend: 310 * CR },
+  { code: 'V10016', name: 'Apex Plastomers', commodities: ['FI'], contactEmail: 'apex@plastomers.in', contactName: 'Simran Kaur', city: 'Baddi', spend: 180 * CR },
+  { code: 'V10017', name: 'Resinova Polymers', commodities: ['BW'], contactEmail: 'trade@resinova.in', contactName: 'Hemant Shah', city: 'Vadodara', spend: 560 * CR },
+  { code: 'V10018', name: 'Boxcraft Packaging', commodities: ['BP'], contactEmail: 'orders@boxcraft.in', contactName: 'Jaspreet Gill', city: 'Rajpura', spend: 140 * CR },
+  { code: 'V10019', name: 'Thermopack EPS', commodities: ['AV'], contactEmail: 'sales@thermopack.in', contactName: 'Rajiv Thomas', city: 'Jhajjar', spend: 95 * CR },
+  { code: 'V10020', name: 'Swiftline Logistics', commodities: ['BX'], contactEmail: 'ops@swiftline.in', contactName: 'Arvind Swift', city: 'Delhi NCR', spend: 310 * CR },
+  { code: 'V10021', name: 'Sunrise Fasteners Pvt Ltd', commodities: ['BN'], contactEmail: 'rakesh.gupta@sunrisefasteners.in', contactName: 'Rakesh Gupta', city: 'Ludhiana', spend: 86 * CR },
+  { code: 'V10022', name: 'Precision Bolt Works', commodities: ['BN'], contactEmail: 'sales@precisionbolt.in', contactName: 'Jignesh Patel', city: 'Rajkot', spend: 44 * CR },
+  { code: 'V10023', name: 'RoadRunner Freight Carriers', commodities: ['BX'], contactEmail: 'bookings@roadrunner.in', contactName: 'Sukhwinder Brar', city: 'Ludhiana', spend: 180 * CR },
+  { code: 'V10024', name: 'Toolkart Industrial Supplies', commodities: ['CM'], contactEmail: 'b2b@toolkart.in', contactName: 'Neeraj Kart', city: 'Noida', spend: 120 * CR },
+  { code: 'V10025', name: 'Facilitas Services', commodities: ['CA'], contactEmail: 'contracts@facilitas.in', contactName: 'Maria D\'Souza', city: 'Gurugram', spend: 150 * CR },
 ].map((x) => ({ ...x, tier: x.spend >= 500 * CR && x.code !== 'V10005' ? 'Tier 1' : 'Tier 2' }) as Supplier)
 
 type PartRow = [string, string, string, string, number | null, number, number]
 // code, description, uom, supplier, LBP (null = no LBP → PO price), PO price, last FY MRN qty
 const PART_ROWS: Record<string, PartRow[]> = {
-  FAS: [
+  BN: [
     ['3100045612', 'Hex flange bolt M6×16, Zn-Ni', 'Nos', 'V10021', 4.2, 4.25, 2400000],
     ['3100045688', 'Self-tapping screw 4.2×13, pan head', 'Nos', 'V10021', 0.62, 0.63, 18500000],
     ['3100045701', 'Condenser bracket rivet Ø4.8', 'Nos', 'V10022', 1.1, 1.12, 6200000],
     ['3100045733', 'Nylock nut M8, Zn plated', 'Nos', 'V10022', 2.35, 2.4, 3100000],
   ],
-  CUT: [
+  BV: [
     ['3200011204', 'Copper tube Ø9.52 × 0.35 IGT', 'Kg', 'V10001', 862, 868, 1850000],
     ['3200011215', 'Copper tube Ø7.00 × 0.28 IGT', 'Kg', 'V10001', 874, 880, 2100000],
     ['3200011240', 'Copper tube Ø12.7 plain, LWC', 'Kg', 'V10002', 845, 850, 640000],
     ['3200011277', 'Hairpin bend Ø7 mm, pre-formed', 'Nos', 'V10002', 14.8, 15.0, 9500000],
   ],
-  ALU: [
+  AA: [
     ['3300021005', 'Hydrophilic fin stock 0.095 mm', 'Kg', 'V10003', 318, 321, 3800000],
     ['3300021019', 'Aluminium fin stock 0.105 mm, blue', 'Kg', 'V10004', 322, 325, 1200000],
     ['3300021044', 'Al header pipe Ø16 mm', 'Nos', 'V10003', 46, 46.5, 900000],
   ],
-  STL: [
+  AJ: [
     ['3400031110', 'CRCA sheet 0.8 mm, IS 513', 'Kg', 'V10005', 72.5, 73.2, 9200000],
     ['3400031126', 'GI sheet 1.0 mm, Z120', 'Kg', 'V10006', 78.4, 79.0, 6800000],
     ['3400031151', 'Pre-painted GI 0.6 mm, white', 'Kg', 'V10005', 96.2, 97.0, 2400000],
     ['3400031187', 'Condenser side bracket, 1.2 mm', 'Nos', 'V10006', 38.5, 39.0, 1450000],
   ],
-  CMP: [
+  AO: [
     ['3500040012', 'Rotary compressor 1.5 TR R32 inverter', 'Nos', 'V10007', 7850, 7900, 820000],
     ['3500040027', 'Rotary compressor 1.0 TR R32 fixed', 'Nos', 'V10008', 6420, 6480, 540000],
     ['3500040039', 'Rotary compressor 2.0 TR R410A', 'Nos', 'V10007', 9960, 10020, 210000],
   ],
-  PCB: [
+  DX: [
     ['3600050101', 'Outdoor inverter PCBA 1.5 TR', 'Nos', 'V10009', 2380, 2400, 760000],
     ['3600050118', 'Indoor display PCB assembly', 'Nos', 'V10010', 186, 188, 1500000],
     ['3600050125', 'Remote control PCB', 'Nos', 'V10009', null, 58, 2100000],
   ],
-  MOT: [
+  AP: [
     ['3700060210', 'BLDC indoor fan motor 40 W', 'Nos', 'V10012', 1120, 1130, 980000],
     ['3700060224', 'PSC outdoor fan motor 60 W', 'Nos', 'V10011', 890, 896, 640000],
     ['3700060233', 'Swing stepper motor 12 V', 'Nos', 'V10011', 62, 62.5, 1650000],
   ],
-  HAR: [
+  BL: [
     ['3800070301', 'Indoor unit wiring harness', 'Nos', 'V10013', 118, 119, 1600000],
     ['3800070318', 'Power cord 3-core 1.5 sq mm', 'Nos', 'V10014', 142, 143, 1450000],
     ['3800070329', 'Interconnect cable 4-core, 5 m', 'Nos', 'V10013', 386, 390, 700000],
   ],
-  PLM: [
+  FI: [
     ['3900080405', 'IDU front panel, ABS', 'Nos', 'V10015', 312, 315, 1100000],
     ['3900080417', 'ODU base pan, PP', 'Nos', 'V10016', 184, 186, 950000],
     ['3900080428', 'Horizontal louver set', 'Nos', 'V10015', 42, 42.4, 1300000],
   ],
-  RES: [
+  BW: [
     ['4000090501', 'ABS resin HI-121', 'Kg', 'V10017', 168, 170, 5200000],
     ['4000090512', 'PP copolymer, talc-filled', 'Kg', 'V10017', 112, 113, 4300000],
   ],
-  COR: [
+  BP: [
     ['4100100601', '5-ply corrugated box, IDU', 'Nos', 'V10018', 96, 97, 1250000],
     ['4100100614', '7-ply corrugated box, ODU', 'Nos', 'V10018', 168, 170, 1100000],
   ],
-  EPS: [
+  AV: [
     ['4200110701', 'EPS top / bottom set, IDU', 'Set', 'V10019', 74, 75, 1250000],
     ['4200110716', 'EPS corner set, ODU', 'Set', 'V10019', null, 118, 1100000],
   ],
-  FRT: [
+  BX: [
     ['9100000801', 'FTL freight Rajpura → Mumbai, 32 ft MXL', 'Trip', 'V10020', 68000, 68000, 1450],
     ['9100000815', 'FTL freight Sri City → Delhi, 32 ft MXL', 'Trip', 'V10023', 112000, 112000, 820],
   ],
-  MRO: [
+  CM: [
     ['9200000901', 'Brazing rod 15% Ag', 'Kg', 'V10024', 7800, 7850, 18500],
     ['9200000914', 'Nitrogen gas cylinder, 7 m³', 'Nos', 'V10024', 480, 485, 42000],
   ],
-  FAC: [
+  CA: [
     ['9300001001', 'Plant housekeeping services, Rajpura', 'Month', 'V10025', 1850000, 1850000, 84],
     ['9300001012', 'Compressed air generation (energy)', 'kWh', 'V10025', 8.4, 8.4, 6400000],
   ],
@@ -411,21 +567,21 @@ export const SUPPLIER_EMAIL_TEMPLATES_DEFAULT: SupplierEmailTemplate[] = [
 ]
 
 export const OUTREACH_BATCHES_DEFAULT: OutreachBatch[] = [
-  { id: 'OB-003', templateId: 'ST02', templateName: 'Submit your ideas — commodity drive', commodities: ['PLM', 'RES', 'COR'], recipients: ['V10015', 'V10016', 'V10017', 'V10018'], recipientCount: 4, replyBy: '2026-10-15', sentAt: '2026-09-24T04:45:00.000Z', sentBy: 'u-buyer5', sentByName: 'Imran Sheikh' },
-  { id: 'OB-002', templateId: 'ST02', templateName: 'Submit your ideas — commodity drive', commodities: ['CUT', 'ALU'], recipients: ['V10001', 'V10002', 'V10003', 'V10004'], recipientCount: 4, replyBy: '2026-10-10', sentAt: '2026-09-18T06:00:00.000Z', sentBy: 'u-buyer2', sentByName: 'Kavita Rao' },
-  { id: 'OB-001', templateId: 'ST01', templateName: 'Improvement workshop invitation', commodities: ['FAS'], recipients: ['V10021', 'V10022'], recipientCount: 2, workshopDate: '2026-09-26', sentAt: '2026-09-12T05:30:00.000Z', sentBy: 'u-buyer1', sentByName: 'Arjun Mehta' },
+  { id: 'OB-003', templateId: 'ST02', templateName: 'Submit your ideas — commodity drive', commodities: ['FI', 'BW', 'BP'], recipients: ['V10015', 'V10016', 'V10017', 'V10018'], recipientCount: 4, replyBy: '2026-10-15', sentAt: '2026-09-24T04:45:00.000Z', sentBy: 'u-buyer5', sentByName: 'Imran Sheikh' },
+  { id: 'OB-002', templateId: 'ST02', templateName: 'Submit your ideas — commodity drive', commodities: ['BV', 'AA'], recipients: ['V10001', 'V10002', 'V10003', 'V10004'], recipientCount: 4, replyBy: '2026-10-10', sentAt: '2026-09-18T06:00:00.000Z', sentBy: 'u-buyer2', sentByName: 'Kavita Rao' },
+  { id: 'OB-001', templateId: 'ST01', templateName: 'Improvement workshop invitation', commodities: ['BN'], recipients: ['V10021', 'V10022'], recipientCount: 2, workshopDate: '2026-09-26', sentAt: '2026-09-12T05:30:00.000Z', sentBy: 'u-buyer1', sentByName: 'Arjun Mehta' },
 ]
 
 export const SUPPLIER_RESPONSES_DEFAULT: SupplierResponse[] = [
-  { id: 'SR-1009', source: 'Supplier Portal', portalRef: 'SP-26-0423', supplierCode: 'V10004', commodity: 'ALU', type: 'Idea', scope: 'Specific parts', partCodes: ['3300021019'], subject: 'Switch blue fin coating to hydrophilic grade 0.100 mm', body: 'Our hydrophilic 0.100 mm grade matches the heat-transfer performance of the current blue 0.105 mm stock at a lower gauge. Sample coils are available for trial.', estSavingLakh: 58, receivedAt: '2026-10-01T04:30:00.000Z', status: 'New', batchId: 'OB-002' },
-  { id: 'SR-1006', source: 'Supplier Portal', portalRef: 'SP-26-0420', supplierCode: 'V10015', commodity: 'PLM', type: 'Idea', scope: 'Specific parts', partCodes: ['3900080405'], subject: 'Hot-runner conversion for IDU front panel tool', body: 'Converting the 2-cavity cold-runner tool to hot-runner removes ~38 g runner per shot and cuts cycle time by 6 s. One-time tooling investment of ₹ 9.5 lakh, payback under 5 months.', estSavingLakh: 27, receivedAt: '2026-09-30T07:55:00.000Z', status: 'New', batchId: 'OB-003' },
-  { id: 'SR-1001', source: 'Supplier Portal', portalRef: 'SP-26-0412', supplierCode: 'V10001', commodity: 'CUT', type: 'Idea', scope: 'Specific parts', partCodes: ['3200011215'], subject: 'Reduce wall thickness of Ø7.00 IGT tube from 0.28 to 0.25 mm', body: 'We have qualified a 0.25 mm inner-grooved tube on our new drawing line with the same burst-pressure margin. Weight saving is about 9% per metre. We can provide samples within 3 weeks for your R&D validation.', estSavingLakh: 118, receivedAt: '2026-09-29T08:12:00.000Z', status: 'New', batchId: 'OB-002' },
-  { id: 'SR-1004', source: 'Supplier Portal', portalRef: 'SP-26-0417', supplierCode: 'V10002', commodity: 'CUT', type: 'Problem', scope: 'Specific parts', partCodes: ['3200011240'], subject: 'Frequent drawing revisions on Ø12.7 LWC tube', body: 'We received three drawing revisions in the last quarter for the same part without an ECN reference, causing rework of ~2 MT. Requesting a single frozen revision and ECN communication.', receivedAt: '2026-09-28T06:20:00.000Z', status: 'New', batchId: 'OB-002' },
-  { id: 'SR-1002', source: 'Supplier Portal', portalRef: 'SP-26-0415', supplierCode: 'V10003', commodity: 'ALU', type: 'Idea', scope: 'Open idea', subject: 'Coil-width rationalisation across fin stock SKUs', body: 'Amber currently buys fin stock in 7 slit widths. Consolidating to 4 widths reduces our slitting scrap and changeover time; we can pass on ₹ 4/kg.', estSavingLakh: 42, receivedAt: '2026-09-27T11:40:00.000Z', status: 'Under review', batchId: 'OB-002' },
-  { id: 'SR-1003', source: 'Supplier Portal', portalRef: 'SP-26-0409', supplierCode: 'V10021', commodity: 'FAS', type: 'Idea', scope: 'Specific parts', partCodes: ['3100045612'], subject: 'Replace Zn-Ni plating with Zn-flake coating on M6 flange bolt', body: 'Zn-flake meets the 720 h salt-spray requirement at lower cost and removes hydrogen-embrittlement risk. Proposed at ₹ 3.95 vs current ₹ 4.20.', estSavingLakh: 6, receivedAt: '2026-09-26T13:05:00.000Z', status: 'Converted to idea', batchId: 'OB-001' },
-  { id: 'SR-1005', source: 'Supplier Portal', portalRef: 'SP-26-0402', supplierCode: 'V10018', commodity: 'COR', type: 'Complaint', scope: 'Open idea', subject: 'Payment delays beyond agreed 60-day terms', body: 'Invoices for July and August are outstanding beyond 75 days. This affects our kraft paper procurement and our ability to hold prices.', receivedAt: '2026-09-25T09:30:00.000Z', status: 'Under review', batchId: 'OB-003' },
-  { id: 'SR-1007', source: 'Supplier Portal', portalRef: 'SP-26-0398', supplierCode: 'V10017', commodity: 'RES', type: 'Idea', scope: 'Open idea', subject: 'Bulk silo delivery instead of 25 kg bags for PP copolymer', body: 'For the Dehradun and Rajpura plants, moving to bulk tanker delivery with a silo saves bag cost and handling loss. We can support silo installation on a shared-cost basis.', estSavingLakh: 33, receivedAt: '2026-09-24T10:10:00.000Z', status: 'New', batchId: 'OB-003' },
-  { id: 'SR-1008', source: 'Supplier Portal', portalRef: 'SP-26-0391', supplierCode: 'V10022', commodity: 'FAS', type: 'Problem', scope: 'Specific parts', partCodes: ['3100045733'], subject: 'Forecast variance on M8 Nylock nut schedules', body: 'Monthly schedules vary by more than ±40% versus the forecast shared, leading to excess inventory at our end. Requesting a 3-month rolling firm schedule.', receivedAt: '2026-09-22T05:45:00.000Z', status: 'Closed', batchId: 'OB-001' },
+  { id: 'SR-1009', source: 'Supplier Portal', portalRef: 'SP-26-0423', supplierCode: 'V10004', commodity: 'AA', type: 'Idea', scope: 'Specific parts', partCodes: ['3300021019'], subject: 'Switch blue fin coating to hydrophilic grade 0.100 mm', body: 'Our hydrophilic 0.100 mm grade matches the heat-transfer performance of the current blue 0.105 mm stock at a lower gauge. Sample coils are available for trial.', estSavingLakh: 58, receivedAt: '2026-10-01T04:30:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1006', source: 'Supplier Portal', portalRef: 'SP-26-0420', supplierCode: 'V10015', commodity: 'FI', type: 'Idea', scope: 'Specific parts', partCodes: ['3900080405'], subject: 'Hot-runner conversion for IDU front panel tool', body: 'Converting the 2-cavity cold-runner tool to hot-runner removes ~38 g runner per shot and cuts cycle time by 6 s. One-time tooling investment of ₹ 9.5 lakh, payback under 5 months.', estSavingLakh: 27, receivedAt: '2026-09-30T07:55:00.000Z', status: 'New', batchId: 'OB-003' },
+  { id: 'SR-1001', source: 'Supplier Portal', portalRef: 'SP-26-0412', supplierCode: 'V10001', commodity: 'BV', type: 'Idea', scope: 'Specific parts', partCodes: ['3200011215'], subject: 'Reduce wall thickness of Ø7.00 IGT tube from 0.28 to 0.25 mm', body: 'We have qualified a 0.25 mm inner-grooved tube on our new drawing line with the same burst-pressure margin. Weight saving is about 9% per metre. We can provide samples within 3 weeks for your R&D validation.', estSavingLakh: 118, receivedAt: '2026-09-29T08:12:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1004', source: 'Supplier Portal', portalRef: 'SP-26-0417', supplierCode: 'V10002', commodity: 'BV', type: 'Problem', scope: 'Specific parts', partCodes: ['3200011240'], subject: 'Frequent drawing revisions on Ø12.7 LWC tube', body: 'We received three drawing revisions in the last quarter for the same part without an ECN reference, causing rework of ~2 MT. Requesting a single frozen revision and ECN communication.', receivedAt: '2026-09-28T06:20:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1002', source: 'Supplier Portal', portalRef: 'SP-26-0415', supplierCode: 'V10003', commodity: 'AA', type: 'Idea', scope: 'Open idea', subject: 'Coil-width rationalisation across fin stock SKUs', body: 'Amber currently buys fin stock in 7 slit widths. Consolidating to 4 widths reduces our slitting scrap and changeover time; we can pass on ₹ 4/kg.', estSavingLakh: 42, receivedAt: '2026-09-27T11:40:00.000Z', status: 'Under review', batchId: 'OB-002' },
+  { id: 'SR-1003', source: 'Supplier Portal', portalRef: 'SP-26-0409', supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Specific parts', partCodes: ['3100045612'], subject: 'Replace Zn-Ni plating with Zn-flake coating on M6 flange bolt', body: 'Zn-flake meets the 720 h salt-spray requirement at lower cost and removes hydrogen-embrittlement risk. Proposed at ₹ 3.95 vs current ₹ 4.20.', estSavingLakh: 6, receivedAt: '2026-09-26T13:05:00.000Z', status: 'Converted to idea', batchId: 'OB-001' },
+  { id: 'SR-1005', source: 'Supplier Portal', portalRef: 'SP-26-0402', supplierCode: 'V10018', commodity: 'BP', type: 'Complaint', scope: 'Open idea', subject: 'Payment delays beyond agreed 60-day terms', body: 'Invoices for July and August are outstanding beyond 75 days. This affects our kraft paper procurement and our ability to hold prices.', receivedAt: '2026-09-25T09:30:00.000Z', status: 'Under review', batchId: 'OB-003' },
+  { id: 'SR-1007', source: 'Supplier Portal', portalRef: 'SP-26-0398', supplierCode: 'V10017', commodity: 'BW', type: 'Idea', scope: 'Open idea', subject: 'Bulk silo delivery instead of 25 kg bags for PP copolymer', body: 'For the Dehradun and Rajpura plants, moving to bulk tanker delivery with a silo saves bag cost and handling loss. We can support silo installation on a shared-cost basis.', estSavingLakh: 33, receivedAt: '2026-09-24T10:10:00.000Z', status: 'New', batchId: 'OB-003' },
+  { id: 'SR-1008', source: 'Supplier Portal', portalRef: 'SP-26-0391', supplierCode: 'V10022', commodity: 'BN', type: 'Problem', scope: 'Specific parts', partCodes: ['3100045733'], subject: 'Forecast variance on M8 Nylock nut schedules', body: 'Monthly schedules vary by more than ±40% versus the forecast shared, leading to excess inventory at our end. Requesting a 3-month rolling firm schedule.', receivedAt: '2026-09-22T05:45:00.000Z', status: 'Closed', batchId: 'OB-001' },
 ]
 
 // ─── Campaign workspace — email campaign types (wizard step 1) ───
