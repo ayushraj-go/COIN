@@ -23,23 +23,23 @@ export interface MisReport {
 
 type Def = Omit<MisReport, 'n' | 'space'>
 const CO_DEFS: Def[] = [
-  { key: 'home', name: 'Savings summary', audience: 'Sourcing team', visuals: 'Realised and committed savings, monthly realised trend, top ideas in execution and implemented', frequency: 'Live' },
-  { key: 'bridge', name: 'Savings bridge', audience: 'Sourcing Head, Management', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
-  { key: 'execution', name: 'Execution Hub dashboard', audience: 'Owners, Leads', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
-  { key: 'leakage', name: 'Realisation & leakage', audience: 'Finance, Sourcing Head', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
-  { key: 'commodity', name: 'Commodity scorecard', audience: 'Commodity Leads', visuals: 'Realised, committed, realisation rate and price leakage per commodity', frequency: 'Live' },
-  { key: 'buyer', name: 'Buyer scorecard', audience: 'Sourcing Head', visuals: 'Realised, committed, on-time %, overdue ₹ and realisation rate per buyer', frequency: 'Live / monthly' },
-  { key: 'lever', name: 'Category mix', audience: 'Sourcing Head', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
-  { key: 'closure', name: 'FY closure & carry-over', audience: 'Management, Finance', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
+  { key: 'home', name: 'Savings summary', audience: 'Sourcing ID', visuals: 'Realised and committed savings, monthly realised trend, top ideas in execution and implemented', frequency: 'Live' },
+  { key: 'bridge', name: 'Savings bridge', audience: 'Central ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
+  { key: 'execution', name: 'Execution Hub dashboard', audience: 'Department IDs', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
+  { key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
+  { key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Realised, committed, realisation rate and price leakage per commodity', frequency: 'Live' },
+  { key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Realised, committed, on-time %, overdue ₹ and realisation rate per buyer', frequency: 'Live / monthly' },
+  { key: 'lever', name: 'Category mix', audience: 'Central ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
+  { key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Central ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
 ]
 const IN_DEFS: Def[] = [
-  { key: 'home', name: 'Idea portfolio summary', audience: 'Sourcing team', visuals: 'Ideas by bucket, stage-to-stage funnel, monthly idea inflow, top pipeline ideas', frequency: 'Live' },
-  { key: 'commodity', name: 'Commodity scorecard', audience: 'Commodity Leads', visuals: 'Ideas, pipeline value, conversion and SLA breaches per commodity', frequency: 'Live' },
-  { key: 'buyer', name: 'Buyer scorecard', audience: 'Sourcing Head', visuals: 'Ideas, pipeline value, conversion, ageing and SLA breaches per buyer', frequency: 'Live / monthly' },
-  { key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing, supplier reviews', visuals: 'Ideas, value, conversion, gain-share and feasibility response per supplier', frequency: 'Quarterly' },
-  { key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing Excellence', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
-  { key: 'ageing', name: 'Ageing & SLA breach', audience: 'Commodity Leads', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
-  { key: 'drops', name: 'Drop analysis', audience: 'Sourcing Head', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
+  { key: 'home', name: 'Idea portfolio summary', audience: 'Sourcing ID', visuals: 'Ideas by bucket, stage-to-stage funnel, monthly idea inflow, top pipeline ideas', frequency: 'Live' },
+  { key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Ideas, pipeline value, conversion and SLA breaches per commodity', frequency: 'Live' },
+  { key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Ideas, pipeline value, conversion, ageing and SLA breaches per buyer', frequency: 'Live / monthly' },
+  { key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing ID, supplier reviews', visuals: 'Ideas, value, conversion, gain-share and feasibility response per supplier', frequency: 'Quarterly' },
+  { key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing ID', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
+  { key: 'ageing', name: 'Ageing & SLA breach', audience: 'Sourcing ID', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
+  { key: 'drops', name: 'Drop analysis', audience: 'Central ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
 ]
 export const MIS_REPORTS: Record<Space, MisReport[]> = {
   CO: CO_DEFS.map((d, k) => ({ ...d, space: 'CO', n: k + 1 })),

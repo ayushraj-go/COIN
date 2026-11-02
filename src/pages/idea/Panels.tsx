@@ -45,7 +45,7 @@ export function DetailsCard({ idea, compact }: { idea: Idea; compact?: boolean }
     </div>
   )
   return (
-    <Card title="Idea details" icon="FileText" subtitle={compact ? undefined : lever ? `${lever.group} lever · ${lever.name} · evaluator ${lever.evaluator} · NPD sample ${lever.npdSample}` : undefined}>
+    <Card title="Idea details" icon="FileText" subtitle={compact ? undefined : lever ? `${lever.group} lever · ${lever.name} · NPD sample ${lever.npdSample}` : undefined}>
       <div className={cn('grid gap-4', compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
         <Block label="As-Is" icon="CircleDot">{idea.currentState || <span className="text-muted">Not provided</span>}</Block>
         <Block label="To-Be" icon="Sparkles">{idea.proposedChange || <span className="text-muted">Not provided</span>}</Block>
@@ -220,7 +220,7 @@ export function KeyFacts({ idea, compact }: { idea: Idea; compact?: boolean }) {
   const rows: [string, ReactNode][] = [
     ['Idea ID', <span className="font-mono">{idea.id}</span>],
     ['Financial year', idea.fy],
-    ['Scope', idea.scope === 'Open' ? 'Open idea' : 'Part-specific'],
+    ['Scope', idea.scope === 'Open' ? 'Supplier' : 'Part-specific'],
     ['Buying type · category', `${idea.buyingType} · ${cat?.name ?? idea.categoryId}`],
     ['Commodity', `${com?.name ?? idea.commodity} (${idea.commodity})`],
     ['Plant / BU', plant ? `${plant.name} · ${plant.bu}` : idea.plant],

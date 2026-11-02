@@ -146,7 +146,7 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
               </tbody>
             </table>
           </div>
-        ) : <div className="text-[12.5px] text-muted rounded-lg border border-dashed border-line p-3">Open idea — no part codes; the estimate is carried as implemented value.</div>}
+        ) : <div className="text-[12.5px] text-muted rounded-lg border border-dashed border-line p-3">No part codes; the estimate is carried as implemented value.</div>}
         <div className="grid grid-cols-3 gap-2">
           <Out label="Opportunity cost (approved)" v={inrShort(annual)} tip="(P(baseline) − P(approved)) × Q(last FY MRN)" />
           <Out label={`Committed ${fy}`} v={inrShort(committed)} tip="Opportunity cost × months live in FY from the effective date ÷ 12" />

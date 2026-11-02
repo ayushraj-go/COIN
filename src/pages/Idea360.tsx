@@ -64,7 +64,7 @@ function HeaderCard({ idea }: { idea: Idea }) {
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Opportunity cost <InfoTip title="Opportunity cost" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Full-year saving at the new price and annual volume.</InfoTip></div>
           <div className={annual < 0 ? 'text-red-600' : 'text-ink'}><span className="text-[28px] font-extrabold tracking-tight leading-tight"><Money value={annual} /></span></div>
           <div className="text-[12px] text-muted">
-            {idea.scope === 'Open' ? 'Estimate for open idea' : `${pct.toFixed(1)}% saving on baseline spend · ${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}`}
+            {idea.scope === 'Open' ? 'Estimate, no part codes' : `${pct.toFixed(1)}% saving on baseline spend · ${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}`}
           </div>
           <div className="mt-2 flex items-center gap-2 text-[11.5px] text-muted">
             <Icon name="CalendarClock" size={13} className="text-gold-600" />Expected {idea.expectedQuarter || '—'}

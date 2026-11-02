@@ -168,7 +168,7 @@ function WorkshopCampaignPage() {
           {c.description && <p className="text-[12px] text-muted leading-relaxed mt-2">{c.description}</p>}
         </Card>
 
-        <Card className="lg:col-span-3" title="Submission link" subtitle="Opens Submit Idea with this campaign pre-set" icon="Link2">
+        <Card className="lg:col-span-3" title="Submission link" subtitle="Opens Capture My Idea with this campaign pre-set" icon="Link2">
           <div className="rounded-xl border border-line bg-slate-50/70 px-3 py-2.5 font-mono text-[11.5px] text-ink-2 break-all">{link}</div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <Button size="sm" variant="primary" icon="Copy" onClick={() => copyText(link, 'Submission link')}>Copy link</Button>

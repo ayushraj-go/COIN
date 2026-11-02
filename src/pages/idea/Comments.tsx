@@ -87,7 +87,7 @@ export function Comments({ idea, compact }: { idea: Idea; compact?: boolean }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[12.5px] font-semibold text-ink">{c.userName}</span>
-                {u && <span className="text-[10.5px] text-muted">{ROLE_LABEL[primaryRole(u)]}</span>}
+                {u && <span className="text-[10.5px] text-muted">{u.active ? ROLE_LABEL[primaryRole(u)] : u.department}</span>}
                 <Tooltip content={fmtDateTime(c.at)}><span className="text-[10.5px] text-muted">· {timeAgo(c.at)}</span></Tooltip>
               </div>
               <div className={cn('mt-0.5 text-[12.5px] leading-relaxed rounded-lg px-2.5 py-1.5 inline-block max-w-full break-words', mine ? 'bg-brand-50/70 text-ink' : 'bg-slate-50 text-ink-2')}>

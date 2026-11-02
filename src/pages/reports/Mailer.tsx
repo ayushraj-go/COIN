@@ -174,12 +174,12 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
           <Card title="Trigger" icon="Zap" actions={<InfoTip title="Monthly realisation cycle">{REALISATION_CYCLE[0]}</InfoTip>}>
             <div className="space-y-2 text-[12.5px]">
               <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><Icon name="CalendarClock" size={14} /></span><div><div className="font-semibold text-ink">Automatic</div><div className="text-muted leading-snug">After the monthly realisation run (3rd working day). Next: <b className="text-ink">{fmtDate(nextAuto)}</b> for {monthLong(nextAutoMonth)}.</div></div></div>
-              <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-gold-50 text-gold-600 grid place-items-center shrink-0"><Icon name="Send" size={14} /></span><div><div className="font-semibold text-ink">Manual</div><div className="text-muted leading-snug">Sent by the Sourcing Head at any time for the selected month.</div></div></div>
+              <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-gold-50 text-gold-600 grid place-items-center shrink-0"><Icon name="Send" size={14} /></span><div><div className="font-semibold text-ink">Manual</div><div className="text-muted leading-snug">Sent by the Central ID at any time for the selected month.</div></div></div>
             </div>
             <div className="mt-3">
               {canSend
                 ? <Button variant="primary" icon="Send" className="w-full" onClick={() => setConfirm(true)}>Send now · {monthLong(month)}</Button>
-                : <Tooltip content="Only the Sourcing Head (or Admin) can send the monthly report manually" className="w-full"><Button icon="Lock" className="w-full" disabled>Send now · Sourcing Head only</Button></Tooltip>}
+                : <Tooltip content="Only the Central ID can send the monthly report manually" className="w-full"><Button icon="Lock" className="w-full" disabled>Send now · Central ID only</Button></Tooltip>}
             </div>
           </Card>
           <Card title="Recipients" icon="Users" subtitle="Configurable management distribution list" actions={<Badge color="var(--color-brand-700)">{draft.length}</Badge>}>

@@ -58,7 +58,7 @@ interface Row {
   supplierCode: string
   commodity: string
   type: SupplierResponseType
-  scope: 'Open idea' | 'Specific parts'
+  scope: 'Supplier' | 'Part-specific'
   partCodes: string[]
   subject: string
   body: string
@@ -101,7 +101,7 @@ export function SupplierResponsesTab() {
     }))
     const linkedIdeas = new Set(responses.map((r) => r.ideaId).filter(Boolean))
     const fromIdeas: Row[] = ideas.filter((i) => i.isSupplierSubmission && i.stage !== 'Draft' && !linkedIdeas.has(i.id)).map((i) => ({
-      key: i.id, idea: i, supplierCode: i.supplierCode ?? '', commodity: i.commodity, type: 'Idea', scope: i.scope === 'Open' ? 'Open idea' : 'Specific parts',
+      key: i.id, idea: i, supplierCode: i.supplierCode ?? '', commodity: i.commodity, type: 'Idea', scope: i.scope === 'Open' ? 'Supplier' : 'Part-specific',
       partCodes: i.parts.map((p) => p.partCode), subject: i.title, body: i.proposedChange, receivedAt: i.submittedAt ?? i.createdAt, status: 'Converted to idea', ideaId: i.id,
     }))
     return [...fromPortal, ...fromIdeas].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))

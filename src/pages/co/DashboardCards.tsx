@@ -116,7 +116,7 @@ export function HealthCard({ c, className }: { c: CoData; className?: string }) 
   const onTimePct = total ? (c.health['On track'].length / total) * 100 : 0
   return (
     <Card className={cn('h-full', className)} icon="HeartPulse" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Execution health<InfoTip title="Execution health">Delayed = due date passed. At risk = a milestone is overdue. On track = otherwise. Owners and Commodity Leads get reminders every 15 days, weekly in the last 30 days, and weekly after the due date.</InfoTip></span>}
+      title={<span className="flex items-center gap-1.5">Execution health<InfoTip title="Execution health">Delayed = due date passed. At risk = a milestone is overdue. On track = otherwise. The department ID gets reminders every 15 days, weekly in the last 30 days, and weekly after the due date.</InfoTip></span>}
       subtitle={`${total} live executions · ${pct(onTimePct, 0)} on track`}
       actions={c.overdue.length ? <Badge color={RISK} dot>{c.overdue.length} overdue</Badge> : <Badge color="var(--color-emerald-600)" icon="CircleCheck">None overdue</Badge>}>
       {total ? (

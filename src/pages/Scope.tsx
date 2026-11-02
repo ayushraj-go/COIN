@@ -483,7 +483,7 @@ export default function Scope() {
                 return <span key={g} className="inline-flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-lg text-[12px] font-semibold" style={{ background: st.soft, color: st.text }}><span className="h-5 w-5 rounded-md grid place-items-center text-white" style={{ background: st.color }}><Icon name={st.icon} size={11} /></span>{g}<span className="opacity-70 num">{levers.filter((l) => l.group === g).length}</span></span>
               })}
             </div>
-            <DocTable head={['Group', 'Category', 'Default classification', 'Route', 'Technical evaluator', 'NPD sample']} widths={['16%', '26%']} dense
+            <DocTable head={['Group', 'Category', 'Default classification', 'Route', 'Technical department', 'NPD sample']} widths={['16%', '26%']} dense
               rowClass={(k) => (levers[k] && !levers[k].active ? 'opacity-50' : undefined)}
               rows={levers.map((l) => {
                 const st = LEVER_GROUP_STYLE[l.group]

@@ -68,7 +68,7 @@ export const needsSupplierCheck = (annual: number) => annual >= SUPPLIER_CHECK_M
 export function costFlags(idea: Pick<Idea, 'scope' | 'parts' | 'openEstimateLakh'>, parts: Pick<Part, 'code' | 'lbp' | 'poPrice'>[]): string[] {
   const flags: string[] = []
   if (idea.scope === 'Open' || !idea.parts?.length) {
-    if (!((idea.openEstimateLakh ?? 0) > 0)) flags.push('Open idea has no saving estimate')
+    if (!((idea.openEstimateLakh ?? 0) > 0)) flags.push('No part codes and no saving estimate')
     return flags
   }
   for (const p of idea.parts) {

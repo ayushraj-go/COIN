@@ -210,7 +210,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                       </tbody>
                     </table>
                   </div>
-                ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">Open idea — valued by the estimate of {inrShort(annual)} a year; part-wise cost follows once part codes are added.</div>}
+                ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">No part codes — valued by the estimate of {inrShort(annual)} a year; part-wise cost follows once part codes are added.</div>}
               </Block>
 
               <Block title="Financial case" icon="ChartNoAxesCombined" hint={`${fy} · savings counted from ${fmtDate(goLive)} (the savings start in the lock)`}>
@@ -253,7 +253,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                   ) : ev ? <>
                     <Kv k="Cost-benefit" v={ev.cbaVerified ? `Verified${ev.cbaNote ? ` — ${ev.cbaNote}` : ''}` : 'Not verified'} />
                     <Kv k="Recommendation" v={ev.decision ? `${ev.decision === 'Recommend' ? 'Recommended' : 'Rejected'} · ${ev.by ?? '—'}${ev.at ? ` · ${fmtDate(ev.at.slice(0, 10))}` : ''}` : '—'} />
-                    {ev.remarks && <Kv k="Evaluator remarks" v={`“${ev.remarks}”`} />}
+                    {ev.remarks && <Kv k="Evaluation remarks" v={`“${ev.remarks}”`} />}
                   </> : <div className="text-[12.5px] text-muted">No evaluation on record.</div>}
                 </Block>
                 <Block title="Risk register" icon="ShieldAlert" hint={risks.length ? `Overall ${overallRisk(risks)} · ${inrShort(atRisk)} at risk` : 'From the commercial evaluation'}>

@@ -180,19 +180,19 @@ export const FORM_BEHAVIOUR = [
   'Selecting a part code fills description, UoM, supplier, baseline and volume in place, with a "from LBP" / "from MRN FY26" tag.',
   'Similar existing ideas appear inline as the idea name is typed, with a match % and a "view" link.',
   'The summary panel shows opportunity cost, saving %, saving per unit, the per-part split, committed this FY vs carry-over, the approval route and "what happens next". It stays in view and never needs scrolling; on a phone it becomes a bottom bar.',
-  'Actions: Save draft (also Ctrl + S), Submit for validation, Cancel (keep or discard the draft). After submit, the user lands on the idea page showing its ID (COIN-FY27-FAS-0012) and a live status tracker.',
+  'Actions: Save draft (also Ctrl + S), Submit idea, Cancel (keep or discard the draft). After submit, the user lands on the idea page showing its ID (COIN-FY27-FAS-0012) and a live status tracker.',
 ]
 
 // ─── Modules (IDs match the badges shown in the app) ──────────────────────────
 export const MODULES_INTRO = 'The portal is delivered as ten modules across the two workspaces; the sidebar shows each user only the pages their role needs.'
 export const MODULES: { id: string; name: string; tag: DocSpace; space: string; screens: string; scope: string; path: string }[] = [
-  { id: 'M1', name: 'Entry and dashboards', tag: 'Both', space: 'CO and IN', screens: 'Entry screen, workspace dashboards, role homes', scope: 'Four status cards and the CO / IN choice; per workspace a one-screen Dashboard and an Advanced analytics view; own homes for Submitter, Supplier and Technical Evaluator in IN', path: '/' },
-  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for Validate, feasibility, Go / No-go, Approve / Reject, Send back (the department head chooses the stage: submitter, team feasibility check or department evaluation), Request info, Reassign (execution) and Drop; from execution on, the "Monthly savings vs target (MRN)" card graphs every month of the locked timeline', path: '/ideas/:id' },
+  { id: 'M1', name: 'Entry and dashboards', tag: 'Both', space: 'CO and IN', screens: 'Sign-in card with the CO / IN choice, workspace dashboards', scope: 'CO or IN is chosen on the sign-in card; each workspace has one dashboard page holding the four status cards, the commodity, department and individual views and the analytics', path: '/' },
+  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for the workshop event, technical feasibility, commercial evaluation, Follow-up / Go ahead, Approve / Reject, Send back (the Central ID chooses the stage), Request info and Drop; from execution on, the "Monthly savings vs target (MRN)" card graphs every month of the locked timeline', path: '/ideas/:id' },
   { id: 'M10', name: 'MIS', tag: 'Both', space: 'Pinned in CO and IN', screens: 'Report library, KPI library, monthly mailer, scheduled emails', scope: '12 standard reports with filter bar and Excel / PDF export; monthly management mailer', path: '/reports' },
   { id: 'M8', name: 'Execution Hub', tag: 'CO', space: 'CO', screens: 'Execution dashboard', scope: 'Tabs Execution · Monthly MRN tracking · Savings proof · Verification; approved ideas with owner, locked deadline, month-by-month MRN vs target bars and graph, milestones, NPD / PAP, reminder schedule, health and drop; ideas move to verification by themselves on the deadline', path: '/execution' },
   { id: 'NPD', name: 'NPD development master', tag: 'CO', space: 'CO (also listed in IN)', screens: 'Read-only master', scope: 'Commodity codes, development SPOC per plant / product line, DQA SPOC, performance and reliability testing days, vendor groups and payment methods — synced from VMS', path: '/npd' },
   { id: 'M2', name: 'Idea Register / My Ideas', tag: 'IN', space: 'IN (Implemented ideas view in CO)', screens: 'Table + Kanban', scope: 'Filter bar, saved views, quick filters as chips, Kanban by stage with drag to move (permission-checked), Excel export, ageing badge on each row', path: '/ideas' },
-  { id: 'M3', name: 'Submit Idea', tag: 'IN', space: 'IN', screens: 'Collapsible form', scope: 'Collapsible steps A–E, fixed summary panel, duplicate check, route preview, campaign pre-fill, auto-saved draft', path: '/submit' },
+  { id: 'M3', name: 'Capture My Idea', tag: 'IN', space: 'IN', screens: 'Collapsible form', scope: 'Collapsible steps A–E, fixed summary panel, duplicate check, route preview, campaign pre-fill, auto-saved draft', path: '/submit' },
   { id: 'M6', name: 'Supplier access', tag: 'IN', space: 'IN', screens: 'Campaign link page, supplier capability form', scope: 'Suppliers do not sign in. They submit ideas through the unique link of a campaign, and answer capability requests through a secure link', path: '/campaigns' },
   { id: 'M7', name: 'Campaigns', tag: 'IN', space: 'IN', screens: 'Dashboard, Workshops & drives, Supplier responses, Email templates', scope: 'Supplier email campaigns through a four-step wizard; replies from the Supplier Portal converted into ideas; workshops with attendance and auto-invites; template add / edit', path: '/campaigns' },
   { id: 'M12', name: 'Admin & Masters', tag: 'IN', space: 'IN', screens: 'Settings', scope: 'Commodity group, commodity, idea category, route, department, plant, user–role–commodity mapping, vendor and part masters, approval matrix, drop reasons, SLA and reminder rules, email templates, FY calendar, settings, audit trail, data backup and reset', path: '/admin' },
@@ -309,7 +309,7 @@ export const REALISATION_CYCLE = [
 export const REALISATION_IN_APP = [
   'CO Dashboard: the "Realised savings" tile splits validated from pending, and the implementation pipeline card charts realised savings by month (Finance validated vs pending validation).',
   'IN Dashboard for Finance: the "Savings to validate" card lists pending months with their SLA, the exceptions found and any lines queried back to buyers.',
-  'CO Advanced analytics: savings trend, realisation rate (realised ÷ committed) and quarter phasing.',
+  'CO dashboard: savings trend, realisation rate (realised ÷ committed) and quarter phasing.',
   'MIS: report 11 "Realisation & leakage" and report 12 "FY closure & carry-over"; the Monthly mailer tab sends the report manually and keeps the sent history.',
   'Idea 360: the value card shows estimated vs approved vs realised; the Monthly savings vs target card graphs each month’s MRN against the locked monthly target.',
 ]
@@ -359,18 +359,18 @@ export const DASHBOARDS: { space: string; view: string; who: string; contents: s
 export const REPORTS_INTRO =
   'MIS holds twelve standard reports for every audience, a KPI library, the monthly mailer and the scheduled-email list; the Monthly Cost Optimisation Report goes to management automatically, with no manual MIS.'
 export const REPORTS: { n: number; key: string; name: string; audience: string; visuals: string; frequency: string }[] = [
-  { n: 1, key: 'home', name: 'Sourcing summary', audience: 'Sourcing team', visuals: 'Savings summary, funnel, monthly savings trend', frequency: 'Live' },
-  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Central ID, Management', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
+  { n: 1, key: 'home', name: 'Sourcing summary', audience: 'Sourcing ID', visuals: 'Savings summary, funnel, monthly savings trend', frequency: 'Live' },
+  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Central ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
   { n: 3, key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Realised, committed, pipeline, conversion per commodity', frequency: 'Live' },
   { n: 4, key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Realised, committed, on-time %, overdue ₹, ageing per buyer', frequency: 'Live / monthly' },
-  { n: 5, key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing, supplier reviews', visuals: 'Ideas, value, conversion, gain-share, leakage per supplier', frequency: 'Quarterly' },
+  { n: 5, key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing ID, supplier reviews', visuals: 'Ideas, value, conversion, gain-share, leakage per supplier', frequency: 'Quarterly' },
   { n: 6, key: 'lever', name: 'Category mix', audience: 'Central ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
-  { n: 7, key: 'execution', name: 'Execution Hub dashboard', audience: 'Owners, Leads', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
+  { n: 7, key: 'execution', name: 'Execution Hub dashboard', audience: 'Department IDs', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
   { n: 8, key: 'drops', name: 'Drop analysis', audience: 'Central ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
   { n: 9, key: 'ageing', name: 'Ageing & SLA breach', audience: 'Sourcing ID', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
-  { n: 10, key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing Excellence', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
-  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
-  { n: 12, key: 'closure', name: 'FY closure & carry-over', audience: 'Management, Finance', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
+  { n: 10, key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing ID', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
+  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
+  { n: 12, key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Central ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
 ]
 export const REPORTS_NOTE = 'Every chart is clickable through to the idea list behind it, and every report exports to Excel and PDF with the active filters from the MIS filter bar.'
 export const MAILER: [string, string][] = [
@@ -430,7 +430,7 @@ export const UI_INTRO =
   'COIN should feel like a working cockpit for buyers: dense, colourful where colour carries meaning, and responsive to every click, not a pale form floating in empty space.'
 export const UI_PRINCIPLES: { area: string; principle: string }[] = [
   { area: 'Two workspaces', principle: 'CO for execution after approval, IN for the idea network; the sidebar shows one workspace at a time, with a switcher in its header' },
-  { area: 'One-screen dashboards', principle: 'The Dashboard pill fits a laptop screen with no inner scrolling; deeper charts sit under Advanced analytics' },
+  { area: 'One dashboard per workspace', principle: 'Status cards and analytics sit together on one page, so nothing has to be looked for in a second view' },
   { area: 'Forms', principle: 'Collapsible steps with a fixed summary panel; fields appear only when relevant' },
   { area: 'Live feedback', principle: 'Savings recalculate as the user types, with a % badge and colour for positive or negative saving' },
   { area: 'Type and density', principle: '13–14 px body, 12 px labels, 36 px inputs; compact or comfortable tables set in Admin' },
@@ -459,7 +459,7 @@ export const UI_INTERACTIVITY = [
   'Global search (Ctrl + K) across ideas, parts, suppliers, campaigns and pages.',
   'Toasts for every action, with undo on non-final actions.',
   'Skeleton loaders instead of blank screens; empty states with a clear next action (e.g. "No ideas yet — submit the first idea for Fasteners").',
-  'A subtle celebration when an idea is marked Implemented, and a contributor leaderboard in IN Advanced analytics to reward participation.',
+  'A subtle celebration when an idea is marked Implemented, and a contributor leaderboard on the IN dashboard to reward participation.',
   'Hover tooltips explaining every KPI and formula.',
 ]
 export const UI_RESPONSIVE =

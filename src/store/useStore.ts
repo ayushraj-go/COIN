@@ -969,7 +969,7 @@ export const useStore = create<Store>()(
           const batch = r.batchId ? (s.outreachBatches ?? []).find((b) => b.id === r.batchId) : undefined
           const resp: SupplierResponse = {
             id: `SR-${n}`, source: 'Supplier Portal', portalRef: `SP-${t.slice(2, 4)}-${String(n).slice(-4)}`, supplierCode: sup.code, commodity: r.commodity,
-            type: r.type, scope: r.scope, partCodes: r.scope === 'Specific parts' ? r.partCodes ?? [] : undefined, subject: r.subject.trim(),
+            type: r.type, scope: r.scope, partCodes: r.scope === 'Part-specific' ? r.partCodes ?? [] : undefined, subject: r.subject.trim(),
             body: `${r.body.trim()}\n\n— ${r.contactName.trim()}, ${sup.name}`, estSavingLakh: r.estSavingLakh || undefined, receivedAt: t, status: 'New', batchId: batch?.id,
           }
           set((st) => ({ supplierResponses: [resp, ...(st.supplierResponses ?? [])], supplierPortalSyncAt: t }))

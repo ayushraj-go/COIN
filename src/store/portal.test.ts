@@ -15,7 +15,7 @@ describe('Supplier Portal', () => {
   it('a supplier submission becomes a New supplier response linked to its campaign, and the sender is told', () => {
     const batch = st().outreachBatches[0]
     const before = st().supplierResponses.length
-    const id = st().submitPortalResponse({ supplierCode: batch.recipients[0], commodity: batch.commodities[0], type: 'Idea', scope: 'Open idea', subject: 'Returnable crates', body: 'Crates instead of boxes on the Rajpura lane', estSavingLakh: 12, contactName: 'Jaspreet Gill', batchId: batch.id })
+    const id = st().submitPortalResponse({ supplierCode: batch.recipients[0], commodity: batch.commodities[0], type: 'Idea', scope: 'Supplier', subject: 'Returnable crates', body: 'Crates instead of boxes on the Rajpura lane', estSavingLakh: 12, contactName: 'Jaspreet Gill', batchId: batch.id })
     expect(id).toMatch(/^SR-\d+$/)
     const r = st().supplierResponses.find((x) => x.id === id)!
     expect(st().supplierResponses.length).toBe(before + 1)
@@ -24,7 +24,7 @@ describe('Supplier Portal', () => {
     expect(st().notifications.some((n) => n.userId === signInId(batch.sentBy, st().users) && n.body.includes(id!))).toBe(true)
   })
   it('refuses an unknown vendor or an empty submission', () => {
-    expect(st().submitPortalResponse({ supplierCode: 'V99999', commodity: 'BN', type: 'Idea', scope: 'Open idea', subject: 'x', body: 'y', contactName: 'z' })).toBeNull()
-    expect(st().submitPortalResponse({ supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Open idea', subject: ' ', body: 'y', contactName: 'z' })).toBeNull()
+    expect(st().submitPortalResponse({ supplierCode: 'V99999', commodity: 'BN', type: 'Idea', scope: 'Supplier', subject: 'x', body: 'y', contactName: 'z' })).toBeNull()
+    expect(st().submitPortalResponse({ supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Supplier', subject: ' ', body: 'y', contactName: 'z' })).toBeNull()
   })
 })

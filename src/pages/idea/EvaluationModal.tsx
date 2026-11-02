@@ -138,7 +138,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
         {/* summary strip — follows the figures as they are typed */}
         <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 shrink-0 [@media(max-height:700px)]:hidden">
           <Kpi label="Opportunity cost / year" value={<Money value={annual} />} sub={isEdited('annual') ? `changed · parts ${inrShort(f.auto.annual)}` : idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
-          <Kpi label="One-time investment" value={<Money value={f.investment} />} sub={isEdited('investment') ? 'changed by the evaluator' : 'from the idea'} />
+          <Kpi label="One-time investment" value={<Money value={f.investment} />} sub={isEdited('investment') ? 'changed at evaluation' : 'from the idea'} />
           <Kpi label="Payback" value={paybackText} />
           <Kpi label={`Committed ${fy}`} value={<Money value={f.committed} />} sub={`live from ${fmtDate(f.goLive)}`} />
           <Kpi label="Overall risk" value={riskSaved ? <span style={{ color: RISK_COLOR[overallRisk(ev!.risks!)] }}>{overallRisk(ev!.risks!)}</span> : 'To assess'} sub={riskSaved ? `${inrShort(riskTotal(ev!.risks!))} at risk` : undefined} />
@@ -183,7 +183,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
                         </tbody>
                       </table>
                     </div>
-                  ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">Open idea — valued by the estimate of {inrShort(partsForecast(idea))} a year.</div>}
+                  ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">No part codes — valued by the estimate of {inrShort(partsForecast(idea))} a year.</div>}
                   {isEdited('annual') && <div className="mt-2 text-[12px] text-brand-800 flex items-center gap-1.5"><Icon name="PencilLine" size={13} />Opportunity cost set at evaluation: <b className="num">{inrShort(annual)}</b> a year — used for the approval and the locked target.</div>}
                 </Block>
                 <Block title={`Quarter phasing ${fy}`} icon="CalendarRange" hint={`Saving expected in each quarter — adds up to ${inrShort(phSum)}${Math.abs(phSum - f.committed) > 1000 ? ` (committed ${inrShort(f.committed)})` : ''}`}

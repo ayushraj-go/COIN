@@ -545,7 +545,7 @@ export interface SupplierResponse {
   supplierCode: string
   commodity: string // commodity code
   type: SupplierResponseType
-  scope: 'Open idea' | 'Specific parts'
+  scope: 'Supplier' | 'Part-specific'
   partCodes?: string[]
   subject: string
   body: string

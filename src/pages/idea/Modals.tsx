@@ -143,7 +143,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
           </table>
         </div>
       ) : (
-        <div className="rounded-lg bg-slate-50 border border-line p-3 text-[12.5px] text-muted">Open idea without part codes — the estimate of {inrShort(ideaAnnualised(idea))} is carried as the implemented value.</div>
+        <div className="rounded-lg bg-slate-50 border border-line p-3 text-[12.5px] text-muted">No part codes — the estimate of {inrShort(ideaAnnualised(idea))} is carried as the implemented value.</div>
       )}
       <p className="text-[11.5px] text-muted mt-3 flex items-start gap-1.5"><Icon name="Info" size={13} className="shrink-0 mt-px" />Hand-over closes Execution started: first MRN, implementation confirmed and hand-over milestones are ticked, approved prices are locked, and the business side verifies the savings in Verification.</p>
     </Modal>

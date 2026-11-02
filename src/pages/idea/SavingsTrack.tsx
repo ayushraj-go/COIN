@@ -274,7 +274,7 @@ export function SavingsTrackCard({ idea }: { idea: Idea }) {
           <span className="h-9 w-9 rounded-xl grid place-items-center bg-co-grad text-white shrink-0"><Icon name="ChartColumnBig" size={17} /></span>
           <div className="min-w-0">
             <h3 className="text-[14.5px] font-bold text-ink">Monthly savings vs target (MRN)</h3>
-            <div className="text-[12px] text-muted">{inrShort(t.target)} locked over {t.months} month{t.months === 1 ? '' : 's'}{seasonal(t) ? ' — each month’s target follows the AC season (last-FY MRN pattern)' : ` = ${inrShort(t.planPerMonth)} a month`} · {fmtDate(idea.lock.startDate)} → {fmtDate(idea.lock.endDate)} · signed at department approval</div>
+            <div className="text-[12px] text-muted">{inrShort(t.target)} locked over {t.months} month{t.months === 1 ? '' : 's'}{seasonal(t) ? ' — each month’s target follows the AC season (last-FY MRN pattern)' : ` = ${inrShort(t.planPerMonth)} a month`} · {fmtDate(idea.lock.startDate)} → {fmtDate(idea.lock.endDate)} · signed at management approval</div>
           </div>
         </div>
       </div>

@@ -242,7 +242,7 @@ export default function ExecutionHub() {
                   <thead>
                     <tr>
                       <th style={{ width: 34 }} />
-                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at department approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
+                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at management approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
                       <th><span className="inline-flex items-center gap-1">Month by month · MRN vs target<InfoTip title="Month by month" formula="MRN saving of the month ÷ (locked target ÷ months)">One bar per month of the locked timeline. Green = monthly target met, amber = within 10 %, red = short or no MRN, dashed = not posted yet. The % is MRN actual ÷ target to date. Open the row for the graph.</InfoTip></span></th>
                       <th>Progress</th><th>Health</th>
                       <th className="max-[1700px]:hidden"><span className="inline-flex items-center gap-1">Next reminder<InfoTip title="Implementation reminder">Every 15 days; weekly in the last 30 days before the due date. After the due date passes: the day after, then weekly.</InfoTip></span></th>
@@ -337,7 +337,7 @@ export default function ExecutionHub() {
                   <EmptyState icon={kpi === 'done' ? 'PartyPopper' : 'Rocket'}
                     title={kpi === 'all' ? 'No approved ideas in execution yet' : kpi === 'done' ? `Nothing moved to verification in ${monthLong(ym)} yet` : kpi === 'dropped' ? `No drops in ${monthLong(ym)}` : 'No ideas in this view'}
                     desc={kpi === 'all' ? 'Every approved idea enters the Execution Hub with an owner and the deadline signed in its lock.' : 'Clear the KPI filter to see every idea in execution.'}
-                    action={kpi === 'all' ? <Button size="sm" icon="Table2" onClick={() => nav('/ideas?stage=approval')}>Open ideas in sourcing approval</Button> : <Button size="sm" onClick={() => setKpi('all')}>Show all in execution</Button>} />
+                    action={kpi === 'all' ? <Button size="sm" icon="Table2" onClick={() => nav('/ideas?stage=approval')}>Ideas at management approval</Button> : <Button size="sm" onClick={() => setKpi('all')}>Show all in execution</Button>} />
                 )}
               </div>
             )}

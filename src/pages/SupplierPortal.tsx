@@ -30,7 +30,7 @@ export default function SupplierPortal() {
   const batch = batches?.find((b) => b.id === batchId)
   const [type, setType] = useState<SupplierResponseType>('Idea')
   const [commodity, setCommodity] = useState(comms[0] ?? '')
-  const [scope, setScope] = useState<SupplierResponse['scope']>('Open idea')
+  const [scope, setScope] = useState<SupplierResponse['scope']>('Supplier')
   const [chosen, setChosen] = useState<string[]>([])
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
@@ -47,7 +47,7 @@ export default function SupplierPortal() {
     <div className="card p-8 text-center max-w-[560px] mx-auto"><span className="h-12 w-12 rounded-full bg-slate-100 text-slate-500 grid place-items-center mx-auto"><Icon name="Link2Off" size={22} /></span><h1 className="mt-3 text-[18px] font-bold text-ink">This link is not valid</h1><p className="text-[13px] text-muted mt-1">The link may have been copied incompletely. Please use the link in the email from Amber Sourcing, or reply to that email.</p></div>,
   )
 
-  const valid = !!commodity && !!subject.trim() && body.trim().length >= 10 && !!contact.trim() && (scope === 'Open idea' || chosen.length > 0)
+  const valid = !!commodity && !!subject.trim() && body.trim().length >= 10 && !!contact.trim() && (scope === 'Supplier' || chosen.length > 0)
   const submit = () => {
     const id = useStore.getState().submitPortalResponse({ supplierCode: code, commodity, type, scope, partCodes: chosen, subject, body, estSavingLakh: Number(est) || undefined, contactName: contact, batchId })
     if (id) { setSent(id); setSubject(''); setBody(''); setEst(''); setChosen([]) }
@@ -91,7 +91,7 @@ export default function SupplierPortal() {
       </section>
 
       <section className="card p-5 sm:p-6 grid gap-6">
-        <FormStep n={1} title="What are you sending?" hint="An idea, a problem in the current supply, or a complaint" done={!!type && !!commodity && (scope === 'Open idea' || chosen.length > 0)}>
+        <FormStep n={1} title="What are you sending?" hint="An idea, a problem in the current supply, or a complaint" done={!!type && !!commodity && (scope === 'Supplier' || chosen.length > 0)}>
         <Field label="Type" required>
           <div className="grid sm:grid-cols-3 gap-2">
             {TYPES.map((t) => (
@@ -110,13 +110,13 @@ export default function SupplierPortal() {
           </Field>
           <Field label="Applies to" required>
             <div className="grid grid-cols-2 gap-2">
-              {(['Open idea', 'Specific parts'] as const).map((s) => (
-                <button key={s} type="button" onClick={() => setScope(s)} className={cn('h-10 rounded-xl border text-[13px] font-semibold', scope === s ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-line text-ink-2 hover:border-slate-300')}>{s === 'Open idea' ? 'Any part / general' : 'Specific parts'}</button>
+              {(['Part-specific', 'Supplier'] as const).map((s) => (
+                <button key={s} type="button" onClick={() => setScope(s)} className={cn('h-10 rounded-xl border text-[13px] font-semibold', scope === s ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-line text-ink-2 hover:border-slate-300')}>{s}</button>
               ))}
             </div>
           </Field>
         </div>
-        {scope === 'Specific parts' && (
+        {scope === 'Part-specific' && (
           <Field label="Your parts" required hint="Parts you supply to Amber in this commodity">
             {myParts.length ? (
               <div className="grid sm:grid-cols-2 gap-1.5">

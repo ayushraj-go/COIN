@@ -17,6 +17,8 @@ const EVALUATORS = ['—', 'R&D', 'DQA', 'Quality', 'Process', 'Production', 'R&
 const NPD = ['No', 'Yes', 'Yes (supplier qualification)', 'Trial only', 'To be confirmed']
 const ALL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Sourcing', 'Finance', 'Management', 'Sourcing Excellence', 'Supplier']
 const ROLE_KEYS = Object.keys(ROLE_LABEL) as RoleKey[]
+/** A department ID holds every role of its department underneath; the list shows what it is */
+const shownRoles = (u: User) => (u.roles.includes('deptlead') ? u.roles.filter((r) => r === 'deptlead' || r === 'finance') : u.roles)
 const AVATAR = ['var(--color-brand-600)', 'var(--color-brand-500)', 'var(--color-emerald-600)', 'var(--color-orange-400)', 'var(--color-violet-600)', 'var(--color-teal-600)', 'var(--color-pink-600)', 'var(--color-sky-600)', 'var(--color-indigo-600)', 'var(--color-accent-600)']
 const opt = (a: string[]): [string, string][] => a.map((x) => [x, x])
 
@@ -113,7 +115,7 @@ export function LeverAdmin() {
     { key: 'defaultSavingsType', label: 'Default savings type', type: 'select', required: true, options: opt(['Hard', 'Cost avoidance', 'One-time']), hint: 'Pre-fills the savings type on the form (editable)' },
     { key: 'savingsType', label: 'Savings type (master label)', type: 'text', required: true, placeholder: 'Hard / Avoidance', hint: 'As shown in the lever master, e.g. "Hard / Avoidance"' },
     { key: 'route', label: 'Route', type: 'select', required: true, options: opt(ROUTES), hint: "Decides the idea's stages after submission" },
-    { key: 'evaluator', label: 'Technical evaluator', type: 'select', required: true, options: opt(EVALUATORS) },
+    { key: 'evaluator', label: 'Technical department', type: 'select', required: true, options: opt(EVALUATORS) },
     { key: 'npdSample', label: 'NPD sample', type: 'select', required: true, options: opt(NPD) },
     { key: 'active', label: 'Status', type: 'toggle' },
     { key: 'icon', label: 'Icon', type: 'icon', wide: true },
@@ -142,7 +144,7 @@ export function LeverAdmin() {
           )
         })}
       </div>
-      <CrudSection<Lever> title="Idea category master" subtitle="Section 5 · group, default savings type, route, evaluator, NPD sample, icon" icon="SlidersHorizontal" entity="Lever" storeKey="levers"
+      <CrudSection<Lever> title="Idea category master" subtitle="Section 5 · group, default savings type, route, department, NPD sample, icon" icon="SlidersHorizontal" entity="Lever" storeKey="levers"
         rows={levers}
         makeNew={() => ({ id: nextId(), group: 'Engineering', name: '', savingsType: 'Hard', defaultSavingsType: 'Hard', route: 'Technical', evaluator: 'R&D', npdSample: 'Yes', icon: 'Lightbulb', active: true })}
         fields={fields}
@@ -157,7 +159,7 @@ export function LeverAdmin() {
               <span className="text-[11px] text-muted ml-auto">Stage strip shown to the submitter</span>
             </div>
             <RouteStrip route={l.route} />
-            <div className="text-[11px] text-muted mt-2">Category evaluator: <b className="text-ink-2">{rndDeptFor(l.evaluator)}</b> · NPD sample: <b className="text-ink-2">{l.npdSample}</b> · Default savings type: <b className="text-ink-2">{l.defaultSavingsType}</b></div>
+            <div className="text-[11px] text-muted mt-2">Category department: <b className="text-ink-2">{rndDeptFor(l.evaluator)}</b> · NPD sample: <b className="text-ink-2">{l.npdSample}</b> · Default savings type: <b className="text-ink-2">{l.defaultSavingsType}</b></div>
           </div>
         )}
         columns={[
@@ -166,7 +168,7 @@ export function LeverAdmin() {
           { key: 'group', label: 'Group', value: (l) => l.group },
           { key: 'savingsType', label: 'Savings type', value: (l) => l.savingsType },
           { key: 'route', label: 'Route', value: (l) => l.route, render: (l) => <Badge color={l.route === 'Technical' ? 'var(--color-indigo-600)' : l.route === 'Commercial' ? 'var(--color-violet-600)' : l.route === 'Supplier change' ? 'var(--color-teal-600)' : l.route === 'Internal' ? 'var(--color-pink-600)' : 'var(--color-gray-500)'}>{l.route}</Badge> },
-          { key: 'evaluator', label: 'Evaluator', value: (l) => l.evaluator },
+          { key: 'evaluator', label: 'Department', value: (l) => l.evaluator },
           { key: 'npdSample', label: 'NPD sample', value: (l) => l.npdSample },
           { key: 'ideas', label: 'Ideas', align: 'right', value: (l) => ideas.filter((i) => i.leverId === l.id).length },
           { key: 'active', label: 'Active', value: (l) => (l.active ? 'Active' : 'Inactive'), render: (l) => <span onClick={(e) => { e.stopPropagation(); toggle(l) }}><Toggle checked={l.active} onChange={() => {}} disabled={ro} /></span> },
@@ -216,7 +218,7 @@ export function RouteAdmin() {
             actions={<span className="text-[11.5px] text-muted">{ls.length} levers · {open} open ideas</span>}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Categories on this route</div><div className="flex flex-wrap gap-1.5">{ls.length ? ls.map((l) => <LeverChip key={l.id} leverId={l.id} />) : <span className="text-[12px] text-muted">No category mapped</span>}</div></div>
-              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Category evaluator</div><div className="flex flex-wrap gap-1">{(approvers.length ? approvers : ['R&D']).map((d) => <span key={d} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">{d}</span>)}</div></div>
+              <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Category department</div><div className="flex flex-wrap gap-1">{(approvers.length ? approvers : ['R&D']).map((d) => <span key={d} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">{d}</span>)}</div></div>
               <div><div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mb-1">Execution started — milestones</div><div className="flex flex-wrap gap-1">{MILESTONE_TEMPLATES[r].map((m, k) => <span key={m} className="text-[11px] px-2 h-6 inline-flex items-center rounded-md bg-slate-50 border border-slate-200 text-ink-2"><span className="text-muted mr-1">{k + 1}.</span>{m}</span>)}</div></div>
             </div>
           </Card>
@@ -351,7 +353,7 @@ export function UserAdmin() {
           { key: 'name', label: 'User', value: (u) => u.name, render: (u) => <span className="flex items-center gap-2 min-w-0"><Avatar name={u.name} color={u.avatarColor} size={26} /><span className="min-w-0"><span className="block text-[12.5px] font-semibold text-ink truncate">{u.name}</span><span className="block text-[11px] text-muted truncate max-w-[220px]">{u.designation}</span></span></span> },
           { key: 'employeeId', label: 'Employee ID', render: (u) => <span className="font-mono text-[11.5px]">{u.employeeId}</span> },
           { key: 'email', label: 'Email', render: (u) => <span className="text-ink-2">{u.email}</span> },
-          { key: 'roles', label: 'Roles', value: (u) => u.roles.map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} color={r === 'admin' ? 'var(--color-accent-600)' : r === 'head' ? 'var(--color-brand-600)' : r === 'supplier' ? 'var(--color-teal-600)' : 'var(--color-slate-600)'}>{ROLE_LABEL[r]}</Badge>)}</span> },
+          { key: 'roles', label: 'Roles', value: (u) => shownRoles(u).map((r) => ROLE_LABEL[r]).join(', '), render: (u) => <span className="flex flex-wrap gap-1">{shownRoles(u).map((r) => <Badge key={r} color={r === 'admin' ? 'var(--color-accent-600)' : r === 'head' ? 'var(--color-brand-600)' : r === 'supplier' ? 'var(--color-teal-600)' : 'var(--color-slate-600)'}>{ROLE_LABEL[r]}</Badge>)}</span> },
           { key: 'commodities', label: 'Commodities', value: (u) => u.commodities.join(', '), render: (u) => <span className="text-[11.5px] text-ink-2">{u.commodities.length ? u.commodities.join(' · ') : u.roles.some((r) => ['head', 'finance', 'mgmt', 'admin'].includes(r)) ? <Badge color="var(--color-brand-600)">All (org-wide)</Badge> : '—'}</span> },
           { key: 'department', label: 'Department' },
           { key: 'plant', label: 'Plant', value: (u) => plants.find((p) => p.id === u.plant)?.name ?? u.plant },

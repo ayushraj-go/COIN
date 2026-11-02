@@ -28,7 +28,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
       </button>
     ) : null
 
-  const subtitle = idea.scope === 'Open' ? 'Open idea — tagged to commodity only, no part code' : `${idea.parts.length} part code${idea.parts.length === 1 ? '' : 's'} · baseline from LBP, volume from MRN FY26`
+  const subtitle = idea.scope === 'Open' ? 'No part code — tagged to the commodity or supplier' : `${idea.parts.length} part code${idea.parts.length === 1 ? '' : 's'} · baseline from LBP, volume from MRN FY26`
   return (
     <Card title="Part-wise savings" subtitle={compact ? undefined : subtitle} icon="Boxes" pad={false}
       actions={

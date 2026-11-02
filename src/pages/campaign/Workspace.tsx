@@ -91,7 +91,7 @@ export function CampaignDashboard({ onNew, onOpenResponses, onOpenWorkshops }: {
     const portalIdeas = responses.filter((r) => r.type === 'Idea')
     const extra = supIdeas.filter((i) => !linked.has(i.id))
     const received = portalIdeas.length + extra.length
-    const open = portalIdeas.filter((r) => r.scope === 'Open idea').length + extra.filter((i) => i.scope === 'Open').length
+    const open = portalIdeas.filter((r) => r.scope === 'Supplier').length + extra.filter((i) => i.scope === 'Open').length
     const prog = supIdeas.map((i) => npdProgress(i))
     const approved = prog.filter((p) => p.approved).length
     const inNpd = prog.filter((p) => p.inNpd).length

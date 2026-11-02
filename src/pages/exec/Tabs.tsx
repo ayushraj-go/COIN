@@ -228,7 +228,7 @@ export function UpcomingDeadlines({ hub, className }: { hub: Idea[]; className?:
   const rows = hub.filter((i) => i.execution?.status === 'In Execution' && i.lock && i.lock.endDate > t && daysBetween(t, i.lock.endDate) <= 60)
     .map((i) => track(i, ledger, last)).sort((a, b) => a.lock.endDate.localeCompare(b.lock.endDate))
   return (
-    <Card title="Locked deadlines in the next 60 days" icon="CalendarClock" className={className} subtitle={`${rows.length} execution${rows.length === 1 ? '' : 's'} move to verification by themselves on the deadline signed at department approval`}
+    <Card title="Locked deadlines in the next 60 days" icon="CalendarClock" className={className} subtitle={`${rows.length} execution${rows.length === 1 ? '' : 's'} move to verification by themselves on the deadline signed at management approval`}
       actions={<InfoTip title="Deadline">The deadline is the savings end signed with the KPI at stage 3. It is not changed during execution; on that date COIN moves the idea to verification.</InfoTip>}>
       <div className="grid grid-cols-1 gap-1">
         {rows.map((r) => (
