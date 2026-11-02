@@ -5,7 +5,7 @@ import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { STAGE, WORKFLOW_STAGES } from '../../lib/masters'
 import { ideaAnnualised } from '../../lib/calc'
-import { overallRisk, riskTotal } from '../../lib/workflow'
+import { overallRisk, riskTotal, workshopSteps, type WorkshopStepKey } from '../../lib/workflow'
 import { fmtDate, inrShort, todayIso } from '../../lib/format'
 import { Badge, Button, Icon, Money, cn } from '../../components/ui'
 import { ideaPerms } from './model'
@@ -19,9 +19,9 @@ const reached = (idea: Idea, stage: string) => {
   return WORKFLOW_STAGES.indexOf(ref) >= WORKFLOW_STAGES.indexOf(stage)
 }
 
-function Shell({ n, title, icon, tone, status, action, children }: { n: number | string; title: string; icon: string; tone: string; status: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }) {
+function Shell({ n, title, icon, tone, status, action, now, children }: { n: number | string; title: string; icon: string; tone: string; status: React.ReactNode; action?: React.ReactNode; now?: boolean; children: React.ReactNode }) {
   return (
-    <section className="card relative overflow-hidden p-3.5 flex flex-col min-w-0">
+    <section className={cn('card relative overflow-hidden p-3.5 flex flex-col min-w-0', now && '!border-brand-500 shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand-500)_16%,transparent)]')}>
       <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: tone }} />
       <div className="flex items-center gap-2 mb-2.5">
         <span className="h-7 w-7 rounded-lg grid place-items-center shrink-0" style={{ background: `color-mix(in srgb, ${tone} 8%, transparent)`, color: tone }}><Icon name={icon} size={14} /></span>
@@ -52,13 +52,16 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
   const events = idea.workshop?.events ?? []
   const openEvent = events.find((e) => e.status === 'Scheduled')
   const goAhead = !!idea.workshop?.goAheadAt
+  // only the step to do now stands out
+  const stepNow = p.workshop ? workshopSteps(idea, annual).find((s) => s.now)?.key : undefined
+  const stepVariant = (k: WorkshopStepKey) => (stepNow === k ? 'primary' : 'secondary')
 
   return (
     <div className={cn('grid gap-3', compact ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 2xl:grid-cols-3')}>
       {/* Stage 2 — the event */}
-      <Shell n="2 · Event" title="Workshop event" icon="Presentation" tone={goAhead ? GREEN : at(STAGE.feasibility) ? ORANGE : GREY}
+      <Shell n="2 · Event" title="Workshop event" icon="Presentation" now={stepNow === 'event' || stepNow === 'close'} tone={goAhead ? GREEN : at(STAGE.feasibility) ? ORANGE : GREY}
         status={<Badge color={goAhead ? GREEN : openEvent ? ORANGE : GREY}>{goAhead ? 'Go ahead' : openEvent ? `Event ${openEvent.no} scheduled` : events.length ? 'New event needed' : 'Not created'}</Badge>}
-        action={p.workshop ? (openEvent ? <Button size="sm" variant="success" icon="ClipboardList" onClick={() => setOpen('close')}>Close event {openEvent.no}</Button> : <Button size="sm" variant="primary" icon="CalendarPlus" onClick={() => setOpen('event')}>Create event</Button>) : undefined}>
+        action={p.workshop ? (openEvent ? <Button size="sm" variant={stepVariant('close')} icon="ClipboardList" onClick={() => setOpen('close')}>Close event {openEvent.no}</Button> : <Button size="sm" variant={stepVariant('event')} icon="CalendarPlus" onClick={() => setOpen('event')}>Create event</Button>) : undefined}>
         {events.length ? events.map((e) => (
           <div key={e.id} className="mb-2 last:mb-0">
             <Row k={`Event ${e.no}`} v={`${fmtDate(e.date)}${e.time ? ` · ${e.time}` : ''}`} />
@@ -71,9 +74,9 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       </Shell>
 
       {/* Stage 2 — technical feasibility */}
-      <Shell n="2 · Technical" title="Technical feasibility check" icon="ClipboardCheck" tone={f ? (f.decision === 'Go' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}
+      <Shell n="2 · Technical" title="Technical feasibility check" icon="ClipboardCheck" now={stepNow === 'feas'} tone={f ? (f.decision === 'Go' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}
         status={<Badge color={f ? (f.decision === 'Go' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}>{f ? f.decision : at(STAGE.feasibility) ? 'To do' : 'Pending'}</Badge>}
-        action={p.feasibilityCheck ? <Button size="sm" variant="primary" icon="ClipboardCheck" onClick={() => setOpen('feas')}>{f ? 'Edit' : 'Open'} feasibility check</Button> : undefined}>
+        action={p.feasibilityCheck ? <Button size="sm" variant={stepVariant('feas')} icon="ClipboardCheck" onClick={() => setOpen('feas')}>{f ? 'Edit' : 'Open'} feasibility check</Button> : undefined}>
         {f ? (
           <>
             <Row k="Technically feasible" v={f.technical === 'Yes' ? 'Yes' : 'No'} />
@@ -87,9 +90,9 @@ export function StagePanels({ idea, compact }: { idea: Idea; compact?: boolean }
       </Shell>
 
       {/* Stage 2 — commercial feasibility */}
-      <Shell n="2 · Commercial" title="Commercial evaluation" icon="FlaskConical" tone={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}
+      <Shell n="2 · Commercial" title="Commercial evaluation" icon="FlaskConical" now={stepNow === 'eval'} tone={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}
         status={<Badge color={ev?.skipped ? GREY : ev?.decision ? (ev.decision === 'Recommend' ? GREEN : RED) : at(STAGE.feasibility) ? ORANGE : GREY}>{ev?.skipped ? 'Not needed · below ₹ 5 L' : ev?.decision ? (ev.decision === 'Recommend' ? 'Recommended' : 'Rejected') : at(STAGE.feasibility) ? 'To do' : 'Pending'}</Badge>}
-        action={p.evaluate ? <div className="flex flex-wrap gap-1.5"><Button size="sm" variant="primary" icon="FlaskConical" onClick={() => setOpen('eval')}>Open evaluation</Button>{ev?.supplier && (ev.supplier.status === 'Not sent' || ev.supplier.status === 'Sent') && <Button size="sm" icon="Mail" onClick={() => setOpen('evalSupplier')}>{ev.supplier.status === 'Sent' ? 'Supplier form' : 'Check supplier'}</Button>}</div> : undefined}>
+        action={p.evaluate ? <div className="flex flex-wrap gap-1.5"><Button size="sm" variant={stepVariant('eval')} icon="FlaskConical" onClick={() => setOpen('eval')}>Open evaluation</Button>{ev?.supplier && (ev.supplier.status === 'Not sent' || ev.supplier.status === 'Sent') && <Button size="sm" icon="Mail" onClick={() => setOpen('evalSupplier')}>{ev.supplier.status === 'Sent' ? 'Supplier form' : 'Check supplier'}</Button>}</div> : undefined}>
         {ev?.skipped ? (
           <Waiting>{ev.skippedReason ?? 'Opportunity cost below ₹ 5 L'} — the workshop goes ahead on the feasibility form.</Waiting>
         ) : ev && reached(idea, STAGE.feasibility) ? (

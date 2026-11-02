@@ -48,7 +48,7 @@ const firstPending = (i: Idea) => i.approvals.find((a) => !a.decision)
 export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useStore.getState>): ActionItem[] {
   const out: ActionItem[] = []
   const r = me.roles
-  const isBuyer = r.includes('buyer'), isLead = r.includes('lead'), isHead = r.includes('head')
+  const isBuyer = r.includes('buyer'), isLead = r.includes('lead'), isHead = r.includes('head'), isExec = r.includes('execowner')
   const t = todayIso()
   const push = (kind: ActionKind, i: Idea, sub: string, extra: Partial<ActionItem> = {}) => {
     const sla = slaStatus(i, s.slaRules)
@@ -62,7 +62,7 @@ export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useSt
     if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the team's query`, { urgency: 3.5 })
     if (i.stage === STAGE.feasibility && stageAssignee(i, i.stage, s.users) === me.id) push('validate', i, `${i.id} · ${i.submitterName} · workshop / event`)
     if (i.stage === STAGE.approval && !!firstPending(i) && (firstPending(i)!.approverId === me.id || isHead)) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
-    if ((isBuyer || isLead || isHead) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
+    if ((isBuyer || isLead || isHead || isExec) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
       const mineExec = isHead || (isLead && me.commodities.includes(i.commodity)) || (i.ownerId ?? i.buyerId) === me.id
       if (mineExec) {
         const d = daysBetween(i.execution.targetDate, t)

@@ -15,7 +15,7 @@ export type RoleKey =
   | 'depthead'
   | 'execowner'
 
-export type Department = 'R&D' | 'DQA' | 'Quality' | 'Process' | 'Production' | 'Sourcing' | 'Finance' | 'HR' | 'Central' | 'Management' | 'Sourcing Excellence' | 'Supplier'
+export type Department = 'R&D' | 'DQA' | 'Quality' | 'Process' | 'Production' | 'Sourcing' | 'Finance' | 'HR' | 'Execution' | 'Management' | 'Sourcing Excellence' | 'Supplier'
 
 export type BuyingType = 'Direct' | 'Indirect'
 export type IdeaScope = 'Open' | 'Part-specific'

@@ -16,18 +16,18 @@ export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Fi
 /** The 8 departments, each with one sign-in ID */
 export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'] as const
 
-export interface Ladder { dept: string; departmentId?: string; central?: string; verifier?: string }
-/** Who acts on an idea: the department's one ID, the Central ID at management approval, and the Finance ID at verification */
+export interface Ladder { dept: string; departmentId?: string; management?: string; execution?: string; verifier?: string }
+/** Who acts on an idea: its department's ID at the workshop, the Management ID at approval, the Execution Manager ID in execution and the Finance ID at verification */
 export function ladderOf(dept: string, users: User[]): Ladder {
   const active = users.filter((u) => u.active !== false)
-  return { dept, departmentId: active.find((u) => u.department === dept && u.roles.includes('teamlead'))?.id, central: active.find((u) => u.roles.includes('admin'))?.id, verifier: active.find((u) => u.roles.includes('finance'))?.id }
+  return { dept, departmentId: active.find((u) => u.department === dept && u.roles.includes('teamlead'))?.id, management: active.find((u) => u.roles.includes('admin'))?.id, execution: active.find((u) => u.roles.includes('execowner'))?.id, verifier: active.find((u) => u.roles.includes('finance'))?.id }
 }
 /** The ID a person's work and messages go to: people stay on record, but only the IDs sign in (suppliers use their campaign link) */
 export function signInId(userId: string | undefined, users: User[]): string | undefined {
   const u = users.find((x) => x.id === userId)
   if (!u || u.active !== false || u.roles.includes('supplier')) return userId
   const l = ladderOf(evalDeptOf(u.department), users)
-  return (u.roles.some((r) => r === 'admin' || r === 'mgmt' || r === 'head') ? l.central : l.departmentId) ?? userId
+  return (u.roles.some((r) => r === 'admin' || r === 'mgmt' || r === 'head') ? l.management : l.departmentId) ?? userId
 }
 /** The department whose ID runs this idea: the evaluation's department once set, else the submitter's (mapped) */
 export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept: string } }) => idea.evaluation?.dept ?? evalDeptOf(idea.department)
@@ -35,8 +35,8 @@ export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept:
 export function stageAssignee(idea: Idea, stage: string, users: User[]): string | undefined {
   const l = ladderOf(ideaDept(idea), users)
   if (stage === STAGE.feasibility) return l.departmentId
-  if (stage === STAGE.approval) return l.central
-  if (stage === STAGE.execution) return signInId(idea.ownerId, users) ?? l.departmentId
+  if (stage === STAGE.approval) return l.management
+  if (stage === STAGE.execution) return l.execution ?? l.departmentId
   if (stage === STAGE.verification) return l.verifier
   return undefined
 }
@@ -52,6 +52,22 @@ export function workshopGaps(idea: Pick<Idea, 'workshop' | 'feasibilityCheck' | 
   if (idea.feasibilityCheck?.decision !== 'Go') gaps.push('Technical feasibility check')
   if (needsEvaluation(annual) && idea.evaluation?.decision !== 'Recommend') gaps.push('Commercial evaluation')
   return gaps
+}
+
+export type WorkshopStepKey = 'event' | 'feas' | 'eval' | 'close'
+export interface WorkshopStep { key: WorkshopStepKey; label: string; hint: string; done: boolean; now: boolean }
+/** Stage 2 as numbered steps, in the order to do them: what is done, and the one step to do now */
+export function workshopSteps(idea: Pick<Idea, 'workshop' | 'feasibilityCheck' | 'evaluation'>, annual: number): WorkshopStep[] {
+  const events = idea.workshop?.events ?? []
+  const open = events.find((e) => e.status === 'Scheduled')
+  const list: Omit<WorkshopStep, 'now'>[] = [
+    { key: 'event', label: open ? `Event ${open.no} created` : events.length ? 'Create the next event' : 'Create the event', hint: 'Date, venue, SPOC and the points to discuss', done: !!open },
+    { key: 'feas', label: 'Technical feasibility', hint: 'Feasible, cost valid, no duplicate, then Go', done: idea.feasibilityCheck?.decision === 'Go' },
+    ...(needsEvaluation(annual) ? [{ key: 'eval' as const, label: 'Commercial evaluation', hint: 'Cost-benefit, risk and supplier check', done: idea.evaluation?.decision === 'Recommend' }] : []),
+    { key: 'close', label: open ? `Close event ${open.no}` : 'Close the event', hint: 'Go ahead to management, or a follow-up', done: false },
+  ]
+  const at = list.findIndex((s) => !s.done)
+  return list.map((s, i) => ({ ...s, now: i === at }))
 }
 
 /** Generic specification text for supplier capability requests — never Amber prices, volumes or part codes */

@@ -1,4 +1,4 @@
-// The headline KPI row — the same four tiles on the Home and on the Cost Innovation and Cost Optimisation dashboards,
+// The headline KPI row — the same four tiles on the Home and on the Innovation Network and Cost Optimisation dashboards,
 // for every role: Pipeline · In execution · Implemented · Realised savings (hero, MRN).
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -31,7 +31,7 @@ export function HeadlineKpis({ d }: { d: HomeData }) {
   return (
     <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
       <KpiTile label="Pipeline" icon="Filter" color={TONE.brand} onClick={() => go(links.pipeline)} spark={f.Pipeline.values}
-        tip="Stages 2–3 in Cost Innovation: workshop / event creation and management approval. ₹ = Σ opportunity cost (part price × MRN volume). Trend = ₹ entering the pipeline each month.">
+        tip="Stages 2–3 in Innovation Network: workshop / event creation and management approval. ₹ = Σ opportunity cost (part price × MRN volume). Trend = ₹ entering the pipeline each month.">
         <TileValue value={<Money value={v.Pipeline} />} unit="opportunity cost"
           sub={<>{ideas(c.Pipeline)} · {stageCount(STAGE.feasibility)} at workshop · {stageCount(STAGE.approval)} at approval</>} />
       </KpiTile>

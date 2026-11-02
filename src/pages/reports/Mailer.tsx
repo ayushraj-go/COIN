@@ -127,7 +127,7 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
             </span>
           </div>
           <div className="px-5 pt-4 pb-3 border-b border-slate-100 space-y-1.5 text-[12.5px]">
-            <div className="flex gap-3"><span className="w-16 text-muted shrink-0">From</span><span className="font-medium text-ink">COIN · Cost Innovation Hub &lt;coin-noreply@ambergroupindia.com&gt;</span></div>
+            <div className="flex gap-3"><span className="w-16 text-muted shrink-0">From</span><span className="font-medium text-ink">COIN · Cost Optimisation & Innovation Network &lt;coin-noreply@ambergroupindia.com&gt;</span></div>
             <div className="flex gap-3"><span className="w-16 text-muted shrink-0">To</span>
               <span className="flex flex-wrap gap-1 min-w-0">{(myCut ? [me?.email ?? ''] : settings.mailerRecipients).map((r) => <span key={r} className="inline-flex items-center h-6 px-2 rounded-full bg-slate-100 text-[11.5px] font-medium text-ink-2">{r}</span>)}</span>
             </div>
@@ -165,7 +165,7 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
               <span className="text-[12.5px] text-ink-2">Link — opens the live dashboard with the same month's filter</span>
               <Button size="sm" variant="primary" iconRight="ArrowUpRight" className="ml-auto" onClick={openLink}>Open live dashboard · {monthLabel(month)}</Button>
             </div>
-            <div className="mt-3 text-[11.5px] text-muted">— COIN · Cost Innovation Hub · Amber Enterprises India Ltd.</div>
+            <div className="mt-3 text-[11.5px] text-muted">— COIN · Cost Optimisation & Innovation Network · Amber Enterprises India Ltd.</div>
           </div>
         </section>
 
@@ -174,12 +174,12 @@ export default function Mailer({ ctx }: { ctx: Ctx }) {
           <Card title="Trigger" icon="Zap" actions={<InfoTip title="Monthly realisation cycle">{REALISATION_CYCLE[0]}</InfoTip>}>
             <div className="space-y-2 text-[12.5px]">
               <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-brand-50 text-brand-600 grid place-items-center shrink-0"><Icon name="CalendarClock" size={14} /></span><div><div className="font-semibold text-ink">Automatic</div><div className="text-muted leading-snug">After the monthly realisation run (3rd working day). Next: <b className="text-ink">{fmtDate(nextAuto)}</b> for {monthLong(nextAutoMonth)}.</div></div></div>
-              <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-gold-50 text-gold-600 grid place-items-center shrink-0"><Icon name="Send" size={14} /></span><div><div className="font-semibold text-ink">Manual</div><div className="text-muted leading-snug">Sent by the Central ID at any time for the selected month.</div></div></div>
+              <div className="flex gap-2.5 items-start"><span className="h-7 w-7 rounded-lg bg-gold-50 text-gold-600 grid place-items-center shrink-0"><Icon name="Send" size={14} /></span><div><div className="font-semibold text-ink">Manual</div><div className="text-muted leading-snug">Sent by the Management ID at any time for the selected month.</div></div></div>
             </div>
             <div className="mt-3">
               {canSend
                 ? <Button variant="primary" icon="Send" className="w-full" onClick={() => setConfirm(true)}>Send now · {monthLong(month)}</Button>
-                : <Tooltip content="Only the Central ID can send the monthly report manually" className="w-full"><Button icon="Lock" className="w-full" disabled>Send now · Central ID only</Button></Tooltip>}
+                : <Tooltip content="Only the Management ID can send the monthly report manually" className="w-full"><Button icon="Lock" className="w-full" disabled>Send now · Management ID only</Button></Tooltip>}
             </div>
           </Card>
           <Card title="Recipients" icon="Users" subtitle="Configurable management distribution list" actions={<Badge color="var(--color-brand-700)">{draft.length}</Badge>}>

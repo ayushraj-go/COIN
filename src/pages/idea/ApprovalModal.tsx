@@ -398,7 +398,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                     )}
                   </Block>
 
-                  <Block title="Execution plan" icon="ListTodo" hint="Milestones the execution owner works to — set each date on the calendar" right={<Button size="xs" variant="ghost" icon="RotateCcw" onClick={() => replan(start, end)}>Spread evenly</Button>}>
+                  <Block title="Execution plan" icon="ListTodo" hint="Milestones the Execution Manager works to — set each date on the calendar" right={<Button size="xs" variant="ghost" icon="RotateCcw" onClick={() => replan(start, end)}>Spread evenly</Button>}>
                     <div className="grid gap-1.5">
                       {plan.map((m, k) => {
                         const bad = !m.dueDate || m.dueDate < todayIso() || m.dueDate > end

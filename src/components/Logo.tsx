@@ -31,7 +31,7 @@ export function AmberWordmark({ size = 30, className, tone = 'dark' }: { size?: 
   )
 }
 
-/** Amber lock-up with product name — "COIN · Cost Innovation Hub" */
+/** Amber lock-up with product name — "COIN · Cost Optimisation & Innovation Network" */
 export function ProductLockup({ size = 30, compact, className }: { size?: number; compact?: boolean; className?: string }) {
   return (
     <div className={cn('flex items-center gap-3 min-w-0', className)}>
@@ -40,7 +40,7 @@ export function ProductLockup({ size = 30, compact, className }: { size?: number
         <>
           <span className="h-9 w-px bg-gradient-to-b from-transparent via-slate-300 to-transparent" />
           <div className="leading-tight min-w-0">
-            <div className="text-[15px] font-bold text-ink tracking-tight truncate">COIN · Cost Innovation Hub</div>
+            <div className="text-[15px] font-bold text-ink tracking-tight truncate">COIN · Cost Optimisation & Innovation Network</div>
             <div className="text-[9.5px] font-semibold tracking-[.22em] text-muted uppercase truncate">Capture · Value · Approve · Execute · Prove</div>
           </div>
         </>

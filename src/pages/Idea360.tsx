@@ -125,7 +125,7 @@ export default function Idea360() {
   if (!me || !canSeeIdea(me, idea)) {
     return (
       <Card>
-        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Each department ID sees its own department's ideas. The Sourcing ID sees every commodity; Finance and the Central ID see all."
+        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Each department ID sees its own department's ideas. The Sourcing ID sees every commodity; Finance and the Management ID see all."
           action={<Button variant="primary" onClick={() => nav(listPath)}>Back to ideas</Button>} />
       </Card>
     )
@@ -164,7 +164,7 @@ export default function Idea360() {
 
       <HeaderCard idea={idea} />
 
-      <Card title="Stage tracker" icon="Route" subtitle={`Five stages · ${idea.route} route · stages 1–3 in Cost Innovation, 4–5 in Cost Optimisation`} actions={<CurrentStageSla idea={idea} />}>
+      <Card title="Stage tracker" icon="Route" subtitle={`Five stages · ${idea.route} route · stages 1–3 in Innovation Network, 4–5 in Cost Optimisation`} actions={<CurrentStageSla idea={idea} />}>
         <StageTracker idea={idea} />
       </Card>
 

@@ -73,7 +73,7 @@ export default function Library({ ctx, space }: { ctx: Ctx; space: Space | null 
       <div className="card rounded-2xl p-4 flex flex-wrap items-center gap-4">
         <div className="h-10 w-10 rounded-xl bg-slate-50 border border-line text-ink-2 grid place-items-center shrink-0"><Icon name="LibraryBig" size={19} /></div>
         <div className="flex-1 min-w-[260px]">
-          <div className="text-[13.5px] font-semibold text-ink">{space ? LIB_INTRO_BY_SPACE[space] : 'No workspace chosen yet, so MIS shows both libraries: Cost Optimisation (execution and realisation) first, then Cost Innovation (ideas and the network).'}</div>
+          <div className="text-[13.5px] font-semibold text-ink">{space ? LIB_INTRO_BY_SPACE[space] : 'No workspace chosen yet, so MIS shows both libraries: Cost Optimisation (execution and realisation) first, then Innovation Network (ideas and the network).'}</div>
           <div className="text-[12px] text-muted mt-0.5">{REPORTS_NOTE}</div>
         </div>
         <div className="flex flex-wrap gap-1.5">{Object.entries(FREQ_STYLE).map(([f, c]) => { const n = all.filter((r) => r.frequency === f).length; return n ? <Badge key={f} color={c} dot>{f} · {n}</Badge> : null })}</div>

@@ -19,12 +19,12 @@ const DEPTS = ['Sourcing', 'R&D', 'Quality', 'DQA', 'Process', 'Production', 'Fi
 /** One numbered check with a pass / fail marker */
 function Check({ n, title, hint, ok, children }: { n: number; title: string; hint?: React.ReactNode; ok: boolean | null; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-white p-3.5">
-      <div className="flex items-start gap-2.5 mb-2.5">
+    <section className="rounded-xl border border-line bg-white p-3.5 [@media(max-height:760px)]:p-2.5">
+      <div className="flex items-start gap-2.5 mb-2.5 [@media(max-height:760px)]:mb-1.5">
         <span className={cn('h-6 w-6 rounded-full grid place-items-center text-[11px] font-bold shrink-0 text-white', ok == null ? 'bg-slate-300' : ok ? 'bg-emerald-600' : 'bg-red-600')}>{ok == null ? n : <Icon name={ok ? 'Check' : 'X'} size={12} strokeWidth={3} />}</span>
         <div className="min-w-0">
           <div className="text-[13.5px] font-semibold text-ink leading-tight">{title}</div>
-          {hint && <div className="text-[11.5px] text-muted mt-0.5">{hint}</div>}
+          {hint && <div className="text-[11.5px] text-muted mt-0.5 [@media(max-height:700px)]:hidden">{hint}</div>}
         </div>
       </div>
       {children}
@@ -79,16 +79,38 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
           <span>Opportunity cost <b className="num">{inrShort(ideaAnnualised(idea))}</b> a year is below <b className="num">{inrShort(EVALUATION_MIN)}</b> — no commercial evaluation is needed; the workshop goes ahead on this form.</span>
         </div>
       )}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-3 [@media(max-height:760px)]:gap-2 lg:grid-cols-2 items-start">
+        <div className="grid grid-cols-1 gap-3 [@media(max-height:760px)]:gap-2 min-w-0">
         <Check n={1} title="Is it technically feasible?" hint="Fits the drawing, process and quality plan without hidden changes" ok={technical === 'Yes'}>
-          <Segmented value={technical} onChange={(k) => setTechnical(k as 'Yes' | 'No')} options={[{ key: 'Yes', label: 'Feasible', icon: 'CircleCheck' }, { key: 'No', label: 'Not feasible', icon: 'CircleX' }]} />
-          <input className="input mt-2" value={technicalNote} onChange={(e) => setTechnicalNote(e.target.value)} placeholder="Note (optional) — e.g. needs a 200-unit trial first" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented value={technical} onChange={(k) => setTechnical(k as 'Yes' | 'No')} options={[{ key: 'Yes', label: 'Feasible', icon: 'CircleCheck' }, { key: 'No', label: 'Not feasible', icon: 'CircleX' }]} />
+            <input className="input flex-1 min-w-[180px]" value={technicalNote} onChange={(e) => setTechnicalNote(e.target.value)} placeholder="Note (optional)" />
+          </div>
         </Check>
+        <Check n={3} title="Duplicate of, or conflicting with, another idea or project?" hint="Similar ideas are matched on title and commodity" ok={conflict === 'None'}>
+          {dups.length > 0 ? (
+            <div data-inner-list className="mb-2 grid grid-cols-1 gap-1 overflow-y-auto max-h-[100px] [@media(max-height:820px)]:max-h-[33px]">
+              {dups.map(({ idea: d, score }) => (
+                <button key={d.id} type="button" onClick={() => { setConflictWith(d.id); if (conflict === 'None') setConflict('Duplicate') }} className={cn('flex items-center gap-2 min-w-0 rounded-lg border px-2.5 py-1.5 text-left text-[12px] hover:bg-slate-50', conflictWith === d.id ? 'border-red-300 bg-red-50' : 'border-line')}>
+                  <span className="font-mono text-[11px] text-muted shrink-0">{d.id}</span><span className="truncate flex-1 min-w-0">{d.title}</span><Badge color="var(--color-slate-500)">{Math.round(Math.min(1, score) * 100)}% match</Badge>
+                </button>
+              ))}
+            </div>
+          ) : <div className="mb-2 flex items-center gap-1.5 text-[12px] text-emerald-700"><Icon name="SearchCheck" size={13} />No similar idea found in the register.</div>}
+          <Segmented value={conflict} onChange={(k) => setConflict(k as typeof conflict)} options={[{ key: 'None', label: 'None' }, { key: 'Duplicate', label: 'Duplicate' }, { key: 'Conflict', label: 'Conflict' }]} />
+          {conflict !== 'None' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              <input className="input" value={conflictWith} onChange={(e) => setConflictWith(e.target.value)} placeholder="Idea ID or project name *" />
+              <input className="input" value={conflictNote} onChange={(e) => setConflictNote(e.target.value)} placeholder="How it overlaps" />
+            </div>
+          )}
+        </Check>
+        </div>
         <Check n={2} title="Is the entered cost valid?" hint="Baseline and new price as entered, against the part master (LBP / PO)" ok={cost === 'Valid'}>
           {idea.parts.length ? (
-            <div className="rounded-lg border border-line overflow-hidden mb-2">
+            <div className="rounded-lg border border-line overflow-auto mb-2 max-h-[176px] [@media(max-height:820px)]:max-h-[112px]">
               <table className="w-full text-[12px]">
-                <thead className="bg-slate-50 text-muted"><tr><th className="text-left px-2 py-1.5 font-semibold">Part</th><th className="text-right px-2 font-semibold">Baseline</th><th className="text-right px-2 font-semibold">LBP / PO</th><th className="text-right px-2 font-semibold">New</th><th className="text-right px-2 font-semibold">Saving</th></tr></thead>
+                <thead className="bg-slate-50 text-muted sticky top-0"><tr><th className="text-left px-2 py-1.5 font-semibold">Part</th><th className="text-right px-2 font-semibold">Baseline</th><th className="text-right px-2 font-semibold">LBP / PO</th><th className="text-right px-2 font-semibold">New</th><th className="text-right px-2 font-semibold">Saving</th></tr></thead>
                 <tbody>
                   {idea.parts.map((p) => {
                     const m = parts.find((x) => x.code === p.partCode)
@@ -109,44 +131,34 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
           {flags.length > 0 ? (
             <ul className="mb-2 space-y-1">{flags.map((f) => <li key={f} className="flex items-start gap-1.5 text-[12px] text-amber-800"><Icon name="TriangleAlert" size={13} className="shrink-0 mt-px" />{f}</li>)}</ul>
           ) : <div className="mb-2 flex items-center gap-1.5 text-[12px] text-emerald-700"><Icon name="CircleCheck" size={13} />Baseline matches the part master and the saving is realistic.</div>}
-          <Segmented value={cost} onChange={(k) => setCost(k as 'Valid' | 'Not valid')} options={[{ key: 'Valid', label: 'Cost valid', icon: 'CircleCheck' }, { key: 'Not valid', label: 'Not valid', icon: 'CircleX' }]} />
-          <input className="input mt-2" value={costNote} onChange={(e) => setCostNote(e.target.value)} placeholder="Note (optional)" />
-        </Check>
-        <Check n={3} title="Duplicate of, or conflicting with, another idea or project?" hint="Similar ideas are matched on title and commodity" ok={conflict === 'None'}>
-          {dups.length > 0 ? (
-            <div className="mb-2 grid gap-1">
-              {dups.map(({ idea: d, score }) => (
-                <button key={d.id} type="button" onClick={() => { setConflictWith(d.id); if (conflict === 'None') setConflict('Duplicate') }} className={cn('flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-[12px] hover:bg-slate-50', conflictWith === d.id ? 'border-red-300 bg-red-50' : 'border-line')}>
-                  <span className="font-mono text-[11px] text-muted shrink-0">{d.id}</span><span className="truncate flex-1 min-w-0">{d.title}</span><Badge color="var(--color-slate-500)">{Math.round(Math.min(1, score) * 100)}% match</Badge>
-                </button>
-              ))}
-            </div>
-          ) : <div className="mb-2 flex items-center gap-1.5 text-[12px] text-emerald-700"><Icon name="SearchCheck" size={13} />No similar idea found in the register.</div>}
-          <Segmented value={conflict} onChange={(k) => setConflict(k as typeof conflict)} options={[{ key: 'None', label: 'None' }, { key: 'Duplicate', label: 'Duplicate' }, { key: 'Conflict', label: 'Conflict' }]} />
-          {conflict !== 'None' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-              <input className="input" value={conflictWith} onChange={(e) => setConflictWith(e.target.value)} placeholder="Idea ID or project name *" />
-              <input className="input" value={conflictNote} onChange={(e) => setConflictNote(e.target.value)} placeholder="How it overlaps" />
-            </div>
-          )}
-        </Check>
-        <Check n={4} title="Decision — Go / No-go" hint={`Suggested ${suggested} from the three checks; the team can override`} ok={decision === 'Go'}>
-          <div className="grid grid-cols-2 gap-2 mb-2.5">
-            {(['Go', 'No-go'] as const).map((d) => (
-              <button key={d} type="button" onClick={() => setDecision(d)} className={cn('h-14 rounded-xl border-2 flex items-center justify-center gap-2 text-[15px] font-bold transition-colors', decision === d ? (d === 'Go' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-red-600 bg-red-50 text-red-700') : 'border-line text-muted hover:border-slate-300')}>
-                <Icon name={d === 'Go' ? 'CircleCheck' : 'CircleX'} size={18} />{d}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented value={cost} onChange={(k) => setCost(k as 'Valid' | 'Not valid')} options={[{ key: 'Valid', label: 'Cost valid', icon: 'CircleCheck' }, { key: 'Not valid', label: 'Not valid', icon: 'CircleX' }]} />
+            <input className="input flex-1 min-w-[180px]" value={costNote} onChange={(e) => setCostNote(e.target.value)} placeholder="Note (optional)" />
           </div>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">Departments consulted</div>
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {DEPTS.map((d) => {
-              const on = departments.includes(d)
-              return <button key={d} type="button" onClick={() => setDepartments((x) => (on ? x.filter((y) => y !== d) : [...x, d]))} className={cn('h-7 px-2.5 rounded-full border text-[12px] font-medium', on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-line text-ink-2 hover:border-slate-300')}>{d}</button>
-            })}
-          </div>
-          <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={decision === 'No-go' ? 'Why is it not feasible? (required — the idea is dropped for good)' : 'Remarks for the evaluator (optional)'} />
         </Check>
+        <div className="lg:col-span-2 min-w-0">
+          <Check n={4} title="Decision — Go / No-go" hint={`Suggested ${suggested} from the three checks; the team can override`} ok={decision === 'Go'}>
+            <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)_minmax(0,1fr)] items-start">
+              <div className="grid grid-cols-2 gap-2">
+                {(['Go', 'No-go'] as const).map((d) => (
+                  <button key={d} type="button" onClick={() => setDecision(d)} className={cn('h-10 rounded-xl border-2 flex items-center justify-center gap-2 text-[14px] font-bold transition-colors', decision === d ? (d === 'Go' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-red-600 bg-red-50 text-red-700') : 'border-line text-muted hover:border-slate-300')}>
+                    <Icon name={d === 'Go' ? 'CircleCheck' : 'CircleX'} size={17} />{d}
+                  </button>
+                ))}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted mb-1">Departments consulted</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {DEPTS.map((d) => {
+                    const on = departments.includes(d)
+                    return <button key={d} type="button" onClick={() => setDepartments((x) => (on ? x.filter((y) => y !== d) : [...x, d]))} className={cn('h-6 px-2 rounded-full border text-[11.5px] font-medium', on ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-line text-ink-2 hover:border-slate-300')}>{d}</button>
+                  })}
+                </div>
+              </div>
+              <textarea className="input" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder={decision === 'No-go' ? 'Why is it not feasible? (required — the idea is dropped for good)' : 'Remarks for the evaluator (optional)'} />
+            </div>
+          </Check>
+        </div>
       </div>
     </Modal>
   )

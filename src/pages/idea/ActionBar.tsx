@@ -5,12 +5,15 @@ import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Button, Icon, RemarksModal, cn } from '../../components/ui'
 import { STAGE } from '../../lib/masters'
+import { ideaAnnualised } from '../../lib/calc'
+import { workshopSteps } from '../../lib/workflow'
 import { ideaPerms, useCtx, waitingOn, withUndo } from './model'
 import { DropModal, SendBackModal } from './Modals'
 import { FeasibilityCheckModal, VerificationModal } from './StageForms'
 import { EvaluationModal } from './EvaluationModal'
 import { SourcingApprovalModal } from './ApprovalModal'
 import { CloseEventModal, WorkshopEventModal } from './WorkshopModal'
+import { WorkshopStepper } from './WorkshopSteps'
 
 type ModalKey = null | 'event' | 'close' | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'drop' | 'done'
 
@@ -29,11 +32,8 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   const primary: ReactNode[] = []
   const secondary: ReactNode[] = []
   if (p.continueDraft) primary.push(<Button key="draft" size={size} variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>)
-  if (p.workshop) primary.push(openEvent
-    ? <Button key="close" size={size} variant="success" icon="ClipboardList" onClick={() => setModal('close')}>Close event {openEvent.no}</Button>
-    : <Button key="event" size={size} variant="primary" icon="CalendarPlus" onClick={() => setModal('event')}>Create event</Button>)
-  if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="secondary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Technical feasibility</Button>)
-  if (p.evaluate) primary.push(<Button key="eval" size={size} variant="secondary" icon="FlaskConical" onClick={() => setModal('eval')}>Commercial evaluation</Button>)
+  // the workshop is a set of numbered steps under this row, the current one highlighted
+  const steps = p.workshop ? workshopSteps(idea, ideaAnnualised(idea)) : []
   if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? 'Approve' : 'Allocate KPI & approve'}</Button>)
   if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
   if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back…</Button>)
@@ -42,7 +42,8 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
 
   const hasActions = primary.length + secondary.length > 0
   return (
-    <div className={cn('flex flex-col gap-2 min-w-0', !compact && 'lg:flex-row lg:items-center lg:justify-between', className)}>
+    <div className={cn('grid gap-2.5 min-w-0', className)}>
+      <div className={cn('flex flex-col gap-2 min-w-0', !compact && 'lg:flex-row lg:items-center lg:justify-between')}>
       <div className="flex items-center gap-2 min-w-0 text-[12px]">
         <span className={cn('h-2 w-2 rounded-full shrink-0', hasActions ? 'bg-brand-600 animate-pulse' : 'bg-slate-300')} />
         <span className="text-muted truncate">
@@ -59,6 +60,8 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
       ) : (
         <div className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Eye" size={13} />View only for this ID at this stage</div>
       )}
+      </div>
+      {steps.length > 0 && <WorkshopStepper steps={steps} compact={compact} canClose={!!openEvent} onOpen={setModal} />}
 
       {/* ── dialogs ── */}
       <WorkshopEventModal idea={idea} open={modal === 'event'} onClose={close} />

@@ -1,5 +1,5 @@
 // Home after login — COIN coin mark, greeting, KPI tiles and the two workspaces.
-// Cost Optimisation carries LENS · PROOF · TRACE; Cost Innovation invites you into the world of ideas.
+// Cost Optimisation carries LENS · PROOF · TRACE; Innovation Network invites you into the world of ideas.
 // A click anywhere on a workspace card opens that workspace; LENS / PROOF / TRACE open their own page inside it.
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -16,7 +16,7 @@ import { portfolioPlan } from './idea/PlanVsActual'
 const PILLARS = [
   { key: 'LENS', full: 'Linked Evidence of Negotiation and Savings', icon: 'ScanSearch', path: '/', hint: 'Dashboard' },
   { key: 'PROOF', full: 'Part-linked Realisation and Optimisation Output Framework', icon: 'BadgeIndianRupee', path: '/execution?tab=proof', hint: 'Savings proof' },
-  { key: 'TRACE', full: 'Transition-linked Realisation of Actual CI Evidence', icon: 'Route', path: '/execution', hint: 'Execution Hub' },
+  { key: 'TRACE', full: 'Transition-linked Realisation of Actual Cost Evidence', icon: 'Route', path: '/execution', hint: 'Execution Hub' },
 ] as const
 const IN_STEPS = ['Idea submitted', 'Workshop / event', 'Management approval']
 
@@ -70,7 +70,7 @@ export default function Entry() {
             <span className="h-11 w-11 rounded-2xl bg-co-grad text-white grid place-items-center text-[15px] font-extrabold shrink-0 shadow-[0_10px_20px_-10px_color-mix(in_srgb,var(--color-teal-700)_70%,transparent)]">CO</span>
             <div className="min-w-0 flex-1">
               <h2 className="text-[18px] font-bold tracking-[-0.02em] text-ink leading-tight">Cost Optimisation</h2>
-              <p className="text-[12.5px] text-muted leading-snug">Cost innovation in execution — locked targets, part-wise proof from MRN and verified savings</p>
+              <p className="text-[12.5px] text-muted leading-snug">Cost optimisation in execution — locked targets, part-wise proof from MRN and verified savings</p>
             </div>
           </div>
           <div className="relative mt-3.5 grid sm:grid-cols-3 gap-2.5">
@@ -96,15 +96,15 @@ export default function Entry() {
           </button>
         </motion.section>
 
-        {/* Cost Innovation — the world of ideas */}
+        {/* Innovation Network — the world of ideas */}
         <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} whileHover={{ y: -3 }}
-          onClick={() => go('IN')} title="Open Cost Innovation"
+          onClick={() => go('IN')} title="Open Innovation Network"
           className="relative overflow-hidden rounded-2xl p-4 text-white bg-hero shadow-[0_22px_44px_-26px_rgb(19_35_75/.8)] hover:shadow-[0_28px_52px_-26px_rgb(19_35_75/.9)] transition-shadow flex flex-col cursor-pointer select-none">
           <span className="pointer-events-none absolute -left-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex items-start gap-3">
             <span className="h-11 w-11 rounded-2xl bg-white/15 border border-white/20 grid place-items-center text-[15px] font-extrabold shrink-0">IN</span>
             <div className="min-w-0">
-              <div className="text-[12px] font-semibold text-white/75">Cost Innovation</div>
+              <div className="text-[12px] font-semibold text-white/75">Innovation Network</div>
               <h2 className="text-[22px] font-extrabold tracking-[-0.02em] leading-tight">Enter the world of ideas</h2>
               <p className="text-[12px] text-white/80 mt-0.5">Amber Cost Optimisation and Innovation Network</p>
             </div>
@@ -128,7 +128,7 @@ export default function Entry() {
           </div>
           <div className="flex-1 min-h-3.5" />
           <button onClick={(e) => { e.stopPropagation(); go('IN') }} className="relative h-10 rounded-xl bg-white text-brand-800 text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-brand-50">
-            Enter Cost Innovation<Icon name="ArrowRight" size={15} />
+            Enter Innovation Network<Icon name="ArrowRight" size={15} />
           </button>
         </motion.section>
       </div>

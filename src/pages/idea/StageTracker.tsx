@@ -1,5 +1,5 @@
 // Live stage tracker — the five workflow stages (Idea submitted → … → Verification) with dates, who acted and remarks.
-// The first three sit under Cost Innovation and the last two under Cost Optimisation, one timeline with the two bands highlighted.
+// The first three sit under Innovation Network and the last two under Cost Optimisation, one timeline with the two bands highlighted.
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import type { Idea } from '../../lib/types'
@@ -104,7 +104,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
       {/* horizontal stepper (≥ sm) */}
       <div className="hidden sm:block overflow-x-auto no-scrollbar pb-1">
         <div className="grid gap-1 mb-2 text-[10.5px] font-bold uppercase tracking-wide text-center" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>
-          <div className="rounded-md py-1 bg-brand-50 text-brand-700" style={{ gridColumn: `span ${inBand}` }}>Cost Innovation</div>
+          <div className="rounded-md py-1 bg-brand-50 text-brand-700" style={{ gridColumn: `span ${inBand}` }}>Innovation Network</div>
           <div className="rounded-md py-1 bg-emerald-50 text-emerald-700" style={{ gridColumn: `span ${coBand}` }}>Cost Optimisation</div>
         </div>
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>

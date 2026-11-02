@@ -1,11 +1,12 @@
 // Capture My Idea form widgets — lever dropdown with icons, route strip, ERP part search, vendor search, attachments.
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { Attachment, Lever, LeverGroup, Part, RouteKey, Supplier, User } from '../../lib/types'
 import { LEVER_GROUP_STYLE, STAGE, STAGE_SHORT, TRACKER_STAGES } from '../../lib/masters'
 import { Badge, Icon, SourceTag, Tooltip, cn } from '../../components/ui'
 import { useStore } from '../../store/useStore'
 import { inrPrice, num, nowIso, uid } from '../../lib/format'
+import { nextFreePart, searchParts } from './form'
 
 const GROUP_ORDER: LeverGroup[] = ['Commercial', 'Supply base', 'Engineering', 'Logistics & packing', 'Operational']
 const ROUTE_COLOR: Record<RouteKey, string> = { Commercial: 'var(--color-violet-600)', 'Supplier change': 'var(--color-teal-600)', Technical: 'var(--color-indigo-600)', Internal: 'var(--color-pink-600)', 'To be confirmed': 'var(--color-slate-500)' }
@@ -105,69 +106,79 @@ export function RouteStrip({ route, compact }: { route: RouteKey; compact?: bool
   )
 }
 
-/** Field 14 — ERP part master; searchable by code, description, commodity */
+/** Field 15 — ERP part master, searchable by code, description, commodity. One part at a time: a pick closes the list and leaves the cursor in the box for the next */
 export function PartSearch({ parts, commodity, selected, onPick, restrictNote }: { parts: Part[]; commodity: string; selected: string[]; onPick: (p: Part) => void; restrictNote?: string }) {
   const commodities = useStore((s) => s.commodities)
   const suppliers = useStore((s) => s.suppliers)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
-  const [idx, setIdx] = useState(0)
-  const ref = useRef<HTMLInputElement>(null)
-  const results = useMemo(() => {
-    const k = q.trim().toLowerCase()
-    const cname = (code: string) => commodities.find((c) => c.code === code)?.name.toLowerCase() ?? ''
-    // one idea = one commodity: once a commodity is chosen only its parts are offered
-    const pool = commodity ? parts.filter((p) => p.commodity === commodity) : parts
-    const list = k
-      ? pool.filter((p) => p.code.includes(k) || p.description.toLowerCase().includes(k) || p.commodity.toLowerCase().includes(k) || cname(p.commodity).includes(k))
-      : pool
-    return [...list].sort((a, b) => Number(b.commodity === commodity) - Number(a.commodity === commodity))
-  }, [q, parts, commodity, commodities])
-  const pick = (p: Part) => { if (selected.includes(p.code)) return; onPick(p); setQ(''); setIdx(0); ref.current?.focus() }
+  const [activeCode, setActiveCode] = useState('')
+  const box = useRef<HTMLInputElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  const listId = useId()
+  const results = useMemo(() => searchParts(parts, commodity, q, commodities), [q, parts, commodity, commodities])
+  const held = results.findIndex((p) => p.code === activeCode && !selected.includes(p.code))
+  const idx = held >= 0 ? held : nextFreePart(results, selected, -1, 1)
+  /** Scrolls the list, never the page, until the row shows */
+  const reveal = (i: number) => {
+    const el = list.current, row = el?.querySelectorAll('button')[i]
+    if (!el || !row) return
+    const a = el.getBoundingClientRect(), r = row.getBoundingClientRect()
+    el.scrollTop += Math.max(0, r.bottom - a.bottom) + Math.min(0, r.top - a.top)
+  }
+  useEffect(() => { if (open) reveal(idx) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  const pick = (p: Part) => { if (selected.includes(p.code)) return; onPick(p); setQ(''); setActiveCode(''); setOpen(false) }
+  const move = (step: 1 | -1) => {
+    if (!open) return setOpen(true)
+    const next = nextFreePart(results, selected, idx, step)
+    setActiveCode(results[next]?.code ?? '')
+    reveal(next)
+  }
   return (
     <div className="relative">
       <div className="relative">
         <Icon name="ScanSearch" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-        <input ref={ref} value={q} onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true); setIdx(0) }}
+        <input ref={box} role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={open && results[idx] ? `${listId}-${idx}` : undefined}
+          value={q} onClick={() => setOpen(true)} onBlur={() => setOpen(false)} onChange={(e) => { setQ(e.target.value); setActiveCode(''); setOpen(true) }}
           onKeyDown={(e) => {
-            if (e.key === 'ArrowDown') { e.preventDefault(); setIdx((i) => Math.min(results.length - 1, i + 1)) }
-            if (e.key === 'ArrowUp') { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)) }
-            if (e.key === 'Enter' && results[idx]) { e.preventDefault(); pick(results[idx]) }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); move(e.key === 'ArrowDown' ? 1 : -1) }
+            if (e.key === 'Enter' && open && results[idx]) { e.preventDefault(); pick(results[idx]) }
             if (e.key === 'Escape') setOpen(false)
           }}
-          placeholder="Search ERP part master by code, description or commodity…" className="input !pl-9 !pr-24" />
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-muted">ERP part master</span>
+          placeholder={selected.length ? 'Search ERP part master to add another part…' : 'Search ERP part master by code, description or commodity…'} className="input !pl-9 !pr-10 sm:!pr-32" />
+        <span className="hidden sm:inline absolute right-9 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-muted pointer-events-none">ERP part master</span>
+        <button type="button" tabIndex={-1} aria-label={open ? 'Hide parts' : 'Show parts'} onMouseDown={(e) => e.preventDefault()} onClick={() => { box.current?.focus(); setOpen((v) => !v) }} className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md text-muted hover:text-ink">
+          <Icon name="ChevronDown" size={15} className={cn('transition-transform duration-150', open && 'rotate-180')} />
+        </button>
       </div>
       <AnimatePresence>
         {open && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden">
-              {restrictNote && <div className="px-3 py-1.5 text-[11px] text-muted bg-slate-50 border-b border-line">{restrictNote}</div>}
-              <div className="max-h-[320px] overflow-y-auto py-1">
-                {results.map((p, i) => {
-                  const taken = selected.includes(p.code)
-                  const sup = suppliers.find((s) => s.code === p.supplierCode)
-                  return (
-                    <button key={p.code} type="button" disabled={taken} onMouseEnter={() => setIdx(i)} onClick={() => pick(p)} className={cn('w-full flex items-center gap-3 px-3 py-2 text-left', i === idx && !taken && 'bg-brand-50/60', taken && 'opacity-50 cursor-default')}>
-                      <span className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 grid place-items-center shrink-0"><Icon name="Box" size={15} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2"><span className="font-mono text-[12px] font-semibold text-ink">{p.code}</span><span className="text-[10.5px] font-bold px-1.5 rounded bg-slate-100 text-slate-600">{p.commodity}</span></span>
-                        <span className="block text-[12.5px] text-ink-2 truncate">{p.description}</span>
-                        <span className="block text-[11px] text-muted truncate">{p.supplierCode} · {sup?.name ?? '—'}</span>
-                      </span>
-                      <span className="text-right shrink-0 hidden sm:block">
-                        <span className="block text-[12px] font-semibold num">{inrPrice(p.lbp ?? p.poPrice)} <span className="text-muted font-normal">/ {p.uom}</span></span>
-                        <span className="block text-[10.5px] text-muted">{p.lbp != null ? 'LBP' : 'PO price'} · MRN {num(p.lastFyMrnQty)}</span>
-                      </span>
-                      {taken && <Icon name="Check" size={14} className="text-emerald-600 shrink-0" />}
-                    </button>
-                  )
-                })}
-                {!results.length && <div className="px-3 py-6 text-center text-[12.5px] text-muted">No part in the ERP part master matches “{q}”</div>}
-              </div>
-            </motion.div>
-          </>
+          // holding the mouse down here keeps the cursor in the box, so only a click elsewhere closes the list
+          <motion.div onMouseDown={(e) => e.preventDefault()} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }} transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden">
+            {restrictNote && <div className="px-3 py-1.5 text-[11px] text-muted bg-slate-50 border-b border-line">{restrictNote}</div>}
+            <div ref={list} id={listId} role="listbox" className="max-h-[320px] overflow-y-auto py-1">
+              {results.map((p, i) => {
+                const taken = selected.includes(p.code)
+                const sup = suppliers.find((s) => s.code === p.supplierCode)
+                return (
+                  <button key={p.code} id={`${listId}-${i}`} type="button" role="option" tabIndex={-1} aria-selected={i === idx} aria-disabled={taken} onMouseMove={() => { if (!taken && i !== idx) setActiveCode(p.code) }} onClick={() => pick(p)} className={cn('w-full flex items-center gap-3 px-3 py-2 text-left', i === idx && !taken && 'bg-brand-50/60', taken && 'opacity-50 cursor-default')}>
+                    <span className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 grid place-items-center shrink-0"><Icon name="Box" size={15} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2"><span className="font-mono text-[12px] font-semibold text-ink">{p.code}</span><span className="text-[10.5px] font-bold px-1.5 rounded bg-slate-100 text-slate-600">{p.commodity}</span></span>
+                      <span className="block text-[12.5px] text-ink-2 truncate">{p.description}</span>
+                      <span className="block text-[11px] text-muted truncate">{p.supplierCode} · {sup?.name ?? '—'}</span>
+                    </span>
+                    <span className="text-right shrink-0 hidden sm:block">
+                      <span className="block text-[12px] font-semibold num">{inrPrice(p.lbp ?? p.poPrice)} <span className="text-muted font-normal">/ {p.uom}</span></span>
+                      <span className="block text-[10.5px] text-muted">{p.lbp != null ? 'LBP' : 'PO price'} · MRN {num(p.lastFyMrnQty)}</span>
+                    </span>
+                    {taken && <Icon name="Check" size={14} className="text-emerald-600 shrink-0" />}
+                  </button>
+                )
+              })}
+              {!results.length && <div className="px-3 py-6 text-center text-[12.5px] text-muted">{q.trim() ? `No part in the ERP part master matches “${q}”` : 'The ERP part master has no parts for this selection'}</div>}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -200,37 +211,34 @@ export function SupplierSearch({ suppliers, commodity, value, onChange, exclude,
   return (
     <div className="relative">
       <Icon name="Factory" size={15} className="absolute left-3 top-[18px] -translate-y-1/2 text-muted" />
-      <input value={q} onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)} placeholder="Search vendor master by code, name or city — or type a new supplier name" className={cn('input !pl-9', error && '!border-red-400')} />
+      <input value={q} onFocus={() => setOpen(true)} onClick={() => setOpen(true)} onBlur={() => setOpen(false)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)} placeholder="Search vendor master by code, name or city — or type a new supplier name" className={cn('input !pl-9', error && '!border-red-400')} />
       <AnimatePresence>
         {open && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden">
-              <div className="max-h-[300px] overflow-y-auto py-1">
-                {results.map((s) => {
-                  const cur = exclude.includes(s.code)
-                  return (
-                    <button key={s.code} type="button" onClick={() => { onChange({ code: s.code, name: s.name, isNew: false }); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50">
-                      <span className="h-7 w-7 rounded-lg bg-teal-50 text-teal-700 grid place-items-center shrink-0"><Icon name="Factory" size={14} /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12.5px] font-semibold text-ink truncate">{s.name}</span>
-                        <span className="block text-[11px] text-muted truncate">{s.code} · {s.city} · {s.commodities.join(', ')}</span>
-                      </span>
-                      {cur && <SourceTag color="var(--color-slate-500)">Current supplier</SourceTag>}
-                      {s.commodities.includes(commodity) && !cur && <SourceTag color="var(--color-teal-600)">In commodity</SourceTag>}
-                    </button>
-                  )
-                })}
-                {k.length >= 3 && (
-                  <button type="button" onClick={() => { onChange({ name: q.trim(), isNew: true }); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-amber-50/60 border-t border-line">
-                    <span className="h-7 w-7 rounded-lg bg-amber-50 text-amber-600 grid place-items-center shrink-0"><Icon name="UserPlus" size={14} /></span>
-                    <span className="text-[12.5px]"><span className="font-semibold text-ink">New supplier:</span> “{q.trim()}”</span>
+          <motion.div onMouseDown={(e) => e.preventDefault()} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden">
+            <div className="max-h-[300px] overflow-y-auto py-1">
+              {results.map((s) => {
+                const cur = exclude.includes(s.code)
+                return (
+                  <button key={s.code} type="button" onClick={() => { onChange({ code: s.code, name: s.name, isNew: false }); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-50">
+                    <span className="h-7 w-7 rounded-lg bg-teal-50 text-teal-700 grid place-items-center shrink-0"><Icon name="Factory" size={14} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12.5px] font-semibold text-ink truncate">{s.name}</span>
+                      <span className="block text-[11px] text-muted truncate">{s.code} · {s.city} · {s.commodities.join(', ')}</span>
+                    </span>
+                    {cur && <SourceTag color="var(--color-slate-500)">Current supplier</SourceTag>}
+                    {s.commodities.includes(commodity) && !cur && <SourceTag color="var(--color-teal-600)">In commodity</SourceTag>}
                   </button>
-                )}
-                {!results.length && k.length < 3 && <div className="px-3 py-4 text-center text-[12px] text-muted">Type at least 3 characters to add a new supplier</div>}
-              </div>
-            </motion.div>
-          </>
+                )
+              })}
+              {k.length >= 3 && (
+                <button type="button" onClick={() => { onChange({ name: q.trim(), isNew: true }); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-amber-50/60 border-t border-line">
+                  <span className="h-7 w-7 rounded-lg bg-amber-50 text-amber-600 grid place-items-center shrink-0"><Icon name="UserPlus" size={14} /></span>
+                  <span className="text-[12.5px]"><span className="font-semibold text-ink">New supplier:</span> “{q.trim()}”</span>
+                </button>
+              )}
+              {!results.length && k.length < 3 && <div className="px-3 py-4 text-center text-[12px] text-muted">Type at least 3 characters to add a new supplier</div>}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -260,26 +268,23 @@ export function ScopeSupplierPicker({ suppliers, commodity, value, onChange, err
   return (
     <div className="relative">
       <Icon name="Factory" size={15} className="absolute left-3 top-[18px] -translate-y-1/2 text-muted" />
-      <input value={q} onFocus={() => setOpen(true)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); if (e.key === 'Enter' && results[0]) { e.preventDefault(); onChange(results[0].code); setOpen(false); setQ('') } }}
+      <input value={q} onFocus={() => setOpen(true)} onClick={() => setOpen(true)} onBlur={() => setOpen(false)} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); if (e.key === 'Enter' && results[0]) { e.preventDefault(); onChange(results[0].code); setOpen(false); setQ('') } }}
         placeholder={commodity ? `Search ${pool.length} supplier${pool.length === 1 ? '' : 's'} of this commodity…` : 'Search suppliers by name, code or city…'} className={cn('input !pl-9', error && '!border-red-400')} />
       <AnimatePresence>
         {open && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden py-1">
-              {results.map((s) => (
-                <button key={s.code} type="button" onClick={() => { onChange(s.code); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-1.5 text-left hover:bg-slate-50">
-                  <span className="h-7 w-7 rounded-lg bg-teal-50 text-teal-700 grid place-items-center shrink-0"><Icon name="Factory" size={14} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[12.5px] font-semibold text-ink truncate">{s.name}</span>
-                    <span className="block text-[11px] text-muted truncate">{s.code} · {s.city}</span>
-                  </span>
-                </button>
-              ))}
-              {pool.length > results.length && !k && <div className="px-3 py-1.5 text-[11px] text-muted border-t border-line">Type to search all {pool.length} suppliers</div>}
-              {!results.length && <div className="px-3 py-4 text-center text-[12px] text-muted">{pool.length ? `No supplier matches “${q}”` : 'No supplier in the vendor master supplies this commodity'}</div>}
-            </motion.div>
-          </>
+          <motion.div onMouseDown={(e) => e.preventDefault()} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 card shadow-2xl overflow-hidden py-1">
+            {results.map((s) => (
+              <button key={s.code} type="button" onClick={() => { onChange(s.code); setOpen(false); setQ('') }} className="w-full flex items-center gap-3 px-3 py-1.5 text-left hover:bg-slate-50">
+                <span className="h-7 w-7 rounded-lg bg-teal-50 text-teal-700 grid place-items-center shrink-0"><Icon name="Factory" size={14} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12.5px] font-semibold text-ink truncate">{s.name}</span>
+                  <span className="block text-[11px] text-muted truncate">{s.code} · {s.city}</span>
+                </span>
+              </button>
+            ))}
+            {pool.length > results.length && !k && <div className="px-3 py-1.5 text-[11px] text-muted border-t border-line">Type to search all {pool.length} suppliers</div>}
+            {!results.length && <div className="px-3 py-4 text-center text-[12px] text-muted">{pool.length ? `No supplier matches “${q}”` : 'No supplier in the vendor master supplies this commodity'}</div>}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

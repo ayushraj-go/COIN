@@ -168,7 +168,7 @@ export function SupplierCheckPanel({ idea, embedded }: { idea: Idea; embedded?: 
         {!hasLink && <div className="text-[11.5px] text-red-700 flex items-center gap-1"><Icon name="Link2Off" size={12} />Keep <code className="font-mono">{SUPPLIER_LINK_PLACEHOLDER}</code> in the email — COIN puts the supplier's secure form link there.</div>}
         <div className="flex flex-wrap items-center justify-end gap-2">
           {!inEvaluation && <span className="text-[11.5px] text-muted mr-auto">Requests can be sent while the idea is at its workshop.</span>}
-          {inEvaluation && !mayEvaluate && <span className="text-[11.5px] text-muted mr-auto">Only the department ID or the Central ID can send this request.</span>}
+          {inEvaluation && !mayEvaluate && <span className="text-[11.5px] text-muted mr-auto">Only the department ID or the Management ID can send this request.</span>}
           {editing && <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>}
           <Button variant="primary" icon="Send" disabled={!canSend} onClick={send}>{editing ? 'Send updated request' : 'Send capability request'}</Button>
         </div>

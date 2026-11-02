@@ -1,10 +1,11 @@
+import { ERP_PART_ROWS, ERP_SUPPLIERS, type PartRow } from './erpParts'
 import type { Category, Commodity, Lever, LeverGroup, Part, Plant, RouteKey, Supplier, User, ApprovalRule, EmailTemplate, SlaRule } from './types'
 import { DROP_REASONS_DEFAULT, SLA_DEFAULTS } from './scope'
 
 export const CR = 1_00_00_000
 export const LAKH = 1_00_000
 
-// ─── Section 5: Cost innovation type (lever) master ───────────────────────────
+// ─── Section 5: Cost optimisation type (lever) master ───────────────────────────
 export const LEVERS_DEFAULT: Lever[] = [
   { id: 'L01', group: 'Commercial', name: 'Negotiation', savingsType: 'Hard', defaultSavingsType: 'Hard', route: 'Commercial', evaluator: '—', npdSample: 'No', icon: 'Handshake', active: true },
   { id: 'L02', group: 'Commercial', name: 'Payment terms improvement', savingsType: 'One-time', defaultSavingsType: 'One-time', route: 'Commercial', evaluator: '—', npdSample: 'No', icon: 'CalendarClock', active: true },
@@ -37,7 +38,7 @@ export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string
 
 // COIN workflow — every idea, on every route, runs the same five stages:
 // Idea submitted → Workshop / event creation → Management approval & KPI allocation → Execution started → Verification.
-// Stages 1–3 live in IN (Cost Innovation), 4–5 in CO (Cost Optimisation). Stage 2 holds the workshop event, the technical
+// Stages 1–3 live in IN (Innovation Network), 4–5 in CO (Cost Optimisation). Stage 2 holds the workshop event, the technical
 // feasibility form and the commercial evaluation form; Go ahead on the event sends the idea to stage 3.
 export const STAGE = {
   submitted: 'Idea submitted',
@@ -265,7 +266,7 @@ const COMMODITY_ROWS: CommodityRow[] = [
   ['PNO', 'Punching Oil', 'MRO', 'u-lead8'],
   ['LPG', 'LPG', 'MRO', 'u-lead8'],
 ]
-/** Each team lead's commodities are bought by one of the demo commodity buyers (the execution owners) */
+/** Each team lead's commodities are bought by one of the demo commodity buyers (people records kept for history; execution itself runs on the Execution Manager ID) */
 const BUYER_OF_LEAD: Record<string, string> = {
   'u-lead1': 'u-buyer2', 'u-lead2': 'u-buyer3', 'u-lead3': 'u-buyer5', 'u-lead4': 'u-buyer1', 'u-lead5': 'u-buyer6', 'u-lead6': 'u-buyer4',
   'u-lead7': 'u-buyer1', 'u-lead8': 'u-buyer7', 'u-lead9': 'u-buyer5', 'u-lead10': 'u-buyer7', 'u-lead11': 'u-buyer4',
@@ -292,10 +293,11 @@ const u = (id: string, name: string, employeeId: string, roles: User['roles'], d
   id, name, employeeId, email: `${name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/\.$/, '')}@ambergroupindia.com`, password: pw, roles, department, plant, designation, commodities, avatarColor: COLORS[ci++ % COLORS.length], active: true, ...extra,
 })
 
-/** One sign-in per department, plus the Central ID. A department ID raises ideas, runs the workshop (stage 2) and owns the
- *  execution (stage 4); whoever is behind it types their name and employee ID on the form. Central signs stage 3; Finance verifies stage 5. */
+/** One sign-in per department, plus the Management ID and the Execution Manager ID. A department ID raises ideas and owns their workshop
+ *  (stage 2); whoever is behind it types their name and employee ID on the form. Management signs stage 3, the Execution Manager runs
+ *  stage 4, Finance verifies stage 5. */
 const departmentId = (id: string, department: User['department'], email: string, employeeId: string, plant: string, roles: User['roles'] = [], commodities: string[] = []) =>
-  u(id, `${department} department`, employeeId, ['submitter', 'teamlead', 'deptlead', 'execowner', ...roles], department, `${department} department ID`, commodities, plant, { email })
+  u(id, `${department} department`, employeeId, ['submitter', 'teamlead', 'deptlead', ...roles], department, `${department} department ID`, commodities, plant, { email })
 const SIGN_IN_IDS: User[] = [
   departmentId('id-rd', 'R&D', 'rnd@ambergroupindia.com', 'ID-RND', 'RJP'),
   departmentId('id-dqa', 'DQA', 'dqa@ambergroupindia.com', 'ID-DQA', 'RJP'),
@@ -305,7 +307,8 @@ const SIGN_IN_IDS: User[] = [
   departmentId('id-finance', 'Finance', 'finance@ambergroupindia.com', 'ID-FIN', 'NDA', ['finance']),
   departmentId('id-sourcing', 'Sourcing', 'sourcing@ambergroupindia.com', 'ID-SRC', 'NDA', ['buyer', 'lead'], COMMODITIES_DEFAULT.map((c) => c.code)),
   departmentId('id-hr', 'HR', 'hr@ambergroupindia.com', 'ID-HR', 'NDA'),
-  u('id-central', 'Central ID', 'ID-CEN', ['admin'], 'Central', 'Central ID — management approval and admin', [], 'NDA', { email: 'central@ambergroupindia.com' }),
+  u('id-management', 'Management ID', 'ID-MGT', ['admin'], 'Management', 'Management — approval, KPI allocation and admin', [], 'NDA', { email: 'management@ambergroupindia.com' }),
+  u('id-execution', 'Execution Manager ID', 'ID-EXE', ['execowner'], 'Execution', 'Execution Manager — every execution started', [], 'NDA', { email: 'execution@ambergroupindia.com' }),
 ]
 
 /** People on record: their names stay on existing ideas and in the commodity masters, but they do not sign in. Suppliers reach COIN
@@ -414,109 +417,111 @@ export const SUPPLIERS_DEFAULT: Supplier[] = [
   { code: 'V10023', name: 'RoadRunner Freight Carriers', commodities: ['BX'], contactEmail: 'bookings@roadrunner.in', contactName: 'Sukhwinder Brar', city: 'Ludhiana', spend: 180 * CR },
   { code: 'V10024', name: 'Toolkart Industrial Supplies', commodities: ['CM'], contactEmail: 'b2b@toolkart.in', contactName: 'Neeraj Kart', city: 'Noida', spend: 120 * CR },
   { code: 'V10025', name: 'Facilitas Services', commodities: ['CA'], contactEmail: 'contracts@facilitas.in', contactName: 'Maria D\'Souza', city: 'Gurugram', spend: 150 * CR },
+  ...ERP_SUPPLIERS,
 ].map((x) => ({ ...x, tier: x.spend >= 500 * CR && x.code !== 'V10005' ? 'Tier 1' : 'Tier 2' }) as Supplier)
 
-type PartRow = [string, string, string, string, number | null, number, number]
-// code, description, uom, supplier, LBP (null = no LBP → PO price), PO price, last FY MRN qty
+/** The parts the demo ideas are built on. Add new parts to erpParts.ts: the seed draws a random number per part here, so a longer list here changes every demo idea */
 const PART_ROWS: Record<string, PartRow[]> = {
   BN: [
-    ['3100045612', 'Hex flange bolt M6×16, Zn-Ni', 'Nos', 'V10021', 4.2, 4.25, 2400000],
-    ['3100045688', 'Self-tapping screw 4.2×13, pan head', 'Nos', 'V10021', 0.62, 0.63, 18500000],
-    ['3100045701', 'Condenser bracket rivet Ø4.8', 'Nos', 'V10022', 1.1, 1.12, 6200000],
-    ['3100045733', 'Nylock nut M8, Zn plated', 'Nos', 'V10022', 2.35, 2.4, 3100000],
+    ['AC03045612', 'Hex flange bolt M6×16, Zn-Ni', 'Nos', 'V10021', 4.2, 4.25, 2400000],
+    ['AC03045688', 'Self-tapping screw 4.2×13, pan head', 'Nos', 'V10021', 0.62, 0.63, 18500000],
+    ['AC03045701', 'Condenser bracket rivet Ø4.8', 'Nos', 'V10022', 1.1, 1.12, 6200000],
+    ['AC03045733', 'Nylock nut M8, Zn plated', 'Nos', 'V10022', 2.35, 2.4, 3100000],
   ],
   BV: [
-    ['3200011204', 'Copper tube Ø9.52 × 0.35 IGT', 'Kg', 'V10001', 862, 868, 1850000],
-    ['3200011215', 'Copper tube Ø7.00 × 0.28 IGT', 'Kg', 'V10001', 874, 880, 2100000],
-    ['3200011240', 'Copper tube Ø12.7 plain, LWC', 'Kg', 'V10002', 845, 850, 640000],
-    ['3200011277', 'Hairpin bend Ø7 mm, pre-formed', 'Nos', 'V10002', 14.8, 15.0, 9500000],
+    ['AC03011204', 'Copper tube Ø9.52 × 0.35 IGT', 'Kg', 'V10001', 862, 868, 1850000],
+    ['AC03011215', 'Copper tube Ø7.00 × 0.28 IGT', 'Kg', 'V10001', 874, 880, 2100000],
+    ['AC03011240', 'Copper tube Ø12.7 plain, LWC', 'Kg', 'V10002', 845, 850, 640000],
+    ['AC03011277', 'Hairpin bend Ø7 mm, pre-formed', 'Nos', 'V10002', 14.8, 15.0, 9500000],
   ],
   AA: [
-    ['3300021005', 'Hydrophilic fin stock 0.095 mm', 'Kg', 'V10003', 318, 321, 3800000],
-    ['3300021019', 'Aluminium fin stock 0.105 mm, blue', 'Kg', 'V10004', 322, 325, 1200000],
-    ['3300021044', 'Al header pipe Ø16 mm', 'Nos', 'V10003', 46, 46.5, 900000],
+    ['AC03021005', 'Hydrophilic fin stock 0.095 mm', 'Kg', 'V10003', 318, 321, 3800000],
+    ['AC03021019', 'Aluminium fin stock 0.105 mm, blue', 'Kg', 'V10004', 322, 325, 1200000],
+    ['AC03021044', 'Al header pipe Ø16 mm', 'Nos', 'V10003', 46, 46.5, 900000],
   ],
   AJ: [
-    ['3400031110', 'CRCA sheet 0.8 mm, IS 513', 'Kg', 'V10005', 72.5, 73.2, 9200000],
-    ['3400031126', 'GI sheet 1.0 mm, Z120', 'Kg', 'V10006', 78.4, 79.0, 6800000],
-    ['3400031151', 'Pre-painted GI 0.6 mm, white', 'Kg', 'V10005', 96.2, 97.0, 2400000],
-    ['3400031187', 'Condenser side bracket, 1.2 mm', 'Nos', 'V10006', 38.5, 39.0, 1450000],
+    ['AC03031110', 'CRCA sheet 0.8 mm, IS 513', 'Kg', 'V10005', 72.5, 73.2, 9200000],
+    ['AC03031126', 'GI sheet 1.0 mm, Z120', 'Kg', 'V10006', 78.4, 79.0, 6800000],
+    ['AC03031151', 'Pre-painted GI 0.6 mm, white', 'Kg', 'V10005', 96.2, 97.0, 2400000],
+    ['AC03031187', 'Condenser side bracket, 1.2 mm', 'Nos', 'V10006', 38.5, 39.0, 1450000],
   ],
   AO: [
-    ['3500040012', 'Rotary compressor 1.5 TR R32 inverter', 'Nos', 'V10007', 7850, 7900, 820000],
-    ['3500040027', 'Rotary compressor 1.0 TR R32 fixed', 'Nos', 'V10008', 6420, 6480, 540000],
-    ['3500040039', 'Rotary compressor 2.0 TR R410A', 'Nos', 'V10007', 9960, 10020, 210000],
+    ['AC05040012', 'Rotary compressor 1.5 TR R32 inverter', 'Nos', 'V10007', 7850, 7900, 820000],
+    ['AC05040027', 'Rotary compressor 1.0 TR R32 fixed', 'Nos', 'V10008', 6420, 6480, 540000],
+    ['AC05040039', 'Rotary compressor 2.0 TR R410A', 'Nos', 'V10007', 9960, 10020, 210000],
   ],
   DX: [
-    ['3600050101', 'Outdoor inverter PCBA 1.5 TR', 'Nos', 'V10009', 2380, 2400, 760000],
-    ['3600050118', 'Indoor display PCB assembly', 'Nos', 'V10010', 186, 188, 1500000],
-    ['3600050125', 'Remote control PCB', 'Nos', 'V10009', null, 58, 2100000],
+    ['AC05050101', 'Outdoor inverter PCBA 1.5 TR', 'Nos', 'V10009', 2380, 2400, 760000],
+    ['AC05050118', 'Indoor display PCB assembly', 'Nos', 'V10010', 186, 188, 1500000],
+    ['AC05050125', 'Remote control PCB', 'Nos', 'V10009', null, 58, 2100000],
   ],
   AP: [
-    ['3700060210', 'BLDC indoor fan motor 40 W', 'Nos', 'V10012', 1120, 1130, 980000],
-    ['3700060224', 'PSC outdoor fan motor 60 W', 'Nos', 'V10011', 890, 896, 640000],
-    ['3700060233', 'Swing stepper motor 12 V', 'Nos', 'V10011', 62, 62.5, 1650000],
+    ['AC05060210', 'BLDC indoor fan motor 40 W', 'Nos', 'V10012', 1120, 1130, 980000],
+    ['AC05060224', 'PSC outdoor fan motor 60 W', 'Nos', 'V10011', 890, 896, 640000],
+    ['AC05060233', 'Swing stepper motor 12 V', 'Nos', 'V10011', 62, 62.5, 1650000],
   ],
   BL: [
-    ['3800070301', 'Indoor unit wiring harness', 'Nos', 'V10013', 118, 119, 1600000],
-    ['3800070318', 'Power cord 3-core 1.5 sq mm', 'Nos', 'V10014', 142, 143, 1450000],
-    ['3800070329', 'Interconnect cable 4-core, 5 m', 'Nos', 'V10013', 386, 390, 700000],
+    ['AC05070301', 'Indoor unit wiring harness', 'Nos', 'V10013', 118, 119, 1600000],
+    ['AC05070318', 'Power cord 3-core 1.5 sq mm', 'Nos', 'V10014', 142, 143, 1450000],
+    ['AC05070329', 'Interconnect cable 4-core, 5 m', 'Nos', 'V10013', 386, 390, 700000],
   ],
   FI: [
-    ['3900080405', 'IDU front panel, ABS', 'Nos', 'V10015', 312, 315, 1100000],
-    ['3900080417', 'ODU base pan, PP', 'Nos', 'V10016', 184, 186, 950000],
-    ['3900080428', 'Horizontal louver set', 'Nos', 'V10015', 42, 42.4, 1300000],
+    ['AC07080405', 'IDU front panel, ABS', 'Nos', 'V10015', 312, 315, 1100000],
+    ['AC07080417', 'ODU base pan, PP', 'Nos', 'V10016', 184, 186, 950000],
+    ['AC07080428', 'Horizontal louver set', 'Nos', 'V10015', 42, 42.4, 1300000],
   ],
   BW: [
-    ['4000090501', 'ABS resin HI-121', 'Kg', 'V10017', 168, 170, 5200000],
-    ['4000090512', 'PP copolymer, talc-filled', 'Kg', 'V10017', 112, 113, 4300000],
+    ['AC07090501', 'ABS resin HI-121', 'Kg', 'V10017', 168, 170, 5200000],
+    ['AC07090512', 'PP copolymer, talc-filled', 'Kg', 'V10017', 112, 113, 4300000],
   ],
   BP: [
-    ['4100100601', '5-ply corrugated box, IDU', 'Nos', 'V10018', 96, 97, 1250000],
-    ['4100100614', '7-ply corrugated box, ODU', 'Nos', 'V10018', 168, 170, 1100000],
+    ['AC09100601', '5-ply corrugated box, IDU', 'Nos', 'V10018', 96, 97, 1250000],
+    ['AC09100614', '7-ply corrugated box, ODU', 'Nos', 'V10018', 168, 170, 1100000],
   ],
   AV: [
-    ['4200110701', 'EPS top / bottom set, IDU', 'Set', 'V10019', 74, 75, 1250000],
-    ['4200110716', 'EPS corner set, ODU', 'Set', 'V10019', null, 118, 1100000],
+    ['AC09110701', 'EPS top / bottom set, IDU', 'Set', 'V10019', 74, 75, 1250000],
+    ['AC09110716', 'EPS corner set, ODU', 'Set', 'V10019', null, 118, 1100000],
   ],
   BX: [
-    ['9100000801', 'FTL freight Rajpura → Mumbai, 32 ft MXL', 'Trip', 'V10020', 68000, 68000, 1450],
-    ['9100000815', 'FTL freight Sri City → Delhi, 32 ft MXL', 'Trip', 'V10023', 112000, 112000, 820],
+    ['SP15000801', 'FTL freight Rajpura → Mumbai, 32 ft MXL', 'Trip', 'V10020', 68000, 68000, 1450],
+    ['SP15000815', 'FTL freight Sri City → Delhi, 32 ft MXL', 'Trip', 'V10023', 112000, 112000, 820],
   ],
   CM: [
-    ['9200000901', 'Brazing rod 15% Ag', 'Kg', 'V10024', 7800, 7850, 18500],
-    ['9200000914', 'Nitrogen gas cylinder, 7 m³', 'Nos', 'V10024', 480, 485, 42000],
+    ['SP13000901', 'Compressor oil POE 68, 20 L drum', 'Nos', 'V10024', 7800, 7850, 18500],
+    ['SP13000914', 'Hydraulic oil ISO VG 46, 5 L can', 'Nos', 'V10024', 480, 485, 42000],
   ],
   CA: [
-    ['9300001001', 'Plant housekeeping services, Rajpura', 'Month', 'V10025', 1850000, 1850000, 84],
-    ['9300001012', 'Compressed air generation (energy)', 'kWh', 'V10025', 8.4, 8.4, 6400000],
+    ['SP13001001', 'Plant mechanical maintenance, Rajpura', 'Month', 'V10025', 1850000, 1850000, 84],
+    ['SP13001012', 'Compressed air generation (energy)', 'kWh', 'V10025', 8.4, 8.4, 6400000],
   ],
 }
 
-export const PARTS_DEFAULT: Part[] = Object.entries(PART_ROWS).flatMap(([commodity, rows], i) =>
+const toParts = (table: Record<string, PartRow[]>): Part[] => Object.entries(table).flatMap(([commodity, rows], i) =>
   rows.map(([code, description, uom, supplierCode, lbp, poPrice, qty], j) => ({
     code, description, uom, commodity, supplierCode, lbp, poPrice, lastFyMrnQty: qty,
     plant: PLANTS_DEFAULT[(i + j) % 4].id,
   })),
 )
+export const IDEA_PARTS = toParts(PART_ROWS)
+export const PARTS_DEFAULT: Part[] = [...IDEA_PARTS, ...toParts(ERP_PART_ROWS)]
 
 export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
-  { id: 'AR1', condition: 'Opportunity cost up to ₹ X lakh', approver: 'Central ID', thresholdLakh: 50, kind: 'value' },
-  { id: 'AR2', condition: 'Opportunity cost above ₹ X lakh', approver: 'Central ID', thresholdLakh: 50, kind: 'value' },
-  { id: 'AR3', condition: 'Any idea with one-time investment above ₹ Y lakh', approver: 'Central ID', thresholdLakh: 25, kind: 'investment' },
+  { id: 'AR1', condition: 'Opportunity cost up to ₹ X lakh', approver: 'Management ID', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR2', condition: 'Opportunity cost above ₹ X lakh', approver: 'Management ID', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR3', condition: 'Any idea with one-time investment above ₹ Y lakh', approver: 'Management ID', thresholdLakh: 25, kind: 'investment' },
 ]
 
 // SLA per workflow stage (Section 12 values, mapped onto the five-stage flow)
 export const SLA_RULES_DEFAULT: SlaRule[] = [
-  { stage: STAGE.feasibility, slaDays: 15, reminderDay: 12, escalateTo: 'Central ID', escalateDay: 16 },
-  { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Central ID', escalateDay: 4 },
+  { stage: STAGE.feasibility, slaDays: 15, reminderDay: 12, escalateTo: 'Management ID', escalateDay: 16 },
+  { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Management ID', escalateDay: 4 },
   ...SLA_DEFAULTS.filter((r) => r.stage === 'Finance validation').map((r) => ({ ...r })),
 ]
 export const DROP_REASONS = DROP_REASONS_DEFAULT
 
 export const EMAIL_TEMPLATES_DEFAULT: EmailTemplate[] = [
-  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated opportunity cost of {{impact}}.\n\nThe workshop with the technical feasibility and commercial feasibility check follows within 15 days.\n\n— COIN · Cost Innovation Hub' },
-  { id: 'T02', name: 'Feasibility request', subject: 'COIN · Feasibility requested for {{ideaId}}', body: 'Dear {{recipient}},\n\nAmber Sourcing requests your feasibility and offered price for idea "{{title}}". Use the secure link below (valid 7 days).\n\n{{secureLink}}\n\n— COIN · Cost Innovation Hub' },
+  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated opportunity cost of {{impact}}.\n\nThe workshop with the technical feasibility and commercial feasibility check follows within 15 days.\n\n— COIN · Cost Optimisation & Innovation Network' },
+  { id: 'T02', name: 'Feasibility request', subject: 'COIN · Feasibility requested for {{ideaId}}', body: 'Dear {{recipient}},\n\nAmber Sourcing requests your feasibility and offered price for idea "{{title}}". Use the secure link below (valid 7 days).\n\n{{secureLink}}\n\n— COIN · Cost Optimisation & Innovation Network' },
   { id: 'T03', name: 'Pending approval', subject: 'COIN · Approval pending: {{ideaId}}', body: 'Dear {{recipient}},\n\nIdea "{{title}}" ({{impact}}) is awaiting your approval. SLA: 3 working days.\n\n— COIN' },
   { id: 'T04', name: 'Workshop invitation', subject: 'COIN · Invitation: {{campaign}}', body: 'Dear {{recipient}},\n\nYou are invited to the supplier improvement workshop "{{campaign}}" on {{date}} at {{venue}}. Please bring cost-reduction ideas for {{commodity}}.\n\n— Amber Sourcing' },
   { id: 'T05', name: 'Implementation reminder', subject: 'COIN · Reminder: {{ideaId}} due {{targetDate}}', body: 'Dear {{recipient}},\n\nIdea "{{title}}" is due for implementation on {{targetDate}}. Please update progress in the Execution Hub.\n\n— COIN' },
@@ -569,15 +574,15 @@ export const OUTREACH_BATCHES_DEFAULT: OutreachBatch[] = [
 ]
 
 export const SUPPLIER_RESPONSES_DEFAULT: SupplierResponse[] = [
-  { id: 'SR-1009', source: 'Supplier Portal', portalRef: 'SP-26-0423', supplierCode: 'V10004', commodity: 'AA', type: 'Idea', scope: 'Part-specific', partCodes: ['3300021019'], subject: 'Switch blue fin coating to hydrophilic grade 0.100 mm', body: 'Our hydrophilic 0.100 mm grade matches the heat-transfer performance of the current blue 0.105 mm stock at a lower gauge. Sample coils are available for trial.', estSavingLakh: 58, receivedAt: '2026-10-01T04:30:00.000Z', status: 'New', batchId: 'OB-002' },
-  { id: 'SR-1006', source: 'Supplier Portal', portalRef: 'SP-26-0420', supplierCode: 'V10015', commodity: 'FI', type: 'Idea', scope: 'Part-specific', partCodes: ['3900080405'], subject: 'Hot-runner conversion for IDU front panel tool', body: 'Converting the 2-cavity cold-runner tool to hot-runner removes ~38 g runner per shot and cuts cycle time by 6 s. One-time tooling investment of ₹ 9.5 lakh, payback under 5 months.', estSavingLakh: 27, receivedAt: '2026-09-30T07:55:00.000Z', status: 'New', batchId: 'OB-003' },
-  { id: 'SR-1001', source: 'Supplier Portal', portalRef: 'SP-26-0412', supplierCode: 'V10001', commodity: 'BV', type: 'Idea', scope: 'Part-specific', partCodes: ['3200011215'], subject: 'Reduce wall thickness of Ø7.00 IGT tube from 0.28 to 0.25 mm', body: 'We have qualified a 0.25 mm inner-grooved tube on our new drawing line with the same burst-pressure margin. Weight saving is about 9% per metre. We can provide samples within 3 weeks for your R&D validation.', estSavingLakh: 118, receivedAt: '2026-09-29T08:12:00.000Z', status: 'New', batchId: 'OB-002' },
-  { id: 'SR-1004', source: 'Supplier Portal', portalRef: 'SP-26-0417', supplierCode: 'V10002', commodity: 'BV', type: 'Problem', scope: 'Part-specific', partCodes: ['3200011240'], subject: 'Frequent drawing revisions on Ø12.7 LWC tube', body: 'We received three drawing revisions in the last quarter for the same part without an ECN reference, causing rework of ~2 MT. Requesting a single frozen revision and ECN communication.', receivedAt: '2026-09-28T06:20:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1009', source: 'Supplier Portal', portalRef: 'SP-26-0423', supplierCode: 'V10004', commodity: 'AA', type: 'Idea', scope: 'Part-specific', partCodes: ['AC03021019'], subject: 'Switch blue fin coating to hydrophilic grade 0.100 mm', body: 'Our hydrophilic 0.100 mm grade matches the heat-transfer performance of the current blue 0.105 mm stock at a lower gauge. Sample coils are available for trial.', estSavingLakh: 58, receivedAt: '2026-10-01T04:30:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1006', source: 'Supplier Portal', portalRef: 'SP-26-0420', supplierCode: 'V10015', commodity: 'FI', type: 'Idea', scope: 'Part-specific', partCodes: ['AC07080405'], subject: 'Hot-runner conversion for IDU front panel tool', body: 'Converting the 2-cavity cold-runner tool to hot-runner removes ~38 g runner per shot and cuts cycle time by 6 s. One-time tooling investment of ₹ 9.5 lakh, payback under 5 months.', estSavingLakh: 27, receivedAt: '2026-09-30T07:55:00.000Z', status: 'New', batchId: 'OB-003' },
+  { id: 'SR-1001', source: 'Supplier Portal', portalRef: 'SP-26-0412', supplierCode: 'V10001', commodity: 'BV', type: 'Idea', scope: 'Part-specific', partCodes: ['AC03011215'], subject: 'Reduce wall thickness of Ø7.00 IGT tube from 0.28 to 0.25 mm', body: 'We have qualified a 0.25 mm inner-grooved tube on our new drawing line with the same burst-pressure margin. Weight saving is about 9% per metre. We can provide samples within 3 weeks for your R&D validation.', estSavingLakh: 118, receivedAt: '2026-09-29T08:12:00.000Z', status: 'New', batchId: 'OB-002' },
+  { id: 'SR-1004', source: 'Supplier Portal', portalRef: 'SP-26-0417', supplierCode: 'V10002', commodity: 'BV', type: 'Problem', scope: 'Part-specific', partCodes: ['AC03011240'], subject: 'Frequent drawing revisions on Ø12.7 LWC tube', body: 'We received three drawing revisions in the last quarter for the same part without an ECN reference, causing rework of ~2 MT. Requesting a single frozen revision and ECN communication.', receivedAt: '2026-09-28T06:20:00.000Z', status: 'New', batchId: 'OB-002' },
   { id: 'SR-1002', source: 'Supplier Portal', portalRef: 'SP-26-0415', supplierCode: 'V10003', commodity: 'AA', type: 'Idea', scope: 'Supplier', subject: 'Coil-width rationalisation across fin stock SKUs', body: 'Amber currently buys fin stock in 7 slit widths. Consolidating to 4 widths reduces our slitting scrap and changeover time; we can pass on ₹ 4/kg.', estSavingLakh: 42, receivedAt: '2026-09-27T11:40:00.000Z', status: 'Under review', batchId: 'OB-002' },
-  { id: 'SR-1003', source: 'Supplier Portal', portalRef: 'SP-26-0409', supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Part-specific', partCodes: ['3100045612'], subject: 'Replace Zn-Ni plating with Zn-flake coating on M6 flange bolt', body: 'Zn-flake meets the 720 h salt-spray requirement at lower cost and removes hydrogen-embrittlement risk. Proposed at ₹ 3.95 vs current ₹ 4.20.', estSavingLakh: 6, receivedAt: '2026-09-26T13:05:00.000Z', status: 'Converted to idea', batchId: 'OB-001' },
+  { id: 'SR-1003', source: 'Supplier Portal', portalRef: 'SP-26-0409', supplierCode: 'V10021', commodity: 'BN', type: 'Idea', scope: 'Part-specific', partCodes: ['AC03045612'], subject: 'Replace Zn-Ni plating with Zn-flake coating on M6 flange bolt', body: 'Zn-flake meets the 720 h salt-spray requirement at lower cost and removes hydrogen-embrittlement risk. Proposed at ₹ 3.95 vs current ₹ 4.20.', estSavingLakh: 6, receivedAt: '2026-09-26T13:05:00.000Z', status: 'Converted to idea', batchId: 'OB-001' },
   { id: 'SR-1005', source: 'Supplier Portal', portalRef: 'SP-26-0402', supplierCode: 'V10018', commodity: 'BP', type: 'Complaint', scope: 'Supplier', subject: 'Payment delays beyond agreed 60-day terms', body: 'Invoices for July and August are outstanding beyond 75 days. This affects our kraft paper procurement and our ability to hold prices.', receivedAt: '2026-09-25T09:30:00.000Z', status: 'Under review', batchId: 'OB-003' },
   { id: 'SR-1007', source: 'Supplier Portal', portalRef: 'SP-26-0398', supplierCode: 'V10017', commodity: 'BW', type: 'Idea', scope: 'Supplier', subject: 'Bulk silo delivery instead of 25 kg bags for PP copolymer', body: 'For the Dehradun and Rajpura plants, moving to bulk tanker delivery with a silo saves bag cost and handling loss. We can support silo installation on a shared-cost basis.', estSavingLakh: 33, receivedAt: '2026-09-24T10:10:00.000Z', status: 'New', batchId: 'OB-003' },
-  { id: 'SR-1008', source: 'Supplier Portal', portalRef: 'SP-26-0391', supplierCode: 'V10022', commodity: 'BN', type: 'Problem', scope: 'Part-specific', partCodes: ['3100045733'], subject: 'Forecast variance on M8 Nylock nut schedules', body: 'Monthly schedules vary by more than ±40% versus the forecast shared, leading to excess inventory at our end. Requesting a 3-month rolling firm schedule.', receivedAt: '2026-09-22T05:45:00.000Z', status: 'Closed', batchId: 'OB-001' },
+  { id: 'SR-1008', source: 'Supplier Portal', portalRef: 'SP-26-0391', supplierCode: 'V10022', commodity: 'BN', type: 'Problem', scope: 'Part-specific', partCodes: ['AC03045733'], subject: 'Forecast variance on M8 Nylock nut schedules', body: 'Monthly schedules vary by more than ±40% versus the forecast shared, leading to excess inventory at our end. Requesting a 3-month rolling firm schedule.', receivedAt: '2026-09-22T05:45:00.000Z', status: 'Closed', batchId: 'OB-001' },
 ]
 
 // ─── Campaign workspace — email campaign types (wizard step 1) ───

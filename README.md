@@ -1,8 +1,8 @@
 # COIN — Cost Optimisation & Innovation Network
 
-**In-app name: Cost Innovation Hub.** This is a front-end-only demo for Amber Enterprises India Ltd., built from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
+**In-app name: COIN (Cost Optimisation & Innovation Network).** This is a front-end-only demo for Amber Enterprises India Ltd., built from *COIN — Scope of Work v1.0 (Oct 1, 2026)*.
 
-- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v8`).
+- **No backend.** Every idea, approval, ledger entry, campaign, notification, email and setting is kept in the browser's `localStorage` (key `coin-cost-innovation-hub-v15`).
 - **Port 8742.** Uses `--strictPort`, so it won't quietly move to 5173 or another common port.
 
 ## Run
@@ -17,43 +17,38 @@ To serve a production build: `npm run build`, then `npm run preview` (also on po
 
 ## Demo logins
 
-Every persona uses the password **`coin@2026`**. On the login page pick a **department**, then one of its five roles; the
-cross-functional row has the Finance verifier, Sourcing Head, Admin, Management and a Supplier. The user menu's
-**Switch demo persona** uses the same picker. You can also sign in with the email or employee ID (for example `AEL-03108`).
+There are ten sign-in IDs and every one uses the password **`coin@2026`**. People do not sign in: whoever is behind an ID
+types their name and employee ID on the form, on the workshop event and at sign-off. Suppliers do not sign in either: they
+reach COIN through a campaign's unique link.
 
-| Department | Employee | Team lead | Department lead | Department head | Execution owner |
+| ID | Email | Role |
+|---|---|---|
+| R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR | `rnd@`, `dqa@`, `quality@`, `process@`, `production@`, `finance@`, `sourcing@`, `hr@` | Idea Submitter and Workshop Owner for their own department |
+| Management ID | `management@` | Management: approves, allocates the KPI and signs; can step in at every stage |
+| Execution Manager ID | `execution@` | Execution Manager: sees and runs every execution started, from every department |
+
+Emails end in `@ambergroupindia.com`. The Finance ID is also the Finance Verifier. To restore the original seed data, use
+**User menu → Reset demo data**.
+
+## Five-stage workflow (every idea)
+
+An idea stays with its submitter's department until the workshop closes (supplier ideas go to Sourcing). Stages 1 to 3 sit in
+Innovation Network (IN), stages 4 and 5 in Cost Optimisation (CO).
+
+| # | Stage | Workspace | Role | Sign-in ID | What happens |
 |---|---|---|---|---|---|
-| R&D | Neha Verma | Arvind Rao | Dr. Priya Nair | Dr. Sameer Kulkarni | Rahul Jain |
-| DQA | Tanvi Gupta | Pooja Nambiar | Amit Saxena | Rajiv Bhalla | Sandeep Rawat |
-| Quality | Farah Khan | Mohit Arora | Ritu Malhotra | Anil Deshmukh | Kavya Reddy |
-| Process | Harish Menon | Nitin Chawla | Karan Bhatia | Manoj Pillai | Siddharth Bose |
-| Production | Vivek Chauhan | Gurmeet Singh | Deepika Sharma | Suresh Yadav | Ravi Teja |
-| Finance | Ankita Jain | Prakash Iyer | Shalini Gupta | Vinod Agarwal | Rohit Kapoor |
-| Sourcing | Aditi Sharma | commodity leads (Sanjay Kapoor, Anita Sharma, Deepak Joshi) | Ashok Menon | Girish Saluja | commodity buyers |
-| HR | Simran Kaur | Varun Malhotra | Neelam Saxena | Lata Krishnan | Imtiaz Ali |
+| 1 | Idea submitted | IN | Idea Submitter | Any department ID | Capture My Idea: the person, the scope, the parts or supplier |
+| 2 | Workshop / event creation | IN | Workshop Owner | The idea's department ID, one owner per workshop | Numbered steps with the current one highlighted: create the event, technical feasibility, commercial evaluation (from ₹ 5 L), close the event with Follow-up or Go ahead |
+| 3 | Management approval & KPI allocation | IN | Management | Management ID | Commercial assessment, supplier alignment, budget, KPI and timeline, signed and locked |
+| 4 | Execution started | CO | Execution Manager | Execution Manager ID | Execution Hub: NPD / PAP milestones, month by month savings from MRN. The department watches, view only |
+| 5 | Verification | CO | Finance Verifier | Finance ID | The locked timeline ends, COIN moves the idea here, Finance verifies against the MRN |
 
-Cross-functional: **Meera Iyer** (Finance verifier — stage 6), **Girish Saluja** (Sourcing Head — can act at every stage),
-**Nikhil Agarwal** (Admin — can act at every stage), **Rajesh Khanna** (Management), **Rakesh Gupta** (Supplier).
-Emails follow `first.last@ambergroupindia.com`. To restore the original seed data, use **User menu → Reset demo data**.
+**My queue** (`/queue`) lists what is waiting for the signed-in ID, with how long each has waited and its SLA state. A
+workshop row shows its step, for example `2/4 Technical feasibility`, and the button is named after that step. The Management
+ID also sees every open item. **Workshops** (`/workshops`) lists stage 2, and **Who does what** on that page and on the
+sign-in card maps each stage to its role and opens it.
 
-## Six-stage workflow (every idea)
-
-The department is the submitter's department (supplier ideas go to Sourcing). Each stage is done by one role of that
-department; a team lead never clears their own idea (the department lead does).
-
-| # | Stage | Workspace | Who | What happens |
-|---|---|---|---|---|
-| 1 | Idea submitted | IN | Employee | Submission form (steps A–E) |
-| 2 | Team feasibility check | IN | Team lead | Technically feasible? cost valid? duplicate / conflict? Go / No-go |
-| 3 | *Dept* evaluation (e.g. R&D evaluation) | IN | Department lead | Cost-benefit, risk assessment, supplier capability check (email + public form, no Amber data; skipped below ₹ 5 L) |
-| 4 | *Dept* approval (e.g. R&D approval) | IN | Department head | Commercial assessment, supplier alignment, signed budget + timeline lock (target = annualised × months ÷ 12) |
-| 5 | Execution started | CO | Execution owner | Execution Hub: NPD / PAP milestones, CO date, first MRN at the new price, plan vs actual from MRN |
-| 6 | Verification | CO | Finance verifier | MRN at the approved price, Finance validation and the locked target → Verified |
-
-**My queue** (`/queue`) lists the ideas waiting for the signed-in person, with how long each has waited and its SLA
-state; every dashboard opens with the top of that queue. Sourcing Head and Admin also get an **All pending** tab.
-
-A dropped or rejected idea stays dropped — a fresh attempt is a new idea. The Home page shows a **six-stage walkthrough**: one demo idea at each stage with every form filled in up to that stage.
+A dropped or rejected idea stays dropped; a fresh attempt is a new idea.
 
 ## Colour themes
 
@@ -71,7 +66,7 @@ The headline KPI row — **Pipeline · In execution · Implemented · Realised (
 the IN dashboard and the CO dashboard, for every role. Employees and suppliers count their own ideas and the tiles open
 My Ideas; everyone else counts the ideas they can see and the tiles open the register, Execution Hub or Savings proof.
 
-- **CO · Cost Optimisation** — **LENS** (Linked Evidence of Negotiation and Savings → dashboard), **PROOF** (Part-linked Realisation and Optimisation Output Framework → `/proof`), **TRACE** (Transition-linked Realisation of Actual CI Evidence → Execution Hub).
+- **CO · Cost Optimisation** — **LENS** (Linked Evidence of Negotiation and Savings → dashboard), **PROOF** (Part-linked Realisation and Optimisation Output Framework → `/proof`), **TRACE** (Transition-linked Realisation of Actual Cost Evidence → Execution Hub).
 - **IN · Innovation Network** — "Enter the world of ideas": ideas, campaigns, team feasibility check, department evaluation and department approval.
 
 Both dashboards show internal ideas (by commodity, department, individual) against external supplier ideas (Tier 1, Tier 2, via campaigns); Advanced analytics holds the idea portfolio, SLA watch, implementation pipeline and execution health.

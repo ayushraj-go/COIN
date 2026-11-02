@@ -20,30 +20,30 @@ const paper: IdeaPart = { partCode: 'FAC-PAPER-01', description: 'A4 copier pape
 const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals per day', uom: 'Nos', currentSupplier: 'Local caterer', baselinePrice: 110, baselineSource: 'LBP', newPrice: 96, annualVolume: 240000, volumeSource: 'MRN FY26' }
 
 const raise = (part: IdeaPart) => { st().loginAs('id-hr'); return st().submitIdea({ title: 'HR idea', commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Today', proposedChange: 'Change' }) }
-/** …through the workshop, with the Central ID signed in */
+/** …through the workshop, with the Management ID signed in */
 function atApproval(part: IdeaPart = meals) {
   const id = raise(part)
   throughWorkshop(id)
-  st().loginAs('id-central')
+  st().loginAs('id-management')
   return id
 }
 
 beforeEach(() => { st().resetDemo() })
 
 describe('ideas below ₹ 5 L need no commercial evaluation', () => {
-  it('go ahead on the feasibility form and wait on the Central ID', () => {
+  it('go ahead on the feasibility form and wait on the Management ID', () => {
     const id = atApproval(paper)
     expect(ideaAnnualised(idea(id))).toBeLessThan(EVALUATION_MIN)
     const i = idea(id)
     expect(i.stage).toBe(STAGE.approval)
     expect(i.evaluation?.skipped).toBe(true)
     expect(i.evaluation?.supplier?.status).toBe('Skipped')
-    expect(i.approvals).toEqual([{ level: 'Management', approverId: 'id-central' }])
+    expect(i.approvals).toEqual([{ level: 'Management', approverId: 'id-management' }])
     expect(inQueue('id-hr', id)).toBe(false)
-    expect(inQueue('id-central', id)).toBe(true)
-    expect(st().notifications.some((n) => n.userId === 'id-central' && n.ideaId === id)).toBe(true)
+    expect(inQueue('id-management', id)).toBe(true)
+    expect(st().notifications.some((n) => n.userId === 'id-management' && n.ideaId === id)).toBe(true)
   })
-  it('the Central ID approves without an evaluation', () => {
+  it('the Management ID approves without an evaluation', () => {
     const id = atApproval(paper)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: lockTarget(ideaAnnualised(idea(id)), 6), signatureName: 'Lata Krishnan' })
     expect(st().approve(id)).toBe(true)
@@ -60,7 +60,7 @@ describe('ideas below ₹ 5 L need no commercial evaluation', () => {
 describe('management sends an idea back to the place it chooses', () => {
   it('offers the submitter or the workshop, instead of send back + reassign', () => {
     const id = atApproval()
-    const p = ideaPerms(user('id-central'), idea(id))
+    const p = ideaPerms(user('id-management'), idea(id))
     expect(p.sendBack).toBe(true)
     expect(p.reassign).toBe(false)
     expect(sendBackTargets(idea(id)).map((t) => t.to)).toEqual(['submitter', STAGE.feasibility])

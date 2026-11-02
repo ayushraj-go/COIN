@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore, useMe, hasRole } from '../store/useStore'
 import { useFilteredIdeas } from '../lib/hooks'
 import { can } from '../lib/nav'
+import { ideaDept } from '../lib/workflow'
 import type { Idea } from '../lib/types'
 import { EXECUTION_INTRO, EXECUTION_RECORD, LEAKAGE_NOTE } from '../lib/scope'
 import { HEALTH_STYLE, committedInFy, healthOf, ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, isHard } from '../lib/calc'
@@ -58,7 +59,7 @@ export default function ExecutionHub() {
   const tab = (['mrn', 'proof', 'verification'].includes(params.get('tab') ?? '') ? params.get('tab') : 'execution') as Tab
   const setTab = (k: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (k === 'execution') n.delete('tab'); else n.set('tab', k); return n }, { replace: true })
   const [q, setQ] = useState(params.get('q') ?? '')
-  const [owner, setOwner] = useState('All')
+  const [dept, setDept] = useState('All')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [modal, setModal] = useState<ModalState>(null)
   const [pop, setPop] = useState<PopState>(null)
@@ -90,15 +91,15 @@ export default function ExecutionHub() {
   const cm = (list: Idea[]) => sum(list.map((i) => ideaCommitted(i, fy)))
   const committedHard = sum(active.filter(isHard).map((i) => ideaCommitted(i, fy)))
 
-  // owner filter: everyone who owns an execution here (department execution owners, Sourcing buyers, reassigned owners)
-  const ownerOptions = useMemo(() => { const ids = new Set(hub.map((i) => i.execution?.ownerId).filter(Boolean)); return users.filter((u) => ids.has(u.id)).sort((a, b) => a.name.localeCompare(b.name)) }, [users, hub])
+  // the Execution Manager sees every execution, so the list narrows by the department behind it
+  const deptOptions = useMemo(() => [...new Set(hub.map((i) => ideaDept(i)))].sort(), [hub])
   const awaiting = useMemo(() => hub.filter((i) => i.stage === 'Verification' && !i.verification?.verifiedAt), [hub])
   const verified = useMemo(() => hub.filter((i) => !!i.verification?.verifiedAt), [hub])
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
-    return sets[kpi].filter((i) => (owner === 'All' || i.execution!.ownerId === owner) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.includes(k))))
+    return sets[kpi].filter((i) => (dept === 'All' || ideaDept(i) === dept) && (!k || i.id.toLowerCase().includes(k) || i.title.toLowerCase().includes(k) || i.parts.some((p) => p.partCode.toLowerCase().includes(k))))
       .sort((a, b) => (a.execution!.targetDate < b.execution!.targetDate ? -1 : a.execution!.targetDate > b.execution!.targetDate ? 1 : 0))
-  }, [sets, kpi, owner, q])
+  }, [sets, kpi, dept, q])
 
   // price leakage for these ideas (Section 9)
   const hubIds = useMemo(() => new Set(hub.map((i) => i.id)), [hub])
@@ -110,7 +111,7 @@ export default function ExecutionHub() {
   }, [ledger, hubIds, fy])
 
   const canExec = can(me, 'execute')
-  // rights come from the ID: the department ID edits its executions, the Central ID can act on any
+  // rights come from the ID: the Execution Manager ID edits every execution, and the Management ID can step in
   const editable = (i: Idea) => i.execution?.status === 'In Execution' && execRights(me, i).editable
   const byId = (id?: string) => ideas.find((i) => i.id === id) ?? null
   const mIdea = byId(modal?.id)
@@ -149,7 +150,7 @@ export default function ExecutionHub() {
   return (
     <div>
       <PageHeader icon="Rocket" title="Execution Hub" badge={<Badge color="var(--color-brand-700)">TRACE</Badge>}
-        subtitle="Transition-linked Realisation of Actual CI Evidence — Execution started → Verification, with plan vs actual from MRN"
+        subtitle="Transition-linked Realisation of Actual Cost Evidence — Execution started → Verification, with plan vs actual from MRN"
         actions={<>
           <Tooltip content={<div className="grid gap-1"><div>{dueWording(EXECUTION_INTRO)}</div>{EXECUTION_RECORD.map(([k, v]) => <div key={k}><b>{dueWording(k)}:</b> {dueWording(v)}</div>)}</div>}><span className="inline-flex items-center gap-1 text-[12px] text-muted cursor-help"><Icon name="Info" size={13} />Execution record rules</span></Tooltip>
           <Button icon="FileSpreadsheet" onClick={doExport}>Export</Button>
@@ -223,10 +224,9 @@ export default function ExecutionHub() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative"><Icon name="Search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" /><input className="input !h-8 !pl-8 !w-56 text-[12.5px]" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search ID, title, part code…" /></div>
-                <select className="input !h-8 !w-44 text-[12.5px]" value={owner} onChange={(e) => setOwner(e.target.value)}>
-                  <option value="All">All owners</option>
-                  {me && ownerOptions.some((u) => u.id === me.id) && <option value={me.id}>Owned by me</option>}
-                  {ownerOptions.filter((u) => u.id !== me?.id).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                <select className="input !h-8 !w-44 text-[12.5px]" value={dept} onChange={(e) => setDept(e.target.value)}>
+                  <option value="All">All departments</option>
+                  {deptOptions.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function ExecutionHub() {
                   <thead>
                     <tr>
                       <th style={{ width: 34 }} />
-                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Owner</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at management approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
+                      <th>ID</th><th>Title</th><th className="max-[1700px]:hidden">Commodity</th><th>Department</th><th className="max-[1700px]:hidden">Start date</th><th><span className="inline-flex items-center gap-1">Deadline<InfoTip title="Deadline">The savings end signed in the budget + timeline lock at management approval. It does not move during execution; on that date COIN moves the idea to verification.</InfoTip></span></th>
                       <th><span className="inline-flex items-center gap-1">Month by month · MRN vs target<InfoTip title="Month by month" formula="MRN saving of the month ÷ (locked target ÷ months)">One bar per month of the locked timeline. Green = monthly target met, amber = within 10 %, red = short or no MRN, dashed = not posted yet. The % is MRN actual ÷ target to date. Open the row for the graph.</InfoTip></span></th>
                       <th>Progress</th><th>Health</th>
                       <th className="max-[1700px]:hidden"><span className="inline-flex items-center gap-1">Next reminder<InfoTip title="Implementation reminder">Every 15 days; weekly in the last 30 days before the due date. After the due date passes: the day after, then weekly.</InfoTip></span></th>
@@ -272,7 +272,7 @@ export default function ExecutionHub() {
                             </td>
                             <td className="max-[1700px]:hidden"><Tooltip content={commodity?.name ?? i.commodity}><span className="inline-flex items-center h-[22px] px-2 rounded-md bg-slate-100 text-[11.5px] font-bold text-ink-2">{i.commodity}</span></Tooltip></td>
                             <td>
-                              <UserChip userId={ex.ownerId} />
+                              <span className="text-[12.5px] text-ink-2 whitespace-nowrap">{ideaDept(i)}</span>
                             </td>
                             <td className="max-[1700px]:hidden num text-[12.5px]">{fmtDate(ex.startDate)}</td>
                             <td>

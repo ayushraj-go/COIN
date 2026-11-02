@@ -246,7 +246,7 @@ export function runExport(kind: 'pdf' | 'excel', def: MisReport, ctx: Ctx, filte
   if (kind === 'excel') {
     exportExcel(base, [
       { name: 'Summary', rows: [
-        { Item: 'Report', Value: title }, { Item: 'Workspace', Value: def.space === 'CO' ? 'Cost Optimisation' : 'Cost Innovation' }, { Item: 'Audience', Value: def.audience }, { Item: 'Key visuals', Value: def.visuals }, { Item: 'Frequency', Value: def.frequency },
+        { Item: 'Report', Value: title }, { Item: 'Workspace', Value: def.space === 'CO' ? 'Cost Optimisation' : 'Innovation Network' }, { Item: 'Audience', Value: def.audience }, { Item: 'Key visuals', Value: def.visuals }, { Item: 'Frequency', Value: def.frequency },
         { Item: 'Active filters', Value: filters }, { Item: 'Generated', Value: new Date().toLocaleString('en-IN') }, ...spec.kpis.map(([a, b]) => ({ Item: a, Value: b })),
       ] },
       ...spec.tables.map(toSheet),

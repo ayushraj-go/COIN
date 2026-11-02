@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { useStore } from '../store/useStore'
 import { PersonaPicker } from '../components/PersonaPicker'
 import { Avatar, Icon, Modal, Button, cn } from '../components/ui'
+import { StageGuideModal } from './workshops/StageGuide'
 import { AmberWordmark } from '../components/Logo'
 
 // Film grain as an inline SVG (fractal noise), tiled at very low opacity.
@@ -114,7 +115,7 @@ const STEPS = [
 
 // CO / IN is chosen here, before sign-in; the ID then lands on that workspace's dashboard
 const SPACES = [
-  { k: 'IN', t: 'Cost Innovation', d: 'Ideas, workshops and approval', c: 'text-accent-600', b: 'bg-accent-50 ring-accent-100' },
+  { k: 'IN', t: 'Innovation Network', d: 'Ideas, workshops and approval', c: 'text-accent-600', b: 'bg-accent-50 ring-accent-100' },
   { k: 'CO', t: 'Cost Optimisation', d: 'Execution, MRN and verification', c: 'text-brand-600', b: 'bg-brand-50 ring-brand-100' },
 ] as const
 
@@ -129,14 +130,15 @@ export default function Login() {
   const [show, setShow] = useState(false)
   const [keep, setKeep] = useState(true)
   const [forgot, setForgot] = useState(false)
+  const [guide, setGuide] = useState(false)
   const go = () => { useStore.getState().setSpace(space); nav(loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/', { replace: true }) }
-  const NO_SPACE = 'Choose Cost Innovation or Cost Optimisation first.'
+  const NO_SPACE = 'Choose Innovation Network or Cost Optimisation first.'
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!space) { setErr(NO_SPACE); return }
-    if (!email.trim() || !password) { setErr('Enter your department ID and password.'); return }
-    if (login(email, password)) { toast('Welcome to COIN · Cost Innovation Hub'); go() }
-    else setErr('Invalid credentials. For this demo every department ID uses the password coin@2026.')
+    if (!email.trim() || !password) { setErr('Enter your ID and password.'); return }
+    if (login(email, password)) { toast('Welcome to COIN'); go() }
+    else setErr('Invalid credentials. For this demo every ID uses the password coin@2026.')
   }
   const stats: [string, string, string][] = [
     ['CircleCheckBig', 'Ideas implemented', String(ideas.filter((i) => i.bucket === 'Implemented').length)],
@@ -225,8 +227,8 @@ export default function Login() {
             <div className="relative rounded-[20px] bg-white/90 backdrop-blur-xl border border-black/[.06] shadow-[0_1px_2px_rgb(15_27_51/.04),0_24px_60px_-24px_rgb(15_27_51/.22)] px-6 sm:px-7 py-[clamp(16px,2.8vh,28px)]">
               <div>
                 <div className="text-[11.5px] font-semibold tracking-[.16em] uppercase text-accent-600">Welcome back</div>
-                <h2 className="text-[clamp(19px,2.6vh,23px)] font-bold tracking-[-0.025em] text-ink mt-1">Sign in to Cost Innovation Hub</h2>
-                <p className={cn('text-[12.5px] text-muted mt-1', '[@media(max-height:780px)]:hidden')}>Choose the workspace, then use your department ID.</p>
+                <h2 className="text-[clamp(19px,2.6vh,23px)] font-bold tracking-[-0.025em] text-ink mt-1">Sign in to COIN</h2>
+                <p className={cn('text-[12.5px] text-muted mt-1', '[@media(max-height:780px)]:hidden')}>Choose the workspace, then use your ID.</p>
               </div>
 
               <div className="mt-[clamp(10px,1.8vh,16px)] grid grid-cols-2 gap-2" role="radiogroup" aria-label="Workspace">
@@ -244,7 +246,7 @@ export default function Login() {
 
               <form onSubmit={submit} className="mt-[clamp(10px,1.8vh,16px)] space-y-[clamp(8px,1.4vh,14px)]">
                 <div>
-                  <label className="label !text-[12px] !text-ink-2 !font-semibold">Department ID</label>
+                  <label className="label !text-[12px] !text-ink-2 !font-semibold">Your ID</label>
                   <div className="relative">
                     <Icon name="Mail" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
                     <input className="input !h-[clamp(38px,5vh,44px)] !pl-10 !rounded-xl !bg-[var(--color-gray-100)] !border-black/[.07] focus:!bg-white" placeholder="sourcing@ambergroupindia.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} autoComplete="username" />
@@ -272,6 +274,7 @@ export default function Login() {
 
               <div className="flex items-center gap-3 my-[clamp(10px,2vh,18px)] text-[10px] font-semibold uppercase tracking-[.2em] text-muted"><span className="h-px flex-1 bg-black/[.07]" />Quick demo access<span className="h-px flex-1 bg-black/[.07]" /></div>
               <PersonaPicker onPick={(id, label) => { if (!space) { setErr(NO_SPACE); return } loginAs(id); toast(`Signed in as ${label}`); go() }} />
+              <button type="button" onClick={() => setGuide(true)} className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-brand-600 hover:text-brand-800"><Icon name="Route" size={13} />Who does what at each stage</button>
 
             </div>
             <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />Front-end demo · data stays in this browser · password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></p>
@@ -284,10 +287,11 @@ export default function Login() {
         </footer>
       </div>
 
-      <Modal open={forgot} onClose={() => setForgot(false)} title="Reset your password" subtitle="IT manages the department IDs" icon="KeyRound" size="sm"
+      <StageGuideModal open={guide} onClose={() => setGuide(false)} />
+      <Modal open={forgot} onClose={() => setForgot(false)} title="Reset your password" subtitle="IT manages the sign-in IDs" icon="KeyRound" size="sm"
         footer={<Button variant="primary" onClick={() => setForgot(false)}>Got it</Button>}>
         <div className="text-[13px] text-ink-2 space-y-2">
-          <p>Each department shares one ID. To reset its password, contact <b>Sourcing Excellence / IT</b> (the Central ID).</p>
+          <p>Each team shares one ID. To reset its password, contact <b>Sourcing Excellence / IT</b> (the Management ID).</p>
           <p>Suppliers do not sign in. They reach COIN through the unique link of a campaign.</p>
           <p className="text-muted">Demo: every ID's password is <code className="font-mono text-ink">coin@2026</code>.</p>
         </div>

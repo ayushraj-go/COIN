@@ -13,7 +13,7 @@ export const DOC_META = {
   author: '@Bagish',
   table: [
     ['Client', 'Amber Enterprises India Ltd.'],
-    ['Product', 'COIN — Cost Optimisation & Innovation Network (in-app name: Cost Innovation Hub)'],
+    ['Product', 'COIN — Cost Optimisation & Innovation Network'],
     ['Business owner', 'Sourcing / Procurement'],
     ['Document', 'Scope of Work, v3.0 for review — describes the current build'],
     ['Prepared by', 'Vagish Kumar Mishra, Genessence'],
@@ -23,14 +23,14 @@ export const DOC_META = {
 
 export const PURPOSE = [
   "COIN is the single system Amber's Sourcing team uses to capture, value, approve, execute and prove every cost-reduction idea, from submission to realised savings.",
-  'The product is organised as two workspaces. CO (Cost Optimisation) holds execution, everything after approval: implementation through NPD, PAP or internal change, due dates, realised savings from actual MRN, Finance validation, price leakage and the monthly report. IN (Cost Innovation) is the idea network: every department raises ideas on its ID, each idea goes through a workshop, the Central ID approves it, and supplier campaigns feed the portfolio.',
+  'The product is organised as two workspaces. CO (Cost Optimisation) holds execution, everything after approval: implementation through NPD, PAP or internal change, due dates, realised savings from actual MRN, Finance validation, price leakage and the monthly report. IN (Innovation Network) is the idea network: every department raises ideas on its ID, each idea goes through a workshop, the Management ID approves it, and supplier campaigns feed the portfolio.',
   'The portal covers both direct buying (BOM materials and components) and indirect buying.',
 ]
 
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
   { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub (execution, monthly MRN tracking, savings proof, verification) · a month-by-month MRN vs target graph on every request in execution or verification · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-teal-600)' },
-  { code: 'IN', name: 'Cost Innovation', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Capture My Idea · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
+  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Capture My Idea · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
 ]
 export const WORKSPACE_NOTE =
   'After login every user sees the four status cards (Pipeline, In Execution, Implemented, Dropped) and chooses a workspace. The sidebar shows only that workspace\'s pages: Scope & Methodology and MIS are pinned at the bottom, and the workspace badge in the sidebar header switches between CO and IN.'
@@ -58,26 +58,28 @@ export const PROBLEMS: { problem: string; impact: string; solution: string }[] =
 ]
 
 export const ROLES_INTRO =
-  'Each department (R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR) signs in with one ID. Whoever is behind the ID types their name and employee ID on the form, on the workshop event and at sign-off. The Central ID gives management approval and can act at every stage; Finance verifies. Suppliers do not sign in: they reach COIN through the unique link of a campaign.'
+  'Each department (R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR) signs in with one ID. Whoever is behind the ID types their name and employee ID on the form, on the workshop event and at sign-off. The Management ID gives management approval and can act at every stage; Finance verifies. Suppliers do not sign in: they reach COIN through the unique link of a campaign.'
 
 export const ROLES: { key: string; role: string; who: string; job: string; visibility: string }[] = [
-  { key: 'deptlead', role: 'Department ID', who: 'One ID per department', job: 'Stage 1 — captures ideas · Stage 2 — creates the workshop event, technical feasibility and commercial evaluation · Stage 4 — execution', visibility: 'Own department' },
-  { key: 'finance', role: 'Finance ID', who: 'The Finance department ID', job: 'Works as a department ID, and at stage 5 verifies the target from MRN and validates realised savings', visibility: 'All' },
-  { key: 'admin', role: 'Central ID', who: 'Management / Sourcing Excellence', job: 'Stage 3 — management approval, KPI allocation and sign-off; acts at every stage; masters, users, rules, demo data', visibility: 'All' },
+  { key: 'submitter', role: 'Idea Submitter', who: 'Any department ID', job: 'Stage 1 — captures the idea; the person behind the ID types their name and employee ID', visibility: 'Own department' },
+  { key: 'deptlead', role: 'Workshop Owner', who: "The idea's department ID, one owner for each workshop", job: 'Stage 2 — follows the numbered steps: workshop event, technical feasibility, commercial evaluation, then closes the event', visibility: 'Own department' },
+  { key: 'admin', role: 'Management', who: 'The Management ID', job: 'Stage 3 — management approval, KPI allocation and sign-off; can step in at every stage; masters, users, rules, demo data', visibility: 'All' },
+  { key: 'execowner', role: 'Execution Manager', who: 'The Execution Manager ID', job: 'Stage 4 — every execution started, from every department: milestones, notes, NPD and PAP, MRN tracking', visibility: 'All' },
+  { key: 'finance', role: 'Finance Verifier', who: 'The Finance ID', job: 'Stage 5 — verifies the target from MRN and validates realised savings; also the department ID of Finance', visibility: 'All' },
   { key: 'supplier', role: 'Supplier', who: 'Vendors invited to a campaign', job: 'No sign-in: submits ideas through the unique campaign link, answers capability checks', visibility: 'Own replies' },
 ]
 
 // Permission matrix (✓ = allowed, — = not allowed) — mirrors ideaPerms / PERMS
-export const PERM_COLS = ['Department ID', 'Finance ID', 'Central ID', 'Supplier']
+export const PERM_COLS = ['Department ID', 'Finance ID', 'Management ID', 'Execution Manager ID', 'Supplier']
 export const PERMISSION_MATRIX: { action: string; key: string; cells: string[] }[] = [
-  { action: 'Capture idea', key: 'submit', cells: ['✓', '✓', '—', 'Campaign link'] },
+  { action: 'Capture idea', key: 'submit', cells: ['✓', '✓', '—', '—', 'Campaign link'] },
   { action: 'Workshop event, technical feasibility, commercial evaluation', key: 'feasibility', cells: ['Own department', 'Own department', '✓', '—'] },
-  { action: 'Management approval, KPI allocation and sign-off', key: 'approve', cells: ['—', '—', '✓', '—'] },
-  { action: 'Execution — milestones, notes, drop', key: 'execute', cells: ['Own department', 'Own department', '✓', '—'] },
-  { action: 'Verification of the target', key: 'verify', cells: ['—', '✓', '✓', '—'] },
-  { action: 'Run campaigns', key: 'campaign', cells: ['Sourcing', '—', '✓', '—'] },
-  { action: 'View dashboards and MIS', key: 'view', cells: ['Department', 'All', 'All', '—'] },
-  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '✓', '—'] },
+  { action: 'Management approval, KPI allocation and sign-off', key: 'approve', cells: ['—', '—', '✓', '—', '—'] },
+  { action: 'Execution — milestones, notes, drop', key: 'execute', cells: ['—', '—', '✓', '✓', '—'] },
+  { action: 'Verification of the target', key: 'verify', cells: ['—', '✓', '✓', '—', '—'] },
+  { action: 'Run campaigns', key: 'campaign', cells: ['Sourcing', '—', '✓', '—', '—'] },
+  { action: 'View dashboards and MIS', key: 'view', cells: ['Department', 'All', 'All', 'All', '—'] },
+  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '✓', '—', '—'] },
 ]
 
 export const METHOD_INTRO =
@@ -184,30 +186,32 @@ export const FORM_BEHAVIOUR = [
 ]
 
 // ─── Modules (IDs match the badges shown in the app) ──────────────────────────
-export const MODULES_INTRO = 'The portal is delivered as ten modules across the two workspaces; the sidebar shows each user only the pages their role needs.'
+export const MODULES_INTRO = 'The portal is delivered as eleven modules across the two workspaces; the sidebar shows each user only the pages their role needs.'
 export const MODULES: { id: string; name: string; tag: DocSpace; space: string; screens: string; scope: string; path: string }[] = [
   { id: 'M1', name: 'Entry and dashboards', tag: 'Both', space: 'CO and IN', screens: 'Sign-in card with the CO / IN choice, workspace dashboards', scope: 'CO or IN is chosen on the sign-in card; each workspace has one dashboard page holding the four status cards, the commodity, department and individual views and the analytics', path: '/' },
-  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for the workshop event, technical feasibility, commercial evaluation, Follow-up / Go ahead, Approve / Reject, Send back (the Central ID chooses the stage), Request info and Drop; from execution on, the "Monthly savings vs target (MRN)" card graphs every month of the locked timeline', path: '/ideas/:id' },
+  { id: 'M4', name: 'Idea 360 page and side panel', tag: 'Both', space: 'CO and IN', screens: 'Single idea view', scope: 'Stage tracker, value card (estimated vs approved vs realised), part-wise savings, attachments, comments with @mentions, activity log, NPD and PAP request chips; action bar for the workshop event, technical feasibility, commercial evaluation, Follow-up / Go ahead, Approve / Reject, Send back (the Management ID chooses the stage), Request info and Drop; from execution on, the "Monthly savings vs target (MRN)" card graphs every month of the locked timeline', path: '/ideas/:id' },
   { id: 'M10', name: 'MIS', tag: 'Both', space: 'Pinned in CO and IN', screens: 'Report library, KPI library, monthly mailer, scheduled emails', scope: '12 standard reports with filter bar and Excel / PDF export; monthly management mailer', path: '/reports' },
   { id: 'M8', name: 'Execution Hub', tag: 'CO', space: 'CO', screens: 'Execution dashboard', scope: 'Tabs Execution · Monthly MRN tracking · Savings proof · Verification; approved ideas with owner, locked deadline, month-by-month MRN vs target bars and graph, milestones, NPD / PAP, reminder schedule, health and drop; ideas move to verification by themselves on the deadline', path: '/execution' },
   { id: 'NPD', name: 'NPD development master', tag: 'CO', space: 'CO (also listed in IN)', screens: 'Read-only master', scope: 'Commodity codes, development SPOC per plant / product line, DQA SPOC, performance and reliability testing days, vendor groups and payment methods — synced from VMS', path: '/npd' },
   { id: 'M2', name: 'Idea Register / My Ideas', tag: 'IN', space: 'IN (Implemented ideas view in CO)', screens: 'Table + Kanban', scope: 'Filter bar, saved views, quick filters as chips, Kanban by stage with drag to move (permission-checked), Excel export, ageing badge on each row', path: '/ideas' },
   { id: 'M3', name: 'Capture My Idea', tag: 'IN', space: 'IN', screens: 'Collapsible form', scope: 'Collapsible steps A–E, fixed summary panel, duplicate check, route preview, campaign pre-fill, auto-saved draft', path: '/submit' },
+  { id: 'M5', name: 'Workshops', tag: 'IN', space: 'IN', screens: 'Workshop list, Who does what guide', scope: 'Every idea at stage 2 with its status, next event, SPOC and what is still needed; a department ID sees the workshops it runs and the Management ID sees all of them; the guide names the ID that works each of the five stages and opens that stage as that ID', path: '/workshops' },
   { id: 'M6', name: 'Supplier access', tag: 'IN', space: 'IN', screens: 'Campaign link page, supplier capability form', scope: 'Suppliers do not sign in. They submit ideas through the unique link of a campaign, and answer capability requests through a secure link', path: '/campaigns' },
   { id: 'M7', name: 'Campaigns', tag: 'IN', space: 'IN', screens: 'Dashboard, Workshops & drives, Supplier responses, Email templates', scope: 'Supplier email campaigns through a four-step wizard; replies from the Supplier Portal converted into ideas; workshops with attendance and auto-invites; template add / edit', path: '/campaigns' },
   { id: 'M12', name: 'Admin & Masters', tag: 'IN', space: 'IN', screens: 'Settings', scope: 'Commodity group, commodity, idea category, route, department, plant, user–role–commodity mapping, vendor and part masters, approval matrix, drop reasons, SLA and reminder rules, email templates, FY calendar, settings, audit trail, data backup and reset', path: '/admin' },
 ]
 
 export const NAV_BY_ROLE: { role: string; coNav: string; inNav: string }[] = [
-  { role: 'Department ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Capture My Idea · MIS (Sourcing also Campaigns)' },
-  { role: 'Finance ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Capture My Idea · MIS' },
-  { role: 'Central ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
+  { role: 'Department ID', coNav: 'Execution Hub (read only) · MIS', inNav: 'My queue · Idea Register · Workshops · Capture My Idea · MIS (Sourcing also Campaigns)' },
+  { role: 'Finance ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · Idea Register · Workshops · Capture My Idea · MIS' },
+  { role: 'Management ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · Idea Register · Workshops · Campaigns · Admin & Masters · MIS' },
+  { role: 'Execution Manager ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · MIS' },
 ]
 export const NAV_NOTE = 'Every role also has the Dashboard at the top and Scope & Methodology just above MIS at the bottom of both workspaces. The NPD master opens from Scope & Methodology.'
 
-export const APPROVAL_NOTE = 'Every idea goes to management approval through the Central ID.'
+export const APPROVAL_NOTE = 'Every idea goes to management approval through the Management ID.'
 export const APPROVAL_MATRIX_DOC: [string, string][] = [
-  ['Every idea', 'Central ID (management approval, KPI allocation and sign-off)'],
+  ['Every idea', 'Management ID (management approval, KPI allocation and sign-off)'],
 ]
 
 // ─── Supplier campaigns (IN) ────────────────────────────────────────
@@ -252,7 +256,7 @@ export const NPD_USE = [
 export const EXECUTION_INTRO =
   'Every approved idea enters the Execution Hub with an owner and the deadline signed with its KPI at management approval. MRN is read from the ERP every month and compared with the monthly forecast; on the deadline COIN moves the idea to verification by itself — nobody hands over by hand. An idea leaves earlier only when dropped with a reason.'
 export const EXECUTION_RECORD: [string, string][] = [
-  ['Idea owner', 'The KPI owner named at approval, working through the department ID'],
+  ['Idea owner', 'The KPI owner named at approval'],
   ['Start date', 'Auto = approval date'],
   ['Deadline', 'The savings end signed with the KPI at management approval; it does not move during execution'],
   ['MRN tracking', 'Each completed month: the monthly forecast signed with the lock vs the saving in the MRN receipts that pass the claim rules; no MRN, no saving'],
@@ -360,17 +364,17 @@ export const REPORTS_INTRO =
   'MIS holds twelve standard reports for every audience, a KPI library, the monthly mailer and the scheduled-email list; the Monthly Cost Optimisation Report goes to management automatically, with no manual MIS.'
 export const REPORTS: { n: number; key: string; name: string; audience: string; visuals: string; frequency: string }[] = [
   { n: 1, key: 'home', name: 'Sourcing summary', audience: 'Sourcing ID', visuals: 'Savings summary, funnel, monthly savings trend', frequency: 'Live' },
-  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Central ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
+  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Management ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
   { n: 3, key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Realised, committed, pipeline, conversion per commodity', frequency: 'Live' },
-  { n: 4, key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Realised, committed, on-time %, overdue ₹, ageing per buyer', frequency: 'Live / monthly' },
+  { n: 4, key: 'buyer', name: 'Buyer scorecard', audience: 'Management ID', visuals: 'Realised, committed, on-time %, overdue ₹, ageing per buyer', frequency: 'Live / monthly' },
   { n: 5, key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing ID, supplier reviews', visuals: 'Ideas, value, conversion, gain-share, leakage per supplier', frequency: 'Quarterly' },
-  { n: 6, key: 'lever', name: 'Category mix', audience: 'Central ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
-  { n: 7, key: 'execution', name: 'Execution Hub dashboard', audience: 'Department IDs', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
-  { n: 8, key: 'drops', name: 'Drop analysis', audience: 'Central ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
+  { n: 6, key: 'lever', name: 'Category mix', audience: 'Management ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
+  { n: 7, key: 'execution', name: 'Execution Hub dashboard', audience: 'Execution Manager ID', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
+  { n: 8, key: 'drops', name: 'Drop analysis', audience: 'Management ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
   { n: 9, key: 'ageing', name: 'Ageing & SLA breach', audience: 'Sourcing ID', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
   { n: 10, key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing ID', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
-  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
-  { n: 12, key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Central ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
+  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Management ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
+  { n: 12, key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Management ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
 ]
 export const REPORTS_NOTE = 'Every chart is clickable through to the idea list behind it, and every report exports to Excel and PDF with the active filters from the MIS filter bar.'
 export const MAILER: [string, string][] = [
@@ -398,8 +402,8 @@ export const REMINDERS_ON_SCREEN: { text: string; space: DocSpace }[] = [
   { text: 'SLA watch (IN Dashboard) and My actions show each idea in a review stage as Within SLA, Reminder due, Breached or Escalated, from the stage SLA rules below.', space: 'IN' },
 ]
 export const SLA_DEFAULTS: { stage: string; slaDays: number; reminderDay: number; escalateTo: string; escalateDay: number }[] = [
-  { stage: 'Workshop / event creation', slaDays: 15, reminderDay: 12, escalateTo: 'Central ID', escalateDay: 16 },
-  { stage: 'Management approval', slaDays: 3, reminderDay: 2, escalateTo: 'Central ID', escalateDay: 4 },
+  { stage: 'Workshop / event creation', slaDays: 15, reminderDay: 12, escalateTo: 'Management ID', escalateDay: 16 },
+  { stage: 'Management approval', slaDays: 3, reminderDay: 2, escalateTo: 'Management ID', escalateDay: 4 },
   { stage: 'Finance validation', slaDays: 5, reminderDay: 4, escalateTo: 'Finance Head', escalateDay: 6 },
 ]
 export const NOTIF_FOOTNOTE =
@@ -503,7 +507,7 @@ export const DECISIONS: { n: number; decision: string; proposed: string }[] = [
   { n: 1, decision: 'Meaning and route of the "Strategic masking" category', proposed: 'To be defined by Sourcing' },
   { n: 2, decision: 'Finance validation before realised savings are reported', proposed: 'Yes' },
   { n: 3, decision: 'Baseline rule for parts with no LBP and new parts', proposed: 'Current PO price; quoted price for new parts' },
-  { n: 4, decision: 'Who signs behind the Central ID, and on what basis', proposed: 'Open point: workshop minutes and the KPI are the basis today' },
+  { n: 4, decision: 'Who signs behind the Management ID, and on what basis', proposed: 'Open point: workshop minutes and the KPI are the basis today' },
   { n: 5, decision: 'Cost avoidance counted in realised savings', proposed: 'No, reported separately' },
   { n: 6, decision: 'Supplier access route', proposed: 'The unique link of a campaign; no sign-in and no VMS access' },
   { n: 7, decision: 'Who can submit ideas', proposed: 'Departments through their ID; suppliers through a campaign link' },

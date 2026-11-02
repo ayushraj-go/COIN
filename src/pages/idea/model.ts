@@ -178,7 +178,7 @@ export interface IdeaPerms {
   sendBack: boolean; requestInfo: boolean; reassign: boolean; drop: boolean
   /** always false — COIN moves an idea to Verification itself when the locked timeline ends */
   handOver: boolean
-  /** the execution owner (or override) keeps the execution record: milestones, notes, NPD / PAP */
+  /** the Execution Manager ID (or the Management ID) keeps the execution record: milestones, notes, NPD / PAP */
   execute: boolean
   verify: boolean
   override: boolean; sync: boolean; continueDraft: boolean; comment: boolean; upload: boolean
@@ -189,18 +189,18 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
   const stage = idea.stage
   const pipeline = idea.bucket === 'Pipeline'
   const exec = idea.bucket === 'In Execution'
-  // the Central ID can act at every stage; a department ID only at its own stages, on its own department's ideas
+  // the Management ID can step in at every stage; every other ID only at the stage it owns
   const head = hasRole(me, 'head', 'admin')
   const scope = inScope(me, idea)
   const validator = can(me, 'validate') && scope
-  // each stage belongs to one ID (stageAssignee): the department at the workshop and in execution, Central at approval
+  // each stage belongs to one ID (stageAssignee): the department at the workshop, Management at approval, the Execution Manager in execution
   const assigned = stageAssignee(idea, stage, usersNow()) === me.id
   const workshop = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || assigned)
   const feasibilityCheck = workshop
   const evaluate = workshop && !idea.evaluation?.skipped && needsEvaluation(ideaAnnualised(idea))
   const approve = pipeline && stage === STAGE.approval && idea.approvals.some((a) => !a.decision) && (head || assigned)
   const actor = workshop || approve
-  // stage 4 — the department ID that owns the execution
+  // stage 4 — the Execution Manager ID
   const executor = head || stageAssignee(idea, STAGE.execution, usersNow()) === me.id
   return {
     workshop, feasibilityCheck, evaluate, approve,
@@ -253,9 +253,9 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   if (from.key === targetKey) return { ok: false, reason: '', same: true }
   if (!me) return { ok: false, reason: 'Sign in to move ideas' }
   if (idea.bucket === 'Implemented' || idea.bucket === 'Dropped') return { ok: false, reason: `${idea.id} is ${idea.stage === 'Dropped' || idea.stage === 'Rejected' ? 'dropped for good' : 'in verification'} — it cannot be moved on the board` }
-  // every move is decided by the ID that owns the stage being left, or the Central ID
+  // every move is decided by the ID that owns the stage being left, or the Management ID
   const p = ideaPerms(me, idea)
-  const who = `the ${ideaDept(idea)} ID (or the Central ID)`
+  const who = `the ${ideaDept(idea)} ID (or the Management ID)`
   if (targetKey === 'dropped') {
     if (!p.drop) return { ok: false, reason: `Dropping ${idea.id} needs ${who}` }
     return { ok: true, kind: 'drop', stage: 'Dropped', backward: false }
@@ -274,10 +274,10 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
     if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the KPI and approve in management approval before execution can start' }
   }
   if (ti > ai && ci <= ai) {
-    if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: 'Moving past management approval needs the Central ID' }
+    if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: 'Moving past management approval needs the Management ID' }
   } else if (ti <= ai) {
     if (!(p.workshop || p.approve)) return { ok: false, reason: `Moving ${idea.id} needs ${who}` }
-  } else if (!p.execute) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} ID (or the Central ID)` }
+  } else if (!p.execute) return { ok: false, reason: 'Execution moves need the Execution Manager ID (or the Management ID)' }
   return { ok: true, kind: 'move', stage, backward: ti < ci }
 }
 
@@ -286,10 +286,9 @@ export function execRights(me: User | null | undefined, idea: Idea) {
   const p = ideaPerms(me, idea)
   return { editable: p.execute, canReassign: p.reassign && idea.bucket === 'In Execution' }
 }
-/** Who an execution can be handed to: the idea's department execution owners (Sourcing: the commodity buyers) */
+/** Who can hold an execution: the Execution Manager ID */
 export function ownerCandidates(idea: Idea, users: User[]): User[] {
-  const dept = ideaDept(idea)
-  const list = users.filter((u) => u.active !== false && u.department === dept && u.roles.includes('execowner'))
+  const list = users.filter((u) => u.active !== false && u.roles.includes('execowner'))
   const cur = users.find((u) => u.id === idea.ownerId)
   return cur && !list.includes(cur) ? [cur, ...list] : list
 }

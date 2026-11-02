@@ -48,7 +48,7 @@ const inView = (view: View, space: DocSpace | string) => view === 'All' || space
 /** Section numbers for the current view (sections hidden in this view are absent) */
 const NumCtx = createContext<Record<string, string>>({})
 const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: 'var(--color-emerald-600)' }, IN: { label: 'IN', color: 'var(--color-brand-600)' }, Both: { label: 'CO · IN', color: 'var(--color-slate-500)' } }
-const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Cost Innovation (IN)', All: 'both workspaces (CO and IN)' }
+const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Innovation Network (IN)', All: 'both workspaces (CO and IN)' }
 // KPI groups and reports by workspace (CO first in every listing)
 const KPI_GROUP_SPACE: Record<string, DocSpace> = { A: 'Both', B: 'IN', C: 'Both', D: 'CO', E: 'Both', F: 'IN' }
 const REPORT_SPACE: Record<string, DocSpace> = { home: 'Both', bridge: 'Both', commodity: 'Both', buyer: 'Both', supplier: 'IN', lever: 'Both', execution: 'CO', drops: 'Both', ageing: 'IN', campaign: 'IN', leakage: 'CO', closure: 'CO' }

@@ -174,7 +174,7 @@ function UploadMrnModal({ open, onClose }: { open: boolean; onClose: () => void 
     toast(`${r.posted} receipts posted — ${r.claimed} counted${mine.some((l) => before.has(l.id)) ? ' (earlier copies replaced)' : ''}`, r.claimed ? 'success' : 'info')
   }
   const template = () => {
-    const blob = new Blob([`${MRN_CSV_HEADER}\n5000123456,05-09-2026,RJP,3100045612,V10021,120000,3.85,4500012345\n`], { type: 'text/csv' })
+    const blob = new Blob([`${MRN_CSV_HEADER}\n5000123456,05-09-2026,RJP,AC03045612,V10021,120000,3.85,4500012345\n`], { type: 'text/csv' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'COIN_MRN_extract_template.csv'; a.click(); URL.revokeObjectURL(a.href)
   }
   return (

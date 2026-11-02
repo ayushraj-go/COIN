@@ -1,5 +1,19 @@
 // Section 7 — submission form model: typed inputs are kept as strings so partial entry never breaks the live maths.
-import type { Attachment, BuyingType, Idea, IdeaPart, IdeaScope, Lever, Part, Supplier, User } from '../../lib/types'
+import type { Attachment, BuyingType, Commodity, Idea, IdeaPart, IdeaScope, Lever, Part, Supplier, User } from '../../lib/types'
+
+/** ERP part search by code, description or commodity, in any case. One idea = one commodity: once one is chosen only its parts are offered */
+export function searchParts(parts: Part[], commodity: string, q: string, commodities: Pick<Commodity, 'code' | 'name'>[]): Part[] {
+  const k = q.trim().toLowerCase()
+  const cname = (code: string) => commodities.find((c) => c.code === code)?.name.toLowerCase() ?? ''
+  const pool = commodity ? parts.filter((p) => p.commodity === commodity) : parts
+  return k ? pool.filter((p) => p.code.toLowerCase().includes(k) || p.description.toLowerCase().includes(k) || p.commodity.toLowerCase().includes(k) || cname(p.commodity).includes(k)) : pool
+}
+
+/** The row the part list lands on next from `from`, stepping over parts already on the idea and staying put at either end. From -1 it finds the first free row */
+export function nextFreePart(rows: Pick<Part, 'code'>[], taken: string[], from: number, step: 1 | -1): number {
+  for (let i = from + step; i >= 0 && i < rows.length; i += step) if (!taken.includes(rows[i].code)) return i
+  return from
+}
 
 /** Form-level scope: part codes picked from the whole ERP, or one supplier and its parts. "Supplier" is persisted as `scopeSupplierCode`. */
 export type FormScope = 'Part-specific' | 'Supplier'

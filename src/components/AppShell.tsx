@@ -34,7 +34,7 @@ function Logo({ collapsed, tone }: { collapsed: boolean; tone?: 'light' | 'dark'
 
 const SPACE_META = {
   CO: { code: 'CO', name: 'Cost Optimisation', sub: 'Execution & savings' },
-  IN: { code: 'IN', name: 'Cost Innovation', sub: 'Ideas, suppliers, approvals' },
+  IN: { code: 'IN', name: 'Innovation Network', sub: 'Ideas, suppliers, approvals' },
 } as const
 
 function SideLink({ i, collapsed, badge }: { i: ReturnType<typeof navForSpace>[number]; collapsed: boolean; badge?: number }) {
@@ -88,7 +88,7 @@ function Sidebar() {
                 <button key={k} type="button" aria-pressed={on} title={SPACE_META[k].name} onClick={() => { if (!on) setSpace(k); nav('/') }}
                   className={cn('min-w-0 flex items-center gap-[5px] rounded-lg py-1.5 text-left transition-colors', collapsed ? 'justify-center' : 'px-1', on ? 'bg-[var(--sb-active-bg)]' : 'hover:bg-[var(--sb-hover)]')}>
                   <span className={cn('h-6 w-6 rounded-md text-white text-[10px] font-extrabold grid place-items-center shrink-0 transition-opacity', k === 'CO' ? 'bg-co-grad' : 'bg-brand-grad', !on && 'opacity-60')}>{k}</span>
-                  {!collapsed && <span className={cn('min-w-0 text-[10px] leading-[1.2]', on ? 'font-semibold text-[var(--sb-active-fg)]' : 'font-medium text-[var(--sb-card-sub)]')}>{k === 'CO' ? <>Cost<br />Optimisation</> : <>Cost<br />Innovation</>}</span>}
+                  {!collapsed && <span className={cn('min-w-0 text-[10px] leading-[1.2]', on ? 'font-semibold text-[var(--sb-active-fg)]' : 'font-medium text-[var(--sb-card-sub)]')}>{k === 'CO' ? <>Cost<br />Optimisation</> : <>Innovation<br />Network</>}</span>}
                 </button>
               )
             })}
@@ -286,7 +286,7 @@ function UserMenu() {
               </div>
               <div className="flex flex-wrap gap-1 px-2 pb-2"><Badge color="var(--color-brand-600)">{ROLE_LABEL[primaryRole(me)]}</Badge></div>
               <div className="border-t border-line my-1" />
-              <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch department ID</div>
+              <div className="px-2 pt-1 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-muted">Switch ID</div>
               <div className="px-2 pb-2"><PersonaPicker compact currentUserId={me.id} onPick={(id, label) => { const st = useStore.getState(); const space = st.space; loginAs(id); st.setSpace(space); setOpen(false); nav('/'); toast(`Switched to ${label}`, 'info') }} /></div>
               <div className="border-t border-line my-1" />
               <button onClick={() => { if (confirm('Reset all demo data to the original seed? Local changes will be lost.')) { resetDemo(); toast('Demo data reset', 'info') } setOpen(false) }} className="w-full flex items-center gap-2 px-2 h-9 rounded-lg text-[12.5px] hover:bg-slate-50"><Icon name="RotateCcw" size={15} />Reset demo data</button>

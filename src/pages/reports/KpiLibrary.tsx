@@ -249,13 +249,13 @@ export default function KpiLibrary({ ctx, filterText, space }: { ctx: Ctx; filte
     }))
     const name = `COIN_KPI_library_${space ?? 'all'}_${ctx.fy}`
     if (kind === 'excel') exportExcel(name, [{ name: 'KPI library', rows: rows.map((r) => ({ Workspace: SPACE_META[r.space].name, ID: r.id, Group: r.group, KPI: r.kpi, Value: r.value, 'Raw value': isFinite(r.raw) ? +r.raw.toFixed(4) : '', 'Formula / definition': r.formula, 'Cut by': r.cut })) }, { name: 'Filters', rows: [{ 'Active filters': filterText }] }])
-    else exportPdf({ filename: name, title: `KPI library - ${space ? SPACE_META[space].name : 'all workspaces'}`, subtitle: pdfText(space ? KPI_INTRO_BY_SPACE[space] : 'Cost Optimisation and Cost Innovation KPIs'), filters: pdfText(filterText), sections: spaces.flatMap((sp) => [...new Set(kpisOf(sp).map((k) => k.group))].map((g) => ({ title: pdfText(`${sp} · ${g}`), head: ['ID', 'KPI', 'Value', 'Formula / definition', 'Cut by'], body: rows.filter((r) => r.space === sp && r.group === g).map((r) => [r.id, r.kpi, r.value, r.formula, r.cut].map(pdfText)) }))) })
+    else exportPdf({ filename: name, title: `KPI library - ${space ? SPACE_META[space].name : 'all workspaces'}`, subtitle: pdfText(space ? KPI_INTRO_BY_SPACE[space] : 'Cost Optimisation and Innovation Network KPIs'), filters: pdfText(filterText), sections: spaces.flatMap((sp) => [...new Set(kpisOf(sp).map((k) => k.group))].map((g) => ({ title: pdfText(`${sp} · ${g}`), head: ['ID', 'KPI', 'Value', 'Formula / definition', 'Cut by'], body: rows.filter((r) => r.space === sp && r.group === g).map((r) => [r.id, r.kpi, r.value, r.formula, r.cut].map(pdfText)) }))) })
   }
   return (
     <div className="grid gap-3">
       <div className="card p-3 flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[280px]">
-          <div className="text-[13px] font-semibold text-ink">{space ? KPI_INTRO_BY_SPACE[space] : `${total} KPIs across both workspaces. Cost Optimisation KPIs measure execution and realisation; Cost Innovation KPIs measure the idea network.`}</div>
+          <div className="text-[13px] font-semibold text-ink">{space ? KPI_INTRO_BY_SPACE[space] : `${total} KPIs across both workspaces. Cost Optimisation KPIs measure execution and realisation; Innovation Network KPIs measure the idea network.`}</div>
           <div className="text-[11.5px] text-muted mt-1">Every value is computed live for the filters above; click a row to open the ideas behind it.</div>
         </div>
         <Button size="sm" icon="FileSpreadsheet" onClick={() => doExport('excel')}>Excel</Button>

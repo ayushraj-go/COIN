@@ -1,6 +1,6 @@
 // Stage 4–5 on MRN receipts: the monthly ERP feed, the claim rules, saving at the price billed, verification after the
 // final month's MRN, and the lock that keeps the forecast it was signed on.
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useStore } from './useStore'
 import { throughWorkshop } from './flow.testkit'
 import { ideaAnnualised } from '../lib/calc'
@@ -18,14 +18,16 @@ function approved(start: string, end: string, months: number) {
   st().loginAs('id-hr')
   const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
   throughWorkshop(id)
-  st().loginAs('id-central')
+  st().loginAs('id-management')
   st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: months, startDate: start, endDate: end, targetSaving: lockTarget(ideaAnnualised(idea(id)), months), signatureName: 'Lata Krishnan' })
   st().approve(id)
   return id
 }
 const reads = (month: string) => st().mrnReads.filter((r) => r.month === month)
 
-beforeEach(() => { st().resetDemo() })
+// the feed skips a part's month on 1 draw in 100; these tests are about what happens to the receipts, so they always arrive
+beforeEach(() => { st().resetDemo(); vi.spyOn(Math, 'random').mockReturnValue(0.5) })
+afterEach(() => { vi.restoreAllMocks() })
 
 describe('the monthly MRN feed', () => {
   it('the demo starts with a receipt trail: every saving traces to MRN receipts', () => {
@@ -112,7 +114,7 @@ describe('the lock keeps the forecast it was signed on', () => {
     st().loginAs('id-hr')
     const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
     throughWorkshop(id)
-    st().loginAs('id-central')
+    st().loginAs('id-management')
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: 1680000, signatureName: 'Lata Krishnan' })
     expect(idea(id).lock?.forecastAtLock).toBe(3360000)
     expect(idea(id).lock?.monthlyPlan).toHaveLength(6)

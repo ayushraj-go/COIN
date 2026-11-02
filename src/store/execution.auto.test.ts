@@ -1,7 +1,7 @@
 // Stage 4–5 run on MRN: savings are counted only from MRN transactions month by month, inside the locked timeline;
 // when the timeline signed at stage 3 ends, the idea moves to Verification by itself with forecast vs MRN actual.
 // Also: the commercial evaluation's cost-benefit inputs can be changed, and the pipeline has no free "reassign".
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useStore } from './useStore'
 import { throughWorkshop } from './flow.testkit'
 import { ideaPerms, kanbanMove } from '../pages/idea/model'
@@ -21,13 +21,15 @@ function approved(start: string, end: string, months: number) {
   st().loginAs('id-hr')
   const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
   throughWorkshop(id)
-  st().loginAs('id-central')
+  st().loginAs('id-management')
   st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: months, startDate: start, endDate: end, targetSaving: lockTarget(ideaAnnualised(idea(id)), months), signatureName: 'Lata Krishnan' })
   st().approve(id)
   return id
 }
 
-beforeEach(() => { st().resetDemo() })
+// the feed skips a part's month on 1 draw in 100; these tests are about what happens to the receipts, so they always arrive
+beforeEach(() => { st().resetDemo(); vi.spyOn(Math, 'random').mockReturnValue(0.5) })
+afterEach(() => { vi.restoreAllMocks() })
 
 describe('MRN drives execution', () => {
   it('the first MRN at the new price comes from the MRN feed, not typed by hand', () => {
@@ -75,8 +77,8 @@ describe('the locked deadline closes execution', () => {
   it('nobody hands over by hand', () => {
     const id = approved('2026-06-01', '2026-09-01', 3)
     expect(ideaPerms(user('id-hr'), idea(id)).handOver).toBe(false)
-    expect(ideaPerms(user('id-central'), idea(id)).handOver).toBe(false)
-    expect(kanbanMove(user('id-central'), idea(id), 'verification').ok).toBe(false)
+    expect(ideaPerms(user('id-management'), idea(id)).handOver).toBe(false)
+    expect(kanbanMove(user('id-management'), idea(id), 'verification').ok).toBe(false)
   })
   it('the monthly MRN sync posts every completed month not yet posted, then closes ended timelines', () => {
     const before = st().settings.lastRealisationMonth
@@ -126,8 +128,8 @@ describe('no free reassign in the pipeline', () => {
     const id = st().submitIdea({ title: 'x', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
     throughWorkshop(id)
     expect(idea(id).stage).toBe(STAGE.approval)
-    expect(ideaPerms(user('id-central'), idea(id)).reassign).toBe(false)
-    expect(ideaPerms(user('id-central'), idea(id)).sendBack).toBe(true)
+    expect(ideaPerms(user('id-management'), idea(id)).reassign).toBe(false)
+    expect(ideaPerms(user('id-management'), idea(id)).sendBack).toBe(true)
     expect(sendBackTargets(idea(id)).map((t) => t.to)).toEqual(['submitter', STAGE.feasibility])
   })
 })
@@ -138,7 +140,7 @@ describe('evaluation inputs survive a send back to the workshop', () => {
     const j = st().submitIdea({ title: 'y', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
     st().saveEvaluation(j, { cbaVerified: true, cbaInputs: { investment: 200000, payback: 6 } })
     throughWorkshop(j)
-    st().loginAs('id-central'); st().sendBack(j, 'redo risks', STAGE.feasibility)
+    st().loginAs('id-management'); st().sendBack(j, 'redo risks', STAGE.feasibility)
     expect(idea(j).stage).toBe(STAGE.feasibility)
     expect(idea(j).evaluation?.cbaVerified).toBeFalsy()
     expect(idea(j).evaluation?.cbaInputs).toEqual({ investment: 200000, payback: 6 })

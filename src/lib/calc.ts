@@ -182,12 +182,12 @@ export function slaStatus(idea: Idea, rules: SlaRule[]) {
 // ─── Visibility (Section 3) ───────────────────────────────────────────────────
 export function canSeeIdea(user: User, idea: Idea): boolean {
   const r = user.roles
-  if (r.some((x) => x === 'head' || x === 'finance' || x === 'mgmt' || x === 'admin')) return true
+  if (r.some((x) => x === 'head' || x === 'finance' || x === 'mgmt' || x === 'admin' || x === 'execowner')) return true
   if (idea.submitterId === user.id || idea.ownerId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
   // a department ID: every idea of its department
-  if (r.some((x) => x === 'teamlead' || x === 'deptlead' || x === 'depthead' || x === 'execowner') && ideaDept(idea) === user.department) return true
+  if (r.some((x) => x === 'teamlead' || x === 'deptlead' || x === 'depthead') && ideaDept(idea) === user.department) return true
   return false
 }
 export const visibleIdeas = (user: User, ideas: Idea[]) => (user ? ideas.filter((i) => canSeeIdea(user, i)) : [])
