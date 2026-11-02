@@ -19,6 +19,14 @@ describe('workspace names', () => {
   it('calls stage 3 Management, never the Central ID', () => {
     expect(Object.keys(sources).filter((f) => /Central ID|central@|id-central/.test(sources[f]))).toEqual([])
   })
+  it('names the Execution Manager ID wherever it lists who sees everything', () => {
+    // the no-access page and the MIS gate explain who sees all: Finance, Management and the Execution Manager
+    for (const f of ['src/pages/Idea360.tsx', 'src/pages/Reports.tsx']) {
+      const key = Object.keys(sources).find((k) => k.endsWith(f.replace('src/', '')) || k.endsWith(f))!
+      const line = sources[key].split('\n').find((l) => /Management ID/.test(l) && /desc=/.test(l)) ?? ''
+      expect(line, f).toMatch(/Execution Manager ID/)
+    }
+  })
   it('calls IN the Innovation Network', () => {
     expect(SPACE_META.IN.name).toBe('Innovation Network')
     expect(WORKSPACES.find((w) => w.code === 'IN')?.name).toBe('Innovation Network')
