@@ -1,6 +1,6 @@
 import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, MrnLine, MrnRead, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User, WorkshopEvent } from './types'
 import { claimMrn, ledgerForMonth, monthlyForecast, seasonProfile, simulateMrnMonth } from './mrn'
-import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
+import { COMMODITIES_DEFAULT, IDEA_PARTS, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, daysBetween, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
 import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, signInId, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
@@ -158,12 +158,12 @@ function evaluatorFor(evaluator: string) {
 
 type Target = 'Draft' | 'Pipeline' | 'In Execution' | 'Implemented' | 'Dropped' | 'Rejected'
 
-/** Who acts on an idea: the department's one ID, Central at management approval, Finance at verification */
+/** Who acts on an idea: the department's one ID at the workshop, Management at approval, the Execution Manager in execution, Finance at verification */
 function ladderFor(dept: string) {
   const l = ladderOf(dept, users)
-  return { feas: l.departmentId!, evaluator: l.departmentId!, head: l.central!, exec: l.departmentId!, verifier: l.verifier! }
+  return { feas: l.departmentId!, evaluator: l.departmentId!, head: l.management!, exec: l.execution!, verifier: l.verifier! }
 }
-/** The person behind the Central ID who signs for a department on the demo data */
+/** The person behind the Management ID who signs for a department on the demo data */
 const signerFor = (dept: string) => users.find((u) => u.department === dept && u.roles.includes('depthead'))!.name
 const DISCUSSION_POINTS = ['Is the change workable on the line without new tooling?', 'Does the new price hold for the full annual volume?', 'Which trials and approvals are needed, and who owns them?', 'What is the supply risk during the change-over?']
 /** One workshop event: scheduled, or held and closed with its outcome */
@@ -197,7 +197,7 @@ function buildIdea(opts: {
   const lever = LEVERS_DEFAULT.find((l) => l.id === opts.leverId)!
   const route: RouteKey = lever.route
   const routeStages = ROUTE_STAGES[route]
-  const parts = PARTS_DEFAULT.filter((p) => p.commodity === c.code)
+  const parts = IDEA_PARTS.filter((p) => p.commodity === c.code)
   const nParts = Math.min(parts.length, chance(0.25) ? 2 : 1)
   const chosen = [...parts].sort(() => rnd() - 0.5).slice(0, nParts)
   const share = +r(0.6, 1).toFixed(2)
@@ -369,7 +369,7 @@ function buildIdea(opts: {
   }
 
   // approvals
-  // stage 3 — one approval level: management, on the Central ID
+  // stage 3 — one approval level: management, on the Management ID
   idea.approvals = [{ level: 'Management', approverId: lad.head }]
   if (idea.approvedAt) idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: idea.approvedAt, remarks: 'Approved — KPI signed off.' }))
 
@@ -536,7 +536,7 @@ export function seedIdeas(): Idea[] {
   ideas.push(buildIdea({ commodity: 'FI', leverId: 'L16', target: 'Draft', submitterId: 'u-sub1' }))
 
   // Worked example (Section 4): fastener ₹ 4.20 → ₹ 3.85 on 24,00,000 units, live 1 October → ₹ 8.40 L annual, ₹ 4.20 L committed, ₹ 4.20 L carry-over
-  const fasPart = PARTS_DEFAULT.find((p) => p.code === '3100045612')!
+  const fasPart = PARTS_DEFAULT.find((p) => p.code === 'AC03045612')!
   const we = buildIdea({
     commodity: 'BN', leverId: 'L11', target: 'In Execution', stageOverride: STAGE.execution, createdAt: '2026-06-18', supplierCode: 'V10021', campaignId: undefined, seq: 12,
     title: 'Switch M6×16 flange bolt plating from Zn-Ni to trivalent Zn with sealer',
@@ -586,25 +586,25 @@ function buildShowcase(): Idea[] {
     { n: 1, commodity: 'AO', leverId: 'L06', submitterId: 'u-sub1', title: 'Localise the terminal cover and discharge muffler of the 1.5 TR inverter compressor',
       current: 'Terminal cover and discharge muffler of the 1.5 TR inverter compressor come with the imported compressor kit; their landed cost moves with USD.',
       proposed: 'Localise both sub-components with an Indian moulder and press shop; the compressor maker fits the local parts from Q4.',
-      evidence: 'R&D teardown and should-cost done; two local vendors shortlisted.', partCode: '3500040012', newPrice: 7775, volume: 120000, investment: 18 * LAKH, months: 6, risks: ['Medium', 'High', 'Medium', 'High', 'Low'] },
+      evidence: 'R&D teardown and should-cost done; two local vendors shortlisted.', partCode: 'AC05040012', newPrice: 7775, volume: 120000, investment: 18 * LAKH, months: 6, risks: ['Medium', 'High', 'Medium', 'High', 'Low'] },
     { n: 2, commodity: 'AJ', leverId: 'L12', submitterId: 'u-sub3', title: 'Cut the condenser side bracket from a drawing-nominal blank',
       current: 'The condenser side bracket is cut from an oversize blank; about 6 % offcut goes to scrap.', proposed: 'Correct the blank to drawing nominal and nest two brackets per strip.',
-      evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: '3400031187', newPrice: 37.9, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
+      evidence: 'Trial of 500 pieces at the Jhajjar press shop; fitment OK.', partCode: 'AC03031187', newPrice: 37.9, volume: 1450000, investment: 0, months: 6, risks: ['Low', 'Low', 'Low', 'Low', 'Low'] },
     { n: 3, commodity: 'AA', leverId: 'L11', submitterId: 'u-sub4', title: 'Hydrophilic 0.100 mm fin stock in place of 0.105 mm blue fin',
       current: 'Indoor coils use 0.105 mm blue-coated fin stock.', proposed: 'Move to 0.100 mm hydrophilic fin stock with the same heat-transfer performance at a lower gauge.',
-      evidence: 'Thermal performance test on a 1.5 TR coil passed at the R&D lab; vendor quote attached.', partCode: '3300021019', newPrice: 316, volume: 600000, investment: 0, months: 6, alt: 'V10003', risks: ['Medium', 'Low', 'Medium', 'Low', 'Medium'],
+      evidence: 'Thermal performance test on a 1.5 TR coil passed at the R&D lab; vendor quote attached.', partCode: 'AC03021019', newPrice: 316, volume: 600000, investment: 0, months: 6, alt: 'V10003', risks: ['Medium', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '120 MT per month', lead: 30, price: 0, certs: 'IATF 16949 · ISO 14001', remarks: 'Hydrophilic 0.100 mm grade is in regular production; trial coils in 3 weeks.' } },
     { n: 4, commodity: 'DX', leverId: 'L05', submitterId: buyerOf('DX'), title: 'Second source for the indoor display PCB assembly',
       current: 'The indoor display PCB assembly is single-sourced; the price has not moved in 18 months.', proposed: 'Develop an alternate source on the same drawing; split volume 60 / 40 after PPAP.',
-      evidence: 'Capability audit and quote completed; sample lot planned.', partCode: '3600050118', newPrice: 184.4, volume: 1500000, investment: 4 * LAKH, months: 6, alt: 'V10009', risks: ['Medium', 'Low', 'Medium', 'Medium', 'Low'],
+      evidence: 'Capability audit and quote completed; sample lot planned.', partCode: 'AC05050118', newPrice: 184.4, volume: 1500000, investment: 4 * LAKH, months: 6, alt: 'V10009', risks: ['Medium', 'Low', 'Medium', 'Medium', 'Low'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '180 k assemblies per month', lead: 45, certs: 'IATF 16949 · IPC-A-610 class 2', remarks: 'SMT line capacity reserved from December.' } },
     { n: 5, commodity: 'BV', leverId: 'L09', submitterId: 'u-sub2', title: 'Shorter hairpin bend leg length on 7 mm coils',
       current: 'Pre-formed hairpin bends carry 4 mm extra leg length that is trimmed after expansion.', proposed: 'Order hairpins at the trimmed length; the supplier passes on the copper saving.',
-      evidence: 'Expansion trial on line 3 passed; no leak at 45 bar.', partCode: '3200011277', newPrice: 14.5, volume: 8000000, investment: 2 * LAKH, months: 3, alt: 'V10001', risks: ['Low', 'Low', 'Medium', 'Low', 'Medium'],
+      evidence: 'Expansion trial on line 3 passed; no leak at 45 bar.', partCode: 'AC03011277', newPrice: 14.5, volume: 8000000, investment: 2 * LAKH, months: 3, alt: 'V10001', risks: ['Low', 'Low', 'Medium', 'Low', 'Medium'],
       response: { canSupply: 'Yes', meetsSpec: 'Yes', capacity: '900 k pieces per month', lead: 21, certs: 'IATF 16949', remarks: 'Can supply trimmed-length hairpins from the existing die set.' } },
     { n: 6, commodity: 'AP', leverId: 'L01', submitterId: buyerOf('AP'), title: 'Annual rate reset for the BLDC indoor fan motor',
       current: 'The BLDC 40 W fan motor is bought at the FY26 rate; copper and magnet indices have since eased.', proposed: 'Index-linked rate reset with the current supplier for FY27.',
-      evidence: 'Should-cost and index workings attached.', partCode: '3700060210', newPrice: 1117.5, volume: 980000, investment: 0, months: 3, alt: 'V10011', risks: ['Low', 'Low', 'Low', 'Low', 'Medium'],
+      evidence: 'Should-cost and index workings attached.', partCode: 'AC05060210', newPrice: 1117.5, volume: 980000, investment: 0, months: 3, alt: 'V10011', risks: ['Low', 'Low', 'Low', 'Low', 'Medium'],
       response: { canSupply: 'Partly', meetsSpec: 'Yes', capacity: '40 k motors per month', lead: 60, certs: 'IATF 16949', remarks: 'Can take up to 40 % of the volume from Q4.' } },
   ]
 
@@ -686,7 +686,7 @@ function buildShowcase(): Idea[] {
       log(dt(D.eval, 16), lad.feas, 'Workshop — go ahead', { field: 'stage', oldValue: STAGE.feasibility, newValue: STAGE.approval })
       close(dt(D.eval, 16), lad.feas, 'Go ahead', STAGE.approval)
     }
-    // Stage 3 — management approval on the Central ID, with the signed lock and the KPI
+    // Stage 3 — management approval on the Management ID, with the signed lock and the KPI
     idea.approvals = [{ level: 'Management', approverId: lad.head }]
     if (sp.n >= 4) {
       const signer = lad.head

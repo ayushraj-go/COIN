@@ -11,20 +11,28 @@ const IDS = USERS_DEFAULT.filter((u) => u.active !== false)
 const departmentIds = IDS.filter((u) => !u.roles.includes('admin'))
 
 describe('My queue', () => {
-  it('a department ID sees only its own workshops and executions', () => {
+  it('a department ID sees only its own workshops, each with the step to do now', () => {
     const q = queueFor(U('id-rd'), s.ideas, USERS_DEFAULT).mine
     expect(q.length).toBeGreaterThan(0)
-    expect(new Set(q.map((r) => r.action))).toEqual(new Set(['workshop', 'execute']))
+    expect(new Set(q.map((r) => r.action))).toEqual(new Set(['workshop']))
     expect(q.every((r) => ideaDept(r.idea) === 'R&D')).toBe(true)
+    expect(q.every((r) => r.steps.filter((x) => x.now).length === 1)).toBe(true)
   })
-  it('the Central ID approves, and Finance verifies on top of its own department\'s work', () => {
-    const central = queueFor(U('id-central'), s.ideas, USERS_DEFAULT).mine
+  it('the Execution Manager ID holds every execution started, from every department', () => {
+    const q = queueFor(U('id-execution'), s.ideas, USERS_DEFAULT).mine
+    expect(new Set(q.map((r) => r.action))).toEqual(new Set(['execute']))
+    expect(q.length).toBe(s.ideas.filter((i) => i.stage === STAGE.execution && i.bucket !== 'Dropped').length)
+    expect(new Set(q.map((r) => ideaDept(r.idea))).size).toBeGreaterThan(2)
+    expect(q.every((r) => r.steps.length === 0)).toBe(true)
+  })
+  it('the Management ID approves, and Finance verifies on top of its own department\'s work', () => {
+    const central = queueFor(U('id-management'), s.ideas, USERS_DEFAULT).mine
     expect(central.length).toBeGreaterThan(0)
     expect(central.every((r) => r.action === 'approve')).toBe(true)
     expect(queueFor(U('id-finance'), s.ideas, USERS_DEFAULT).mine.some((r) => r.action === 'verify')).toBe(true)
   })
-  it('the Central ID also sees every open item; every other ID only what is assigned to it', () => {
-    const central = queueFor(U('id-central'), s.ideas, USERS_DEFAULT)
+  it('the Management ID also sees every open item; every other ID only what is assigned to it', () => {
+    const central = queueFor(U('id-management'), s.ideas, USERS_DEFAULT)
     expect(central.all.length).toBeGreaterThan(central.mine.length)
     expect(new Set(central.all.map((r) => r.action))).toEqual(new Set(['workshop', 'approve', 'execute', 'verify']))
     for (const u of departmentIds) {
@@ -34,7 +42,7 @@ describe('My queue', () => {
     }
   })
   it('rows carry waiting time and SLA state; breached items come first', () => {
-    const q = queueFor(U('id-central'), s.ideas, USERS_DEFAULT, Date.parse('2026-10-16T12:00:00Z')).all
+    const q = queueFor(U('id-management'), s.ideas, USERS_DEFAULT, Date.parse('2026-10-16T12:00:00Z')).all
     expect(q.every((r) => r.waitingHours >= 0)).toBe(true)
     const firstOk = q.findIndex((r) => r.sla !== 'breach')
     expect(q.slice(firstOk).every((r) => r.sla !== 'breach')).toBe(true)

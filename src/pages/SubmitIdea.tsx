@@ -41,12 +41,15 @@ const noWheel = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(
 const NOSPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 const AUTO_ADVANCE_MS = 600
 
+/** Parts slide by height: a layout animation stretches the text while it moves */
+const PART_SLIDE = { initial: { opacity: 0, height: 0 }, animate: { opacity: 1, height: 'auto' }, exit: { opacity: 0, height: 0 }, transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] } } as const
+
 export default function SubmitIdea() {
   const me = useMe()
   const [params] = useSearchParams()
   if (!me) return null
   if (!can(me, 'submit')) {
-    return <Card><EmptyState icon="Lock" title="This ID does not capture ideas" desc="Ideas are captured from a department ID." /></Card>
+    return <Card><EmptyState icon="Lock" title="This ID does not capture ideas" desc="Ideas are captured from a department ID; this ID works a later stage." /></Card>
   }
   const draft = params.get('draft')
   const campaign = params.get('campaign')
@@ -598,39 +601,48 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   <PartSearch parts={partPool} commodity={form.commodity} selected={form.parts.map((p) => p.partCode)} onPick={addPart}
                     restrictNote={isSupplier ? 'Showing parts you supply to Amber' : scopeSupplier ? `Showing parts supplied by ${scopeSupplier.name}` : undefined} />
                 </FX>
-                {form.parts.length > 0 ? (
-                  <div className="rounded-lg border border-line overflow-hidden">
-                    <div className="hidden md:grid grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-3 px-3 h-8 items-center bg-slate-50 border-b border-line text-[11.5px] font-semibold text-muted">
-                      <span>Part code</span>
-                      <span className="flex items-center gap-1.5"><L n={16}>Part description, UoM</L><Tooltip content="From part master"><Auto /></Tooltip></span>
-                      <span className="flex items-center gap-1.5"><L n={17}>Current supplier(s)</L><Tooltip content="From last PO / MRN, vendor code + name"><Auto /></Tooltip></span>
-                      <span />
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {form.parts.map((p) => (
-                        <motion.div key={p.partCode} layout initial={{ opacity: 0, backgroundColor: '#fff1f2' }} animate={{ opacity: 1, backgroundColor: '#ffffff' }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}
-                          className="grid grid-cols-[1fr_32px] md:grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-x-3 gap-y-1 px-3 py-2 items-center border-b border-slate-100 last:border-0">
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <span className="font-mono text-[12.5px] font-semibold text-ink">{p.partCode}</span>
-                            {form.commodity && p.commodity !== form.commodity && <Tooltip content="This part belongs to a different commodity than the one selected"><SourceTag color="var(--color-orange-400)">{p.commodity}</SourceTag></Tooltip>}
-                            {scopeSupplier && p.supplierCode !== scopeSupplier.code && <Tooltip content="This part is bought from a different supplier than the one this idea is for"><SourceTag color="var(--color-orange-400)">Other supplier</SourceTag></Tooltip>}
-                          </span>
-                          <button type="button" onClick={() => removePart(p.partCode)} className="md:hidden justify-self-end h-7 w-7 rounded-md grid place-items-center text-slate-400 hover:text-red-600 hover:bg-red-50"><Icon name="X" size={14} /></button>
-                          <span className="min-w-0 col-span-2 md:col-span-1">
-                            <span className="block text-[12.5px] text-ink truncate">{p.description}</span>
-                            <span className="block text-[11px] text-muted">UoM {p.uom}</span>
-                          </span>
-                          <span className="min-w-0 col-span-2 md:col-span-1 text-[12.5px] text-ink-2 truncate">{p.currentSupplier}</span>
-                          <button type="button" onClick={() => removePart(p.partCode)} className="hidden md:grid h-7 w-7 rounded-md place-items-center text-slate-400 hover:text-red-600 hover:bg-red-50" title="Remove part"><Icon name="X" size={14} /></button>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-slate-300 px-4 py-4 text-center text-[12.5px] text-muted">
-                    No part code yet — search the ERP part master above; description, UoM, supplier, last buying price and volume fill in automatically.
-                  </div>
-                )}
+                <div>
+                  <AnimatePresence initial={false}>
+                    {form.parts.length > 0 ? (
+                      <motion.div key="parts" {...PART_SLIDE} className="overflow-hidden">
+                        <div className="rounded-lg border border-line overflow-hidden">
+                          <div className="hidden md:grid grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-3 px-3 h-8 items-center bg-slate-50 border-b border-line text-[11.5px] font-semibold text-muted">
+                            <span>Part code</span>
+                            <span className="flex items-center gap-1.5"><L n={16}>Part description, UoM</L><Tooltip content="From part master"><Auto /></Tooltip></span>
+                            <span className="flex items-center gap-1.5"><L n={17}>Current supplier(s)</L><Tooltip content="From last PO / MRN, vendor code + name"><Auto /></Tooltip></span>
+                            <span />
+                          </div>
+                          <AnimatePresence initial={false}>
+                            {form.parts.map((p) => (
+                              <motion.div key={p.partCode} {...PART_SLIDE} initial={{ ...PART_SLIDE.initial, backgroundColor: 'var(--color-brand-50)' }} animate={{ ...PART_SLIDE.animate, backgroundColor: '#ffffff' }} transition={{ ...PART_SLIDE.transition, backgroundColor: { duration: 0.9 } }} className="overflow-hidden border-b border-slate-100 last:border-0">
+                                <div className="grid grid-cols-[1fr_32px] md:grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-x-3 gap-y-1 px-3 py-2 items-center">
+                                  <span className="flex items-center gap-1.5 min-w-0">
+                                    <span className="font-mono text-[12.5px] font-semibold text-ink">{p.partCode}</span>
+                                    {form.commodity && p.commodity !== form.commodity && <Tooltip content="This part belongs to a different commodity than the one selected"><SourceTag color="var(--color-orange-400)">{p.commodity}</SourceTag></Tooltip>}
+                                    {scopeSupplier && p.supplierCode !== scopeSupplier.code && <Tooltip content="This part is bought from a different supplier than the one this idea is for"><SourceTag color="var(--color-orange-400)">Other supplier</SourceTag></Tooltip>}
+                                  </span>
+                                  <button type="button" onClick={() => removePart(p.partCode)} className="md:hidden justify-self-end h-7 w-7 rounded-md grid place-items-center text-slate-400 hover:text-red-600 hover:bg-red-50"><Icon name="X" size={14} /></button>
+                                  <span className="min-w-0 col-span-2 md:col-span-1">
+                                    <span className="block text-[12.5px] text-ink truncate">{p.description}</span>
+                                    <span className="block text-[11px] text-muted">UoM {p.uom}</span>
+                                  </span>
+                                  <span className="min-w-0 col-span-2 md:col-span-1 text-[12.5px] text-ink-2 truncate">{p.currentSupplier}</span>
+                                  <button type="button" onClick={() => removePart(p.partCode)} className="hidden md:grid h-7 w-7 rounded-md place-items-center text-slate-400 hover:text-red-600 hover:bg-red-50" title="Remove part"><Icon name="X" size={14} /></button>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="none" {...PART_SLIDE} className="overflow-hidden">
+                        <div className="rounded-lg border border-dashed border-slate-300 px-4 py-4 text-center text-[12.5px] text-muted">
+                          No part code yet — search the ERP part master above; description, UoM, supplier, last buying price and volume fill in automatically.
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             {showSupplierField && (
               <FX className="mt-3" label={<L n={18}>Proposed supplier</L>} required={supplierRequired} error={err('proposedSupplier')}

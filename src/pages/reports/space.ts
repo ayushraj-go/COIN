@@ -1,4 +1,4 @@
-// MIS by workspace. CO (Cost Optimisation) = execution and realisation after approval; IN (Cost Innovation) = ideas, pipeline,
+// MIS by workspace. CO (Cost Optimisation) = execution and realisation after approval; IN (Innovation Network) = ideas, pipeline,
 // funnel, suppliers, campaigns, approvals and SLAs. Every report and every KPI carries the workspace it belongs to.
 import { KPIS } from '../../lib/scope'
 
@@ -7,7 +7,7 @@ export type Space = 'IN' | 'CO'
 export const SPACE_ORDER: Space[] = ['CO', 'IN']
 export const SPACE_META: Record<Space, { name: string; color: string; tagline: string }> = {
   CO: { name: 'Cost Optimisation', color: 'var(--color-emerald-600)', tagline: 'Execution and realisation: implementation, due dates and slippage, realised savings from MRN, Finance validation, price leakage' },
-  IN: { name: 'Cost Innovation', color: 'var(--color-brand-600)', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
+  IN: { name: 'Innovation Network', color: 'var(--color-brand-600)', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
 }
 
 export interface MisReport {
@@ -24,22 +24,22 @@ export interface MisReport {
 type Def = Omit<MisReport, 'n' | 'space'>
 const CO_DEFS: Def[] = [
   { key: 'home', name: 'Savings summary', audience: 'Sourcing ID', visuals: 'Realised and committed savings, monthly realised trend, top ideas in execution and implemented', frequency: 'Live' },
-  { key: 'bridge', name: 'Savings bridge', audience: 'Central ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
-  { key: 'execution', name: 'Execution Hub dashboard', audience: 'Department IDs', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
-  { key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
+  { key: 'bridge', name: 'Savings bridge', audience: 'Management ID', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
+  { key: 'execution', name: 'Execution Hub dashboard', audience: 'Execution Manager ID', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
+  { key: 'leakage', name: 'Realisation & leakage', audience: 'Finance ID, Management ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
   { key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Realised, committed, realisation rate and price leakage per commodity', frequency: 'Live' },
-  { key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Realised, committed, on-time %, overdue ₹ and realisation rate per buyer', frequency: 'Live / monthly' },
-  { key: 'lever', name: 'Category mix', audience: 'Central ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
-  { key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Central ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
+  { key: 'buyer', name: 'Buyer scorecard', audience: 'Management ID', visuals: 'Realised, committed, on-time %, overdue ₹ and realisation rate per buyer', frequency: 'Live / monthly' },
+  { key: 'lever', name: 'Category mix', audience: 'Management ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
+  { key: 'closure', name: 'FY closure & carry-over', audience: 'Finance ID, Management ID', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
 ]
 const IN_DEFS: Def[] = [
   { key: 'home', name: 'Idea portfolio summary', audience: 'Sourcing ID', visuals: 'Ideas by bucket, stage-to-stage funnel, monthly idea inflow, top pipeline ideas', frequency: 'Live' },
   { key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Ideas, pipeline value, conversion and SLA breaches per commodity', frequency: 'Live' },
-  { key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Ideas, pipeline value, conversion, ageing and SLA breaches per buyer', frequency: 'Live / monthly' },
+  { key: 'buyer', name: 'Buyer scorecard', audience: 'Management ID', visuals: 'Ideas, pipeline value, conversion, ageing and SLA breaches per buyer', frequency: 'Live / monthly' },
   { key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing ID, supplier reviews', visuals: 'Ideas, value, conversion, gain-share and feasibility response per supplier', frequency: 'Quarterly' },
   { key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing ID', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
   { key: 'ageing', name: 'Ageing & SLA breach', audience: 'Sourcing ID', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
-  { key: 'drops', name: 'Drop analysis', audience: 'Central ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
+  { key: 'drops', name: 'Drop analysis', audience: 'Management ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
 ]
 export const MIS_REPORTS: Record<Space, MisReport[]> = {
   CO: CO_DEFS.map((d, k) => ({ ...d, space: 'CO', n: k + 1 })),
@@ -62,7 +62,7 @@ export const kpisOf = (space: Space) => KPIS.filter((k) => (KPI_SPACES[k.id] ?? 
 
 export const KPI_INTRO_BY_SPACE: Record<Space, string> = {
   CO: 'Cost Optimisation KPIs measure what approved ideas deliver: committed and realised savings, carry-over, on-time implementation, overdue value, realisation rate, price leakage and the category mix of realised savings.',
-  IN: 'Cost Innovation KPIs measure the idea network: pipeline value, ideas by stage, conversion, drops, ageing against SLA, review speed and how widely suppliers, campaigns and departments contribute.',
+  IN: 'Innovation Network KPIs measure the idea network: pipeline value, ideas by stage, conversion, drops, ageing against SLA, review speed and how widely suppliers, campaigns and departments contribute.',
 }
 export const LIB_INTRO_BY_SPACE: Record<Space, string> = {
   CO: 'Execution and realisation reports for everything after approval. The Monthly Cost Optimisation Report goes to management automatically after each realisation run.',

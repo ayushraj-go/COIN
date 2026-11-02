@@ -1,4 +1,4 @@
-// KPI tile — one design for the Home, Cost Innovation and Cost Optimisation dashboards.
+// KPI tile — one design for the Home, Innovation Network and Cost Optimisation dashboards.
 // Label row (icon + label + info), a big value, a caption, and an optional monthly sparkline and 3-month trend chip.
 import React, { useId } from 'react'
 import { Icon, InfoTip, cn } from './ui'

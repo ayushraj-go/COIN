@@ -12,7 +12,7 @@ import { SectionIntro, useRO } from './common'
 
 const nowUndo = (msg: string, undo: () => void) => useStore.getState().toast(msg, 'success', undo)
 
-/** Each department works its own ideas on its one ID; the Central ID approves, Finance verifies (stage 5) */
+/** Each department runs its own workshops on its one ID; the Management ID approves, the Execution Manager ID runs execution, Finance verifies (stage 5) */
 function LadderCard() {
   const users = useStore((s) => s.users)
   const name = (id?: string) => users.find((u) => u.id === id)?.name ?? '—'
@@ -31,8 +31,8 @@ function LadderCard() {
                   <td className="font-semibold text-ink">{d}</td>
                   <td>{name(l.departmentId)}</td>
                   <td>{name(l.departmentId)}</td>
-                  <td className="font-medium text-ink">{name(l.central)}</td>
-                  <td>{name(l.departmentId)}</td>
+                  <td className="font-medium text-ink">{name(l.management)}</td>
+                  <td className="font-medium text-ink">{name(l.execution)}</td>
                 </tr>
               )
             })}
@@ -41,7 +41,7 @@ function LadderCard() {
       </div>
       <div className="px-5 py-3 border-t border-line text-[12px] text-ink-2 flex flex-wrap gap-x-5 gap-y-1">
         <span><b className="text-ink">5 · Verification:</b> {fin?.name ?? 'Finance'}</span>
-        <span><b className="text-ink">Override:</b> the Central ID can act at every stage</span>
+        <span><b className="text-ink">Override:</b> the Management ID can step in at every stage</span>
       </div>
     </Card>
   )
@@ -255,7 +255,7 @@ export function TemplatesAdmin() {
   }
   const dirty = draft && cur && (draft.subject !== cur.subject || draft.body !== cur.body || draft.name !== cur.name)
   const save = () => { if (!draft) return; const prev = useStore.getState().emailTemplates; upsert('emailTemplates', draft); nowUndo(`Template “${draft.name}” saved`, () => useStore.setState({ emailTemplates: prev })) }
-  const addNew = () => { const id = `T${String(templates.length + 1).padStart(2, '0')}-${Date.now().toString(36).slice(-3)}`; upsert('emailTemplates', { id, name: 'New template', subject: 'COIN · {{ideaId}}', body: 'Dear {{recipient}},\n\n\n— COIN · Cost Innovation Hub' }); setSel(id) }
+  const addNew = () => { const id = `T${String(templates.length + 1).padStart(2, '0')}-${Date.now().toString(36).slice(-3)}`; upsert('emailTemplates', { id, name: 'New template', subject: 'COIN · {{ideaId}}', body: 'Dear {{recipient}},\n\n\n— COIN · Cost Optimisation & Innovation Network' }); setSel(id) }
   const del = () => { if (!cur) return; const prev = useStore.getState().emailTemplates; remove('emailTemplates', cur.id); setSel(templates.find((t) => t.id !== cur.id)?.id); nowUndo(`Template “${cur.name}” deleted`, () => useStore.setState({ emailTemplates: prev })) }
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
@@ -287,7 +287,7 @@ export function TemplatesAdmin() {
           <Card className="xl:col-span-4 rounded-2xl" title="Live preview" icon="Eye" subtitle="Rendered with sample data">
             <div className="rounded-xl border border-line overflow-hidden">
               <div className="px-3 py-2 border-b border-line bg-gradient-to-r from-brand-50 to-white text-[12px]">
-                <div className="text-muted">From <span className="text-ink-2">COIN · Cost Innovation Hub</span></div>
+                <div className="text-muted">From <span className="text-ink-2">COIN · Cost Optimisation & Innovation Network</span></div>
                 <div className="text-muted">To <span className="text-ink-2">{sample.recipient}</span></div>
                 <div className="font-bold text-ink mt-0.5">{render(draft.subject)}</div>
               </div>
@@ -463,7 +463,7 @@ export function DataAdmin() {
   const snapshot = () => Object.fromEntries(DATA_KEYS.map((k) => [k, (useStore.getState() as any)[k]]))
   const size = useMemo(() => new Blob([JSON.stringify(Object.fromEntries(DATA_KEYS.map((k) => [k, (state as any)[k]])))]).size, [state.ideas, state.ledger, state.users, state.notifications, state.emails]) // eslint-disable-line
   const exportJson = () => {
-    const payload = { app: 'COIN — Cost Innovation Hub', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }
+    const payload = { app: 'COIN — Cost Optimisation & Innovation Network', version: 1, exportedAt: new Date().toISOString(), data: snapshot() }
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
     const a = document.createElement('a'); a.href = url; a.download = `COIN_backup_${todayIso()}.json`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)

@@ -68,7 +68,7 @@ interface State {
   // ui
   filters: Filters
   navCollapsed: boolean
-  /** Workspace chosen on the entry screen after login: null = chooser, 'IN' = Cost Innovation (ideas), 'CO' = Cost Optimisation (implementation) */
+  /** Workspace chosen on the entry screen after login: null = chooser, 'IN' = Innovation Network (ideas), 'CO' = Cost Optimisation (implementation) */
   space: 'IN' | 'CO' | null
   drawerIdeaId: string | null
   searchOpen: boolean
@@ -114,7 +114,7 @@ interface Actions {
   recordEvaluation: (id: string, decision: 'Recommend' | 'Reject', remarks?: string) => void
   /** Stage 3 — budget + timeline lock and KPI, signed */
   signLock: (id: string, lock: Omit<ApprovalLock, 'signedAt' | 'signedBy'>) => void
-  /** Stage 3 — the Central ID approves; needs a signed, current lock */
+  /** Stage 3 — the Management ID approves; needs a signed, current lock */
   approve: (id: string, remarks?: string) => boolean
   reject: (id: string, remarks: string) => void
   /** back to the workshop by default, or to the submitter (see sendBackTargets) */
@@ -232,7 +232,7 @@ const tabStorage = (() => { try { return typeof sessionStorage === 'undefined' ?
 const sharedStorage = (() => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } })()
 const startSession = readSession(tabStorage, sharedStorage)
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
-try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8', 'coin-cost-innovation-hub-v9', 'coin-cost-innovation-hub-v10', 'coin-cost-innovation-hub-v11', 'coin-cost-innovation-hub-v12'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
+try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8', 'coin-cost-innovation-hub-v9', 'coin-cost-innovation-hub-v10', 'coin-cost-innovation-hub-v11', 'coin-cost-innovation-hub-v12', 'coin-cost-innovation-hub-v13', 'coin-cost-innovation-hub-v14'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
 export const useStore = create<Store>()(
   persist(
@@ -268,10 +268,10 @@ export const useStore = create<Store>()(
         let next = { ...idea }
         if (stage === STAGE.feasibility) next = openEvaluation(next)
         if (stage === STAGE.approval) {
-          // one approval level: management, on the Central ID
-          const central = ladderOf(next.evaluation?.dept ?? evalDeptOf(idea.department), get().users).central
-          next.approvals = [{ level: 'Management', approverId: central }]
-          if (central) push({ userId: central, title: 'Pending management approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
+          // one approval level: management, on the Management ID
+          const management = ladderOf(next.evaluation?.dept ?? evalDeptOf(idea.department), get().users).management
+          next.approvals = [{ level: 'Management', approverId: management }]
+          if (management) push({ userId: management, title: 'Pending management approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
         }
         return next
       }
@@ -657,11 +657,11 @@ export const useStore = create<Store>()(
           const i = getIdea(id)
           const to = get().users.find((u) => u.id === userId)
           // pipeline: only the commodity buyer changes — the ladder still decides who checks, evaluates and approves;
-          // execution: the execution owner changes
+          // execution: the owner changes (today only ever the Execution Manager ID)
           const pipeline = i.bucket === 'Pipeline'
           patchIdea(id, (x) => ({
             ...x, ...(pipeline ? { buyerId: userId } : { ownerId: userId, execution: x.execution ? { ...x.execution, ownerId: userId } : x.execution }),
-            activity: [...x.activity, logEntry('Reassigned', { field: pipeline ? 'commodity buyer' : 'execution owner', oldValue: get().users.find((u) => u.id === (pipeline ? i.buyerId : i.ownerId ?? i.buyerId))?.name, newValue: to?.name, remarks })],
+            activity: [...x.activity, logEntry('Reassigned', { field: pipeline ? 'commodity buyer' : 'execution manager', oldValue: get().users.find((u) => u.id === (pipeline ? i.buyerId : i.ownerId ?? i.buyerId))?.name, newValue: to?.name, remarks })],
           }))
           push({ userId, title: 'Idea reassigned to you', body: `${id} · ${i.title}`, trigger: 'Reassigned', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
         },
@@ -891,7 +891,7 @@ export const useStore = create<Store>()(
           email(s.settings.mailerRecipients, `COIN — Cost Optimisation Report, ${monthLong(month)}`, body, 'Monthly Cost Optimisation Report', [`COIN_Report_${month}.pdf`, `COIN_Detail_${month}.xlsx`])
           const leads = [...new Set(s.commodities.map((c) => c.leadId))]
           leads.forEach((l) => email([userEmail(l)], `COIN — Cost Optimisation Report, ${monthLong(month)} (commodity cut)`, body, 'Monthly Cost Optimisation Report'))
-          ;['id-central'].forEach((uidv) => push({ userId: uidv, title: 'Monthly Cost Optimisation Report', body: `COIN — Cost Optimisation Report, ${monthLong(month)} ${manual ? 'sent manually' : 'emailed after realisation run'}`, trigger: 'Monthly Cost Optimisation Report', channel: 'Email + attachments', link: '/reports', severity: 'success' }))
+          ;['id-management'].forEach((uidv) => push({ userId: uidv, title: 'Monthly Cost Optimisation Report', body: `COIN — Cost Optimisation Report, ${monthLong(month)} ${manual ? 'sent manually' : 'emailed after realisation run'}`, trigger: 'Monthly Cost Optimisation Report', channel: 'Email + attachments', link: '/reports', severity: 'success' }))
         },
         // Section 9 step 6 — at FY close open ideas roll into the next FY with a new target date and carry-over is booked
         bookFyClosure: (fy) => {
@@ -909,7 +909,7 @@ export const useStore = create<Store>()(
               }
             }),
           }))
-          ;['id-central', 'id-finance'].forEach((u) => push({ userId: u, title: `${fy} closure booked`, body: `Open ideas rolled into ${nfy} with due date ${newTarget}; carry-over booked`, trigger: 'FY closure', channel: 'In-app + email', link: '/execution', severity: 'info' }))
+          ;['id-management', 'id-finance'].forEach((u) => push({ userId: u, title: `${fy} closure booked`, body: `Open ideas rolled into ${nfy} with due date ${newTarget}; carry-over booked`, trigger: 'FY closure', channel: 'In-app + email', link: '/execution', severity: 'info' }))
         },
 
         // ─── Campaigns ────────────────────────────────────────────────────────
@@ -1005,7 +1005,7 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v13',
+      name: 'coin-cost-innovation-hub-v15',
       version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
@@ -1053,7 +1053,7 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v13') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v15') void useStore.persist.rehydrate() })
   // keep this tab's sign-in in this tab (and as the default for a new tab)
   useStore.subscribe((st, prev) => {
     if (st.userId !== prev.userId || st.space !== prev.space || st.filters !== prev.filters) writeSession(tabStorage, sharedStorage, { userId: st.userId, space: st.space, filters: st.filters, lastActivity: st.lastActivity })

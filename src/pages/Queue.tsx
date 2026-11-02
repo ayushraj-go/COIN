@@ -1,5 +1,5 @@
 // My queue — every idea waiting for my action (assigned to this ID), how long it has waited and its SLA.
-// The Central ID gets a second tab with every open item across departments.
+// The Management ID gets a second tab with every open item across departments.
 import { useState } from 'react'
 import { useMe, useStore } from '../store/useStore'
 import { ROLE_LABEL, primaryRole } from '../lib/nav'
@@ -9,6 +9,7 @@ import { inrShort } from '../lib/format'
 import { Badge, Button, Card, DataTable, EmptyState, Icon, PageHeader, Segmented, cn, type Column } from '../components/ui'
 import { ACTION_META, waitingText, type QueueRow } from './queue/model'
 import { useMyQueue } from './queue/useQueue'
+import { NextStep } from './idea/WorkshopSteps'
 
 const SLA_STYLE = {
   breach: { label: 'Beyond SLA', color: 'var(--color-red-600)' },
@@ -22,7 +23,7 @@ export default function Queue() {
   const users = useStore((s) => s.users)
   const openIdea = useStore((s) => s.openIdea)
   const override = !!me && (me.roles.includes('head') || me.roles.includes('admin'))
-  // the Central ID sees everything pending when nothing is assigned to them
+  // the Management ID sees everything pending when nothing is assigned to them
   const [picked, setTab] = useState<'mine' | 'all' | null>(null)
   const tab = picked ?? (override && !q.mine.length ? 'all' : 'mine')
   if (!me) return null
@@ -43,7 +44,10 @@ export default function Queue() {
         <div className="text-[12.5px] text-ink truncate">{r.idea.title}</div>
       </div>) },
     { key: 'stage', label: 'Waiting for', value: (r) => r.idea.stage, render: (r) => (
-      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-2 min-w-[120px] max-w-[150px]"><Icon name={ACTION_META[r.action].icon} size={14} className="text-brand-600 shrink-0" />{r.idea.stage}</span>) },
+      <div className="min-w-[150px]">
+        <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink-2"><Icon name={ACTION_META[r.action].icon} size={14} className="text-brand-600 shrink-0" />{r.idea.stage}</span>
+        {r.steps.length > 0 && <div className="mt-0.5"><NextStep steps={r.steps} /></div>}
+      </div>) },
     ...(showDept ? [{ key: 'dept', label: 'Department', value: (r: QueueRow) => ideaDept(r.idea), render: (r: QueueRow) => <span className="text-[12.5px] text-ink-2">{ideaDept(r.idea)}</span> } as Column<QueueRow>] : []),
     // shown inside the Idea cell; kept as a column for sorting and the Excel export
     { key: 'submitter', label: 'Raised by', hidden: true, value: (r) => r.idea.submitterName, render: (r) => <span className="text-[12.5px] text-ink-2 whitespace-nowrap">{r.idea.submitterName}</span> },
@@ -52,7 +56,7 @@ export default function Queue() {
       : <div className="min-w-[150px]"><div className="text-[12.5px] text-ink-2 whitespace-nowrap">{nameOf(r.assignee)}</div><div className="text-[11px] text-muted truncate max-w-[160px]">{userOf(r.assignee)?.designation}</div></div>) } as Column<QueueRow>] : []),
     { key: 'value', label: 'Opportunity cost', align: 'right', value: (r) => Math.round(ideaAnnualised(r.idea)), render: (r) => <span className="num font-semibold text-ink">{inrShort(ideaAnnualised(r.idea))}</span> },
     { key: 'waiting', label: 'Waiting', align: 'right', value: (r) => r.waitingHours, render: (r) => <div className="whitespace-nowrap"><div className={cn('num', r.sla === 'breach' ? 'text-red-700 font-semibold' : 'text-ink-2')}>{waitingText(r.waitingHours)}</div>{r.slaDays ? <div className="text-[11px] text-muted">of {r.slaDays} d SLA</div> : null}</div> },
-    { key: 'go', label: '', align: 'right', render: (r) => <Button size="xs" variant={r.assignedToMe ? 'primary' : 'secondary'} iconRight="ArrowRight" onClick={(e: React.MouseEvent) => { e.stopPropagation(); openIdea(r.idea.id) }}>{ACTION_META[r.action].verb}</Button> },
+    { key: 'go', label: '', align: 'right', render: (r) => <Button size="xs" variant={r.assignedToMe ? 'primary' : 'secondary'} iconRight="ArrowRight" onClick={(e: React.MouseEvent) => { e.stopPropagation(); openIdea(r.idea.id) }}>{r.steps.find((s) => s.now)?.label ?? ACTION_META[r.action].verb}</Button> },
   ]
 
   return (

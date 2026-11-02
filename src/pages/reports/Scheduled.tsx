@@ -12,9 +12,10 @@ import { FREQ_STYLE, SectionNote } from './chartkit'
 const AUDIENCE_ROLES: Record<string, { roles?: RoleKey[]; dept?: string; owners?: boolean }[]> = {
   'Sourcing ID': [{ dept: 'Sourcing' }],
   'Sourcing ID, supplier reviews': [{ dept: 'Sourcing' }],
-  'Central ID': [{ roles: ['admin'] }],
+  'Management ID': [{ roles: ['admin'] }],
   'Department IDs': [{ roles: ['deptlead'] }],
-  'Finance ID, Central ID': [{ roles: ['finance', 'admin'] }],
+  'Execution Manager ID': [{ roles: ['execowner'] }],
+  'Finance ID, Management ID': [{ roles: ['finance', 'admin'] }],
 }
 export function audienceUsers(audience: string, users: User[]) {
   const rules = AUDIENCE_ROLES[audience] ?? []

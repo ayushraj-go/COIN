@@ -336,7 +336,7 @@ export function UserAdmin() {
         })}
       </div>
       {unmapped.length > 0 && <SectionIntro icon="TriangleAlert">No active buyer is mapped to {unmapped.map((c) => c.name).join(', ')} — new ideas there will have no validator.</SectionIntro>}
-      <CrudSection<User> title="Users — user–role–commodity mapping" subtitle={roleF === 'All' ? `${active.length} IDs · one per department and the Central ID` : `Filtered: ${ROLE_LABEL[roleF as RoleKey]}`} icon="UserCog" entity="User" storeKey="users" rows={rows}
+      <CrudSection<User> title="Users — user–role–commodity mapping" subtitle={roleF === 'All' ? `${active.length} IDs · one per department and the Management ID` : `Filtered: ${ROLE_LABEL[roleF as RoleKey]}`} icon="UserCog" entity="User" storeKey="users" rows={rows}
         makeNew={() => ({ id: `u-${Date.now().toString(36)}`, name: '', employeeId: '', email: '', password: 'coin@2026', roles: ['submitter'], department: 'Sourcing', plant: plants[0]?.id ?? 'RJP', designation: '', commodities: [], avatarColor: AVATAR[users.length % AVATAR.length], active: true })}
         fields={fields} searchKeys={(u) => `${u.name} ${u.employeeId} ${u.email} ${u.designation} ${u.department}`}
         validate={(d, isNew) => {

@@ -19,7 +19,7 @@ const part: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals
 beforeEach(() => { st().resetDemo() })
 
 describe('an HR idea runs the five stages', () => {
-  it('department ID → workshop → Central ID → department ID → Finance', () => {
+  it('department ID → workshop → Management ID → Execution Manager ID → Finance', () => {
     // 1 · idea submitted on the HR ID, by a person who types their name
     st().loginAs('id-hr')
     const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate', submitterName: 'Simran Kaur', employeeId: 'AEL-20932' })
@@ -36,23 +36,25 @@ describe('an HR idea runs the five stages', () => {
     expect(st().closeWorkshopEvent(id, ev, { notes: 'Agreed', closedBy: 'Simran Kaur', outcome: 'Go ahead' })).toBe(true)
     expect(idea(id).stage).toBe(STAGE.approval)
 
-    // 3 · management approval — the Central ID signs the lock and the KPI, and approves
-    expect(idea(id).approvals).toEqual([{ level: 'Management', approverId: 'id-central' }])
-    expect(inQueue('id-central', id)).toBe(true)
+    // 3 · management approval — the Management ID signs the lock and the KPI, and approves
+    expect(idea(id).approvals).toEqual([{ level: 'Management', approverId: 'id-management' }])
+    expect(inQueue('id-management', id)).toBe(true)
     expect(can('id-hr', id).approve).toBe(false)
-    st().loginAs('id-central')
-    expect(can('id-central', id).approve).toBe(true)
+    st().loginAs('id-management')
+    expect(can('id-management', id).approve).toBe(true)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-11-01', endDate: '2027-05-01', targetSaving: lockTarget(ideaAnnualised(idea(id)), 6), signatureName: 'Lata Krishnan' })
     expect(st().approve(id)).toBe(true)
     expect(idea(id).stage).toBe(STAGE.execution)
-    expect(idea(id).ownerId).toBe('id-hr')
+    expect(idea(id).ownerId).toBe('id-execution')
 
-    // 4 · execution — the HR ID keeps the record; MRN is counted month by month from the savings start;
+    // 4 · execution — the Execution Manager ID keeps the record; MRN is counted month by month from the savings start;
     //     when the locked timeline ends COIN moves the idea to verification by itself
-    expect(inQueue('id-hr', id)).toBe(true)
+    expect(inQueue('id-execution', id)).toBe(true)
+    expect(inQueue('id-hr', id)).toBe(false)
     expect(can('id-rd', id).execute).toBe(false)
-    expect(can('id-hr', id).execute).toBe(true)
-    expect(can('id-hr', id).handOver).toBe(false)
+    expect(can('id-hr', id).execute).toBe(false)
+    expect(can('id-execution', id).execute).toBe(true)
+    expect(can('id-execution', id).handOver).toBe(false)
     st().uploadMrn([{ ideaId: id, partCode: part.partCode, month: '2026-11', mrnQty: 20000, mrnPrice: 96 }])
     expect(idea(id).execution?.effectiveDate).toBe('2026-11-01')
     st().closeEndedExecutions('2027-04-30')

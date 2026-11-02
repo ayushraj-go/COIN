@@ -102,7 +102,7 @@ export function Button({ variant = 'secondary', size = 'md', icon, iconRight, ch
     secondary: 'bg-white text-ink-2 border border-[var(--color-gray-300)] hover:bg-[var(--color-gray-50)] hover:text-ink shadow-[0_1px_2px_rgb(16_24_40/.05)]',
     ghost: 'text-ink-2 hover:bg-[var(--color-gray-100)] hover:text-ink border border-transparent',
     danger: 'bg-white text-[var(--color-accent-500)] border border-[var(--color-red-200)] hover:bg-[var(--color-rose-50)] hover:border-[var(--color-rose-300)]',
-    success: 'bg-gradient-to-br from-accent-400 to-accent-600 text-white hover:brightness-110 border border-accent-600/30 shadow-[0_6px_16px_-8px_rgb(11_138_119/.7)]',
+    success: 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white hover:brightness-110 border border-emerald-700/30 shadow-[0_6px_16px_-8px_rgb(11_138_119/.7)]',
     outline: 'bg-transparent text-brand-700 border border-brand-200 hover:bg-brand-50',
     dark: 'bg-[var(--color-gray-900)] text-white hover:bg-[var(--color-slate-800)] border border-[var(--color-gray-900)] shadow-[0_1px_2px_rgb(16_24_40/.08)]',
   }

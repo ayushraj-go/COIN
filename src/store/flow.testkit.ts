@@ -6,7 +6,7 @@ import { EVALUATION_MIN, ideaDept } from '../lib/workflow'
 const st = () => useStore.getState()
 const idea = (id: string) => st().ideas.find((i) => i.id === id)!
 
-/** Runs as whoever is signed in — the department ID, or the Central ID */
+/** Runs as whoever is signed in — the department ID, or the Management ID */
 export function throughWorkshop(id: string) {
   const dept = ideaDept(idea(id))
   const ev = st().createWorkshopEvent(id, { date: '2026-11-10', time: '11:00', venue: 'Noida', points: ['Workable?'], attendees: [dept], spoc: { name: 'Test SPOC', email: 'spoc@ambergroupindia.com' } })

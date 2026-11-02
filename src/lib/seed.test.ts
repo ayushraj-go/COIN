@@ -102,14 +102,14 @@ describe('the IDs author every stage', () => {
       }
     }
   })
-  it('the Central ID approves and signs; the department ID runs execution; Finance verifies', () => {
+  it('the Management ID approves and signs; the Execution Manager ID runs execution; Finance verifies', () => {
     const locked = seed.ideas.filter((x) => x.lock)
     expect(locked.length).toBeGreaterThan(20)
     for (const i of locked) {
       const l = ladderOf(i.evaluation!.dept, USERS_DEFAULT)
-      expect(i.approvals.map((a) => [a.level, a.approverId]), i.id).toEqual([['Management', 'id-central']])
-      expect(i.lock!.signedBy, i.id).toBe(name(l.central))
-      if (i.execution) expect(i.ownerId, i.id).toBe(l.departmentId)
+      expect(i.approvals.map((a) => [a.level, a.approverId]), i.id).toEqual([['Management', 'id-management']])
+      expect(i.lock!.signedBy, i.id).toBe(name(l.management))
+      if (i.execution) expect(i.ownerId, i.id).toBe(l.execution)
       if (i.verification?.verifiedAt) expect(i.verification.verifiedBy, i.id).toBe(name(l.verifier))
     }
   })

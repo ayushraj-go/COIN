@@ -25,10 +25,12 @@ const held = { notes: 'Agreed to go ahead', closedBy: 'Simran Kaur' }
 beforeEach(() => { st().resetDemo(); st().loginAs('id-hr') })
 
 describe('one ID per department', () => {
-  it('only the eight department IDs and the Central ID sign in; people no longer do', () => {
+  it('only the eight department IDs, the Management ID and the Execution Manager ID sign in; people no longer do', () => {
     const ids = st().users.filter((u) => u.active && !u.roles.includes('supplier'))
-    expect(ids.map((u) => u.id).sort()).toEqual(['id-central', 'id-dqa', 'id-finance', 'id-hr', 'id-process', 'id-production', 'id-quality', 'id-rd', 'id-sourcing'])
+    expect(ids.map((u) => u.id).sort()).toEqual(['id-dqa', 'id-execution', 'id-finance', 'id-hr', 'id-management', 'id-process', 'id-production', 'id-quality', 'id-rd', 'id-sourcing'])
     expect(st().login('sourcing@ambergroupindia.com', 'coin@2026')).toBe(true)
+    expect(st().login('management@ambergroupindia.com', 'coin@2026')).toBe(true)
+    expect(st().login('execution@ambergroupindia.com', 'coin@2026')).toBe(true)
     expect(st().login('aditi.sharma@ambergroupindia.com', 'coin@2026')).toBe(false)
     expect(st().login('neha.verma@ambergroupindia.com', 'coin@2026')).toBe(false)
   })
@@ -39,15 +41,15 @@ describe('one ID per department', () => {
     expect(idea(id).employeeId).toBe('AEL-20932')
     expect(idea(id).submitterEmail).toBe('simran.kaur@ambergroupindia.com')
   })
-  it('each stage belongs to one ID: the department, then Central, the department, Finance', () => {
+  it('each stage belongs to one ID: the department, Management, the Execution Manager, Finance', () => {
     const id = raise()
     const at = (stage: string) => stageAssignee(idea(id), stage, st().users)
     expect(at(STAGE.feasibility)).toBe('id-hr')
-    expect(at(STAGE.approval)).toBe('id-central')
-    expect(at(STAGE.execution)).toBe('id-hr')
+    expect(at(STAGE.approval)).toBe('id-management')
+    expect(at(STAGE.execution)).toBe('id-execution')
     expect(at(STAGE.verification)).toBe('id-finance')
-    // a person who has left the sign-in list never holds a stage: their execution falls to the department ID
-    expect(stageAssignee({ ...idea(id), ownerId: 'u-hr-exec' }, STAGE.execution, st().users)).toBe('id-hr')
+    // a person who has left the sign-in list never holds a stage: their execution falls to the Execution Manager ID
+    expect(stageAssignee({ ...idea(id), ownerId: 'u-hr-exec' }, STAGE.execution, st().users)).toBe('id-execution')
   })
 })
 
@@ -57,15 +59,15 @@ describe('who may act', () => {
     for (const d of DEPARTMENTS) {
       const l = ladderOf(d, st().users)
       expect(user(l.departmentId!).department, d).toBe(d)
-      expect(l.central).toBe('id-central')
+      expect(l.management).toBe('id-management')
       expect(l.verifier).toBe('id-finance')
     }
   })
-  it('a supplier idea runs on the Sourcing ID, and the Sourcing ID covers every commodity', () => {
+  it('a supplier idea has its workshop on the Sourcing ID, whatever the commodity', () => {
     const id = raise()
     const supplierIdea = { ...idea(id), department: 'Supplier', commodity: 'AO', submitterId: 'u-sup2', evaluation: undefined }
     expect(stageAssignee(supplierIdea, STAGE.feasibility, st().users)).toBe('id-sourcing')
-    expect(stageAssignee(supplierIdea, STAGE.execution, st().users)).toBe('id-sourcing')
+    expect(stageAssignee(supplierIdea, STAGE.execution, st().users)).toBe('id-execution')
   })
   it('another department\'s ID neither sees nor acts on an idea, at any stage', () => {
     const id = raise()
@@ -76,24 +78,26 @@ describe('who may act', () => {
       expect(p.workshop || p.approve || p.execute || p.verify, stage).toBe(false)
     }
   })
-  it('nobody hands over by hand, and the department ID never verifies its own saving', () => {
+  it('nobody hands over by hand, the department only watches execution, and it never verifies its own saving', () => {
     const atExecution = { ...idea(raise()), stage: STAGE.execution, bucket: 'In Execution' as const, execution: { status: 'In Execution' as const, milestones: [] } as never }
-    expect(ideaPerms(user('id-hr'), atExecution).execute).toBe(true)
-    expect(ideaPerms(user('id-hr'), atExecution).handOver).toBe(false)
+    expect(ideaPerms(user('id-execution'), atExecution).execute).toBe(true)
+    expect(ideaPerms(user('id-hr'), atExecution).execute).toBe(false)
+    expect(canSeeIdea(user('id-hr'), atExecution)).toBe(true)
+    expect(ideaPerms(user('id-execution'), atExecution).handOver).toBe(false)
     expect(ideaPerms(user('id-hr'), { ...atExecution, stage: STAGE.verification }).verify).toBe(false)
     expect(ideaPerms(user('id-finance'), { ...atExecution, stage: STAGE.verification }).verify).toBe(true)
   })
-  it('the Central ID can act at every stage', () => {
-    const base = { ...idea(raise()), execution: { status: 'In Execution' as const, milestones: [] } as never, approvals: [{ level: 'Management', approverId: 'id-central' }] }
-    expect(ideaPerms(user('id-central'), { ...base, stage: STAGE.feasibility }).workshop).toBe(true)
-    expect(ideaPerms(user('id-central'), { ...base, stage: STAGE.approval }).approve).toBe(true)
-    expect(ideaPerms(user('id-central'), { ...base, stage: STAGE.execution, bucket: 'In Execution' }).execute).toBe(true)
-    expect(ideaPerms(user('id-central'), { ...base, stage: STAGE.verification, bucket: 'In Execution' }).verify).toBe(true)
+  it('the Management ID can act at every stage', () => {
+    const base = { ...idea(raise()), execution: { status: 'In Execution' as const, milestones: [] } as never, approvals: [{ level: 'Management', approverId: 'id-management' }] }
+    expect(ideaPerms(user('id-management'), { ...base, stage: STAGE.feasibility }).workshop).toBe(true)
+    expect(ideaPerms(user('id-management'), { ...base, stage: STAGE.approval }).approve).toBe(true)
+    expect(ideaPerms(user('id-management'), { ...base, stage: STAGE.execution, bucket: 'In Execution' }).execute).toBe(true)
+    expect(ideaPerms(user('id-management'), { ...base, stage: STAGE.verification, bucket: 'In Execution' }).verify).toBe(true)
   })
 })
 
 describe('five stages', () => {
-  it('three in Cost Innovation, two in Cost Optimisation', () => {
+  it('three in Innovation Network, two in Cost Optimisation', () => {
     expect(TRACKER_STAGES).toEqual([STAGE.submitted, STAGE.feasibility, STAGE.approval, STAGE.execution, STAGE.verification])
     expect(IN_STAGES).toEqual([STAGE.feasibility, STAGE.approval])
     expect(CO_STAGE_NAMES).toEqual([STAGE.execution, STAGE.verification])
@@ -106,7 +110,7 @@ describe('five stages', () => {
     expect(st().notifications.some((n) => n.userId === 'id-hr' && n.ideaId === id)).toBe(true)
     expect(can('id-rd', id).workshop).toBe(false)
     expect(can('id-hr', id).workshop).toBe(true)
-    expect(can('id-central', id).workshop).toBe(true)
+    expect(can('id-management', id).workshop).toBe(true)
   })
   it('Go ahead needs the feasibility form, the evaluation form and an open event — nothing moves before', () => {
     const id = raise()
@@ -170,27 +174,28 @@ describe('five stages', () => {
     st().recordEvaluation(b, 'Reject', 'Saving too thin')
     expect(idea(b).stage).toBe('Rejected')
   })
-  it('management approval signs the KPI, then the idea moves to Cost Optimisation with the department ID as owner', () => {
+  it('management approval signs the KPI, then the idea moves to Cost Optimisation with the Execution Manager ID as owner', () => {
     const id = raise()
     const ev = st().createWorkshopEvent(id, event)
     st().recordFeasibility(id, feasible)
     st().recordEvaluation(id, 'Recommend')
     st().closeWorkshopEvent(id, ev, { ...held, outcome: 'Go ahead' })
-    expect(idea(id).approvals).toEqual([{ level: 'Management', approverId: 'id-central' }])
-    expect(inQueue('id-central', id)).toBe(true)
+    expect(idea(id).approvals).toEqual([{ level: 'Management', approverId: 'id-management' }])
+    expect(inQueue('id-management', id)).toBe(true)
     expect(inQueue('id-hr', id)).toBe(false)
     expect(can('id-hr', id).approve).toBe(false)
-    st().loginAs('id-central')
-    expect(can('id-central', id).approve).toBe(true)
+    st().loginAs('id-management')
+    expect(can('id-management', id).approve).toBe(true)
     const target = lockTarget(ideaAnnualised(idea(id)), 6)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: target, signatureName: 'Abhishek Sharma', kpi: { owner: 'Simran Kaur', ownerEmail: person.submitterEmail, target } })
     expect(st().approve(id, 'On the workshop minutes')).toBe(true)
     expect(idea(id).stage).toBe(STAGE.execution)
     expect(idea(id).bucket).toBe('In Execution')
-    expect(idea(id).ownerId).toBe('id-hr')
+    expect(idea(id).ownerId).toBe('id-execution')
     expect(idea(id).lock?.kpi?.owner).toBe('Simran Kaur')
     expect(idea(id).lock?.signatureName).toBe('Abhishek Sharma')
-    expect(inQueue('id-hr', id)).toBe(true)
+    expect(inQueue('id-execution', id)).toBe(true)
+    expect(inQueue('id-hr', id)).toBe(false)
   })
   it('sent back from management, the workshop runs again: forms reopen and a new event is needed', () => {
     const id = raise()
@@ -199,7 +204,7 @@ describe('five stages', () => {
     st().recordEvaluation(id, 'Recommend')
     st().closeWorkshopEvent(id, ev, { ...held, outcome: 'Go ahead' })
     expect(sendBackTargets(idea(id)).map((t) => t.to)).toEqual(['submitter', STAGE.feasibility])
-    st().loginAs('id-central')
+    st().loginAs('id-management')
     st().sendBack(id, 'Quote is out of date', STAGE.feasibility)
     expect(idea(id).stage).toBe(STAGE.feasibility)
     expect(idea(id).feasibilityCheck).toBeUndefined()

@@ -45,7 +45,7 @@ describe('cost validity flags', () => {
 })
 
 describe('supplier capability email', () => {
-  const idea: any = { scope: 'Part-specific', openEstimateLakh: 0, parts: [{ partCode: '3100045612', baselinePrice: 4.2, newPrice: 3.85, annualVolume: 2400000, currentSupplier: 'V10021 · Sunrise Fasteners Pvt Ltd' }] }
+  const idea: any = { scope: 'Part-specific', openEstimateLakh: 0, parts: [{ partCode: 'AC03045612', baselinePrice: 4.2, newPrice: 3.85, annualVolume: 2400000, currentSupplier: 'V10021 · Sunrise Fasteners Pvt Ltd' }] }
   const sup: any[] = [{ code: 'V10021', name: 'Sunrise Fasteners Pvt Ltd' }]
   it('generated email has no Amber data', () => {
     const e = supplierCapabilityEmail({ supplierName: 'Metro Precision', contactName: 'Ravi', item: 'Hex flange bolt M6×16', spec: 'Trivalent Zn with sealer, 240 h salt spray', requiredBy: '2026-12-31', link: 'https://x/supplier-form/t1', sender: 'Sourcing team' })
@@ -53,7 +53,7 @@ describe('supplier capability email', () => {
     expect(e.body).toContain('https://x/supplier-form/t1')
   })
   it('flags part codes, prices, volumes and current supplier', () => {
-    const leaks = amberDataLeaks('Part 3100045612 at ₹ 4.20, 24,00,000 Nos from Sunrise Fasteners Pvt Ltd', idea, sup)
+    const leaks = amberDataLeaks('Part AC03045612 at ₹ 4.20, 24,00,000 Nos from Sunrise Fasteners Pvt Ltd', idea, sup)
     expect(leaks.length).toBeGreaterThanOrEqual(4)
   })
 })

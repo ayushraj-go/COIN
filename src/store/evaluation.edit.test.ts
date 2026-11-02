@@ -68,7 +68,7 @@ describe('every cost-benefit figure is editable', () => {
     st().saveEvaluation(id, { cbaVerified: true, cbaInputs: { annual: 2400000 }, risks: [{ key: 'quality', label: 'Quality', level: 'Low', costAtRisk: 0 }] })
     st().recordEvaluation(id, 'Recommend', 'ok')
     expect(st().closeWorkshopEvent(id, idea(id).workshop!.events[0].id, { notes: 'ok', closedBy: 'Test SPOC', outcome: 'Go ahead' })).toBe(true)
-    st().loginAs('id-central')
+    st().loginAs('id-management')
     st().signLock(id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: lockTarget(2400000, 6), signatureName: 'Lata Krishnan' })
     expect(st().approve(id)).toBe(true)
     expect(idea(id).lock!.targetSaving).toBe(1200000)

@@ -1,4 +1,4 @@
-// M1 — Dashboard for every department ID, the Central ID and Finance
+// M1 — Dashboard for every department ID, the Management ID and Finance
 // One page: the headline KPI tiles + internal vs external ideas fill the first screen, the analytics follow below.
 // Work waiting for the user lives in My queue.
 import { useState } from 'react'
