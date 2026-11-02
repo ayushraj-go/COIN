@@ -5,7 +5,7 @@ import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Badge, Button, Card, HealthBadge, Icon, InfoTip, KV, LeverChip, ProgressBar, SavingsTypeBadge, SourceTag, UserChip, cn } from '../../components/ui'
 import { approvalLevels, healthOf, ideaAnnualised } from '../../lib/calc'
-import { EVALUATION_STAGES, LEVER_GROUP_STYLE, STAGE } from '../../lib/masters'
+import { LEVER_GROUP_STYLE, STAGE } from '../../lib/masters'
 import { fmtDate, inr, inrPrice, inrShort, num, todayIso } from '../../lib/format'
 import { ROUTE_ICON, ideaPerms, stagesOf, supplierName, useCtx } from './model'
 
@@ -47,10 +47,10 @@ export function DetailsCard({ idea, compact }: { idea: Idea; compact?: boolean }
   return (
     <Card title="Idea details" icon="FileText" subtitle={compact ? undefined : lever ? `${lever.group} lever · ${lever.name} · evaluator ${lever.evaluator} · NPD sample ${lever.npdSample}` : undefined}>
       <div className={cn('grid gap-4', compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2')}>
-        <Block label="Current state" icon="CircleDot">{idea.currentState || <span className="text-muted">Not provided</span>}</Block>
-        <Block label="Proposed change" icon="Sparkles">{idea.proposedChange || <span className="text-muted">Not provided</span>}</Block>
-        <Block label="Evidence" icon="FileCheck2">
-          {idea.evidence || <span className="text-muted">No evidence text</span>}
+        <Block label="As-Is" icon="CircleDot">{idea.currentState || <span className="text-muted">Not provided</span>}</Block>
+        <Block label="To-Be" icon="Sparkles">{idea.proposedChange || <span className="text-muted">Not provided</span>}</Block>
+        <Block label="Remarks" icon="FileCheck2">
+          {idea.evidence || <span className="text-muted">No remarks</span>}
           {idea.evidenceTags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5">{idea.evidenceTags.map((t) => <Badge key={t} color="var(--color-indigo-600)" icon="Tag">{t}</Badge>)}</div>}
         </Block>
         <div className="min-w-0 rounded-xl bg-slate-50/70 border border-slate-100 px-3 py-1.5">
@@ -125,7 +125,7 @@ export function ExecutionSummary({ idea }: { idea: Idea }) {
           </ol>
         </div>
         <div className="md:col-span-2">
-          <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center gap-1">Quarter phasing <InfoTip title="Quarter phasing" formula="Pre-filled from due date × forecast impact">Owner enters expected saving per quarter (Q1–Q4).</InfoTip></div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-1.5 flex items-center gap-1">Quarter phasing <InfoTip title="Quarter phasing" formula="Pre-filled from due date × opportunity cost">Owner enters expected saving per quarter (Q1–Q4).</InfoTip></div>
           <div className="grid grid-cols-4 gap-1.5">
             {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => (
               <div key={q} className="rounded-lg bg-amber-50/70 border border-amber-100 px-1.5 py-1.5 text-center">

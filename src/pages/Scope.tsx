@@ -48,7 +48,7 @@ const inView = (view: View, space: DocSpace | string) => view === 'All' || space
 /** Section numbers for the current view (sections hidden in this view are absent) */
 const NumCtx = createContext<Record<string, string>>({})
 const SPACE_TAG: Record<DocSpace, { label: string; color: string }> = { CO: { label: 'CO', color: 'var(--color-emerald-600)' }, IN: { label: 'IN', color: 'var(--color-brand-600)' }, Both: { label: 'CO · IN', color: 'var(--color-slate-500)' } }
-const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Innovation Network (IN)', All: 'both workspaces (CO and IN)' }
+const VIEW_LABEL: Record<View, string> = { CO: 'Cost Optimisation (CO)', IN: 'Cost Innovation (IN)', All: 'both workspaces (CO and IN)' }
 // KPI groups and reports by workspace (CO first in every listing)
 const KPI_GROUP_SPACE: Record<string, DocSpace> = { A: 'Both', B: 'IN', C: 'Both', D: 'CO', E: 'Both', F: 'IN' }
 const REPORT_SPACE: Record<string, DocSpace> = { home: 'Both', bridge: 'Both', commodity: 'Both', buyer: 'Both', supplier: 'IN', lever: 'Both', execution: 'CO', drops: 'Both', ageing: 'IN', campaign: 'IN', leakage: 'CO', closure: 'CO' }
@@ -159,9 +159,9 @@ function SavingsCalculator() {
   const maxQ = Math.max(1, ...Object.values(phases).map(Math.abs))
   const out: { label: string; value: string; sub: string; color: string; tip: string }[] = [
     { label: 'Saving per unit', value: inrPrice(perUnit), sub: `${pct(v.baseline ? (perUnit / v.baseline) * 100 : 0, 2)} of baseline`, color: neg ? 'var(--color-rose-600)' : 'var(--color-emerald-700)', tip: 'P(baseline) − P(new)' },
-    { label: 'Forecast impact', value: L(annual), sub: inr(annual), color: neg ? 'var(--color-rose-600)' : 'var(--color-slate-900)', tip: '(P(baseline) − P(new)) × Q(last FY MRN)' },
-    { label: `Committed in ${v.fy}`, value: L(committed), sub: `${months.toFixed(months % 1 ? 2 : 0)} of 12 months live`, color: 'var(--color-orange-700)', tip: 'Forecast × months live in the FY ÷ 12, phased by quarter from go-live' },
-    { label: 'Carry-over to next FY', value: L(carry), sub: 'Falls beyond 31 March', color: 'var(--color-slate-600)', tip: 'Forecast impact − committed saving in the FY' },
+    { label: 'Opportunity cost', value: L(annual), sub: inr(annual), color: neg ? 'var(--color-rose-600)' : 'var(--color-slate-900)', tip: '(P(baseline) − P(new)) × Q(last FY MRN)' },
+    { label: `Committed in ${v.fy}`, value: L(committed), sub: `${months.toFixed(months % 1 ? 2 : 0)} of 12 months live`, color: 'var(--color-orange-700)', tip: 'Opportunity cost × months live in the FY ÷ 12, phased by quarter from go-live' },
+    { label: 'Carry-over to next FY', value: L(carry), sub: 'Falls beyond 31 March', color: 'var(--color-slate-600)', tip: 'Opportunity cost − committed saving in the FY' },
   ]
   return (
     <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50/60 via-white to-white p-4">
@@ -260,7 +260,7 @@ export default function Scope() {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const myCol = me ? ['submitter', 'teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin', 'supplier', 'mgmt'].indexOf(primaryRole(me)) : -1
+  const myCol = me ? ['deptlead', 'finance', 'admin', 'supplier'].indexOf(primaryRole(me)) : -1
   // KPI groups keep their A–F order, with IN-only groups (B, F) after the CO and shared ones
   const kpiGroups = [...new Set(KPIS.map((k) => k.group))].sort((a, b) => Number(KPI_GROUP_SPACE[a[0]] === 'IN') - Number(KPI_GROUP_SPACE[b[0]] === 'IN') || a.localeCompare(b)).filter((g) => iv(KPI_GROUP_SPACE[g[0]] ?? 'Both'))
   const kpiShown = KPIS.filter((k) => kpiGroups.includes(k.group)).length
@@ -501,11 +501,11 @@ export default function Scope() {
 
           {/* 6 */}
           <Section id="s6">
-            {/* the workflow COIN runs: the same six stages for every idea */}
+            {/* the workflow COIN runs: the same five stages for every idea */}
             <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2"><Icon name="Workflow" size={15} className="text-brand-600" /><span className="text-[14px] font-bold text-ink">COIN workflow — applies to every idea</span><span className="text-[11.5px] text-muted">{TRACKER_STAGES.length} stages</span></div>
-                <span className="text-[11.5px] text-muted">Submitter's department evaluates · route decides the Execution started milestones</span>
+                <span className="text-[11.5px] text-muted">Submitter's department runs the workshop · route decides the Execution started milestones</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                 {TRACKER_STAGES.map((st, k) => {
@@ -518,7 +518,7 @@ export default function Scope() {
                   )
                 })}
               </div>
-              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Team feasibility check: technical feasibility, cost validity, duplicate / conflict, Go / No-go. Evaluation by the submitter's department: cost-benefit analysis, risk assessment and a supplier capability check — ideas forecast below ₹ 5 L skip the evaluation and go straight from the team feasibility check to the department head. The department head reviews a detailed commercial assessment (part-wise cost, financial case, risks), the supplier's answers, and signs the budget + timeline lock (part-wise budget, calendar dates, milestone plan); they can send an idea back to the stage they choose. Execution started carries NPD sample, PAP price, first MRN at the new price and the hand-over; Verification confirms the locked target from MRN. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
+              <div className="text-[11.5px] text-muted mt-2 leading-relaxed">Workshop / event creation: an event lists the points to discuss, the departments attending and the SPOC. Technical feasibility (technical, cost validity, duplicate / conflict, Go / No-go) and commercial feasibility (cost-benefit, risk, supplier capability check; not needed below ₹ 5 L) are both done at this stage. Closing the event schedules a follow-up or, with both forms done, goes ahead. Management approval reviews the workshop minutes, the commercial assessment and the supplier's answers, allocates the KPI (owner, target, calendar dates, milestone plan) and signs it off; Cost Optimisation starts after that sign-off. Execution started carries NPD sample, PAP price, first MRN at the new price and the hand-over; Verification confirms the target from MRN. A dropped or rejected idea stays dropped — a fresh attempt is a new idea.</div>
             </div>
             <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted mt-1">Routes as written in the scope document</div>
             <div className="grid gap-2.5">
@@ -549,7 +549,7 @@ export default function Scope() {
             </div>
             <div className="max-w-[760px]">
               <Sub title="Approval matrix (configurable)" icon="Stamp">
-                <DocTable head={['Forecast impact', 'Approver', 'Current setting']} dense
+                <DocTable head={['Opportunity cost', 'Approver', 'Current setting']} dense
                   rows={APPROVAL_MATRIX_DOC.map(([a, b], k) => [a, b, <Badge color="var(--color-brand-600)">{k === 0 ? `≤ ₹ ${settings.xThresholdLakh} lakh` : `> ₹ ${settings.xThresholdLakh} lakh`}</Badge>])} />
                 <div className="mt-2"><Callout tone="gold" icon="Info">{APPROVAL_NOTE} This build uses X = ₹ {settings.xThresholdLakh} lakh ({inrShort(settings.xThresholdLakh * LAKH)}), editable in Admin & Masters.</Callout></div>
               </Sub>

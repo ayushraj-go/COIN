@@ -24,11 +24,10 @@ const LADDER: RoleKey[] = ['teamlead', 'deptlead', 'depthead', 'execowner']
 export const NAV: NavItem[] = [
   { key: 'home', label: 'Dashboard', path: '/', icon: 'LayoutDashboard', roles: ALL, module: 'M1', section: 'Overview' },
   { key: 'queue', label: 'My queue', path: '/queue', icon: 'Inbox', roles: ['teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin'], section: 'Overview' },
-  // IN — Innovation Network: ideas up to approval
+  // IN — Cost Innovation: ideas up to approval
   { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin', ...LADDER], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'myideas', label: 'My Ideas', path: '/my-ideas', icon: 'Lightbulb', roles: ['submitter', 'supplier'], module: 'M2', section: 'Ideas', spaces: ['IN'] },
-  { key: 'submit', label: 'Submit Idea', path: '/submit', icon: 'CirclePlus', roles: ['submitter', 'supplier', 'buyer', 'lead', 'head', ...LADDER], module: 'M3', section: 'Ideas', spaces: ['IN'] },
-  { key: 'workshops', label: 'Workshops', path: '/workshops', icon: 'Presentation', roles: ['supplier'], module: 'M6', section: 'Supplier', spaces: ['IN'] },
+  { key: 'submit', label: 'Capture My Idea', path: '/submit', icon: 'CirclePlus', roles: ['submitter', 'supplier', 'buyer', 'lead', 'head', ...LADDER], module: 'M3', section: 'Ideas', spaces: ['IN'] },
   { key: 'campaigns', label: 'Campaigns', path: '/campaigns', icon: 'Megaphone', roles: ['buyer', 'lead', 'head', 'admin'], module: 'M7', section: 'Network', spaces: ['IN'] },
   { key: 'admin', label: 'Admin & Masters', path: '/admin', icon: 'Settings2', roles: ['admin'], module: 'M12', section: 'System', spaces: ['IN'] },
   // CO — Cost Optimisation: execution after approval. The Execution Hub holds execution, monthly MRN tracking,
@@ -55,5 +54,5 @@ export const spaceForPath = (path: string): Space | null => {
   if (path.startsWith('/npd')) return null
   return 'IN'
 }
-export const ROLE_LABEL: Record<RoleKey, string> = { submitter: 'Employee', supplier: 'Supplier', buyer: 'Commodity Buyer', lead: 'Commodity Lead', head: 'Sourcing Head', finance: 'Finance verifier', mgmt: 'Management', admin: 'Admin', teamlead: 'Team lead', deptlead: 'Department lead', depthead: 'Department head', execowner: 'Execution owner' }
-export const primaryRole = (u: User): RoleKey => (['admin', 'head', 'depthead', 'deptlead', 'teamlead', 'execowner', 'finance', 'mgmt', 'lead', 'buyer', 'supplier', 'submitter'] as RoleKey[]).find((r) => u.roles.includes(r)) ?? 'submitter'
+export const ROLE_LABEL: Record<RoleKey, string> = { submitter: 'Employee', supplier: 'Supplier', buyer: 'Commodity Buyer', lead: 'Commodity Lead', head: 'Sourcing Head', finance: 'Finance verifier', mgmt: 'Management', admin: 'Central ID', teamlead: 'Team lead', deptlead: 'Department ID', depthead: 'Department head', execowner: 'Execution owner' }
+export const primaryRole = (u: User): RoleKey => (['admin', 'head', 'depthead', 'finance', 'deptlead', 'teamlead', 'execowner', 'mgmt', 'lead', 'buyer', 'supplier', 'submitter'] as RoleKey[]).find((r) => u.roles.includes(r)) ?? 'submitter'

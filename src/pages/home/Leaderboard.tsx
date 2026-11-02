@@ -31,14 +31,15 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
       const u = users.find((x) => x.id === i.submitterId)
       const isSup = !!u?.roles.includes('supplier')
       const dept = isSup ? suppliers.find((s) => s.code === u?.supplierCode)?.name ?? 'Supplier' : u?.department ?? i.department
-      const row = map[q].get(i.submitterId) ?? { userId: i.submitterId, name: u?.name ?? i.submitterName, dept, color: u?.avatarColor ?? 'var(--color-slate-500)', ideas: 0, value: 0, implemented: 0, maxIdea: 0, supplier: isSup, campaign: 0 }
+      const key = isSup ? i.submitterId : i.employeeId || i.submitterId
+      const row = map[q].get(key) ?? { userId: key, name: isSup ? u?.name ?? i.submitterName : i.submitterName, dept, color: u?.avatarColor ?? 'var(--color-slate-500)', ideas: 0, value: 0, implemented: 0, maxIdea: 0, supplier: isSup, campaign: 0 }
       const v = ideaAnnualised(i)
       row.ideas++
       row.value += v
       row.maxIdea = Math.max(row.maxIdea, v)
       if (i.bucket === 'Implemented') row.implemented++
       if (i.campaignId) row.campaign++
-      map[q].set(i.submitterId, row)
+      map[q].set(key, row)
     }
     for (const q of ['Q1', 'Q2', 'Q3', 'Q4'] as Q[]) res[q] = [...map[q].values()]
     return res
@@ -57,7 +58,7 @@ export function Leaderboard({ className, limit = 10 }: { className?: string; lim
 
   return (
     <Card className={cn('h-full', className)} bodyClass="@container" icon="Trophy"
-      title={<span className="flex items-center gap-1.5">Contributor leaderboard<InfoTip title="Contributor leaderboard">Top 10 contributors per quarter by ideas submitted (or ₹ forecast impact). Rewards participation — incentive payout is out of scope.</InfoTip></span>}
+      title={<span className="flex items-center gap-1.5">Contributor leaderboard<InfoTip title="Contributor leaderboard">Top 10 contributors per quarter by ideas submitted (or ₹ opportunity cost). Rewards participation — incentive payout is out of scope.</InfoTip></span>}
       subtitle={`Top 10 of ${total} contributor${total === 1 ? '' : 's'} · ${q} ${fy} (${QUARTER_MONTHS[q]} ${qYear})`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <Segmented size="sm" value={q} onChange={(k) => setQ(k as Q)} options={order.map((k) => ({ key: k, label: k }))} />

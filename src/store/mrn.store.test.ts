@@ -1,9 +1,11 @@
-// Stage 5–6 on MRN receipts: the monthly ERP feed, the claim rules, saving at the price billed, verification after the
+// Stage 4–5 on MRN receipts: the monthly ERP feed, the claim rules, saving at the price billed, verification after the
 // final month's MRN, and the lock that keeps the forecast it was signed on.
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore } from './useStore'
+import { throughWorkshop } from './flow.testkit'
 import { ideaAnnualised } from '../lib/calc'
 import { lockTarget } from '../lib/workflow'
+import { addMonthsYm } from '../lib/format'
 import { STAGE } from '../lib/masters'
 import type { IdeaPart } from '../lib/types'
 
@@ -13,11 +15,10 @@ const idea = (id: string) => st().ideas.find((i) => i.id === id)!
 const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals per day', uom: 'Nos', currentSupplier: 'V10023 · Local caterer', baselinePrice: 110, baselineSource: 'LBP', newPrice: 96, annualVolume: 240000, volumeSource: 'MRN FY26' }
 
 function approved(start: string, end: string, months: number) {
-  st().loginAs('u-hr-emp')
+  st().loginAs('id-hr')
   const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
-  st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-  st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
-  st().loginAs('u-hr-head')
+  throughWorkshop(id)
+  st().loginAs('id-central')
   st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: months, startDate: start, endDate: end, targetSaving: lockTarget(ideaAnnualised(idea(id)), months), signatureName: 'Lata Krishnan' })
   st().approve(id)
   return id
@@ -88,28 +89,30 @@ describe('saving at the price billed', () => {
 
 describe('verification after the final month’s MRN', () => {
   it('moves on the deadline, but Finance can verify only once the last month of the window is read', () => {
-    const id = approved('2026-08-01', '2026-11-01', 3)
-    st().closeEndedExecutions('2026-11-02')
+    // the window's last month is the first one with no MRN read yet, whatever today's date is
+    const final = addMonthsYm(st().settings.lastRealisationMonth, 1)
+    const end = `${addMonthsYm(final, 1)}-01`
+    const id = approved(`${addMonthsYm(final, -2)}-01`, end, 3)
+    st().closeEndedExecutions(end)
     expect(idea(id).stage).toBe(STAGE.verification)
-    expect(idea(id).verification?.finalMrnMonth).toBe('2026-10')
+    expect(idea(id).verification?.finalMrnMonth).toBe(final)
     expect(idea(id).verification?.actualAtClose).toBeUndefined()
-    st().loginAs('u-fin')
+    st().loginAs('id-finance')
     expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: 1 })).toBe(false)
     expect(idea(id).verification?.verifiedAt).toBeUndefined()
-    st().runRealisation('2026-10')
+    st().runRealisation(final)
     expect(idea(id).verification?.actualAtClose).toBeTypeOf('number')
-    expect(st().notifications.some((n) => n.userId === 'u-fin' && n.ideaId === id && /ready to verify/i.test(n.title))).toBe(true)
+    expect(st().notifications.some((n) => n.userId === 'id-finance' && n.ideaId === id && /ready to verify/i.test(n.title))).toBe(true)
     expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: 1 })).toBe(true)
   })
 })
 
 describe('the lock keeps the forecast it was signed on', () => {
   it('signing records the forecast and the monthly plan; a later forecast change asks for a new signature', () => {
-    st().loginAs('u-hr-emp')
+    st().loginAs('id-hr')
     const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
-    st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-    st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
-    st().loginAs('u-hr-head')
+    throughWorkshop(id)
+    st().loginAs('id-central')
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: 1680000, signatureName: 'Lata Krishnan' })
     expect(idea(id).lock?.forecastAtLock).toBe(3360000)
     expect(idea(id).lock?.monthlyPlan).toHaveLength(6)
@@ -123,7 +126,7 @@ describe('Finance validates the MRN behind a saving', () => {
     const id = approved('2026-09-01', '2027-03-01', 6)
     st().uploadMrn([{ ideaId: id, partCode: meals.partCode, month: '2026-09', mrnQty: 20000, mrnPrice: 96 }])
     const ids = st().ledger.filter((l) => l.ideaId === id).map((l) => l.id)
-    st().loginAs('u-fin'); st().financeValidate(ids)
+    st().loginAs('id-finance'); st().financeValidate(ids)
     expect(st().ledger.filter((l) => l.ideaId === id).every((l) => l.financeStatus === 'Validated')).toBe(true)
   })
 })

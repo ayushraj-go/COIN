@@ -62,7 +62,7 @@ export default function IdeaDrawer() {
                   </div>
                 </div>
                 <div className="sm:w-[170px] shrink-0 rounded-xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white px-3 py-2.5">
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">Forecast impact</div>
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted">Opportunity cost</div>
                   <div className={annual < 0 ? 'text-red-600' : 'text-ink'}><span className="text-[21px] font-extrabold tracking-tight"><Money value={annual} /></span></div>
                   <div className="text-[11px] text-muted">{idea.scope === 'Open' ? 'Estimate' : `${ideaSavingPct(idea).toFixed(1)}% on baseline`}</div>
                 </div>
@@ -77,7 +77,7 @@ export default function IdeaDrawer() {
               </div>
             )}
 
-            <Card title="Stage tracker" icon="Route" subtitle="Six stages" actions={<CurrentStageSla idea={idea} />}>
+            <Card title="Stage tracker" icon="Route" subtitle="Five stages" actions={<CurrentStageSla idea={idea} />}>
               <StageTracker idea={idea} compact />
             </Card>
             {idea.stage !== 'Draft' && <StagePanels idea={idea} compact />}
@@ -86,11 +86,11 @@ export default function IdeaDrawer() {
             <Card title="Key details" icon="FileText">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="min-w-0">
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-0.5">Current state</div>
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-0.5">As-Is</div>
                   <div className="text-[12.5px] text-ink-2 leading-relaxed line-clamp-4">{idea.currentState || '—'}</div>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-0.5">Proposed change</div>
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-muted mb-0.5">To-Be</div>
                   <div className="text-[12.5px] text-ink-2 leading-relaxed line-clamp-4">{idea.proposedChange || '—'}</div>
                 </div>
               </div>

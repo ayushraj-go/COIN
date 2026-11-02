@@ -2,8 +2,8 @@
 import { useMemo } from 'react'
 import { useStore, hasRole } from '../../store/useStore'
 import type { Bucket, Campaign, Category, Commodity, Health, Idea, IdeaPart, Lever, LeverGroup, Plant, RouteKey, SlaRule, Supplier, User } from '../../lib/types'
-import { EVALUATION_STAGES, FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY, USERS_DEFAULT } from '../../lib/masters'
-import { stageLabel, ideaDept, needsEvaluation, stageAssignee } from '../../lib/workflow'
+import { FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, STAGE_SHORT, STAGE_SLA_KEY, USERS_DEFAULT } from '../../lib/masters'
+import { ideaDept, needsEvaluation, stageAssignee } from '../../lib/workflow'
 import { can } from '../../lib/nav'
 import { healthOf, ideaAnnualised, leverGroupOf, partAnnualised, savingPct, savingPerUnit, slaStatus, stageAgeDays } from '../../lib/calc'
 import { fmtDate, inrShort, nowIso, uid } from '../../lib/format'
@@ -11,12 +11,11 @@ import { exportExcel } from '../../lib/export'
 
 // ─── Stage groups (Kanban columns) ────────────────────────────────────────────
 export interface StageGroup { key: string; label: string; short: string; stages: string[]; bucket: Bucket; icon: string }
-// One column per workflow stage — the same six stages for every idea (Idea submitted is the entry event).
-// Team feasibility check → <dept> evaluation → <dept> approval live in IN; Execution started and Verification in CO.
+// One column per workflow stage — the same five stages for every idea (Idea submitted is the entry event).
+// The workshop and management approval live in IN; Execution started and Verification in CO.
 export const STAGE_GROUPS: StageGroup[] = [
-  { key: 'feasibility', label: STAGE.feasibility, short: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
-  { key: 'evaluation', label: 'Evaluation', short: 'Evaluation', stages: [STAGE.evaluation], bucket: 'Pipeline', icon: 'FlaskConical' },
-  { key: 'approval', label: STAGE.approval, short: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
+  { key: 'feasibility', label: STAGE.feasibility, short: STAGE_SHORT[STAGE.feasibility], stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'Presentation' },
+  { key: 'approval', label: STAGE.approval, short: STAGE_SHORT[STAGE.approval], stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
   { key: 'execution', label: STAGE.execution, short: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
   { key: 'verification', label: STAGE.verification, short: STAGE.verification, stages: [STAGE.verification, 'Implemented'], bucket: 'Implemented', icon: 'ShieldCheck' },
   { key: 'dropped', label: 'Dropped', short: 'Dropped', stages: ['Dropped', 'Rejected'], bucket: 'Dropped', icon: 'CircleX' },
@@ -30,8 +29,7 @@ export const SAVINGS_TYPES = ['Hard', 'Cost avoidance', 'One-time'] as const
 export const SAVINGS_TYPE_COLOR: Record<string, string> = { Hard: 'var(--color-emerald-600)', 'Cost avoidance': 'var(--color-sky-600)', 'One-time': 'var(--color-violet-600)' }
 
 export const stagesOf = (idea: Pick<Idea, 'route'>) => ROUTE_STAGES[idea.route] ?? ROUTE_STAGES.Commercial
-/** Stage name as shown for this idea ("Evaluation" → "R&D evaluation") */
-export const stageText = (idea: Pick<Idea, 'stage' | 'department' | 'evaluation'>) => stageLabel(idea, idea.stage)
+export const stageText = (idea: Pick<Idea, 'stage'>) => idea.stage
 
 // ─── Context (masters needed for labels / filters) ───────────────────────────
 export interface Ctx { levers: Lever[]; slaRules: SlaRule[]; suppliers: Supplier[]; commodities: Commodity[]; users: User[]; campaigns: Campaign[]; categories: Category[]; plants: Plant[] }
@@ -87,7 +85,7 @@ export const FILTER_KEYS = ['bucket', 'stage', 'commodity', 'category', 'lever',
 export const PARAM_LABEL: Record<string, string> = {
   bucket: 'Bucket', stage: 'Stage', commodity: 'Commodity', category: 'Category', lever: 'Lever', group: 'Lever group', route: 'Route', buyer: 'Buyer',
   owner: 'Owner', submitter: 'Submitter', supplier: 'Supplier', dept: 'Department', campaign: 'Campaign', savingsType: 'Savings type', dropReason: 'Drop reason',
-  health: 'Health', sla: 'SLA', plant: 'Plant', q: 'Search', minValue: 'Forecast ≥', maxValue: 'Forecast ≤', supplierOnly: 'Supplier ideas', fy: 'FY',
+  health: 'Health', sla: 'SLA', plant: 'Plant', q: 'Search', minValue: 'Opportunity cost ≥', maxValue: 'Opportunity cost ≤', supplierOnly: 'Supplier ideas', fy: 'FY',
 }
 const splitVals = (raw: string) => raw.split(',').map((v) => v.trim()).filter(Boolean)
 
@@ -106,7 +104,7 @@ function matchOne(r: IdeaRow, key: string, v: string): boolean {
     case 'route': return i.route === v
     case 'buyer': return i.buyerId === v || i.ownerId === v
     case 'owner': return r.ownerId === v
-    case 'submitter': return i.submitterId === v
+    case 'submitter': return i.submitterId === v || i.employeeId === v
     case 'supplier': return i.supplierCode === v || i.feasibility?.supplierCode === v || i.proposedSupplier?.code === v || i.parts.some((p) => p.currentSupplier.split(' · ')[0] === v)
     case 'dept': return i.department === v
     case 'campaign': return i.campaignId === v
@@ -174,6 +172,8 @@ export function inScope(me: User | null | undefined, idea: Idea) {
   return me.commodities.includes(idea.commodity)
 }
 export interface IdeaPerms {
+  /** stage 2 — create and close workshop events */
+  workshop: boolean
   feasibilityCheck: boolean; evaluate: boolean; approve: boolean
   sendBack: boolean; requestInfo: boolean; reassign: boolean; drop: boolean
   /** always false — COIN moves an idea to Verification itself when the locked timeline ends */
@@ -184,46 +184,40 @@ export interface IdeaPerms {
   override: boolean; sync: boolean; continueDraft: boolean; comment: boolean; upload: boolean
 }
 export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
-  const none: IdeaPerms = { feasibilityCheck: false, evaluate: false, approve: false, sendBack: false, requestInfo: false, reassign: false, drop: false, handOver: false, execute: false, verify: false, override: false, sync: false, continueDraft: false, comment: false, upload: false }
+  const none: IdeaPerms = { workshop: false, feasibilityCheck: false, evaluate: false, approve: false, sendBack: false, requestInfo: false, reassign: false, drop: false, handOver: false, execute: false, verify: false, override: false, sync: false, continueDraft: false, comment: false, upload: false }
   if (!me) return none
   const stage = idea.stage
   const pipeline = idea.bucket === 'Pipeline'
   const exec = idea.bucket === 'In Execution'
-  // Sourcing Head and Admin can act at every stage; everyone else only at their own stage, for their own department
+  // the Central ID can act at every stage; a department ID only at its own stages, on its own department's ideas
   const head = hasRole(me, 'head', 'admin')
   const scope = inScope(me, idea)
   const validator = can(me, 'validate') && scope
-  const evalStage = EVALUATION_STAGES.includes(stage)
-  const dept = ideaDept(idea)
-  const inDept = me.department === dept
-  // each stage is acted on by the one person the department ladder routes it to (stageAssignee): stage 2 the team lead
-  // of the submitter's department — in Sourcing the team lead of the idea's commodity (the department lead on a team lead's own idea), stage 3 the department lead,
-  // stage 4 the department head — never a colleague holding the same role
+  // each stage belongs to one ID (stageAssignee): the department at the workshop and in execution, Central at approval
   const assigned = stageAssignee(idea, stage, usersNow()) === me.id
-  const feasibilityCheck = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || assigned)
-  const evaluate = pipeline && evalStage && (head || assigned)
+  const workshop = pipeline && FEASIBILITY_STAGES.includes(stage) && (head || assigned)
+  const feasibilityCheck = workshop
+  const evaluate = workshop && !idea.evaluation?.skipped && needsEvaluation(ideaAnnualised(idea))
   const approve = pipeline && stage === STAGE.approval && idea.approvals.some((a) => !a.decision) && (head || assigned)
-  const actor = feasibilityCheck || evaluate || approve
-  // stage 5 — the execution owner (the commodity buyer, or whoever the execution was reassigned to)
+  const actor = workshop || approve
+  // stage 4 — the department ID that owns the execution
   const executor = head || stageAssignee(idea, STAGE.execution, usersNow()) === me.id
   return {
-    feasibilityCheck, evaluate, approve,
+    workshop, feasibilityCheck, evaluate, approve,
     sendBack: pipeline && actor,
     requestInfo: pipeline && actor,
-    // pipeline stages are assigned by the ladder — only override users re-point the commodity buyer;
-    // pipeline stages are never reassigned to another SPOC: the idea is sent back to a stage it has passed (sendBackTargets).
-    // In execution the department head (or override) hands the execution to another owner of the department.
-    reassign: exec && (head || (hasRole(me, 'depthead') && inDept)),
+    // each department has one ID, so there is nobody to hand an execution to
+    reassign: false,
     drop: (pipeline && (actor || head)) || (exec && executor),
     handOver: false,
     execute: exec && executor && idea.execution?.status === 'In Execution',
-    // stage 6 — Finance verifies the locked target
+    // stage 5 — Finance verifies the locked target
     verify: stage === STAGE.verification && !idea.verification?.verifiedAt && (head || hasRole(me, 'finance')),
     override: pipeline && validator && !idea.locked,
     sync: executor && idea.bucket !== 'Dropped',
     continueDraft: stage === 'Draft' && idea.submitterId === me.id,
     comment: idea.stage !== 'Draft' || idea.submitterId === me.id,
-    upload: idea.bucket !== 'Dropped' && (idea.submitterId === me.id || scope || evalStage || hasRole(me, 'supplier')),
+    upload: idea.bucket !== 'Dropped' && (idea.submitterId === me.id || scope || workshop),
   }
 }
 
@@ -231,15 +225,14 @@ export function ideaPerms(me: User | null | undefined, idea: Idea): IdeaPerms {
 export function waitingOn(idea: Idea, ctx: Ctx): string {
   const s = idea.stage
   if (s === 'Draft') return 'Draft — not yet submitted'
-  if (s === 'Dropped' || s === 'Rejected') return `${s} at ${idea.dropStage ? stageLabel(idea, idea.dropStage) : '—'} · ${idea.dropReason ?? ''} — closed for good`
+  if (s === 'Dropped' || s === 'Rejected') return `${s} at ${idea.dropStage ?? '—'} · ${idea.dropReason ?? ''} — closed for good`
   const who = (st: string) => userNameOf(ctx, stageAssignee(idea, st, usersNow()))
-  if (FEASIBILITY_STAGES.includes(s)) return `Awaiting team feasibility check · ${who(s)}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
-  if (EVALUATION_STAGES.includes(s)) {
-    const sc = idea.evaluation?.supplier?.status
-    return `Awaiting ${stageLabel(idea, s)} · ${who(s)} · cost-benefit, risk${sc === 'Skipped' ? ' (supplier check skipped < ₹ 5 L)' : sc === 'Sent' ? ' · supplier form sent' : sc === 'Responded' ? ' · supplier responded' : ', supplier check'}`
+  if (FEASIBILITY_STAGES.includes(s)) {
+    const open = idea.workshop?.events.find((e) => e.status === 'Scheduled')
+    return `Workshop · ${who(s)} · ${open ? `event ${open.no} on ${fmtDate(open.date)}, SPOC ${open.spoc.name}` : 'no event scheduled'}${idea.infoRequested ? ' · more info requested from submitter' : ''}`
   }
   if (s === STAGE.approval) {
-    return `Awaiting ${stageLabel(idea, s)} · ${who(s)}${idea.lock ? ' · lock signed' : ' · budget & timeline lock to sign'}`
+    return `Awaiting management approval · ${who(s)}${idea.lock ? ' · KPI signed' : ' · KPI to allocate and sign'}`
   }
   if (s === STAGE.verification || s === 'Implemented') {
     const v = idea.verification
@@ -260,9 +253,9 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   if (from.key === targetKey) return { ok: false, reason: '', same: true }
   if (!me) return { ok: false, reason: 'Sign in to move ideas' }
   if (idea.bucket === 'Implemented' || idea.bucket === 'Dropped') return { ok: false, reason: `${idea.id} is ${idea.stage === 'Dropped' || idea.stage === 'Rejected' ? 'dropped for good' : 'in verification'} — it cannot be moved on the board` }
-  // every move is decided by the department ladder: the role for the stage being left, or Sourcing Head / Admin
+  // every move is decided by the ID that owns the stage being left, or the Central ID
   const p = ideaPerms(me, idea)
-  const who = `the ${stageLabel(idea, idea.stage)} role of ${ideaDept(idea)} (or the Sourcing Head / Admin)`
+  const who = `the ${ideaDept(idea)} ID (or the Central ID)`
   if (targetKey === 'dropped') {
     if (!p.drop) return { ok: false, reason: `Dropping ${idea.id} needs ${who}` }
     return { ok: true, kind: 'drop', stage: 'Dropped', backward: false }
@@ -273,25 +266,22 @@ export function kanbanMove(me: User | null | undefined, idea: Idea, targetKey: s
   const stages = stagesOf(idea)
   const stage = stages.find((s) => target.stages.includes(s))
   if (!stage) return { ok: false, reason: `There is no “${target.label}” stage` }
-  const small = !needsEvaluation(ideaAnnualised(idea))
-  if (small && stage === STAGE.evaluation) return { ok: false, reason: `${idea.id} is forecast below ₹ 5 L — it skips the ${stageLabel(idea, STAGE.evaluation)}` }
   const ai = stages.indexOf(STAGE.approval), ci = stages.indexOf(idea.stage), ti = stages.indexOf(stage)
   if (ci > ai && ti <= ai) return { ok: false, reason: 'Approved values are locked — an idea in execution cannot return to IN' }
   // forward moves need the stage form of every stage being left
   if (ti > ci) {
-    if (ci <= stages.indexOf(STAGE.feasibility) && ti > stages.indexOf(STAGE.feasibility) && idea.feasibilityCheck?.decision !== 'Go') return { ok: false, reason: 'Open the idea and complete the Team feasibility check (Go / No-go) first' }
-    if (!small && ci <= stages.indexOf(STAGE.evaluation) && ti > stages.indexOf(STAGE.evaluation) && idea.evaluation?.decision !== 'Recommend') return { ok: false, reason: `Open the idea and complete the ${stageLabel(idea, STAGE.evaluation)} (cost-benefit, risk, supplier check) first` }
-    if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the budget & timeline lock and approve in department approval before execution can start' }
+    if (ci <= stages.indexOf(STAGE.feasibility) && ti > ci) return { ok: false, reason: 'Open the idea and close the workshop event with Go ahead first' }
+    if (ti > ai && (!idea.lock || idea.approvals.some((a) => a.decision !== 'Approved'))) return { ok: false, reason: 'Sign the KPI and approve in management approval before execution can start' }
   }
   if (ti > ai && ci <= ai) {
-    if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: `Moving past ${stageLabel(idea, STAGE.approval)} needs the department head (or the Sourcing Head / Admin)` }
+    if (!ideaPerms(me, idea).approve && !hasRole(me, 'head', 'admin')) return { ok: false, reason: 'Moving past management approval needs the Central ID' }
   } else if (ti <= ai) {
-    if (!(p.feasibilityCheck || p.evaluate || p.approve)) return { ok: false, reason: `Moving ${idea.id} needs ${who}` }
-  } else if (!p.execute) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} execution owner (or the Sourcing Head / Admin)` }
+    if (!(p.workshop || p.approve)) return { ok: false, reason: `Moving ${idea.id} needs ${who}` }
+  } else if (!p.execute) return { ok: false, reason: `Execution moves need the ${ideaDept(idea)} ID (or the Central ID)` }
   return { ok: true, kind: 'move', stage, backward: ti < ci }
 }
 
-/** Execution Hub rights for one execution — straight from the ladder */
+/** Execution Hub rights for one execution */
 export function execRights(me: User | null | undefined, idea: Idea) {
   const p = ideaPerms(me, idea)
   return { editable: p.execute, canReassign: p.reassign && idea.bucket === 'In Execution' }
@@ -347,7 +337,7 @@ export function exportIdeas(rows: IdeaRow[], ctx: Ctx, filename: string) {
       'Idea ID': i.id, Title: i.title, FY: i.fy, 'Buying type': i.buyingType,
       Category: ctx.categories.find((c) => c.id === i.categoryId)?.name ?? i.categoryId, Commodity: r.commodityName,
       Lever: r.leverName, 'Lever group': r.group, Route: i.route, Stage: i.stage, Bucket: i.bucket,
-      'Forecast impact (₹)': Math.round(r.annual), 'Savings type': i.savingsType, 'One-time investment (₹)': i.oneTimeInvestment || 0,
+      'Opportunity cost (₹)': Math.round(r.annual), 'Savings type': i.savingsType, 'One-time investment (₹)': i.oneTimeInvestment || 0,
       Scope: i.scope, Submitter: i.submitterName, 'Employee / vendor ID': i.employeeId, Department: i.department,
       'Supplier submission': i.isSupplierSubmission ? `Yes — ${i.supplierCode ?? ''}` : 'No',
       'Buyer / owner': r.ownerName, Plant: i.plant, 'Submitted on': fmtDate(r.submitted),
@@ -361,7 +351,7 @@ export function exportIdeas(rows: IdeaRow[], ctx: Ctx, filename: string) {
     'Idea ID': r.id, 'Part code': p.partCode, Description: p.description, UoM: p.uom, 'Current supplier': p.currentSupplier,
     'Baseline (₹ / unit)': p.baselinePrice, 'Baseline source': p.baselineSource, 'New price (₹ / unit)': p.newPrice,
     'Approved price (₹ / unit)': p.approvedPrice ?? '', 'Annual volume': p.annualVolume, 'Volume source': p.volumeSource,
-    'Saving / unit (₹)': +savingPerUnit(p).toFixed(4), 'Saving %': +savingPct(p).toFixed(2), 'Forecast (₹)': Math.round(partAnnualised(p)),
+    'Saving / unit (₹)': +savingPerUnit(p).toFixed(4), 'Saving %': +savingPct(p).toFixed(2), 'Opportunity cost (₹)': Math.round(partAnnualised(p)),
   })))
   exportExcel(filename, [{ name: 'Ideas', rows: ideas }, { name: 'Part-wise savings', rows: parts }])
 }

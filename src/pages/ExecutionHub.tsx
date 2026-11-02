@@ -1,7 +1,7 @@
 // M8 — Execution Hub · TRACE (stages 5–6 in Cost Optimisation), in four tabs:
 // Execution (owner, locked deadline, milestones, plan vs actual, NPD / PAP, drop) · Monthly MRN tracking (forecast vs MRN
 // actual, month by month) · Savings proof (PROOF, part-wise) · Verification (locked target vs MRN actual).
-// Nobody hands over by hand: on the deadline signed at department approval COIN moves the idea to verification.
+// Nobody hands over by hand: on the deadline signed at management approval COIN moves the idea to verification.
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useStore, useMe, hasRole } from '../store/useStore'
@@ -16,16 +16,16 @@ import {
   Badge, Button, Card, EmptyState, HealthBadge, Icon, InfoTip, KpiCard, PageHeader, ProgressBar, SavingsTypeBadge, Segmented, Skeleton, Stagger, Tooltip, UserChip, cn, useWarmup,
 } from '../components/ui'
 import { FilterBar } from '../components/FilterBar'
-import { MenuItem, MiniHead, Popover, ReassignModal, nextReminder, snapshot, toast } from './exec/shared'
+import { MenuItem, MiniHead, Popover, nextReminder, snapshot, toast } from './exec/shared'
 import { DropModal, LinkedEditor, MilestoneNoteModal, ProgressModal, npdColor, papColor } from './exec/ExecModals'
 import { ExecTimeline, TimelineLegend } from './exec/Timeline'
 import { MonthBars, SavingsTrackPanel, savingsTrackOf, useSavingsTrack } from './idea/SavingsTrack'
-import { execRights, ownerCandidates } from './idea/model'
+import { execRights } from './idea/model'
 import { MrnFeedBanner, MrnTracking, ON_PLAN, UpcomingDeadlines, VerificationList, track } from './exec/Tabs'
 import Proof from './Proof'
 
 type Kpi = 'all' | 'due' | 'nomrn' | 'risk' | 'done' | 'dropped'
-type ModalState = { kind: 'progress' | 'note' | 'drop' | 'reassign'; id: string; date?: string; to?: string; milestoneId?: string } | null
+type ModalState = { kind: 'progress' | 'note' | 'drop'; id: string; date?: string; milestoneId?: string } | null
 type Tab = 'execution' | 'mrn' | 'proof' | 'verification'
 /** set by the MRN feed — never ticked by hand */
 const AUTO_MILESTONES = ['First MRN at new price', 'Handed for verification']
@@ -110,8 +110,7 @@ export default function ExecutionHub() {
   }, [ledger, hubIds, fy])
 
   const canExec = can(me, 'execute')
-  // rights come from the department ladder: the execution owner edits, the department head reassigns, Sourcing Head / Admin override
-  const canReassignIdea = (i: Idea) => execRights(me, i).canReassign
+  // rights come from the ID: the department ID edits its executions, the Central ID can act on any
   const editable = (i: Idea) => i.execution?.status === 'In Execution' && execRights(me, i).editable
   const byId = (id?: string) => ideas.find((i) => i.id === id) ?? null
   const mIdea = byId(modal?.id)
@@ -273,15 +272,11 @@ export default function ExecutionHub() {
                             </td>
                             <td className="max-[1700px]:hidden"><Tooltip content={commodity?.name ?? i.commodity}><span className="inline-flex items-center h-[22px] px-2 rounded-md bg-slate-100 text-[11.5px] font-bold text-ink-2">{i.commodity}</span></Tooltip></td>
                             <td>
-                              {canReassignIdea(i) && ed ? (
-                                <select className="h-8 max-w-[170px] rounded-lg border border-line bg-white px-2 text-[12.5px] font-medium hover:border-slate-300 focus:outline-none focus:border-brand-400" value={ex.ownerId} onChange={(e) => setModal({ kind: 'reassign', id: i.id, to: e.target.value })}>
-                                  {ownerCandidates(i, users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                </select>
-                              ) : <UserChip userId={ex.ownerId} />}
+                              <UserChip userId={ex.ownerId} />
                             </td>
                             <td className="max-[1700px]:hidden num text-[12.5px]">{fmtDate(ex.startDate)}</td>
                             <td>
-                              <Tooltip content={`Locked at department approval · moves to verification on ${fmtDate(ex.targetDate)}`}>
+                              <Tooltip content={`Locked at management approval · moves to verification on ${fmtDate(ex.targetDate)}`}>
                                 <span className="inline-flex items-center gap-1 text-[12.5px] num whitespace-nowrap"><Icon name="Lock" size={11} className="text-muted" />{fmtDate(ex.targetDate)}</span>
                               </Tooltip>
                               <div className="text-[10.5px] text-muted">{daysBetween(t, ex.targetDate) > 0 ? `in ${daysBetween(t, ex.targetDate)} days` : 'today'}</div>
@@ -365,7 +360,6 @@ export default function ExecutionHub() {
             <div className="px-2.5 pt-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted truncate">{pIdea.id}</div>
             <MenuItem icon="Activity" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'progress', id: pIdea.id }) }}>Update progress</MenuItem>
             <MenuItem icon="StickyNote" disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'note', id: pIdea.id }) }}>Add milestone note</MenuItem>
-            <MenuItem icon="UserRoundCog" disabled={!canReassignIdea(pIdea)} hint={!canReassignIdea(pIdea) ? 'Reassignable by the department head' : undefined} onClick={() => { setPop(null); setModal({ kind: 'reassign', id: pIdea.id }) }}>Reassign{!canReassignIdea(pIdea) && <span className="text-[10.5px] text-muted ml-1">(Dept head)</span>}</MenuItem>
             <div className="h-px bg-line my-1" />
             <MenuItem icon="Ban" danger disabled={!editable(pIdea)} onClick={() => { setPop(null); setModal({ kind: 'drop', id: pIdea.id }) }}>Drop</MenuItem>
             <div className="h-px bg-line my-1" />
@@ -378,9 +372,6 @@ export default function ExecutionHub() {
       <ProgressModal idea={mIdea} open={modal?.kind === 'progress'} onClose={() => setModal(null)} />
       <MilestoneNoteModal idea={mIdea} open={modal?.kind === 'note'} milestoneId={modal?.milestoneId} onClose={() => setModal(null)} />
       <DropModal idea={mIdea} open={modal?.kind === 'drop'} fy={fy} onClose={() => setModal(null)} />
-      <ReassignModal open={modal?.kind === 'reassign'} onClose={() => setModal(null)} title={`Reassign ${mIdea?.id ?? ''}`} subtitle="Idea owner — Commodity Buyer by default; reassignable by Commodity Lead"
-        candidates={mIdea ? ownerCandidates(mIdea, users) : []} currentId={mIdea?.execution?.ownerId} defaultTo={modal?.to}
-        onConfirm={(uid, r) => { if (!mIdea) return; const undo = snapshot([mIdea.id]); useStore.getState().reassign(mIdea.id, uid, r); toast(`${mIdea.id} reassigned to ${users.find((u) => u.id === uid)?.name}`, 'info', undo) }} />
     </div>
   )
 }
@@ -452,7 +443,7 @@ function Expanded({ idea, editable, onToggle, onNote }: { idea: Idea; editable: 
         </div>
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px]">
           <span className="text-muted">Original due date</span><b className="text-right num">{fmtDate(ex.originalTargetDate)}</b>
-          <span className="text-muted">Forecast</span><b className="text-right num">{inrShort(ideaAnnualised(idea))}</b>
+          <span className="text-muted">Opportunity cost</span><b className="text-right num">{inrShort(ideaAnnualised(idea))}</b>
           <span className="text-muted">Approved on</span><b className="text-right num">{fmtDate(idea.approvedAt?.slice(0, 10))}</b>
           <span className="text-muted">Owner</span><span className="text-right"><UserChip userId={ex.ownerId} size={16} /></span>
         </div>
@@ -467,7 +458,7 @@ function TrackCard({ idea }: { idea: Idea }) {
   return (
     <div className="card p-3 lg:col-span-2 min-w-0">
       <MiniHead icon="ChartColumnBig" right={<span className="text-[11px] text-muted">{idea.lock ? `${inrShort(idea.lock.targetSaving)} over ${idea.lock.timelineMonths} months from ${fmtDate(idea.lock.startDate)}` : 'No lock'}</span>}>Monthly savings vs target (MRN)</MiniHead>
-      {t ? <SavingsTrackPanel idea={idea} t={t} compact /> : <div className="text-[12px] text-muted">The budget + timeline lock is signed at the department approval.</div>}
+      {t ? <SavingsTrackPanel idea={idea} t={t} compact /> : <div className="text-[12px] text-muted">The KPI and its timeline are signed at management approval.</div>}
     </div>
   )
 }
@@ -518,7 +509,7 @@ function RecentClosures({ hub, fy, className }: { hub: Idea[]; fy: string; class
                 <div className="text-[11.5px] text-muted truncate">{isDone ? `Target ${inrShort(i.lock?.targetSaving ?? 0)} · MRN actual ${inrShort(i.verification?.actualAtClose ?? 0)} · ${i.verification?.verifiedAt ? `verified ${fmtDate(i.verification.verifiedAt.slice(0, 10))}` : 'awaiting verification'}` : `${i.dropReason} · at ${i.dropStage ?? '—'} · counted in ${monthLong(ymOf(at))}`}</div>
               </div>
               <div className="text-right shrink-0">
-                {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">forecast</div></>
+                {isDone ? <><div className="text-[13px] font-bold num text-emerald-700">{inrShort(ideaApprovedAnnualised(i))}</div><div className="text-[10.5px] text-muted">opportunity cost</div></>
                   : <><div className="text-[13px] font-bold num text-slate-500 line-through">{inrShort(removedCommitted(i, fy))}</div><div className="text-[10.5px] text-muted">committed removed</div></>}
               </div>
             </button>

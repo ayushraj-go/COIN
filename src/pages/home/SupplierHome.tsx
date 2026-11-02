@@ -44,7 +44,7 @@ export default function SupplierHome() {
   const nextDays = nextWs ? daysBetween(todayIso(), nextWs.workshopDate!) : null
   const accepted = invites.filter((c) => c.attendance[code] === 'Accepted').length
   const attended = invites.filter((c) => c.attendance[code] === 'Attended').length
-  // my submitted ideas across the six workflow stages
+  // my submitted ideas across the five workflow stages
   const underReview = ownSubmitted.filter((i) => i.bucket === 'Pipeline')
   const byStage = TRACKER_STAGES.map((st) => {
     const l = st === STAGE.submitted ? ownSubmitted : ownSubmitted.filter((i) => i.stage === st)
@@ -152,7 +152,7 @@ export default function SupplierHome() {
 
           <Reveal className="col-span-12 xl:col-span-4 min-h-0">
             <Card className="flex-1 min-h-0" bodyClass="flex flex-col" icon="Workflow"
-              title={<span className="flex items-center gap-1.5">My ideas by stage<InfoTip title="Six-stage workflow">Every idea moves through the same six stages: Idea submitted → Team feasibility check → R&D approval → department approval → Execution started → Implemented. A dropped idea stays dropped; to try again, submit a new idea.</InfoTip></span>}
+              title={<span className="flex items-center gap-1.5">My ideas by stage<InfoTip title="Five-stage workflow">Every idea moves through the same five stages: Idea submitted → Workshop / event creation → Management approval & KPI allocation → Execution started → Verification. A dropped idea stays dropped; to try again, submit a new idea.</InfoTip></span>}
               subtitle={`${ownSubmitted.length} submitted · ${dropped.length} dropped`}
               actions={<Button size="xs" variant="ghost" iconRight="ArrowRight" onClick={() => nav('/my-ideas')}>My Ideas</Button>}>
               <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-1">

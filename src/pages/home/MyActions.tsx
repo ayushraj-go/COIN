@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import type { Idea, User } from '../../lib/types'
-import { EVALUATION_STAGES, STAGE } from '../../lib/masters'
+import { STAGE } from '../../lib/masters'
 import { ideaAnnualised, slaStatus } from '../../lib/calc'
 import { daysBetween, fmtDate, inrShort, monthLabel, sum, todayIso } from '../../lib/format'
 import { navFor } from '../../lib/nav'
+import { stageAssignee } from '../../lib/workflow'
 import { useFilteredIdeas } from '../../lib/hooks'
 import { Badge, Card, Chip, Icon, InfoTip, SlaPill, cn } from '../../components/ui'
 import { SLA_RANK, drillUrl, slaFrom } from './shared'
@@ -17,10 +18,10 @@ const stagesOf = (key: string) => Object.keys(STAGE_SLA_KEY).filter((s) => STAGE
 
 export type ActionKind = 'validate' | 'feasibility' | 'evaluate' | 'approve' | 'savings' | 'overdue' | 'info' | 'draft' | 'sla'
 export const ACTION_META: Record<ActionKind, { label: string; icon: string; color: string }> = {
-  validate: { label: 'Feasibility check', icon: 'UsersRound', color: 'var(--color-brand-500)' },
+  validate: { label: 'Workshop / event', icon: 'Presentation', color: 'var(--color-brand-500)' },
   feasibility: { label: 'Feasibility', icon: 'Factory', color: 'var(--color-teal-600)' },
   evaluate: { label: 'Evaluation', icon: 'FlaskConical', color: 'var(--color-indigo-600)' },
-  approve: { label: 'Department approval', icon: 'Stamp', color: 'var(--color-brand-600)' },
+  approve: { label: 'Management approval', icon: 'Stamp', color: 'var(--color-brand-600)' },
   savings: { label: 'Savings to validate', icon: 'BadgeIndianRupee', color: 'var(--color-emerald-600)' },
   overdue: { label: 'Overdue executions', icon: 'CalendarX2', color: 'var(--color-rose-600)' },
   info: { label: 'Info requested', icon: 'MessageCircleQuestion', color: 'var(--color-orange-400)' },
@@ -59,9 +60,8 @@ export function buildActions(me: User, ideas: Idea[], s: ReturnType<typeof useSt
       continue
     }
     if (i.submitterId === me.id && i.infoRequested && i.bucket === 'Pipeline') push('info', i, `${i.id} · ${i.stage} · reply to the team's query`, { urgency: 3.5 })
-    if (i.stage === STAGE.feasibility && ((isBuyer && (i.buyerId === me.id || me.commodities.includes(i.commodity))) || (isLead && me.commodities.includes(i.commodity)))) push('validate', i, `${i.id} · ${i.submitterName} · team feasibility check`)
-    if (EVALUATION_STAGES.includes(i.stage) && i.evaluation && !i.evaluation.decision && ((r.includes('deptlead') && i.evaluation.dept === me.department) || (i.evaluation.dept === 'Sourcing' && (isLead || isBuyer) && me.commodities.includes(i.commodity)) || isHead)) push('evaluate', i, `${i.id} · ${i.evaluation.dept} evaluation · cost-benefit, risk, supplier check`)
-    if ((isLead || isHead) && i.stage === STAGE.approval && !!firstPending(i) && (firstPending(i)!.approverId === me.id || isHead)) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
+    if (i.stage === STAGE.feasibility && stageAssignee(i, i.stage, s.users) === me.id) push('validate', i, `${i.id} · ${i.submitterName} · workshop / event`)
+    if (i.stage === STAGE.approval && !!firstPending(i) && (firstPending(i)!.approverId === me.id || isHead)) push('approve', i, `${i.id} · ${firstPending(i)!.level} · ${i.commodity}`)
     if ((isBuyer || isLead || isHead) && i.bucket === 'In Execution' && i.execution?.status === 'In Execution' && i.execution.targetDate < t) {
       const mineExec = isHead || (isLead && me.commodities.includes(i.commodity)) || (i.ownerId ?? i.buyerId) === me.id
       if (mineExec) {

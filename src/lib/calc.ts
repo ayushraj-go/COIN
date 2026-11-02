@@ -1,17 +1,17 @@
 // Section 4 — savings methodology. One rule for every buyer.
 import { ideaDept } from './workflow'
 import type { Bucket, Commodity, Filters, Health, Idea, IdeaPart, LedgerEntry, Lever, RouteKey, SlaRule, User } from './types'
-import { ROUTE_STAGES, STAGE, STAGE_SLA_KEY, EVALUATION_STAGES, FEASIBILITY_STAGES, LAKH } from './masters'
+import { ROUTE_STAGES, STAGE, STAGE_SLA_KEY, FEASIBILITY_STAGES, LAKH } from './masters'
 import { daysBetween, fyEnd, fyMonths, fyStart, parse, quarterOf, quarterStart, sum, today, todayIso, workingDaysBetween, ymOf, iso } from './format'
 
 /** Saving per unit = P(baseline) − P(new) */
 export const savingPerUnit = (p: IdeaPart, useApproved = false) => p.baselinePrice - (useApproved && p.approvedPrice != null ? p.approvedPrice : p.newPrice)
 export const savingPct = (p: IdeaPart) => (p.baselinePrice ? (savingPerUnit(p) / p.baselinePrice) * 100 : 0)
-/** Forecast impact = (P(baseline) − P(new)) × Q(last FY MRN) */
+/** Opportunity cost = (P(baseline) − P(new)) × Q(last FY MRN) */
 export const partAnnualised = (p: IdeaPart, useApproved = false) => savingPerUnit(p, useApproved) * (p.annualVolume || 0)
 
 export function ideaAnnualised(idea: Pick<Idea, 'parts' | 'scope' | 'openEstimateLakh'> & { evaluation?: Idea['evaluation'] }, useApproved = false): number {
-  // the forecast corrected at the department evaluation is the idea's forecast from then on
+  // the forecast corrected at the commercial evaluation is the idea's forecast from then on
   const evaluated = idea.evaluation?.cbaInputs?.annual
   if (!useApproved && evaluated != null) return evaluated
   return partsForecast(idea, useApproved)
@@ -29,9 +29,9 @@ export function ideaSavingPct(idea: Idea): number {
   const base = sum(idea.parts.map((p) => p.baselinePrice * p.annualVolume))
   return base ? (ideaAnnualised(idea) / base) * 100 : 0
 }
-/** Net saving = Forecast impact − One-time investment */
+/** Net saving = Opportunity cost − One-time investment */
 export const netSaving = (annual: number, investment: number) => annual - (investment || 0)
-/** Payback (months) = One-time investment ÷ (Forecast impact ÷ 12) */
+/** Payback (months) = One-time investment ÷ (Opportunity cost ÷ 12) */
 export const paybackMonths = (annual: number, investment: number) => (annual > 0 && investment > 0 ? investment / (annual / 12) : 0)
 
 /** Months of the FY that fall on/after the go-live date (fractional by day for the first month) */
@@ -46,10 +46,10 @@ export function fyMonthsFrom(goLive: string, fy: string): number {
 }
 /** Committed saving (in-FY) = forecast × months live in FY ÷ 12. Worked example: ₹ 8.40 L live 1 Oct → ₹ 4.20 L */
 export const committedInFy = (annual: number, goLive: string, fy: string) => (annual * fyMonthsFrom(goLive, fy)) / 12
-/** Carry-over = forecast impact falling beyond 31 March */
+/** Carry-over = opportunity cost falling beyond 31 March */
 export const carryOver = (annual: number, goLive: string, fy: string) => annual - committedInFy(annual, goLive, fy)
 
-/** Quarter phasing Q1..Q4 pre-filled from go-live date and forecast impact */
+/** Quarter phasing Q1..Q4 pre-filled from go-live date and opportunity cost */
 export function phaseByQuarter(annual: number, goLive: string, fy: string) {
   const out = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 }
   const g = parse(goLive)
@@ -186,7 +186,7 @@ export function canSeeIdea(user: User, idea: Idea): boolean {
   if (idea.submitterId === user.id || idea.ownerId === user.id) return true
   if (r.includes('supplier')) return idea.supplierCode === user.supplierCode || idea.feasibility?.supplierCode === user.supplierCode
   if ((r.includes('buyer') || r.includes('lead')) && user.commodities.includes(idea.commodity)) return true
-  // department ladder (team lead, department lead, department head, execution owner): every idea of their department
+  // a department ID: every idea of its department
   if (r.some((x) => x === 'teamlead' || x === 'deptlead' || x === 'depthead' || x === 'execowner') && ideaDept(idea) === user.department) return true
   return false
 }
@@ -307,5 +307,4 @@ export function approvalLevels(annual: number, investment: number, xLakh: number
 }
 
 export const isFeasibilityStage = (s: string) => FEASIBILITY_STAGES.includes(s)
-export const isEvaluationStage = (s: string) => EVALUATION_STAGES.includes(s)
 export const isoToday = () => iso(today())

@@ -9,13 +9,13 @@ export type RoleKey =
   | 'finance'
   | 'mgmt'
   | 'admin'
-  // department ladder (stages 2–5); every department has one of each
+  // carried by a department ID (one per department)
   | 'teamlead'
   | 'deptlead'
   | 'depthead'
   | 'execowner'
 
-export type Department = 'R&D' | 'DQA' | 'Quality' | 'Process' | 'Production' | 'Sourcing' | 'Finance' | 'HR' | 'Management' | 'Sourcing Excellence' | 'Supplier'
+export type Department = 'R&D' | 'DQA' | 'Quality' | 'Process' | 'Production' | 'Sourcing' | 'Finance' | 'HR' | 'Central' | 'Management' | 'Sourcing Excellence' | 'Supplier'
 
 export type BuyingType = 'Direct' | 'Indirect'
 export type IdeaScope = 'Open' | 'Part-specific'
@@ -154,8 +154,8 @@ export interface Feasibility {
   onBehalf?: boolean
 }
 
-// ─── Six-stage workflow records (stage 2 → 6) ────────────────────────────────
-/** Stage 2 — Team feasibility check: four checks by the feasibility team */
+// ─── Five-stage workflow records (stage 2 → 5) ────────────────────────────────
+/** Stage 2 — Technical feasibility check: four checks */
 export interface FeasibilityCheck {
   technical: 'Yes' | 'No'
   technicalNote?: string
@@ -172,7 +172,7 @@ export interface FeasibilityCheck {
   at: string
 }
 
-/** Stage 3 — supplier capability check (email + public form, no Amber data) */
+/** Stage 2 — supplier capability check (email + public form, no Amber data) */
 export interface SupplierCheck {
   status: 'Not sent' | 'Sent' | 'Responded' | 'Skipped'
   token?: string
@@ -201,7 +201,7 @@ export interface SupplierCheck {
   }
 }
 
-/** Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability, decision */
+/** Stage 2 — commercial evaluation: cost-benefit, risk, supplier capability, decision */
 export interface Evaluation {
   dept: string
   /** cost-benefit inputs the evaluator changed (auto values come from the idea); see cbaFigures */
@@ -212,7 +212,7 @@ export interface Evaluation {
     netYear1?: number; net3yr?: number
     phasing?: { Q1: number; Q2: number; Q3: number; Q4: number }
   }
-  /** forecast below ₹ 5 L — the idea went from the team feasibility check straight to department approval */
+  /** opportunity cost below ₹ 5 L — no commercial evaluation needed */
   skipped?: boolean
   skippedReason?: string
   cbaVerified?: boolean
@@ -226,7 +226,32 @@ export interface Evaluation {
   at?: string
 }
 
-/** Stage 4 — <dept> approval: commercial assessment, supplier alignment, signed budget + timeline lock */
+/** Stage 2 — one workshop event: what will be discussed, who attends, who is the point of contact, and how it closed */
+export interface WorkshopEvent {
+  id: string
+  no: number
+  date: string
+  time?: string
+  venue: string
+  points: string[]
+  attendees: string[]
+  /** the person answering for this event — the ID is shared, so a name and email are recorded here */
+  spoc: { name: string; email: string }
+  createdBy: string
+  createdAt: string
+  status: 'Scheduled' | 'Held'
+  notes?: string
+  outcome?: 'Follow-up' | 'Go ahead'
+  closedBy?: string
+  closedAt?: string
+}
+export interface Workshop {
+  events: WorkshopEvent[]
+  goAheadAt?: string
+  goAheadBy?: string
+}
+
+/** Stage 3 — management approval: commercial assessment, supplier alignment, signed budget + timeline lock and the KPI */
 export interface ApprovalLock {
   commercialOk: boolean
   supplierAligned: 'Confirmed' | 'Skipped' | 'Not confirmed'
@@ -249,9 +274,11 @@ export interface ApprovalLock {
   milestones?: { name: string; dueDate: string }[]
   /** commercial notes from the detailed assessment */
   commercialNote?: string
+  /** the KPI allocated at sign-off: who carries the saving through Cost Optimisation, and the target */
+  kpi?: { owner: string; ownerEmail?: string; target: number }
 }
 
-/** Stage 6 — Verification: business side confirms the target was achieved */
+/** Stage 5 — Verification: business side confirms the target was achieved */
 export interface Verification {
   handedAt?: string
   handedBy?: string
@@ -286,6 +313,8 @@ export interface Idea {
   submitterId: string
   submitterName: string
   employeeId: string
+  /** typed on the form: the ID is shared, so this is how to reach the person who raised the idea */
+  submitterEmail?: string
   department: string
   plant: string
   buyingType: BuyingType
@@ -328,6 +357,7 @@ export interface Idea {
   feasibility?: Feasibility
   feasibilityCheck?: FeasibilityCheck
   evaluation?: Evaluation
+  workshop?: Workshop
   lock?: ApprovalLock
   verification?: Verification
   /** Change-over (CO) date — when the new price / part / source cuts in on the line */

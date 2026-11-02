@@ -1,4 +1,4 @@
-// Stage 3 — <dept> evaluation sheet: four steps the evaluator walks with Next — cost-benefit analysis (every figure
+// Stage 2 — commercial evaluation sheet: four steps the evaluator walks with Next — cost-benefit analysis (every figure
 // editable: forecast, investment, go-live, payback, committed, carry-over, net savings and the quarter phasing), risk
 // assessment, supplier capability (the check and its email, done right here) and the decision. The sheet fills the
 // screen at a fixed height so each step lays out without scrolling.
@@ -7,7 +7,7 @@ import type { Idea, RiskItem, RiskLevel } from '../../lib/types'
 import { useStore } from '../../store/useStore'
 import { RISK_FACTORS, STAGE } from '../../lib/masters'
 import { cbaFigures, partAnnualised, partsForecast, savingPct, savingPerUnit } from '../../lib/calc'
-import { needsSupplierCheck, overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
+import { needsSupplierCheck, overallRisk, riskTotal } from '../../lib/workflow'
 import { fmtDate, inrPrice, inrShort, sum } from '../../lib/format'
 import { Badge, Button, Icon, Modal, Money, cn } from '../../components/ui'
 import { Block, Kpi, Mark } from './formKit'
@@ -89,7 +89,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
   const riskSaved = !!ev?.risks?.length
   const supplierOk = sc?.status === 'Responded' || sc?.status === 'Skipped' || !needsSupplierCheck(annual)
   const ready = !!ev?.cbaVerified && riskSaved && supplierOk
-  const deptLabel = stageLabel(idea, STAGE.evaluation)
+  const deptLabel = 'the commercial evaluation'
   const spendToday = sum(idea.parts.map((p) => p.baselinePrice * p.annualVolume))
   const phSum = sum(QS.map((q) => f.phasing[q]))
   const changed = f0.edited.length + (phasing ? 1 : 0)
@@ -104,10 +104,10 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
   const saveRisk = (quiet = false) => { useStore.getState().saveEvaluation(idea.id, { risks, riskRemarks: riskRemarks.trim() || undefined }); if (!quiet) toast()(`Risk assessment saved — overall ${overallRisk(risks)}, ${inrShort(riskTotal(risks))} at risk`) }
   const decide = (d: 'Recommend' | 'Reject') => {
     useStore.getState().recordEvaluation(idea.id, d, remarks.trim() || undefined)
-    toast()(d === 'Recommend' ? `${idea.id} recommended — sent for ${stageLabel(idea, STAGE.approval)}` : `${idea.id} rejected at ${deptLabel} — dropped for good`, d === 'Recommend' ? 'success' : 'warning')
+    toast()(d === 'Recommend' ? `${idea.id} recommended — close the event to go ahead` : `${idea.id} rejected at ${deptLabel} — dropped for good`, d === 'Recommend' ? 'success' : 'warning')
     onClose()
   }
-  const sendBack = () => { useStore.getState().sendBack(idea.id, remarks.trim()); toast()(`${idea.id} sent back to the Team feasibility check`, 'warning'); onClose() }
+  const sendBack = () => { useStore.getState().sendBack(idea.id, remarks.trim(), 'submitter'); toast()(`${idea.id} sent back to the submitter`, 'warning'); onClose() }
 
   const steps: { key: Step; label: string; icon: string; done: boolean }[] = [
     { key: 'cba', label: 'Cost-benefit analysis', icon: 'Calculator', done: !!ev?.cbaVerified },
@@ -125,9 +125,9 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
       {step === 'risk' && <><Button icon="Save" onClick={() => saveRisk()}>Save</Button><Button variant="primary" iconRight="ArrowRight" onClick={() => { saveRisk(true); go(2) }}>Save &amp; next</Button></>}
       {step === 'supplier' && <Button variant="primary" iconRight="ArrowRight" onClick={() => go(3)}>Next</Button>}
       {step === 'decision' && <>
-        <Button variant="ghost" icon="Undo2" disabled={!remarks.trim()} onClick={sendBack}>Send back to feasibility</Button>
+        <Button variant="ghost" icon="Undo2" disabled={!remarks.trim()} onClick={sendBack}>Send back to submitter</Button>
         <Button variant="danger" icon="CircleX" disabled={!remarks.trim()} onClick={() => decide('Reject')}>Reject</Button>
-        <Button variant="success" icon="CircleCheck" disabled={!ready} onClick={() => decide('Recommend')}>Recommend for {stageLabel(idea, STAGE.approval)}</Button>
+        <Button variant="success" icon="CircleCheck" disabled={!ready} onClick={() => decide('Recommend')}>Recommend</Button>
       </>}
     </>
   )
@@ -137,7 +137,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
       <div className="flex flex-col gap-2.5 h-full min-h-0 [@media(max-height:820px)]:[&_.block-hint]:hidden [@media(max-height:820px)]:[&_.kpi-sub]:hidden" data-testid="evaluation-sheet" data-step={step}>
         {/* summary strip — follows the figures as they are typed */}
         <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 shrink-0 [@media(max-height:700px)]:hidden">
-          <Kpi label="Forecast saving / year" value={<Money value={annual} />} sub={isEdited('annual') ? `changed · parts ${inrShort(f.auto.annual)}` : idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
+          <Kpi label="Opportunity cost / year" value={<Money value={annual} />} sub={isEdited('annual') ? `changed · parts ${inrShort(f.auto.annual)}` : idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
           <Kpi label="One-time investment" value={<Money value={f.investment} />} sub={isEdited('investment') ? 'changed by the evaluator' : 'from the idea'} />
           <Kpi label="Payback" value={paybackText} />
           <Kpi label={`Committed ${fy}`} value={<Money value={f.committed} />} sub={`live from ${fmtDate(f.goLive)}`} />
@@ -166,7 +166,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
                   {idea.parts.length ? (
                     <div className="rounded-lg border border-line overflow-auto max-h-[230px]">
                       <table className="tbl">
-                        <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Volume / yr</th><th style={{ textAlign: 'right' }}>Today</th><th style={{ textAlign: 'right' }}>New</th><th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Spend / yr</th><th style={{ textAlign: 'right' }}>Forecast / yr</th></tr></thead>
+                        <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Volume / yr</th><th style={{ textAlign: 'right' }}>Today</th><th style={{ textAlign: 'right' }}>New</th><th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Spend / yr</th><th style={{ textAlign: 'right' }}>Opportunity cost / yr</th></tr></thead>
                         <tbody>
                           {idea.parts.map((p) => (
                             <tr key={p.partCode}>
@@ -184,7 +184,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
                       </table>
                     </div>
                   ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px] text-muted">Open idea — valued by the estimate of {inrShort(partsForecast(idea))} a year.</div>}
-                  {isEdited('annual') && <div className="mt-2 text-[12px] text-brand-800 flex items-center gap-1.5"><Icon name="PencilLine" size={13} />Forecast set at evaluation: <b className="num">{inrShort(annual)}</b> a year — used for the approval and the locked target.</div>}
+                  {isEdited('annual') && <div className="mt-2 text-[12px] text-brand-800 flex items-center gap-1.5"><Icon name="PencilLine" size={13} />Opportunity cost set at evaluation: <b className="num">{inrShort(annual)}</b> a year — used for the approval and the locked target.</div>}
                 </Block>
                 <Block title={`Quarter phasing ${fy}`} icon="CalendarRange" hint={`Saving expected in each quarter — adds up to ${inrShort(phSum)}${Math.abs(phSum - f.committed) > 1000 ? ` (committed ${inrShort(f.committed)})` : ''}`}
                   right={ph.some((v) => !blank(v)) ? <button type="button" onClick={() => setPh([null, null, null, null])} className="text-[11.5px] font-semibold text-brand-700 hover:underline inline-flex items-center gap-1"><Icon name="RotateCcw" size={11} />Auto</button> : <span className="text-[10.5px] font-semibold text-muted bg-slate-100 rounded px-1.5">Auto</span>}>
@@ -202,14 +202,14 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
 
               <Block title="Financial case — change any figure" icon="SlidersHorizontal" hint="Every value starts automatic; type over it if the evaluation finds a different number. Saved with the evaluation and used at approval.">
                 <div className="grid grid-cols-2 gap-2">
-                  <Figure label="Forecast saving / year" unit="₹ lakh" ariaLabel="Forecast saving per year" value={shown('annual')} edited={isEdited('annual')} onChange={set('annual')} onReset={reset('annual')} how={`Auto: total of the parts, ${inrShort(f.auto.annual)}`} />
+                  <Figure label="Opportunity cost / year" unit="₹ lakh" ariaLabel="Opportunity cost saving per year" value={shown('annual')} edited={isEdited('annual')} onChange={set('annual')} onReset={reset('annual')} how={`Auto: total of the parts, ${inrShort(f.auto.annual)}`} />
                   <Figure label="One-time investment" unit="₹ lakh" ariaLabel="One-time investment" value={shown('investment')} edited={isEdited('investment')} onChange={set('investment')} onReset={reset('investment')} how={`Auto: from the idea, ${inrShort(f.auto.investment)} (tooling, trials, validation)`} />
                   <Figure label="Go-live (savings start)" type="date" ariaLabel="Go-live" value={shown('goLive')} edited={isEdited('goLive')} onChange={set('goLive')} onReset={reset('goLive')} how={`Auto: expected quarter ${idea.expectedQuarter || '—'}, ${fmtDate(f.auto.goLive)}`} />
-                  <Figure label="Payback" unit="months" ariaLabel="Payback months" value={shown('payback')} edited={isEdited('payback')} onChange={set('payback')} onReset={reset('payback')} how="Auto: investment ÷ (forecast ÷ 12)" />
-                  <Figure label={`Committed in ${fy}`} unit="₹ lakh" ariaLabel="Committed this FY" value={shown('committed')} edited={isEdited('committed')} onChange={set('committed')} onReset={reset('committed')} how="Auto: forecast − carry-over to next FY" />
-                  <Figure label="Carry-over to next FY" unit="₹ lakh" ariaLabel="Carry-over" value={shown('carryOver')} edited={isEdited('carryOver')} onChange={set('carryOver')} onReset={reset('carryOver')} how="Auto: forecast falling after 31 March, from the go-live" />
-                  <Figure label="Net saving · year 1" unit="₹ lakh" ariaLabel="Net saving year 1" value={shown('netYear1')} edited={isEdited('netYear1')} onChange={set('netYear1')} onReset={reset('netYear1')} how="Auto: forecast − one-time investment" />
-                  <Figure label="3-year saving, net" unit="₹ lakh" ariaLabel="Three-year net saving" value={shown('net3yr')} edited={isEdited('net3yr')} onChange={set('net3yr')} onReset={reset('net3yr')} how="Auto: forecast × 3 − one-time investment" />
+                  <Figure label="Payback" unit="months" ariaLabel="Payback months" value={shown('payback')} edited={isEdited('payback')} onChange={set('payback')} onReset={reset('payback')} how="Auto: investment ÷ (opportunity cost ÷ 12)" />
+                  <Figure label={`Committed in ${fy}`} unit="₹ lakh" ariaLabel="Committed this FY" value={shown('committed')} edited={isEdited('committed')} onChange={set('committed')} onReset={reset('committed')} how="Auto: opportunity cost − carry-over to next FY" />
+                  <Figure label="Carry-over to next FY" unit="₹ lakh" ariaLabel="Carry-over" value={shown('carryOver')} edited={isEdited('carryOver')} onChange={set('carryOver')} onReset={reset('carryOver')} how="Auto: opportunity cost falling after 31 March, from the go-live" />
+                  <Figure label="Net saving · year 1" unit="₹ lakh" ariaLabel="Net saving year 1" value={shown('netYear1')} edited={isEdited('netYear1')} onChange={set('netYear1')} onReset={reset('netYear1')} how="Auto: opportunity cost − one-time investment" />
+                  <Figure label="3-year saving, net" unit="₹ lakh" ariaLabel="Three-year net saving" value={shown('net3yr')} edited={isEdited('net3yr')} onChange={set('net3yr')} onReset={reset('net3yr')} how="Auto: opportunity cost × 3 − one-time investment" />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-muted">
                   <span>Benefit / cost (3 yr) <b className="text-ink num">{f.investment ? `${((annual * 3) / f.investment).toFixed(1)}×` : '—'}</b></span>
@@ -258,7 +258,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
 
           {step === 'decision' && (
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 h-full min-h-0">
-              <Block title="Before deciding" icon="ListChecks" hint={`Recommend sends the idea to the ${stageLabel(idea, STAGE.approval)}; reject drops it for good`}>
+              <Block title="Before deciding" icon="ListChecks" hint="Recommend stands until the event closes with Go ahead; reject drops it for good">
                 <div className="grid gap-1.5">
                   {[
                     { ok: !!ev?.cbaVerified, label: `Cost-benefit analysis verified${ev?.cbaVerified ? ` — ${inrShort(saved.annual)} a year, payback ${saved.investment || saved.edited.includes('payback') ? `${saved.payback.toFixed(1)} months` : 'immediate'}` : ''}`, go: 0 },
@@ -272,7 +272,7 @@ export function EvaluationModal({ idea, open, onClose, tab: initialStep = 'cba' 
                 </div>
                 {!ready && <div className="mt-2 text-[12px] text-amber-800 flex items-center gap-1.5"><Icon name="Info" size={13} />Complete the three steps to recommend this idea.</div>}
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <Kpi label="Forecast saving / year" value={<Money value={saved.annual} />} />
+                  <Kpi label="Opportunity cost / year" value={<Money value={saved.annual} />} />
                   <Kpi label={`Committed ${fy}`} value={<Money value={saved.committed} />} />
                   <Kpi label="Net saving · year 1" value={<Money value={saved.netYear1} />} tone={saved.netYear1 >= 0 ? 'good' : 'bad'} />
                   <Kpi label="3-year saving, net" value={<Money value={saved.net3yr} />} />

@@ -1,6 +1,7 @@
 // The Supplier Portal link in outreach emails opens a page of this app; what the supplier sends lands in Supplier responses.
 import { describe, it, expect, beforeEach } from 'vitest'
 import { supplierPortalLink, useStore } from './useStore'
+import { signInId } from '../lib/workflow'
 
 const st = () => useStore.getState()
 beforeEach(() => { st().resetDemo() })
@@ -20,7 +21,7 @@ describe('Supplier Portal', () => {
     expect(st().supplierResponses.length).toBe(before + 1)
     expect(r).toMatchObject({ status: 'New', source: 'Supplier Portal', batchId: batch.id, estSavingLakh: 12, type: 'Idea' })
     expect(r.body).toContain('Jaspreet Gill')
-    expect(st().notifications.some((n) => n.userId === batch.sentBy && n.body.includes(id!))).toBe(true)
+    expect(st().notifications.some((n) => n.userId === signInId(batch.sentBy, st().users) && n.body.includes(id!))).toBe(true)
   })
   it('refuses an unknown vendor or an empty submission', () => {
     expect(st().submitPortalResponse({ supplierCode: 'V99999', commodity: 'BN', type: 'Idea', scope: 'Open idea', subject: 'x', body: 'y', contactName: 'z' })).toBeNull()

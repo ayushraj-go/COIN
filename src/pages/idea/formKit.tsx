@@ -1,4 +1,4 @@
-// Building blocks shared by the stage dialogs (department evaluation and department approval):
+// Building blocks shared by the stage dialogs (commercial evaluation and management approval):
 // a titled section, a figure card, a key–value row and a pass / warn / fail mark.
 import React from 'react'
 import { Icon, InfoTip, cn } from '../../components/ui'

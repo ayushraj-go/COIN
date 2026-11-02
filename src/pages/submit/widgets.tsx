@@ -1,4 +1,4 @@
-// Submit Idea form widgets — lever dropdown with icons, route strip, ERP part search, vendor search, attachments.
+// Capture My Idea form widgets — lever dropdown with icons, route strip, ERP part search, vendor search, attachments.
 import React, { useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { Attachment, Lever, LeverGroup, Part, RouteKey, Supplier, User } from '../../lib/types'
@@ -63,7 +63,7 @@ export function LeverSelect({ levers, value, onChange, error, placeholder = 'Cho
                           <span className="h-6 w-6 rounded-md grid place-items-center shrink-0" style={{ background: s.soft, color: s.color }}><Icon name={l.icon} size={13} /></span>
                           <span className="flex-1 min-w-0">
                             <span className="block text-[13px] font-medium text-ink truncate">{l.name}</span>
-                            <span className="block text-[11px] text-muted truncate">Evaluator {l.evaluator} · NPD sample {l.npdSample}</span>
+                            <span className="block text-[11px] text-muted truncate">NPD sample {l.npdSample}</span>
                           </span>
                           <span className="hidden sm:inline-flex"><RouteBadge route={l.route} /></span>
                           {l.id === value ? <Icon name="Check" size={14} className="text-brand-600 shrink-0" /> : <span className="w-3.5" />}
@@ -82,14 +82,14 @@ export function LeverSelect({ levers, value, onChange, error, placeholder = 'Cho
   )
 }
 
-/** The six workflow stages — the same for every idea — so the submitter knows what happens next */
+/** The five workflow stages — the same for every idea — so the submitter knows what happens next */
 export function RouteStrip({ route, compact }: { route: RouteKey; compact?: boolean }) {
   void route
   const stages = TRACKER_STAGES
   return (
     <div className="flex flex-wrap items-center gap-1">
       {stages.map((s, i) => {
-        const tone = s === STAGE.approval ? 'bg-brand-50 text-brand-700 border-brand-200' : s === STAGE.evaluation ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : s === STAGE.execution || s === STAGE.verification ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
+        const tone = s === STAGE.approval ? 'bg-brand-50 text-brand-700 border-brand-200' : s === STAGE.execution || s === STAGE.verification ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-ink-2 border-line'
         return (
           <React.Fragment key={s}>
             <Tooltip content={<><div className="font-semibold">Step {i + 1}</div>{s}</>}>
@@ -121,7 +121,7 @@ export function PartSearch({ parts, commodity, selected, onPick, restrictNote }:
     const list = k
       ? pool.filter((p) => p.code.includes(k) || p.description.toLowerCase().includes(k) || p.commodity.toLowerCase().includes(k) || cname(p.commodity).includes(k))
       : pool
-    return [...list].sort((a, b) => Number(b.commodity === commodity) - Number(a.commodity === commodity)).slice(0, 8)
+    return [...list].sort((a, b) => Number(b.commodity === commodity) - Number(a.commodity === commodity))
   }, [q, parts, commodity, commodities])
   const pick = (p: Part) => { if (selected.includes(p.code)) return; onPick(p); setQ(''); setIdx(0); ref.current?.focus() }
   return (

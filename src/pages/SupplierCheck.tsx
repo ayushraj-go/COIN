@@ -1,10 +1,9 @@
-// Stage 3 — supplier capability check as its own page (the evaluation sheet shows the same panel in step 3).
+// Stage 2 — supplier capability check as its own page (the evaluation sheet shows the same panel in step 3).
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMe, useStore } from '../store/useStore'
 import { canSeeIdea, ideaAnnualised } from '../lib/calc'
 import { inrShort } from '../lib/format'
-import { stageLabel } from '../lib/workflow'
 import { STAGE } from '../lib/masters'
 import { Badge, Button, Card, EmptyState, Icon, PageHeader } from '../components/ui'
 import { SupplierCheckPanel } from './idea/SupplierCheckPanel'
@@ -29,7 +28,7 @@ export default function SupplierCheck() {
       </div>
       <PageHeader icon="Factory" title="Supplier capability check" fit
         badge={<Badge color={sc?.status === 'Responded' ? 'var(--color-emerald-600)' : sc?.status === 'Sent' ? 'var(--color-orange-400)' : 'var(--color-slate-500)'}>{sc?.status ?? 'Not sent'}</Badge>}
-        subtitle={`${stageLabel(idea, STAGE.evaluation)} · ${idea.title} · forecast ${inrShort(ideaAnnualised(idea))}`}
+        subtitle={`Commercial evaluation · ${idea.title} · opportunity cost ${inrShort(ideaAnnualised(idea))}`}
         actions={<Button size="sm" icon="FlaskConical" onClick={() => nav(`/ideas/${idea.id}`)}>Back to the idea</Button>} />
       <SupplierCheckPanel idea={idea} />
     </div>

@@ -1,5 +1,4 @@
-// M3 — Submit Idea (Section 7): collapsible form steps + sticky live savings panel; draft saves automatically.
-import { approvalRoute, evalDeptOf } from '../lib/workflow'
+// M3 — Capture My Idea (Section 7): collapsible form steps + sticky live savings panel; draft saves automatically.
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -7,18 +6,18 @@ import { motion, AnimatePresence } from 'motion/react'
 import type { BuyingType, Part, User } from '../lib/types'
 import { useMe, useStore } from '../store/useStore'
 import { can } from '../lib/nav'
-import { EVIDENCE_TAGS, LAKH, LEVER_GROUP_STYLE } from '../lib/masters'
-import { DEFINITIONS, OUT_OF_SCOPE } from '../lib/scope'
+import { EVIDENCE_TAGS, LEVER_GROUP_STYLE } from '../lib/masters'
+import { OUT_OF_SCOPE } from '../lib/scope'
 import { approvalLevels, committedInFy, duplicateCandidates, fyMonthsFrom, partAnnualised, savingPct, savingPerUnit, visibleIdeas } from '../lib/calc'
 import { fyStartYear, inrPrice, inrShort, nextFy, nowIso, num, prevFy, quarterEnd, quarterStart, QUARTER_MONTHS, sum, timeAgo, todayIso } from '../lib/format'
-import { Avatar, Badge, BucketBadge, Button, Card, Chip, EmptyState, Field, Icon, InfoTip, Modal, Money, PageHeader, Segmented, SourceTag, Tooltip, cn } from '../components/ui'
+import { Badge, BucketBadge, Button, Card, Chip, EmptyState, Field, Icon, InfoTip, Modal, Money, PageHeader, Segmented, SourceTag, Tooltip, cn } from '../components/ui'
 import {
-  baselineOverridden, blankForm, fromIdea, fromPart, hasText, isEmptyDraft, isEstimateScope, isSupplierLever, showsProposedSupplier, takesParts, toIdeaPart, toNum, toPayload, volumeOverridden,
+  baselineOverridden, blankForm, fromIdea, fromPart, hasText, isEmptyDraft, isSupplierLever, showsProposedSupplier, toIdeaPart, toNum, toPayload, volumeOverridden,
   type FormPart, type FormScope, type FormState,
 } from './submit/form'
 import { Attachments, LeverSelect, PartSearch, RouteBadge, RouteStrip, ScopeSupplierPicker, SupplierSearch } from './submit/widgets'
 import { PctBadge, SavingsHero, SavingsPanelBody, tone, type PartCalc, type SavingsCalc } from './submit/SavingsPanel'
-import { FIELDS, sectionOfError, type SectionKey } from './submit/fields'
+import { sectionOfError, type SectionKey } from './submit/fields'
 import { FormSection, type SectionState } from './submit/Section'
 
 // Field label with its number
@@ -40,7 +39,6 @@ function FX(props: React.ComponentProps<typeof Field>) {
 }
 const noWheel = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur()
 const NOSPIN = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
-const SCOPE_LABEL: Record<FormScope, string> = { Open: 'Open idea', 'Part-specific': 'Part-specific', Supplier: 'Supplier' }
 const AUTO_ADVANCE_MS = 600
 
 export default function SubmitIdea() {
@@ -48,14 +46,12 @@ export default function SubmitIdea() {
   const [params] = useSearchParams()
   if (!me) return null
   if (!can(me, 'submit')) {
-    return <Card><EmptyState icon="Lock" title="Your role does not submit ideas" desc="Submit idea is available to Submitters, Suppliers, Buyers, Technical Evaluators, Commodity Leads and the Sourcing Head (Section 3 permission matrix)." /></Card>
+    return <Card><EmptyState icon="Lock" title="This ID does not capture ideas" desc="Ideas are captured from a department ID." /></Card>
   }
   const draft = params.get('draft')
   const campaign = params.get('campaign')
   return <SubmitForm key={`${draft ?? ''}|${campaign ?? ''}`} me={me} draftParam={draft} campaignParam={campaign} />
 }
-
-type FieldStatus = 'typed' | 'auto' | 'hidden' | 'empty'
 
 function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: string | null; campaignParam: string | null }) {
   const nav = useNavigate()
@@ -65,9 +61,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const plants = useStore((s) => s.plants)
   const suppliers = useStore((s) => s.suppliers)
   const partsMaster = useStore((s) => s.parts)
-  const campaigns = useStore((s) => s.campaigns)
   const ideas = useStore((s) => s.ideas)
-  const users = useStore((s) => s.users)
   const settings = useStore((s) => s.settings)
   const toast = useStore((s) => s.toast)
   const openIdea = useStore((s) => s.openIdea)
@@ -89,9 +83,9 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
         form = fromIdea(d, s.parts, s.suppliers)
         draftId = d.id
         const f = form
-        const filled: [number, boolean][] = [[5, !!f.commodity], [6, !!f.leverId], [8, !!f.campaignId], [9, hasText(f.title)], [10, hasText(f.currentState)], [11, hasText(f.proposedChange)],
+        const filled: [number, boolean][] = [[5, !!f.commodity], [6, !!f.leverId], [9, hasText(f.title)], [10, hasText(f.currentState)], [11, hasText(f.proposedChange)],
           [12, hasText(f.evidence) || f.evidenceTags.length > 0], [13, f.attachments.length > 0], [14, f.parts.length > 0], [17, !!f.proposedSupplier], [18, f.parts.some(baselineOverridden)],
-          [19, f.parts.some((p) => hasText(p.newPrice))], [20, f.parts.some(volumeOverridden)], [24, hasText(f.openEstimateLakh)], [25, hasText(f.gainSharePct)], [26, !!f.offerValidity]]
+          [19, f.parts.some((p) => hasText(p.newPrice))], [20, f.parts.some(volumeOverridden)], [25, hasText(f.gainSharePct)], [26, !!f.offerValidity]]
         filled.forEach(([n, v]) => v && typed.add(n))
         if (f.plant !== me.plant) typed.add(3)
       } else missing = true
@@ -103,7 +97,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
         fromCampaign = c
         const cat = s.categories.find((x) => x.id === c.categoryId)
         form = { ...form, campaignId: c.id, categoryId: c.categoryId, commodity: c.commodity, buyingType: cat?.buyingType ?? 'Direct' }
-        auto.add(8); auto.add(5)
+        auto.add(5)
       }
     }
     if (!draftId && !form.commodity && isSupplier && me.commodities.length) {
@@ -148,27 +142,19 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const lever = levers.find((l) => l.id === form.leverId)
   const commodity = commodities.find((c) => c.code === form.commodity)
   const plant = plants.find((p) => p.id === form.plant)
-  const lead = users.find((u) => u.id === commodity?.leadId)
-  const buyer = users.find((u) => u.id === commodity?.buyerId)
-  const head = users.find((u) => u.id === 'u-head') ?? users.find((u) => u.roles.includes('head'))
-  // stages 2–4 for this submitter's department (supplier ideas go to Sourcing)
-  const route = useMemo(() => approvalRoute(evalDeptOf(me?.department), commodity?.code ?? '', users, me?.id).map((r) => ({ label: r.label, role: r.role, name: users.find((u) => u.id === r.userId)?.name })), [me, commodity, users])
   const myCommodities = isSupplier && me.commodities.length ? commodities.filter((c) => me.commodities.includes(c.code)) : commodities
   // every commodity, grouped by its commodity category — groups matching the buying type first
   const commodityGroups = categories
     .map((cat) => ({ cat, items: myCommodities.filter((c) => c.categoryId === cat.id) }))
     .filter((g) => g.items.length)
     .sort((a, b) => Number(b.cat.buyingType === form.buyingType) - Number(a.cat.buyingType === form.buyingType))
-  const isOpen = form.scope === 'Open'
   const isSupplierScope = form.scope === 'Supplier'
-  const partsMode = takesParts(form)
-  const estimate = isEstimateScope(form)
   const scopeSupplierPool = isSupplier ? suppliers.filter((s) => s.code === me.supplierCode) : suppliers
   const scopeSupplier = isSupplierScope ? suppliers.find((s) => s.code === form.scopeSupplierCode) : undefined
   const myParts = isSupplier ? partsMaster.filter((p) => p.supplierCode === me.supplierCode) : partsMaster
   const partPool = scopeSupplier ? myParts.filter((p) => p.supplierCode === scopeSupplier.code) : myParts
-  const campaignOptions = campaigns.filter((c) => (c.status === 'Live' || c.id === form.campaignId) && (!isSupplier || (me.supplierCode && c.suppliers.includes(me.supplierCode))))
-  const selCampaign = campaigns.find((c) => c.id === form.campaignId)
+  // "Select all" stays inside one commodity: an idea covers one commodity
+  const supplierParts = form.commodity ? partPool.filter((p) => p.commodity === form.commodity) : partPool
   const showSupplierField = showsProposedSupplier(lever)
   const supplierRequired = isSupplierLever(lever)
 
@@ -176,17 +162,17 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const calc: SavingsCalc = useMemo(() => {
     const live = form.parts.map((fp) => ({ fp, ip: toIdeaPart(fp, true) }))
     const rows: PartCalc[] = live.map(({ fp, ip }) => ({ partCode: fp.partCode, description: fp.description, uom: fp.uom, unit: savingPerUnit(ip), pct: savingPct(ip), annual: partAnnualised(ip), hasNew: hasText(fp.newPrice) }))
-    const annual = estimate ? toNum(form.openEstimateLakh) * LAKH : sum(rows.map((r) => r.annual))
+    const annual = sum(rows.map((r) => r.annual))
     const baseSpend = sum(live.map((x) => x.ip.baselinePrice * x.ip.annualVolume))
-    const pct = estimate ? null : baseSpend ? (annual / baseSpend) * 100 : 0
+    const pct = baseSpend ? (annual / baseSpend) * 100 : 0
     const [q, qfy] = form.expectedQuarter.split(' ')
     const goLive = quarterStart(q, qfy)
     const committed = committedInFy(annual, goLive, currentFy)
     return {
-      isOpen: estimate, rows: estimate ? [] : rows, annual, pct, committed, carry: annual - committed,
+      rows, annual, pct, committed, carry: annual - committed,
       monthsInFy: fyMonthsFrom(goLive, currentFy), goLive, quarter: form.expectedQuarter, levels: approvalLevels(annual, 0, settings.xThresholdLakh, settings.yThresholdLakh),
     }
-  }, [form.parts, form.openEstimateLakh, form.expectedQuarter, estimate, currentFy, settings.xThresholdLakh, settings.yThresholdLakh])
+  }, [form.parts, form.expectedQuarter, currentFy, settings.xThresholdLakh, settings.yThresholdLakh])
 
   // ─── duplicate check on idea name + commodity ─────────────────────────────────
   const dTitle = useDeferredValue(form.title)
@@ -204,28 +190,27 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const errors = useMemo(() => {
     const e: Record<string, string> = {}
     const f = form
+    if (!hasText(f.submitterName)) e.submitterName = 'Enter your name'
+    if (!hasText(f.employeeId)) e.employeeId = 'Enter your employee ID'
     if (!f.plant) e.plant = 'Select the plant / BU'
     if (!f.commodity) e.commodity = 'Select a commodity'
     if (!f.leverId) e.lever = 'Choose a category'
     if (f.scope === 'Supplier' && !f.scopeSupplierCode) e.scopeSupplier = 'Choose the supplier this idea is for'
     if (!hasText(f.title)) e.title = 'Idea name is required'
     else if (f.title.length > 100) e.title = 'Idea name must be 100 characters or fewer'
-    if (!hasText(f.currentState)) e.currentState = 'Describe how it is done / bought today'
-    if (!hasText(f.proposedChange)) e.proposedChange = 'Describe what changes'
-    if (f.scope === 'Part-specific' && !f.parts.length) e.parts = 'Add at least one part code for a part-specific idea'
+    if (!hasText(f.currentState)) e.currentState = 'Describe the As-Is: how it is done / bought today'
+    if (!hasText(f.proposedChange)) e.proposedChange = 'Describe the To-Be: what changes'
+    if (!f.parts.length) e.parts = f.scope === 'Supplier' ? "Pick the supplier's part codes, or Select all" : 'Add at least one part code'
     // one idea = one commodity: every part must belong to the commodity chosen in A
     else if (f.commodity && f.parts.some((p) => p.commodity && p.commodity !== f.commodity)) e.parts = 'An idea covers one commodity — remove the parts of other commodities'
-    if (takesParts(f)) {
-      f.parts.forEach((p) => {
-        if (toNum(p.baselinePrice) <= 0) e[`base:${p.partCode}`] = 'Baseline price is required'
-        if (!hasText(p.newPrice)) e[`new:${p.partCode}`] = 'Enter the expected new price'
-        else if (toNum(p.newPrice) <= 0) e[`new:${p.partCode}`] = 'Must be greater than ₹ 0'
-        if (toNum(p.annualVolume) <= 0) e[`vol:${p.partCode}`] = 'Annual volume is required'
-        if (baselineOverridden(p) && !hasText(p.baselineOverrideReason)) e[`baseReason:${p.partCode}`] = 'Override needs a reason'
-        if (volumeOverridden(p) && !hasText(p.volumeOverrideReason)) e[`volReason:${p.partCode}`] = 'Override needs a reason'
-      })
-    }
-    if (isEstimateScope(f) && toNum(f.openEstimateLakh) <= 0) e.openEstimate = f.scope === 'Supplier' ? 'Add part codes in C, or enter a rough annual impact in ₹ lakh' : 'Enter a rough annual impact in ₹ lakh'
+    f.parts.forEach((p) => {
+      if (toNum(p.baselinePrice) <= 0) e[`base:${p.partCode}`] = 'Last buying price is required'
+      if (!hasText(p.newPrice)) e[`new:${p.partCode}`] = 'Enter the expected new price'
+      else if (toNum(p.newPrice) <= 0) e[`new:${p.partCode}`] = 'Must be greater than ₹ 0'
+      if (toNum(p.annualVolume) <= 0) e[`vol:${p.partCode}`] = 'Annual volume is required'
+      if (baselineOverridden(p) && !hasText(p.baselineOverrideReason)) e[`baseReason:${p.partCode}`] = 'Override needs a reason'
+      if (volumeOverridden(p) && !hasText(p.volumeOverrideReason)) e[`volReason:${p.partCode}`] = 'Override needs a reason'
+    })
     if (supplierRequired && !f.proposedSupplier) e.proposedSupplier = 'Proposed supplier is required for a supplier category'
     if (!f.expectedQuarter) e.quarter = 'Select the expected implementation quarter'
     if (isSupplier && hasText(f.gainSharePct) && (toNum(f.gainSharePct) < 0 || toNum(f.gainSharePct) > 100)) e.gainShare = 'Enter a percentage between 0 and 100'
@@ -239,10 +224,10 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   const sectionStates: Record<SectionKey, SectionState> = useMemo(() => {
     const missing = (k: SectionKey) => Object.keys(errors).filter((e) => sectionOfError(e) === k).length
     const required: Record<SectionKey, number> = {
-      A: 3 + (form.scope === 'Supplier' ? 1 : 0), // plant, commodity, category (+ supplier)
-      B: 3, // idea name, current state, proposed change
-      C: (form.scope === 'Part-specific' ? 1 : 0) + (supplierRequired ? 1 : 0),
-      D: 1 + (isEstimateScope(form) ? 1 : form.parts.length * 3), // quarter + estimate or per-part baseline / new price / volume
+      A: 5 + (form.scope === 'Supplier' ? 1 : 0), // name, employee ID, plant, commodity, category (+ supplier)
+      B: 3, // idea name, As-Is, To-Be
+      C: 1 + (supplierRequired ? 1 : 0),
+      D: 1 + form.parts.length * 3, // quarter + per-part last buying price / new price / volume
       E: 0,
     }
     return { A: { required: required.A, missing: missing('A') }, B: { required: required.B, missing: missing('B') }, C: { required: required.C, missing: missing('C') }, D: { required: required.D, missing: missing('D') }, E: { required: required.E, missing: missing('E') } }
@@ -334,7 +319,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     doneRef.current = true
     const payload = toPayload(form, me, lever, commodity?.buyerId)
     const id = useStore.getState().submitIdea(payload, draftRef.current ?? undefined)
-    toast(`${id} submitted — sent to ${route[0]?.name ?? 'your team lead'} for the team feasibility check`, 'success')
+    toast(`${id} submitted — a workshop follows, with the technical and commercial feasibility checks`, 'success')
     nav(`/ideas/${id}`)
   }
   const cancel = () => {
@@ -387,6 +372,20 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
     }
     update(patch, [14])
   }
+  /** Select all — every part of the chosen supplier in the idea's commodity */
+  const addParts = (list: Part[]) => {
+    const code = form.commodity || list[0]?.commodity
+    const fresh = list.filter((p) => p.commodity === code && !form.parts.some((x) => x.partCode === p.code))
+    const patch: Partial<FormState> = { parts: [...form.parts, ...fresh.map((p) => fromPart(p, suppliers))] }
+    if (!form.commodity) {
+      const cm = commodities.find((c) => c.code === code)
+      const cat = categories.find((c) => c.id === cm?.categoryId)
+      if (cm && cat) Object.assign(patch, { commodity: cm.code, categoryId: cat.id, buyingType: cat.buyingType })
+    }
+    update(patch, [14])
+    const other = list.filter((p) => p.commodity !== code).length
+    if (other) toast(`${other} part${other === 1 ? '' : 's'} of other commodities left out — an idea covers one commodity`, 'info')
+  }
   const removePart = (code: string) => {
     const prev = form.parts
     update({ parts: prev.filter((p) => p.partCode !== code) })
@@ -394,43 +393,22 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   }
   const setPart = (code: string, patch: Partial<FormPart>, field?: number) => update({ parts: form.parts.map((p) => (p.partCode === code ? { ...p, ...patch } : p)) }, field ? [field] : [])
 
-  // ─── "You typed N of 26 fields" ───────────────────────────────────────────────
-  const hasValue: Record<number, boolean> = {
-    3: !!form.plant, 4: true, 5: !!form.commodity, 6: !!form.leverId, 7: true, 8: !!form.campaignId, 9: hasText(form.title), 10: hasText(form.currentState),
-    11: hasText(form.proposedChange), 12: hasText(form.evidence) || form.evidenceTags.length > 0, 13: form.attachments.length > 0, 14: partsMode && form.parts.length > 0,
-    17: showSupplierField && !!form.proposedSupplier, 18: partsMode && form.parts.some(baselineOverridden), 19: partsMode && form.parts.some((p) => hasText(p.newPrice)),
-    20: partsMode && form.parts.some(volumeOverridden), 23: true, 24: estimate && hasText(form.openEstimateLakh),
-    25: isSupplier && hasText(form.gainSharePct), 26: isSupplier && !!form.offerValidity,
-  }
-  const hasParts = partsMode && form.parts.length > 0
-  const statusOf = (n: number): FieldStatus => {
-    if (typed.has(n) && hasValue[n]) return 'typed'
-    if ([25, 26].includes(n) && !isSupplier) return 'hidden'
-    if (n === 24 && !estimate) return 'hidden'
-    if (n === 17 && !showSupplierField) return 'hidden'
-    if (isOpen && [14, 15, 16, 18, 19, 20, 21, 22].includes(n)) return 'hidden'
-    if ([1, 2, 3].includes(n)) return 'auto'
-    if ([15, 16, 18, 20, 21, 22].includes(n)) return hasParts ? 'auto' : 'empty'
-    if ([5, 8].includes(n) && init.auto.has(n) && hasValue[n]) return 'auto'
-    if ([4, 7, 23].includes(n)) return 'auto'
-    return hasValue[n] ? 'typed' : 'empty'
-  }
   const quarterOptions = [currentFy, nextFy(currentFy)].flatMap((fy) => (['Q1', 'Q2', 'Q3', 'Q4'] as const).map((q) => {
     const y = q === 'Q4' ? fyStartYear(fy) + 1 : fyStartYear(fy)
     return { value: `${q} ${fy}`, label: `${q} ${fy} · ${QUARTER_MONTHS[q]} ${y}`, past: quarterEnd(q, fy) < todayIso() }
   }))
   const leverStyle = lever ? LEVER_GROUP_STYLE[lever.group] : null
   const savedLabel = savedAt ? ((Date.now() - new Date(savedAt).getTime()) / 1000 < 60 ? 'just now' : timeAgo(savedAt)) : null
-  const singleUnit = !estimate && calc.rows.length === 1 ? calc.rows[0] : undefined
+  const singleUnit = calc.rows.length === 1 ? calc.rows[0] : undefined
 
   // one-line summaries for collapsed steps
   const summaries: Record<SectionKey, string> = {
     A: [commodity ? `${commodity.name} · ${commodity.code}` : 'No commodity yet', lever?.name ?? 'No category yet',
-      isSupplierScope ? `Supplier${scopeSupplier ? ` · ${scopeSupplier.name}` : ''}` : SCOPE_LABEL[form.scope], plant?.name].filter(Boolean).join('  ·  '),
+      isSupplierScope ? `Supplier${scopeSupplier ? ` · ${scopeSupplier.name}` : ''}` : 'Part-specific', plant?.name].filter(Boolean).join('  ·  '),
     B: [hasText(form.title) ? form.title : 'No idea name yet', form.attachments.length ? `${form.attachments.length} attachment${form.attachments.length === 1 ? '' : 's'}` : ''].filter(Boolean).join('  ·  '),
-    C: isOpen ? 'Open idea — no part codes' : [form.parts.length ? `${form.parts.length} part${form.parts.length === 1 ? '' : 's'}: ${form.parts.slice(0, 3).map((p) => p.partCode).join(', ')}${form.parts.length > 3 ? '…' : ''}` : isSupplierScope ? 'No part codes — valued by estimate' : 'No part codes yet',
+    C: [form.parts.length ? `${form.parts.length} part${form.parts.length === 1 ? '' : 's'}: ${form.parts.slice(0, 3).map((p) => p.partCode).join(', ')}${form.parts.length > 3 ? '…' : ''}` : 'No part codes yet',
       form.proposedSupplier ? `Proposed ${form.proposedSupplier.name}` : ''].filter(Boolean).join('  ·  '),
-    D: `${estimate ? (hasText(form.openEstimateLakh) ? `Estimate ${inrShort(calc.annual)}` : 'No estimate yet') : `Forecast ${inrShort(calc.annual)}`}  ·  ${form.expectedQuarter}`,
+    D: `Opportunity cost ${inrShort(calc.annual)}  ·  ${form.expectedQuarter}`,
     E: [hasText(form.gainSharePct) ? `Gain-share ${form.gainSharePct}%` : '', form.offerValidity ? `Valid to ${form.offerValidity}` : ''].filter(Boolean).join('  ·  ') || 'Optional — gain-share and offer validity',
   }
 
@@ -443,7 +421,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
   )
 
   const panelBody = (
-    <SavingsPanelBody c={calc} lever={lever} currentFy={currentFy} nextFyLabel={nextFy(currentFy)} route={route} />
+    <SavingsPanelBody c={calc} lever={lever} currentFy={currentFy} nextFyLabel={nextFy(currentFy)} />
   )
 
   return (
@@ -467,37 +445,36 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           )}
 
           {/* ─── A. Classification ─────────────────────────────────────────── */}
-          <FormSection letter="A" title="Classification" subtitle="Fields 1–8 · who, where, and the category that decides the route" icon="Tags"
+          <FormSection letter="A" title="Classification" subtitle="Fields 1–9 · who, where, and the category that decides the route" icon="Tags"
             open={openSet.has('A')} onToggle={() => toggleSection('A')} summary={summaries.A} state={sectionStates.A}
-            extra={<Auto>{[1, 2, 3].filter((n) => statusOf(n) === 'auto').length + (init.auto.has(8) ? 1 : 0)} auto</Auto>}>
+            extra={<Auto>Department from login</Auto>}>
             <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-[1.4fr_1fr_1fr] gap-3 rounded-lg bg-slate-50/80 border border-line px-3 py-2.5">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Avatar name={me.name} color={me.avatarColor} size={34} />
-                  <div className="min-w-0">
-                    <div className="label !mb-0.5 justify-between"><L n={1}>Submitter name, employee ID</L></div>
-                    <div className="text-[13.5px] font-semibold text-ink truncate">{me.name}</div>
-                  </div>
-                </div>
+              {/* the ID belongs to the department, so the person is typed here */}
+              <div className="col-span-12 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 rounded-lg bg-slate-50/80 border border-line px-3 py-2.5">
+                <FX label={<L n={1}>Name</L>} required error={err('submitterName')}>
+                  <input className={cn('input', err('submitterName') && '!border-red-400')} value={form.submitterName} onChange={(e) => update({ submitterName: e.target.value })} placeholder="Your name" />
+                </FX>
+                <FX label={<L n={2}>Employee ID</L>} required error={err('employeeId')}>
+                  <input className={cn('input', err('employeeId') && '!border-red-400')} value={form.employeeId} onChange={(e) => update({ employeeId: e.target.value })} placeholder="e.g. AE1234" />
+                </FX>
+                <FX label={<L n={3}>Email</L>} tag={<span className="text-[11px] text-muted">Optional</span>} hint="Workshop invitations go here">
+                  <input className="input" type="email" value={form.submitterEmail} onChange={(e) => update({ submitterEmail: e.target.value })} placeholder="you@ambergroupindia.com" />
+                </FX>
                 <div className="min-w-0">
-                  <div className="label !mb-0.5 gap-2">{isSupplier ? 'Vendor code' : 'Employee ID'} <Auto>Auto · from login</Auto></div>
-                  <div className="text-[13.5px] font-semibold text-ink num">{me.employeeId}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="label !mb-0.5 gap-2"><L n={2}>Department</L><Auto>Auto · from login</Auto></div>
-                  <div className="text-[13.5px] font-semibold text-ink truncate">{me.department}{isSupplier && <span className="text-muted font-normal"> · {suppliers.find((s) => s.code === me.supplierCode)?.name}</span>}</div>
+                  <div className="label !mb-0.5 gap-2"><L n={4}>Department</L><Auto>Auto · from login</Auto></div>
+                  <div className="text-[13.5px] font-semibold text-ink truncate h-9 flex items-center">{me.department}{isSupplier && <span className="text-muted font-normal"> · {suppliers.find((s) => s.code === me.supplierCode)?.name}</span>}</div>
                 </div>
               </div>
 
-              <FX className="col-span-12 sm:col-span-6 xl:col-span-4" label={<L n={3}>Plant / BU</L>} required error={err('plant')} tag={!typed.has(3) ? <Tooltip content="Defaults to your plant from login"><Auto /></Tooltip> : undefined}>
+              <FX className="col-span-12 sm:col-span-6 xl:col-span-4" label={<L n={5}>Plant / BU</L>} required error={err('plant')} tag={!typed.has(3) ? <Tooltip content="Defaults to your plant from login"><Auto /></Tooltip> : undefined}>
                 <select className="input" value={form.plant} onChange={(e) => update({ plant: e.target.value }, [3])}>
                   {plants.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.id}) · {p.bu}</option>)}
                 </select>
               </FX>
-              <FX className="col-span-12 sm:col-span-6 xl:col-span-3" label={<L n={4}>Buying type</L>} required>
+              <FX className="col-span-12 sm:col-span-6 xl:col-span-3" label={<L n={6}>Buying type</L>} required>
                 <Segmented value={form.buyingType} onChange={(k) => setBuyingType(k as BuyingType)} size="sm" options={[{ key: 'Direct', label: 'Direct', icon: 'Boxes' }, { key: 'Indirect', label: 'Indirect', icon: 'Truck' }]} />
               </FX>
-              <FX className="col-span-12 xl:col-span-5" label={<L n={5}>Commodity</L>} required error={err('commodity')}
+              <FX className="col-span-12 xl:col-span-5" label={<L n={7}>Commodity</L>} required error={err('commodity')}
                 tag={init.auto.has(5) && !typed.has(5) && form.commodity ? <Auto /> : undefined}
                 hint={commodity ? `Commodity group: ${categories.find((c) => c.id === commodity.categoryId)?.name ?? '—'} (set automatically)` : undefined}>
                 <select className={cn('input', err('commodity') && '!border-red-400')} value={form.commodity} onChange={(e) => setCommodity(e.target.value)}>
@@ -510,13 +487,12 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                 </select>
               </FX>
 
-              <FX className="col-span-12 xl:col-span-6" label={<L n={6}>Category</L>} required error={err('lever')} tag={lever ? <RouteBadge route={lever.route} /> : undefined}>
+              <FX className="col-span-12 xl:col-span-6" label={<L n={8}>Category</L>} required error={err('lever')} tag={lever ? <RouteBadge route={lever.route} /> : undefined}>
                 <LeverSelect levers={levers} value={form.leverId} onChange={setLever} error={!!err('lever')} placeholder="Choose a category" />
               </FX>
-              <FX className="col-span-12 sm:col-span-6 xl:col-span-6" label={<L n={7}>Idea scope</L>} required
-                hint={isOpen ? 'Tagged to commodity only' : isSupplierScope ? 'Raised for one supplier — part codes optional' : 'Linked to one or more part codes'}>
+              <FX className="col-span-12 sm:col-span-6 xl:col-span-6" label={<L n={9}>Idea scope</L>} required
+                hint={isSupplierScope ? "One supplier and its parts" : 'One or more part codes from the ERP'}>
                 <Segmented value={form.scope} onChange={(k) => setScope(k as FormScope)} size="sm" options={[
-                  { key: 'Open', label: <span className="whitespace-nowrap">Open idea</span> },
                   { key: 'Part-specific', label: <span className="whitespace-nowrap">Part-specific</span> },
                   { key: 'Supplier', label: <span className="whitespace-nowrap">Supplier</span> },
                 ]} />
@@ -532,14 +508,6 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   </motion.div>
                 )}
               </AnimatePresence>
-              <FX className="col-span-12 sm:col-span-6" label={<L n={8}>Campaign / workshop</L>} tag={init.auto.has(8) && form.campaignId === init.fromCampaign?.id ? <Tooltip content="Auto-set when opened from a campaign link"><Auto /></Tooltip> : undefined}
-                hint={selCampaign ? `${selCampaign.type} · ${selCampaign.status}` : 'Optional'}>
-                <select className="input" value={form.campaignId} onChange={(e) => update({ campaignId: e.target.value }, [8])}>
-                  <option value="">None</option>
-                  {campaignOptions.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.type}</option>)}
-                </select>
-              </FX>
-
               <AnimatePresence initial={false}>
                 {lever && leverStyle && (
                   <motion.div key="route" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="col-span-12 overflow-hidden">
@@ -548,7 +516,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                         <Icon name="Route" size={14} />Route the idea will take
                       </span>
                       <RouteStrip route={lever.route} />
-                      <span className="text-[11.5px] text-muted ml-auto">Evaluator {lever.evaluator} · NPD sample {lever.npdSample}</span>
+                      <span className="text-[11.5px] text-muted ml-auto">NPD sample {lever.npdSample}</span>
                     </div>
                   </motion.div>
                 )}
@@ -557,10 +525,10 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           </FormSection>
 
           {/* ─── B. Idea details ────────────────────────────────────────────── */}
-          <FormSection letter="B" title="Idea details" subtitle="Fields 9–13 · what it is, today vs proposed, and the proof" icon="NotebookPen"
+          <FormSection letter="B" title="Idea details" subtitle="Fields 10–14 · what it is, As-Is vs To-Be, remarks and attachments" icon="NotebookPen"
             open={openSet.has('B')} onToggle={() => toggleSection('B')} summary={summaries.B} state={sectionStates.B}>
             <div className="grid grid-cols-12 gap-3">
-              <FX className="col-span-12" label={<L n={9}>Idea name</L>} required error={err('title')}
+              <FX className="col-span-12" label={<L n={10}>Idea name</L>} required error={err('title')}
                 tag={<span className={cn('text-[11px] font-semibold num', form.title.length > 90 ? 'text-amber-600' : 'text-muted')}>{form.title.length} / 100 characters</span>}>
                 <input className={cn('input', err('title') && '!border-red-400')} maxLength={100} value={form.title} onChange={(e) => update({ title: e.target.value }, [9])}
                   placeholder="Idea name, e.g. Reduce gauge on condenser side bracket from 1.2 mm to 1.0 mm" />
@@ -585,14 +553,14 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   </motion.div>
                 )}
               </AnimatePresence>
-              <FX className="col-span-12 md:col-span-6" label={<L n={10}>Current state</L>} required error={err('currentState')}>
+              <FX className="col-span-12 md:col-span-6" label={<L n={11}>As-Is</L>} required error={err('currentState')}>
                 <textarea className={cn('input', err('currentState') && '!border-red-400')} rows={3} value={form.currentState} onChange={(e) => update({ currentState: e.target.value }, [10])} placeholder="How it is done / bought today" />
               </FX>
-              <FX className="col-span-12 md:col-span-6" label={<L n={11}>Proposed change</L>} required error={err('proposedChange')}>
+              <FX className="col-span-12 md:col-span-6" label={<L n={12}>To-Be</L>} required error={err('proposedChange')}>
                 <textarea className={cn('input', err('proposedChange') && '!border-red-400')} rows={3} value={form.proposedChange} onChange={(e) => update({ proposedChange: e.target.value }, [11])} placeholder="What changes" />
               </FX>
-              <FX className="col-span-12 lg:col-span-6" label={<L n={12}>Evidence</L>} tag={<span className="text-[11px] text-muted">Optional</span>}>
-                <textarea className="input" rows={2} value={form.evidence} onChange={(e) => update({ evidence: e.target.value }, [12])} placeholder="Trial result, supplier quote, benchmark or drawing reference" />
+              <FX className="col-span-12 lg:col-span-6" label={<L n={13}>Remarks</L>} tag={<span className="text-[11px] text-muted">Optional</span>}>
+                <textarea className="input" rows={2} value={form.evidence} onChange={(e) => update({ evidence: e.target.value }, [12])} placeholder="Anything the workshop should know. Proofs go in Attachments." />
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   {EVIDENCE_TAGS.map((t) => {
                     const on = form.evidenceTags.includes(t)
@@ -604,33 +572,29 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   })}
                 </div>
               </FX>
-              <FX className="col-span-12 lg:col-span-6" label={<L n={13}>Attachments</L>} tag={<span className="text-[11px] text-muted">Optional</span>}>
+              <FX className="col-span-12 lg:col-span-6" label={<L n={14}>Attachments</L>} tag={<span className="text-[11px] text-muted">Optional</span>}>
                 <Attachments value={form.attachments} onChange={(a) => update({ attachments: a }, [13])} me={me} />
               </FX>
             </div>
           </FormSection>
 
           {/* ─── C. Parts ───────────────────────────────────────────────────── */}
-          <FormSection letter="C" title="Parts" subtitle="Fields 14–17 · part master fills description, UoM and supplier in place" icon="Boxes"
+          <FormSection letter="C" title="Parts" subtitle="Fields 15–18 · part master fills description, UoM and supplier in place" icon="Boxes"
             open={openSet.has('C')} onToggle={() => toggleSection('C')} summary={summaries.C} state={sectionStates.C}
-            extra={!isOpen ? <span className="text-[11.5px] text-muted num">{form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span> : <Badge color="var(--color-slate-500)">Open idea</Badge>}>
-            {isOpen ? (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-3 flex flex-wrap items-center gap-3">
-                <Icon name="Info" size={16} className="text-sky-600" />
-                <div className="flex-1 min-w-[200px] text-[12.5px] text-ink-2"><b>Open idea</b> — {DEFINITIONS.find((d) => d[0] === 'Open idea')?.[1]}. Give a rough annual estimate in step D.</div>
-                <Button size="sm" variant="outline" icon="Boxes" onClick={() => setScope('Part-specific')}>Make it part-specific</Button>
-              </div>
-            ) : (
+            extra={<span className="text-[11.5px] text-muted num">{form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span>}>
               <div className="space-y-3">
                 {isSupplierScope && (
-                  <div className="rounded-lg border border-line bg-slate-50/60 px-3 py-2 text-[12px] text-ink-2 flex items-center gap-2">
+                  <div className="rounded-lg border border-line bg-slate-50/60 px-3 py-2 text-[12px] text-ink-2 flex flex-wrap items-center gap-2">
                     <Icon name="Factory" size={14} className="text-teal-700 shrink-0" />
                     {scopeSupplier
-                      ? <span>Supplier idea for <b>{scopeSupplier.name}</b> — part codes are optional. Add this supplier's parts to value the idea per part, or leave empty and give an estimate in step D.</span>
-                      : <span>Supplier idea — choose the supplier in step A. Part codes are optional.</span>}
+                      ? <>
+                          <span className="flex-1 min-w-[200px]">Supplier idea for <b>{scopeSupplier.name}</b> — pick its parts below, or select them all.</span>
+                          <Button size="sm" variant="outline" icon="ListChecks" disabled={!supplierParts.length} onClick={() => addParts(supplierParts)}>Select all {supplierParts.length} part{supplierParts.length === 1 ? '' : 's'}</Button>
+                        </>
+                      : <span>Supplier idea — choose the supplier in step A, then its parts here.</span>}
                   </div>
                 )}
-                <FX label={<L n={14}>Part code(s)</L>} required={form.scope === 'Part-specific'} error={err('parts')} tag={<SourceTag color="var(--color-slate-500)">{isSupplierScope ? 'Optional · multi-select search' : 'Multi-select search'}</SourceTag>}>
+                <FX label={<L n={15}>Part code(s)</L>} required error={err('parts')} tag={<SourceTag color="var(--color-slate-500)">Multi-select search</SourceTag>}>
                   <PartSearch parts={partPool} commodity={form.commodity} selected={form.parts.map((p) => p.partCode)} onPick={addPart}
                     restrictNote={isSupplier ? 'Showing parts you supply to Amber' : scopeSupplier ? `Showing parts supplied by ${scopeSupplier.name}` : undefined} />
                 </FX>
@@ -638,8 +602,8 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   <div className="rounded-lg border border-line overflow-hidden">
                     <div className="hidden md:grid grid-cols-[150px_minmax(0,1.5fr)_minmax(0,1fr)_32px] gap-3 px-3 h-8 items-center bg-slate-50 border-b border-line text-[11.5px] font-semibold text-muted">
                       <span>Part code</span>
-                      <span className="flex items-center gap-1.5"><L n={15}>Part description, UoM</L><Tooltip content="From part master"><Auto /></Tooltip></span>
-                      <span className="flex items-center gap-1.5"><L n={16}>Current supplier(s)</L><Tooltip content="From last PO / MRN, vendor code + name"><Auto /></Tooltip></span>
+                      <span className="flex items-center gap-1.5"><L n={16}>Part description, UoM</L><Tooltip content="From part master"><Auto /></Tooltip></span>
+                      <span className="flex items-center gap-1.5"><L n={17}>Current supplier(s)</L><Tooltip content="From last PO / MRN, vendor code + name"><Auto /></Tooltip></span>
                       <span />
                     </div>
                     <AnimatePresence initial={false}>
@@ -664,13 +628,12 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-slate-300 px-4 py-4 text-center text-[12.5px] text-muted">
-                    No part code yet — search the ERP part master above; description, UoM, supplier, baseline and volume fill in automatically.
+                    No part code yet — search the ERP part master above; description, UoM, supplier, last buying price and volume fill in automatically.
                   </div>
                 )}
               </div>
-            )}
             {showSupplierField && (
-              <FX className="mt-3" label={<L n={17}>Proposed supplier</L>} required={supplierRequired} error={err('proposedSupplier')}
+              <FX className="mt-3" label={<L n={18}>Proposed supplier</L>} required={supplierRequired} error={err('proposedSupplier')}
                 tag={<span className="text-[11px] text-muted">{supplierRequired ? 'Required for a supplier category' : 'Optional'}</span>}>
                 <SupplierSearch suppliers={suppliers} commodity={form.commodity} value={form.proposedSupplier} onChange={(v) => update({ proposedSupplier: v }, [17])}
                   exclude={form.parts.map((p) => p.supplierCode)} error={!!err('proposedSupplier')} />
@@ -679,19 +642,18 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           </FormSection>
 
           {/* ─── D. Expected impact ─────────────────────────────────────────── */}
-          <FormSection letter="D" title="Expected impact" subtitle="Fields 18–24 · one rule: price delta per unit × volume" icon="IndianRupee"
+          <FormSection letter="D" title="Expected impact" subtitle="Fields 19–24 · one rule: price delta per unit × volume" icon="IndianRupee"
             open={openSet.has('D')} onToggle={() => toggleSection('D')} summary={summaries.D} state={sectionStates.D}
-            extra={<InfoTip title="Baseline price">Last buying price (LBP) of the part; if none, current PO price; for a new part, the quoted price (same rule as the Price Approval Portal). Baseline and volume are auto-filled; an override needs a mandatory reason and is logged.</InfoTip>}>
-            {partsMode && (
-              form.parts.length ? (
+            extra={<InfoTip title="Last buying price">Last buying price (LBP) of the part from MRN; if none, current PO price; for a new part, the quoted price (same rule as the Price Approval Portal). Price and volume are auto-filled; an override needs a mandatory reason and is logged.</InfoTip>}>
+            {form.parts.length ? (
                 <div className="rounded-lg border border-line overflow-hidden mb-3">
                   <div className="hidden lg:grid grid-cols-[minmax(0,0.85fr)_0.95fr_0.95fr_1.15fr_0.85fr_0.95fr] gap-3 px-3 py-2 bg-slate-50 border-b border-line text-[11.5px] leading-tight font-semibold text-muted items-end">
                     <span>Part</span>
-                    <span><L n={18}>Baseline price / unit (₹)</L></span>
-                    <span><L n={19}>Expected new price / unit (₹)</L></span>
-                    <span><L n={20}>Annual volume</L></span>
-                    <span className="text-right"><L n={21}>Saving / unit and %</L></span>
-                    <span className="text-right"><L n={22}>Forecast impact (₹)</L></span>
+                    <span><L n={19}>Last buying price / unit (₹)</L></span>
+                    <span><L n={20}>Expected new price / unit (₹)</L></span>
+                    <span><L n={21}>Annual volume</L></span>
+                    <span className="text-right"><L n={22}>Saving / unit and %</L></span>
+                    <span className="text-right"><L n={23}>Opportunity cost (₹)</L></span>
                   </div>
                   {form.parts.map((p) => {
                     const row = calc.rows.find((r) => r.partCode === p.partCode)!
@@ -704,26 +666,26 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                             <div className="text-[11.5px] text-muted truncate">{p.description}</div>
                           </div>
                           <div data-err={err(`base:${p.partCode}`) || err(`baseReason:${p.partCode}`) ? 'true' : undefined} className="min-w-0">
-                            <div className="lg:hidden"><div className="label"><L n={18}>Baseline price / unit (₹)</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={19}>Last buying price / unit (₹)</L></div></div>
                             <div className="relative">
                               <input type="number" inputMode="decimal" min={0} step="any" onWheel={noWheel} className={cn(NOSPIN, 'input num !pr-8', bo && '!border-amber-300 !bg-amber-50/40', err(`base:${p.partCode}`) && '!border-red-400')}
                                 value={p.baselinePrice} onChange={(e) => setPart(p.partCode, { baselinePrice: e.target.value }, 18)} />
-                              {bo && <button type="button" title="Restore auto-filled baseline" onClick={() => setPart(p.partCode, { baselinePrice: String(p.autoBaseline), baselineOverrideReason: '' })} className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded text-amber-600 hover:bg-amber-100"><Icon name="RotateCcw" size={12} /></button>}
+                              {bo && <button type="button" title="Restore the price from MRN" onClick={() => setPart(p.partCode, { baselinePrice: String(p.autoBaseline), baselineOverrideReason: '' })} className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded text-amber-600 hover:bg-amber-100"><Icon name="RotateCcw" size={12} /></button>}
                             </div>
                             <div className="mt-1 flex items-center gap-1.5">
-                              {bo ? <SourceTag color="var(--color-orange-400)">Override · auto {inrPrice(p.autoBaseline)}</SourceTag> : <SourceTag>{p.autoBaselineSource === 'LBP' ? 'from LBP' : 'from PO price'}</SourceTag>}
+                              {bo ? <SourceTag color="var(--color-orange-400)">Override · auto {inrPrice(p.autoBaseline)}</SourceTag> : <SourceTag>{p.autoBaselineSource === 'LBP' ? 'from MRN' : 'from PO price'}</SourceTag>}
                             </div>
                             {err(`base:${p.partCode}`) && <div className="text-[11.5px] text-red-600 mt-1">{err(`base:${p.partCode}`)}</div>}
                           </div>
                           <div data-err={err(`new:${p.partCode}`) ? 'true' : undefined} className="min-w-0">
-                            <div className="lg:hidden"><div className="label"><L n={19}>Expected new price / unit (₹)</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={20}>Expected new price / unit (₹)</L></div></div>
                             <input type="number" inputMode="decimal" min={0} step="any" onWheel={noWheel} placeholder="0.00" className={cn(NOSPIN, 'input num', err(`new:${p.partCode}`) && '!border-red-400')}
                               value={p.newPrice} onChange={(e) => setPart(p.partCode, { newPrice: e.target.value }, 19)} />
                             <div className="mt-1 text-[11px] text-muted">{hasText(p.newPrice) ? `${inrPrice(toNum(p.newPrice))} / ${p.uom}` : 'Per part code'}</div>
                             {err(`new:${p.partCode}`) && <div className="text-[11.5px] text-red-600">{err(`new:${p.partCode}`)}</div>}
                           </div>
                           <div data-err={err(`vol:${p.partCode}`) || err(`volReason:${p.partCode}`) ? 'true' : undefined} className="min-w-0">
-                            <div className="lg:hidden"><div className="label"><L n={20}>Annual volume</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={21}>Annual volume</L></div></div>
                             <div className="relative">
                               <input type="number" inputMode="numeric" min={0} step="1" onWheel={noWheel} className={cn(NOSPIN, 'input num !pr-12', vo && '!border-amber-300 !bg-amber-50/40', err(`vol:${p.partCode}`) && '!border-red-400')}
                                 value={p.annualVolume} onChange={(e) => setPart(p.partCode, { annualVolume: e.target.value }, 20)} />
@@ -736,12 +698,12 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                             {err(`vol:${p.partCode}`) && <div className="text-[11.5px] text-red-600 mt-1">{err(`vol:${p.partCode}`)}</div>}
                           </div>
                           <div className="min-w-0 lg:text-right lg:pt-1.5">
-                            <div className="lg:hidden"><div className="label"><L n={21}>Saving / unit and %</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={22}>Saving / unit and %</L></div></div>
                             <div className="text-[13.5px] font-bold num" style={{ color: tone(row?.unit ?? 0) }}>{inrPrice(row?.unit ?? 0)}</div>
                             <div className="mt-0.5 flex lg:justify-end"><PctBadge pct={row?.pct ?? 0} /></div>
                           </div>
                           <div className="min-w-0 lg:text-right lg:pt-1.5">
-                            <div className="lg:hidden"><div className="label"><L n={22}>Forecast impact (₹)</L></div></div>
+                            <div className="lg:hidden"><div className="label"><L n={23}>Opportunity cost (₹)</L></div></div>
                             <div className="text-[14px] font-extrabold" style={{ color: tone(row?.annual ?? 0) }}><Money value={row?.annual ?? 0} /></div>
                             <div className="text-[10.5px] text-muted mt-0.5">{inrPrice(row?.unit ?? 0)} × {num(toNum(p.annualVolume))}</div>
                           </div>
@@ -751,7 +713,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2.5">
                                 {bo && (
-                                  <Field label={<span className="flex items-center gap-1.5"><Icon name="PenLine" size={12} className="text-amber-600" />Reason for baseline override</span>} required error={err(`baseReason:${p.partCode}`)}>
+                                  <Field label={<span className="flex items-center gap-1.5"><Icon name="PenLine" size={12} className="text-amber-600" />Reason for price override</span>} required error={err(`baseReason:${p.partCode}`)}>
                                     <input className={cn('input', err(`baseReason:${p.partCode}`) && '!border-red-400')} value={p.baselineOverrideReason} onChange={(e) => setPart(p.partCode, { baselineOverrideReason: e.target.value })} placeholder="Mandatory — every override is logged" />
                                   </Field>
                                 )}
@@ -768,32 +730,19 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
                     )
                   })}
                   <div className="flex items-center justify-between gap-3 px-3 py-2 bg-slate-50 border-t border-line">
-                    <span className="text-[12px] font-semibold text-ink-2 flex items-center gap-1.5"><Calc />Total forecast impact · {form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span>
+                    <span className="text-[12px] font-semibold text-ink-2 flex items-center gap-1.5"><Calc />Total opportunity cost · {form.parts.length} part{form.parts.length === 1 ? '' : 's'}</span>
                     <span className="text-[16px] font-extrabold" style={{ color: tone(calc.annual) }}><Money value={calc.annual} /></span>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-slate-300 px-4 py-3 mb-3 text-[12.5px] text-muted flex flex-wrap items-center gap-2">
                   <Icon name="ArrowUp" size={14} />
-                  <span className="flex-1 min-w-[200px]">{isSupplierScope
-                    ? 'No part codes — enter a rough estimate below, or add this supplier\'s part codes in step C to value it per part.'
-                    : 'Add part codes in step C — baseline price (LBP rule) and annual volume (last FY MRN) fill in per part.'}</span>
+                  <span className="flex-1 min-w-[200px]">Add part codes in step C — last buying price and annual volume fill in from MRN per part.</span>
                   <button type="button" onClick={() => openOnly('C')} className="text-[12px] font-semibold text-brand-700 hover:underline">Go to parts</button>
                 </div>
-              )
-            )}
-            <div className="grid grid-cols-12 gap-3">
-              {estimate && (
-                <FX className="col-span-12 md:col-span-6" label={<L n={24}>{isOpen ? 'Estimate for open ideas' : 'Estimate for this supplier idea'}</L>} required error={err('openEstimate')} tag={<SourceTag color="var(--color-orange-400)">Estimate</SourceTag>}
-                  hint={hasText(form.openEstimateLakh) ? `Rough annual impact ${inrShort(toNum(form.openEstimateLakh) * LAKH)}` : 'Rough annual impact in ₹ lakh'}>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-muted">₹</span>
-                    <input type="number" inputMode="decimal" min={0} step="any" onWheel={noWheel} className={cn(NOSPIN, 'input num !pl-7 !pr-14', err('openEstimate') && '!border-red-400')} value={form.openEstimateLakh} onChange={(e) => update({ openEstimateLakh: e.target.value }, [24])} placeholder="0.0" />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-muted">lakh</span>
-                  </div>
-                </FX>
               )}
-              <FX className="col-span-12 md:col-span-6" label={<L n={23}>Expected implementation quarter</L>} required error={err('quarter')}>
+            <div className="grid grid-cols-12 gap-3">
+              <FX className="col-span-12 md:col-span-6" label={<L n={24}>Expected implementation quarter</L>} required error={err('quarter')}>
                 <select className="input" value={form.expectedQuarter} onChange={(e) => update({ expectedQuarter: e.target.value }, [23])}>
                   {quarterOptions.map((o) => <option key={o.value} value={o.value} disabled={o.past}>{o.label}{o.past ? ' (passed)' : ''}</option>)}
                 </select>
@@ -828,10 +777,10 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
             <SavingsHero c={calc} singleUnit={singleUnit} />
             <div className="flex-1 min-h-0 overflow-hidden">{panelBody}</div>
             <div className="shrink-0 px-4 py-3 bg-[var(--color-gray-50)] border-t border-line space-y-1.5">
-              <Button variant="primary" size="lg" icon="Send" className="w-full" onClick={submit}>Submit for validation</Button>
+              <Button variant="primary" size="lg" icon="Send" className="w-full" onClick={submit}>Submit idea</Button>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
                 <span className="font-mono">{idPreview ?? 'COIN-FY27-···-····'}</span>
-                <span className="truncate">{route[0]?.name ? `Goes to ${route[0].name} · ${route[0].role}` : 'Goes to your team lead'}</span>
+                <span className="truncate">Workshop follows</span>
               </div>
             </div>
           </div>
@@ -854,7 +803,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
           </AnimatePresence>
           <div className="relative z-10 bg-white border-t border-line px-3 py-2.5 flex items-center gap-3 shadow-[0_-8px_24px_-12px_rgb(15_23_42/.25)]">
             <button type="button" onClick={() => setSheet((v) => !v)} className="flex-1 min-w-0 text-left">
-              <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Forecast impact{calc.isOpen && ' · Estimate'}<Icon name={sheet ? 'ChevronDown' : 'ChevronUp'} size={12} /></span>
+              <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Opportunity cost<Icon name={sheet ? 'ChevronDown' : 'ChevronUp'} size={12} /></span>
               <span className="flex items-center gap-2">
                 <span className="text-[18px] font-extrabold" style={{ color: tone(calc.annual) }}><Money value={calc.annual} /></span>
                 <PctBadge pct={calc.pct} />
@@ -879,7 +828,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
         {(form.title || form.parts.length > 0) && (
           <div className="mt-3 rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12.5px]">
             <div className="font-semibold text-ink truncate">{form.title || 'Unnamed idea'}</div>
-            <div className="text-muted">{form.parts.length} part{form.parts.length === 1 ? '' : 's'} · forecast {inrShort(calc.annual)}</div>
+            <div className="text-muted">{form.parts.length} part{form.parts.length === 1 ? '' : 's'} · opportunity cost {inrShort(calc.annual)}</div>
           </div>
         )}
       </Modal>
@@ -889,7 +838,7 @@ function SubmitForm({ me, draftParam, campaignParam }: { me: User; draftParam: s
 
 function PageHeader2({ draftId, draftStatus, onCancel, onSave, allOpen, onToggleAll }: { draftId: string | null; draftStatus: React.ReactNode; onCancel: () => void; onSave: () => void; allOpen: boolean; onToggleAll: () => void }) {
   return (
-    <PageHeader icon="CirclePlus" title="Submit Idea" fit
+    <PageHeader icon="CirclePlus" title="Capture My Idea" fit
       badge={draftId ? <Badge color="var(--color-slate-500)" icon="FileClock">{draftId}</Badge> : <Badge color="var(--color-brand-500)" dot>New idea</Badge>}
       subtitle="Fill the steps in order — each one folds away when complete — while the savings summary on the right recalculates as you type"
       actions={<>

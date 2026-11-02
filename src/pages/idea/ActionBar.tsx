@@ -1,19 +1,18 @@
-// Contextual action bar — the stage form for the signed-in user's role, plus send back (to the stage chosen) / request info /
-// reassign / drop.
+// Contextual action bar — the stage form for the signed-in ID, plus send back (to the stage chosen) / request info / drop.
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { Button, Icon, RemarksModal, cn } from '../../components/ui'
 import { STAGE } from '../../lib/masters'
-import { stageLabel } from '../../lib/workflow'
 import { ideaPerms, useCtx, waitingOn, withUndo } from './model'
-import { DropModal, ReassignModal, SendBackModal } from './Modals'
+import { DropModal, SendBackModal } from './Modals'
 import { FeasibilityCheckModal, VerificationModal } from './StageForms'
 import { EvaluationModal } from './EvaluationModal'
 import { SourcingApprovalModal } from './ApprovalModal'
+import { CloseEventModal, WorkshopEventModal } from './WorkshopModal'
 
-type ModalKey = null | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'reassign' | 'drop' | 'done'
+type ModalKey = null | 'event' | 'close' | 'feas' | 'eval' | 'appr' | 'verify' | 'sendBack' | 'requestInfo' | 'drop' | 'done'
 
 export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: boolean; className?: string }) {
   const me = useMe()
@@ -25,17 +24,20 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
   const close = () => setModal(null)
   const size = compact ? 'sm' : 'md'
   const atStart = idea.stage === STAGE.feasibility
+  const openEvent = idea.workshop?.events.find((e) => e.status === 'Scheduled')
 
   const primary: ReactNode[] = []
   const secondary: ReactNode[] = []
   if (p.continueDraft) primary.push(<Button key="draft" size={size} variant="primary" icon="PencilLine" onClick={() => nav(`/submit?draft=${idea.id}`)}>Continue editing</Button>)
-  if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="primary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Team feasibility check</Button>)
-  if (p.evaluate) primary.push(<Button key="eval" size={size} variant="primary" icon="FlaskConical" onClick={() => setModal('eval')}>{stageLabel(idea, STAGE.evaluation)}</Button>)
-  if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? stageLabel(idea, STAGE.approval) : 'Sign lock & approve'}</Button>)
+  if (p.workshop) primary.push(openEvent
+    ? <Button key="close" size={size} variant="success" icon="ClipboardList" onClick={() => setModal('close')}>Close event {openEvent.no}</Button>
+    : <Button key="event" size={size} variant="primary" icon="CalendarPlus" onClick={() => setModal('event')}>Create event</Button>)
+  if (p.feasibilityCheck) primary.push(<Button key="feas" size={size} variant="secondary" icon="ClipboardCheck" onClick={() => setModal('feas')}>Technical feasibility</Button>)
+  if (p.evaluate) primary.push(<Button key="eval" size={size} variant="secondary" icon="FlaskConical" onClick={() => setModal('eval')}>Commercial evaluation</Button>)
+  if (p.approve) primary.push(<Button key="appr" size={size} variant="success" icon="Signature" onClick={() => setModal('appr')}>{idea.lock ? 'Approve' : 'Allocate KPI & approve'}</Button>)
   if (p.verify) primary.push(<Button key="verify" size={size} variant="success" icon="ShieldCheck" onClick={() => setModal('verify')}>Verify savings</Button>)
   if (p.sendBack && !atStart) secondary.push(<Button key="sb" size={size} variant="secondary" icon="Undo2" onClick={() => setModal('sendBack')}>Send back…</Button>)
   if (p.requestInfo) secondary.push(<Button key="ri" size={size} variant="secondary" icon="MessageCircleQuestion" onClick={() => setModal('requestInfo')}>Request info</Button>)
-  if (p.reassign) secondary.push(<Button key="ra" size={size} variant="secondary" icon="UserRoundCog" onClick={() => setModal('reassign')}>Reassign</Button>)
   if (p.drop) secondary.push(<Button key="dr" size={size} variant="danger" icon="Ban" onClick={() => setModal('drop')}>Drop</Button>)
 
   const hasActions = primary.length + secondary.length > 0
@@ -55,10 +57,12 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
           {secondary}
         </div>
       ) : (
-        <div className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Eye" size={13} />View only for your role at this stage</div>
+        <div className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Eye" size={13} />View only for this ID at this stage</div>
       )}
 
       {/* ── dialogs ── */}
+      <WorkshopEventModal idea={idea} open={modal === 'event'} onClose={close} />
+      <CloseEventModal idea={idea} event={openEvent} open={modal === 'close'} onClose={close} />
       <FeasibilityCheckModal idea={idea} open={modal === 'feas'} onClose={close} />
       <EvaluationModal idea={idea} open={modal === 'eval'} onClose={close} />
       <SourcingApprovalModal idea={idea} open={modal === 'appr'} onClose={close} />
@@ -67,7 +71,6 @@ export function ActionBar({ idea, compact, className }: { idea: Idea; compact?: 
       <RemarksModal open={modal === 'requestInfo'} onClose={close} icon="MessageCircleQuestion" confirmLabel="Request info" title="Request more information"
         subtitle={`${idea.submitterName} is notified and @mentioned in the comments.`} placeholder="What do you need from the submitter?"
         onConfirm={(r) => withUndo(idea.id, () => requestInfo(idea.id, r), `More information requested from ${idea.submitterName}`, { type: 'info' })} />
-      <ReassignModal idea={idea} open={modal === 'reassign'} onClose={close} />
       <DropModal idea={idea} open={modal === 'drop'} onClose={close} />
     </div>
   )

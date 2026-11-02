@@ -1,12 +1,12 @@
-// Live stage tracker — the six workflow stages (Idea submitted → … → Verification) with dates, who acted and remarks (Section 14).
+// Live stage tracker — the five workflow stages (Idea submitted → … → Verification) with dates, who acted and remarks.
+// The first three sit under Cost Innovation and the last two under Cost Optimisation, one timeline with the two bands highlighted.
 import { useMemo } from 'react'
 import { motion } from 'motion/react'
 import type { Idea } from '../../lib/types'
 import { useStore } from '../../store/useStore'
 import { AgeBadge, Icon, SlaPill, Tooltip, cn } from '../../components/ui'
 import { BUCKET_STYLE, bucketFor, slaStatus, stageAgeDays } from '../../lib/calc'
-import { STAGE, STAGE_SHORT } from '../../lib/masters'
-import { stageLabel } from '../../lib/workflow'
+import { CO_STAGE_NAMES, STAGE, STAGE_NOTE, STAGE_SHORT } from '../../lib/masters'
 import { daysBetween, fmtDate, todayIso } from '../../lib/format'
 import { stagesOf } from './model'
 
@@ -33,11 +33,9 @@ function buildNodes(idea: Idea): TNode[] {
     else if (terminal) state = k < ci ? 'done' : k === ci ? 'failed' : 'skipped'
     else state = k < ci ? 'done' : k === ci ? 'current' : 'future'
     if (state === 'done' && !h) state = 'bypassed'
-    // forecast below ₹ 5 L: the department evaluation was passed over
-    if (state === 'done' && s === STAGE.evaluation && idea.evaluation?.skipped) state = 'bypassed'
     const bucket = bucketFor(idea.route, s)
     const exit = h?.exitedAt
-    const label = stageLabel(idea, s)
+    const label = s
     nodes.push({
       key: s, label: s === STAGE.verification && verified ? 'Verified' : label, short: s === STAGE.verification && verified ? 'Verified' : (STAGE_SHORT[label] ?? label), state, enteredAt: h?.enteredAt, exitedAt: exit,
       by: h?.by, action: s === STAGE.verification && state === 'current' ? 'Awaiting business verification' : h?.action, remarks: h?.remarks, color: BUCKET_STYLE[bucket].color,
@@ -98,11 +96,17 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
   const progress = nodes.length > 1 ? lastReached / (nodes.length - 1) : 0
   const minW = compact ? 74 : 104
   const n = nodes.length
+  const inBand = nodes.filter((x) => !CO_STAGE_NAMES.includes(x.key) && x.key !== '__terminal').length
+  const coBand = nodes.filter((x) => CO_STAGE_NAMES.includes(x.key)).length
 
   return (
     <div className="min-w-0">
       {/* horizontal stepper (≥ sm) */}
       <div className="hidden sm:block overflow-x-auto no-scrollbar pb-1">
+        <div className="grid gap-1 mb-2 text-[10.5px] font-bold uppercase tracking-wide text-center" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>
+          <div className="rounded-md py-1 bg-brand-50 text-brand-700" style={{ gridColumn: `span ${inBand}` }}>Cost Innovation</div>
+          <div className="rounded-md py-1 bg-emerald-50 text-emerald-700" style={{ gridColumn: `span ${coBand}` }}>Cost Optimisation</div>
+        </div>
         <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(${minW}px, 1fr))`, minWidth: n * minW }}>
           <div className="absolute h-[3px] rounded-full bg-slate-100" style={{ top: compact ? 13 : 15, left: `calc(100% / ${n} / 2)`, right: `calc(100% / ${n} / 2)` }}>
             <motion.div className="h-full rounded-full origin-left" style={{ background: 'linear-gradient(90deg, var(--color-brand-500), var(--color-orange-400) 70%, var(--color-emerald-600))' }}
@@ -116,6 +120,7 @@ export function StageTracker({ idea, compact }: { idea: Idea; compact?: boolean 
               <div className={cn('mt-1.5 font-semibold leading-tight', compact ? 'text-[11px]' : 'text-[12px]', node.state === 'future' || node.state === 'skipped' ? 'text-muted' : 'text-ink')}>
                 {compact ? node.short : node.label}
               </div>
+              {!compact && STAGE_NOTE[node.key] && <div className="text-[10.5px] text-muted leading-tight">({STAGE_NOTE[node.key]})</div>}
               <div className={cn('text-muted num', compact ? 'text-[10.5px]' : 'text-[11px]')}>{dateLine(node)}</div>
               {!compact && node.by && node.state !== 'future' && <div className="text-[11px] text-ink-2 truncate max-w-full">{node.by}</div>}
               {!compact && node.remarks && (node.state === 'done' || node.state === 'terminal') && <div className="text-[10.5px] text-muted italic truncate max-w-full" title={node.remarks}>“{node.remarks}”</div>}

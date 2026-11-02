@@ -1,5 +1,5 @@
 // Home after login — COIN coin mark, greeting, KPI tiles and the two workspaces.
-// Cost Optimisation carries LENS · PROOF · TRACE; Innovation Network invites you into the world of ideas.
+// Cost Optimisation carries LENS · PROOF · TRACE; Cost Innovation invites you into the world of ideas.
 // A click anywhere on a workspace card opens that workspace; LENS / PROOF / TRACE open their own page inside it.
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
@@ -18,7 +18,7 @@ const PILLARS = [
   { key: 'PROOF', full: 'Part-linked Realisation and Optimisation Output Framework', icon: 'BadgeIndianRupee', path: '/execution?tab=proof', hint: 'Savings proof' },
   { key: 'TRACE', full: 'Transition-linked Realisation of Actual CI Evidence', icon: 'Route', path: '/execution', hint: 'Execution Hub' },
 ] as const
-const IN_STEPS = ['Idea submitted', 'Team feasibility', 'Dept evaluation', 'Dept approval']
+const IN_STEPS = ['Idea submitted', 'Workshop / event', 'Management approval']
 
 export default function Entry() {
   const me = useMe()
@@ -96,15 +96,15 @@ export default function Entry() {
           </button>
         </motion.section>
 
-        {/* Innovation Network — the world of ideas */}
+        {/* Cost Innovation — the world of ideas */}
         <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} whileHover={{ y: -3 }}
-          onClick={() => go('IN')} title="Open Innovation Network"
+          onClick={() => go('IN')} title="Open Cost Innovation"
           className="relative overflow-hidden rounded-2xl p-4 text-white bg-hero shadow-[0_22px_44px_-26px_rgb(19_35_75/.8)] hover:shadow-[0_28px_52px_-26px_rgb(19_35_75/.9)] transition-shadow flex flex-col cursor-pointer select-none">
           <span className="pointer-events-none absolute -left-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex items-start gap-3">
             <span className="h-11 w-11 rounded-2xl bg-white/15 border border-white/20 grid place-items-center text-[15px] font-extrabold shrink-0">IN</span>
             <div className="min-w-0">
-              <div className="text-[12px] font-semibold text-white/75">Innovation Network</div>
+              <div className="text-[12px] font-semibold text-white/75">Cost Innovation</div>
               <h2 className="text-[22px] font-extrabold tracking-[-0.02em] leading-tight">Enter the world of ideas</h2>
               <p className="text-[12px] text-white/80 mt-0.5">Amber Cost Optimisation and Innovation Network</p>
             </div>
@@ -114,9 +114,9 @@ export default function Entry() {
               <div key={String(l)} className="rounded-xl bg-white/10 border border-white/15 px-3 py-2"><div className="text-[17px] font-bold num leading-tight">{val}</div><div className="text-[11px] text-white/75">{l}</div></div>
             ))}
           </div>
-          {/* stages 1–4 — one equal step each, so the row never wraps mid-way */}
-          <div className="relative mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            {TRACKER_STAGES.slice(0, 4).map((s, k) => (
+          {/* stages 1–3 — one equal step each, so the row never wraps mid-way */}
+          <div className="relative mt-3 grid grid-cols-3 gap-1.5">
+            {TRACKER_STAGES.slice(0, 3).map((s, k) => (
               <div key={s} className="min-w-0 rounded-lg bg-white/10 border border-white/15 px-2 py-1.5">
                 <div className="flex items-center gap-1.5">
                   <span className="h-[18px] w-[18px] rounded-full bg-white/20 text-[10px] font-bold grid place-items-center num shrink-0">{k + 1}</span>
@@ -128,7 +128,7 @@ export default function Entry() {
           </div>
           <div className="flex-1 min-h-3.5" />
           <button onClick={(e) => { e.stopPropagation(); go('IN') }} className="relative h-10 rounded-xl bg-white text-brand-800 text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-brand-50">
-            Enter Innovation Network<Icon name="ArrowRight" size={15} />
+            Enter Cost Innovation<Icon name="ArrowRight" size={15} />
           </button>
         </motion.section>
       </div>

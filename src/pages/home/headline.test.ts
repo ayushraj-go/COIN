@@ -8,7 +8,7 @@ import type { Idea } from '../../lib/types'
 const user = (id: string) => USERS_DEFAULT.find((u) => u.id === id)!
 
 describe('kpiLinks', () => {
-  it('employees and suppliers land on My Ideas, filtered by bucket, in the Innovation Network', () => {
+  it('employees and suppliers land on My Ideas, filtered by bucket, in the Cost Innovation', () => {
     for (const id of ['u-sub1', 'u-so-emp', 'u-sup1']) {
       const l = kpiLinks(user(id))
       expect(l.pipeline).toEqual({ space: 'IN', base: '/my-ideas', bucket: 'Pipeline' })

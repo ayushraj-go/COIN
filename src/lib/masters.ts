@@ -35,23 +35,22 @@ export const LEVER_GROUP_STYLE: Record<LeverGroup, { color: string; soft: string
   Operational: { color: 'var(--color-pink-600)', soft: 'var(--color-pink-50)', text: 'var(--color-pink-700)', icon: 'Settings2' },
 }
 
-// COIN workflow — every idea, on every route, runs the same six stages:
-// Idea submitted → Team feasibility check → <dept> evaluation → <dept> approval → Execution started → Verification.
-// Stages 1–4 live in IN (Innovation Network), 5–6 in CO (Cost Optimisation). The evaluation stage is stored as
-// "Evaluation" / "Approval" and shown as "<department> evaluation" / "<department> approval" (see stageLabel in workflow.ts).
+// COIN workflow — every idea, on every route, runs the same five stages:
+// Idea submitted → Workshop / event creation → Management approval & KPI allocation → Execution started → Verification.
+// Stages 1–3 live in IN (Cost Innovation), 4–5 in CO (Cost Optimisation). Stage 2 holds the workshop event, the technical
+// feasibility form and the commercial evaluation form; Go ahead on the event sends the idea to stage 3.
 export const STAGE = {
   submitted: 'Idea submitted',
-  feasibility: 'Team feasibility check',
-  evaluation: 'Evaluation',
-  approval: 'Approval',
+  feasibility: 'Workshop / event creation',
+  approval: 'Management approval & KPI allocation',
   execution: 'Execution started',
   verification: 'Verification',
 } as const
 /** Stages an idea moves through after submission (the tracker adds "Idea submitted" in front) */
-export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval, STAGE.execution, STAGE.verification]
+export const WORKFLOW_STAGES: string[] = [STAGE.feasibility, STAGE.approval, STAGE.execution, STAGE.verification]
 export const TRACKER_STAGES: string[] = [STAGE.submitted, ...WORKFLOW_STAGES]
-/** IN = stages up to the department approval; CO = Execution started and Verification */
-export const IN_STAGES: string[] = [STAGE.feasibility, STAGE.evaluation, STAGE.approval]
+/** IN = stages up to management approval; CO = Execution started and Verification */
+export const IN_STAGES: string[] = [STAGE.feasibility, STAGE.approval]
 export const CO_STAGE_NAMES: string[] = [STAGE.execution, STAGE.verification]
 export const ROUTE_STAGES: Record<RouteKey, string[]> = {
   Commercial: WORKFLOW_STAGES,
@@ -61,18 +60,18 @@ export const ROUTE_STAGES: Record<RouteKey, string[]> = {
   'To be confirmed': WORKFLOW_STAGES,
 }
 
-// Labels for stage chips (the six names are already short)
-export const STAGE_SHORT: Record<string, string> = Object.fromEntries(TRACKER_STAGES.map((s) => [s, s]))
+// Labels for stage chips
+export const STAGE_SHORT: Record<string, string> = { ...Object.fromEntries(TRACKER_STAGES.map((s) => [s, s])), [STAGE.feasibility]: 'Workshop / event', [STAGE.approval]: 'Management approval' }
+/** The line under a stage name on the tracker */
+export const STAGE_NOTE: Record<string, string> = { [STAGE.feasibility]: 'Technical feasibility and commercial feasibility check' }
 
 // Stages that carry an SLA rule (Section 12)
 export const STAGE_SLA_KEY: Record<string, string> = {
   [STAGE.feasibility]: STAGE.feasibility,
-  [STAGE.evaluation]: STAGE.evaluation,
   [STAGE.approval]: STAGE.approval,
 }
 
 export const FEASIBILITY_STAGES: string[] = [STAGE.feasibility]
-export const EVALUATION_STAGES: string[] = [STAGE.evaluation]
 
 /** Risk assessment factors at evaluation (each Low / Medium / High with ₹ cost at risk) */
 export const RISK_FACTORS: { key: string; label: string; hint: string }[] = [
@@ -123,7 +122,7 @@ export const CATEGORIES_DEFAULT: Category[] = [
 ]
 
 /** Sourcing commodity master — from the "npd data" sheet (Development SPOC · Sourcing Corporate). The SPOC named for a
- *  commodity is its team lead: a Sourcing idea in that commodity goes to them for the team feasibility check (stage 2).
+ *  commodity is its team lead: kept as master data; ideas are handled by the Sourcing ID.
  *  The six gases / oils without a code in the sheet carry a short made-up code (O2, N2, HEL, CO2, PNO, LPG). */
 type CommodityRow = [code: string, name: string, categoryId: string, leadId: string]
 const COMMODITY_ROWS: CommodityRow[] = [
@@ -293,9 +292,25 @@ const u = (id: string, name: string, employeeId: string, roles: User['roles'], d
   id, name, employeeId, email: `${name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/\.$/, '')}@ambergroupindia.com`, password: pw, roles, department, plant, designation, commodities, avatarColor: COLORS[ci++ % COLORS.length], active: true, ...extra,
 })
 
-/** Demo people — every department has the five-role ladder: Employee (submitter), Team lead, Department lead,
- *  Department head and Execution owner. Each department has one ladder (the persona switcher); in Sourcing the commodity buyers execute. */
-export const USERS_DEFAULT: User[] = [
+/** One sign-in per department, plus the Central ID. A department ID raises ideas, runs the workshop (stage 2) and owns the
+ *  execution (stage 4); whoever is behind it types their name and employee ID on the form. Central signs stage 3; Finance verifies stage 5. */
+const departmentId = (id: string, department: User['department'], email: string, employeeId: string, plant: string, roles: User['roles'] = [], commodities: string[] = []) =>
+  u(id, `${department} department`, employeeId, ['submitter', 'teamlead', 'deptlead', 'execowner', ...roles], department, `${department} department ID`, commodities, plant, { email })
+const SIGN_IN_IDS: User[] = [
+  departmentId('id-rd', 'R&D', 'rnd@ambergroupindia.com', 'ID-RND', 'RJP'),
+  departmentId('id-dqa', 'DQA', 'dqa@ambergroupindia.com', 'ID-DQA', 'RJP'),
+  departmentId('id-quality', 'Quality', 'quality@ambergroupindia.com', 'ID-QUA', 'DDN'),
+  departmentId('id-process', 'Process', 'process@ambergroupindia.com', 'ID-PRO', 'JHJ'),
+  departmentId('id-production', 'Production', 'production@ambergroupindia.com', 'ID-PRD', 'RJP'),
+  departmentId('id-finance', 'Finance', 'finance@ambergroupindia.com', 'ID-FIN', 'NDA', ['finance']),
+  departmentId('id-sourcing', 'Sourcing', 'sourcing@ambergroupindia.com', 'ID-SRC', 'NDA', ['buyer', 'lead'], COMMODITIES_DEFAULT.map((c) => c.code)),
+  departmentId('id-hr', 'HR', 'hr@ambergroupindia.com', 'ID-HR', 'NDA'),
+  u('id-central', 'Central ID', 'ID-CEN', ['admin'], 'Central', 'Central ID — management approval and admin', [], 'NDA', { email: 'central@ambergroupindia.com' }),
+]
+
+/** People on record: their names stay on existing ideas and in the commodity masters, but they do not sign in. Suppliers reach COIN
+ *  through the unique link in a campaign email. */
+const ON_RECORD: User[] = [
   // R&D
   u('u-sub1', 'Neha Verma', 'AEL-20417', ['submitter'], 'R&D', 'Senior Engineer, R&D', [], 'RJP'),
   u('u-rd-tl', 'Arvind Rao', 'AEL-15203', ['teamlead', 'submitter'], 'R&D', 'Team Lead — Thermal Systems, R&D', [], 'RJP'),
@@ -326,15 +341,14 @@ export const USERS_DEFAULT: User[] = [
   u('u-pr-lead', 'Deepika Sharma', 'AEL-10377', ['deptlead', 'submitter'], 'Production', 'Manager, Production Planning', [], 'RJP'),
   u('u-eval5', 'Suresh Yadav', 'AEL-10412', ['depthead', 'submitter'], 'Production', 'Production Head, Rajpura', [], 'RJP'),
   u('u-pr-exec', 'Ravi Teja', 'AEL-19108', ['execowner', 'submitter'], 'Production', 'Production Engineer — implementation', [], 'SRC'),
-  // Finance (Meera Iyer is the Finance verifier for stage 6)
+  // Finance
   u('u-fi-emp', 'Ankita Jain', 'AEL-20815', ['submitter'], 'Finance', 'Executive, Costing', [], 'NDA'),
   u('u-fi-tl', 'Prakash Iyer', 'AEL-15688', ['teamlead', 'submitter'], 'Finance', 'Team Lead, Costing', [], 'NDA'),
   u('u-fi-lead', 'Shalini Gupta', 'AEL-10466', ['deptlead', 'submitter'], 'Finance', 'Manager, Finance', [], 'NDA'),
   u('u-fi-head', 'Vinod Agarwal', 'AEL-03377', ['depthead', 'submitter'], 'Finance', 'Head of Finance', [], 'NDA'),
   u('u-fi-exec', 'Rohit Kapoor', 'AEL-19177', ['execowner', 'submitter'], 'Finance', 'Finance Executive — implementation owner', [], 'NDA'),
   u('u-fin', 'Meera Iyer', 'AEL-05562', ['finance'], 'Finance', 'Finance Controller — savings verification', [], 'NDA'),
-  // Sourcing — the 11 commodity team leads from the "npd data" sheet: a Sourcing idea goes at stage 2 to the team lead
-  // of its commodity (a team lead's own idea goes straight to the department lead); the commodity buyers are the execution owners
+  // Sourcing — the 11 commodity team leads from the "npd data" sheet, kept with the commodity buyers as master data
   u('u-so-emp', 'Aditi Sharma', 'AEL-20877', ['submitter'], 'Sourcing', 'Executive, Sourcing', [], 'NDA'),
   u('u-lead1', 'Shubham Verma', 'AEL-07215', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Copper, Aluminium & Brazing', leadCodes('u-lead1'), 'RJP'),
   u('u-lead2', 'Ashutosh Sharma', 'AEL-07544', ['lead', 'teamlead', 'submitter'], 'Sourcing', 'Team Lead — Compressor, Motors, PCB & Gas', leadCodes('u-lead2'), 'NDA'),
@@ -372,24 +386,7 @@ export const USERS_DEFAULT: User[] = [
   u('u-sup4', 'Ankit Jain', 'V10009', ['supplier'], 'Supplier', 'Business Head, Circuitek Electronics', ['DX'], 'NDA', { supplierCode: 'V10009', email: 'ankit.jain@circuitek.in' }),
 ]
 
-/** The five ladder roles every department has, in workflow order, with what each does */
-export const LADDER_ROLES = [
-  { key: 'submitter', label: 'Employee', duty: 'Submits ideas — stage 1' },
-  { key: 'teamlead', label: 'Team lead', duty: 'Team feasibility check — stage 2' },
-  { key: 'deptlead', label: 'Department lead', duty: 'Evaluation: cost-benefit, risk, supplier check — stage 3' },
-  { key: 'depthead', label: 'Department head', duty: 'Approval: budget + timeline lock, signature — stage 4' },
-  { key: 'execowner', label: 'Execution owner', duty: 'Execution: milestones, first MRN, hand-over — stage 5' },
-] as const
-
-/** Cross-functional demo accounts shown beside the department ladder */
-export const CROSS_LOGINS: { userId: string; role: string; blurb: string }[] = [
-  { userId: 'u-fin', role: 'Finance verifier', blurb: 'Verifies locked targets from MRN — stage 6' },
-  { userId: 'u-head', role: 'Sourcing Head', blurb: 'Acts at every stage · Sourcing department head' },
-  { userId: 'u-admin', role: 'Admin', blurb: 'Acts at every stage · masters and users' },
-  { userId: 'u-mgmt', role: 'Management', blurb: 'Dashboards and the monthly report' },
-  { userId: 'u-sup1', role: 'Supplier', blurb: 'Sunrise Fasteners · ideas and workshops' },
-]
-
+export const USERS_DEFAULT: User[] = [...SIGN_IN_IDS, ...ON_RECORD.map((x) => ({ ...x, active: false }))]
 
 export const SUPPLIERS_DEFAULT: Supplier[] = [
   { code: 'V10001', name: 'Kiran Copper Tubes Pvt Ltd', commodities: ['BV'], contactEmail: 'sales@kirancopper.in', contactName: 'Mahesh Kiran', city: 'Silvassa', spend: 1480 * CR },
@@ -504,22 +501,21 @@ export const PARTS_DEFAULT: Part[] = Object.entries(PART_ROWS).flatMap(([commodi
 )
 
 export const APPROVAL_RULES_DEFAULT: ApprovalRule[] = [
-  { id: 'AR1', condition: 'Forecast impact up to ₹ X lakh', approver: 'Commodity Lead', thresholdLakh: 50, kind: 'value' },
-  { id: 'AR2', condition: 'Forecast impact above ₹ X lakh', approver: 'Commodity Lead → Sourcing Head', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR1', condition: 'Opportunity cost up to ₹ X lakh', approver: 'Commodity Lead', thresholdLakh: 50, kind: 'value' },
+  { id: 'AR2', condition: 'Opportunity cost above ₹ X lakh', approver: 'Commodity Lead → Sourcing Head', thresholdLakh: 50, kind: 'value' },
   { id: 'AR3', condition: 'Any idea with one-time investment above ₹ Y lakh', approver: '+ Sourcing Head', thresholdLakh: 25, kind: 'investment' },
 ]
 
-// SLA per workflow stage (Section 12 values, mapped onto the six-stage flow)
+// SLA per workflow stage (Section 12 values, mapped onto the five-stage flow)
 export const SLA_RULES_DEFAULT: SlaRule[] = [
-  { stage: STAGE.feasibility, slaDays: 5, reminderDay: 4, escalateTo: 'Department lead', escalateDay: 6 },
-  { stage: STAGE.evaluation, slaDays: 10, reminderDay: 8, escalateTo: 'Department head', escalateDay: 11 },
-  { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Sourcing Head', escalateDay: 4 },
+  { stage: STAGE.feasibility, slaDays: 15, reminderDay: 12, escalateTo: 'Central ID', escalateDay: 16 },
+  { stage: STAGE.approval, slaDays: 3, reminderDay: 2, escalateTo: 'Central ID', escalateDay: 4 },
   ...SLA_DEFAULTS.filter((r) => r.stage === 'Finance validation').map((r) => ({ ...r })),
 ]
 export const DROP_REASONS = DROP_REASONS_DEFAULT
 
 export const EMAIL_TEMPLATES_DEFAULT: EmailTemplate[] = [
-  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated forecast impact of {{impact}}.\n\nPlease complete the team feasibility check within 5 working days.\n\n— COIN · Cost Innovation Hub' },
+  { id: 'T01', name: 'Idea submitted', subject: 'COIN · New idea {{ideaId}} in {{commodity}}', body: 'Dear {{recipient}},\n\nA new cost-reduction idea "{{title}}" has been submitted in {{commodity}} with an estimated opportunity cost of {{impact}}.\n\nPlease complete the team feasibility check within 5 working days.\n\n— COIN · Cost Innovation Hub' },
   { id: 'T02', name: 'Feasibility request', subject: 'COIN · Feasibility requested for {{ideaId}}', body: 'Dear {{recipient}},\n\nAmber Sourcing requests your feasibility and offered price for idea "{{title}}". Use the secure link below (valid 7 days).\n\n{{secureLink}}\n\n— COIN · Cost Innovation Hub' },
   { id: 'T03', name: 'Pending approval', subject: 'COIN · Approval pending: {{ideaId}}', body: 'Dear {{recipient}},\n\nIdea "{{title}}" ({{impact}}) is awaiting your approval. SLA: 3 working days.\n\n— COIN' },
   { id: 'T04', name: 'Workshop invitation', subject: 'COIN · Invitation: {{campaign}}', body: 'Dear {{recipient}},\n\nYou are invited to the supplier improvement workshop "{{campaign}}" on {{date}} at {{venue}}. Please bring cost-reduction ideas for {{commodity}}.\n\n— Amber Sourcing' },

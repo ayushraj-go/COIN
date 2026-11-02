@@ -1,8 +1,9 @@
-// Stage 5–6 run on MRN: savings are counted only from MRN transactions month by month, inside the locked timeline;
-// when the timeline signed at stage 4 ends, the idea moves to Verification by itself with forecast vs MRN actual.
-// Also: the department evaluation's cost-benefit inputs can be changed, and the pipeline has no free "reassign".
+// Stage 4–5 run on MRN: savings are counted only from MRN transactions month by month, inside the locked timeline;
+// when the timeline signed at stage 3 ends, the idea moves to Verification by itself with forecast vs MRN actual.
+// Also: the commercial evaluation's cost-benefit inputs can be changed, and the pipeline has no free "reassign".
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore } from './useStore'
+import { throughWorkshop } from './flow.testkit'
 import { ideaPerms, kanbanMove } from '../pages/idea/model'
 import { cbaFigures, ideaAnnualised } from '../lib/calc'
 import { STAGE } from '../lib/masters'
@@ -17,11 +18,10 @@ const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meal
 
 /** An HR idea taken to Execution started with the lock window given */
 function approved(start: string, end: string, months: number) {
-  st().loginAs('u-hr-emp')
+  st().loginAs('id-hr')
   const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal' })
-  st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-  st().loginAs('u-hr-lead'); st().recordEvaluation(id, 'Recommend', 'ok')
-  st().loginAs('u-hr-head')
+  throughWorkshop(id)
+  st().loginAs('id-central')
   st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: months, startDate: start, endDate: end, targetSaving: lockTarget(ideaAnnualised(idea(id)), months), signatureName: 'Lata Krishnan' })
   st().approve(id)
   return id
@@ -63,7 +63,7 @@ describe('the locked deadline closes execution', () => {
     expect(i.verification?.forecastAtClose).toBe(i.lock!.targetSaving)
     expect(i.verification?.actualAtClose).toBeCloseTo(actual, 0)
     expect(i.execution?.status).toBe('Done')
-    expect(st().notifications.some((n) => n.userId === 'u-fin' && n.ideaId === id)).toBe(true)
+    expect(st().notifications.some((n) => n.userId === 'id-finance' && n.ideaId === id)).toBe(true)
   })
   it('stays in execution until the lock end', () => {
     const id = approved('2026-06-01', '2026-09-01', 3)
@@ -74,9 +74,9 @@ describe('the locked deadline closes execution', () => {
   })
   it('nobody hands over by hand', () => {
     const id = approved('2026-06-01', '2026-09-01', 3)
-    expect(ideaPerms(user('u-hr-exec'), idea(id)).handOver).toBe(false)
-    expect(ideaPerms(user('u-head'), idea(id)).handOver).toBe(false)
-    expect(kanbanMove(user('u-head'), idea(id), 'verification').ok).toBe(false)
+    expect(ideaPerms(user('id-hr'), idea(id)).handOver).toBe(false)
+    expect(ideaPerms(user('id-central'), idea(id)).handOver).toBe(false)
+    expect(kanbanMove(user('id-central'), idea(id), 'verification').ok).toBe(false)
   })
   it('the monthly MRN sync posts every completed month not yet posted, then closes ended timelines', () => {
     const before = st().settings.lastRealisationMonth
@@ -96,9 +96,9 @@ describe('the locked deadline closes execution', () => {
   })
 })
 
-describe('cost-benefit inputs in the department evaluation', () => {
+describe('cost-benefit inputs in the commercial evaluation', () => {
   it('investment, go-live, payback and carry-over can be changed, and the approval uses them', () => {
-    st().loginAs('u-hr-emp')
+    st().loginAs('id-hr')
     const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
     const annual = ideaAnnualised(idea(id))
     const auto = cbaFigures(idea(id), 'FY27')
@@ -121,26 +121,25 @@ describe('cost-benefit inputs in the department evaluation', () => {
 })
 
 describe('no free reassign in the pipeline', () => {
-  it('Sourcing Head and Admin send an idea back to a stage it has passed instead of picking any SPOC', () => {
-    st().loginAs('u-hr-emp')
+  it('management sends an idea back instead of picking any SPOC', () => {
+    st().loginAs('id-hr')
     const id = st().submitIdea({ title: 'x', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
-    st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-    expect(idea(id).stage).toBe(STAGE.evaluation)
-    expect(ideaPerms(user('u-head'), idea(id)).reassign).toBe(false)
-    expect(ideaPerms(user('u-admin'), idea(id)).reassign).toBe(false)
-    expect(ideaPerms(user('u-head'), idea(id)).sendBack).toBe(true)
+    throughWorkshop(id)
+    expect(idea(id).stage).toBe(STAGE.approval)
+    expect(ideaPerms(user('id-central'), idea(id)).reassign).toBe(false)
+    expect(ideaPerms(user('id-central'), idea(id)).sendBack).toBe(true)
     expect(sendBackTargets(idea(id)).map((t) => t.to)).toEqual(['submitter', STAGE.feasibility])
   })
 })
 
-describe('evaluation inputs survive a send back to the evaluation', () => {
-  it('the evaluator starts again from the inputs already entered', () => {
-    st().loginAs('u-hr-emp')
+describe('evaluation inputs survive a send back to the workshop', () => {
+  it('the workshop starts again from the inputs already entered', () => {
+    st().loginAs('id-hr')
     const j = st().submitIdea({ title: 'y', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'a', proposedChange: 'b' })
-    st().loginAs('u-hr-tl'); st().recordFeasibility(j, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-    st().loginAs('u-hr-lead'); st().saveEvaluation(j, { cbaVerified: true, cbaInputs: { investment: 200000, payback: 6 } }); st().recordEvaluation(j, 'Recommend', 'ok')
-    st().loginAs('u-hr-head'); st().sendBack(j, 'redo risks', STAGE.evaluation)
-    expect(idea(j).stage).toBe(STAGE.evaluation)
+    st().saveEvaluation(j, { cbaVerified: true, cbaInputs: { investment: 200000, payback: 6 } })
+    throughWorkshop(j)
+    st().loginAs('id-central'); st().sendBack(j, 'redo risks', STAGE.feasibility)
+    expect(idea(j).stage).toBe(STAGE.feasibility)
     expect(idea(j).evaluation?.cbaVerified).toBeFalsy()
     expect(idea(j).evaluation?.cbaInputs).toEqual({ investment: 200000, payback: 6 })
   })

@@ -1,4 +1,4 @@
-// The headline KPI row — Pipeline · In execution · Implemented · Realised — shown on the Home, the Innovation Network
+// The headline KPI row — Pipeline · In execution · Implemented · Realised — shown on the Home, the Cost Innovation
 // and Cost Optimisation dashboards for every role. The tiles and numbers never change between workspaces; only where a
 // tile leads depends on the pages the role can open.
 import type { Idea, User } from '../../lib/types'
@@ -9,7 +9,7 @@ export interface KpiLink { space: 'IN' | 'CO'; base: string; bucket?: string }
 
 export function kpiLinks(me: User | null | undefined): Record<KpiKey, KpiLink> {
   const can = (key: string) => navFor(me ?? null).some((n) => n.key === key)
-  // without the Idea Register (employees, suppliers) every tile opens My Ideas in the Innovation Network
+  // without the Idea Register (employees, suppliers) every tile opens My Ideas in the Cost Innovation
   if (!can('register')) {
     const mine = (bucket: string): KpiLink => ({ space: 'IN', base: '/my-ideas', bucket })
     return { pipeline: mine('Pipeline'), execution: mine('In Execution'), implemented: mine('Implemented'), realised: mine('Implemented') }

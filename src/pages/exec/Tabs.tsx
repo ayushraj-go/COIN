@@ -175,7 +175,7 @@ export function VerificationList({ ideas }: { ideas: Idea[] }) {
         <span className="h-10 w-10 rounded-xl grid place-items-center bg-brand-grad text-white shrink-0"><Icon name="ShieldCheck" size={18} /></span>
         <div className="min-w-0 flex-1">
           <div className="text-[13.5px] font-bold text-ink">Verification — locked target vs MRN actual</div>
-          <div className="text-[12px] text-muted">Nobody hands over by hand: when the locked timeline signed at department approval ends, COIN moves the idea here with the forecast for the period and the saving actually found in MRN. Finance verifies.</div>
+          <div className="text-[12px] text-muted">Nobody hands over by hand: when the timeline signed at management approval ends, COIN moves the idea here with the forecast for the period and the saving actually found in MRN. Finance verifies.</div>
         </div>
         <Segmented value={view} onChange={(k) => setView(k as typeof view)} options={[{ key: 'awaiting', label: `Awaiting verification (${awaiting.length})`, icon: 'ShieldQuestion' }, { key: 'verified', label: `Verified (${verified.length})`, icon: 'ShieldCheck' }]} />
       </div>
@@ -229,7 +229,7 @@ export function UpcomingDeadlines({ hub, className }: { hub: Idea[]; className?:
     .map((i) => track(i, ledger, last)).sort((a, b) => a.lock.endDate.localeCompare(b.lock.endDate))
   return (
     <Card title="Locked deadlines in the next 60 days" icon="CalendarClock" className={className} subtitle={`${rows.length} execution${rows.length === 1 ? '' : 's'} move to verification by themselves on the deadline signed at department approval`}
-      actions={<InfoTip title="Deadline">The deadline is the savings end in the budget + timeline lock signed at stage 4. It is not changed during execution; on that date COIN moves the idea to verification.</InfoTip>}>
+      actions={<InfoTip title="Deadline">The deadline is the savings end signed with the KPI at stage 3. It is not changed during execution; on that date COIN moves the idea to verification.</InfoTip>}>
       <div className="grid grid-cols-1 gap-1">
         {rows.map((r) => (
           <button key={r.i.id} onClick={() => openIdea(r.i.id)} className="text-left rounded-lg px-2 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0 flex items-center gap-3">

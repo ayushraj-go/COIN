@@ -1,13 +1,12 @@
-// Stage forms of the six-stage workflow:
-// 2 Team feasibility check · 3 <dept> evaluation (cost-benefit, risk, supplier capability) · 6 Verification
-// (4 <dept> approval — the signed budget + timeline lock — is in ApprovalModal.tsx)
+// Stage forms of the five-stage workflow: 2 Technical feasibility check · 5 Verification
+// (the workshop event is in WorkshopModal.tsx, the commercial evaluation in EvaluationModal.tsx, 3 management approval in ApprovalModal.tsx)
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Idea, RiskItem, RiskLevel } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { RISK_FACTORS, STAGE } from '../../lib/masters'
 import { carryOver, committedInFy, duplicateCandidates, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
-import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, riskTotal, savingsTrack, stageLabel, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
+import { costFlags, EVALUATION_MIN, inLockWindow, needsEvaluation, needsSupplierCheck, overallRisk, riskTotal, savingsTrack, SUPPLIER_CHECK_MIN } from '../../lib/workflow'
 import { addDays, addMonthsYm, fmtDate, inrPrice, inrShort, monthLong, quarterStart, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, LinkText, Modal, Money, Segmented, cn } from '../../components/ui'
 import { SavingsTrackPanel } from './SavingsTrack'
@@ -33,7 +32,7 @@ function Check({ n, title, hint, ok, children }: { n: number; title: string; hin
   )
 }
 
-// ─── Stage 2 — Team feasibility check ─────────────────────────────────────────
+// ─── Stage 2 — Technical feasibility check ────────────────────────────────────
 export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const parts = useStore((s) => s.parts)
   const ideas = useStore((s) => s.ideas)
@@ -58,27 +57,26 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
   const suggested = technical === 'Yes' && cost === 'Valid' && conflict === 'None' ? 'Go' : 'No-go'
   useEffect(() => { setDecision(suggested) }, [suggested])
   const valid = (conflict === 'None' || !!conflictWith.trim()) && (decision === 'Go' || !!remarks.trim())
-  // below ₹ 5 L the idea skips the department evaluation and goes straight to the department head
+  // below ₹ 5 L the workshop goes ahead on this form alone
   const skipEval = !needsEvaluation(ideaAnnualised(idea))
-  const nextStep = skipEval ? stageLabel(idea, STAGE.approval) : stageLabel(idea, STAGE.evaluation)
   const submit = () => {
     useStore.getState().recordFeasibility(idea.id, { technical, technicalNote: technicalNote.trim() || undefined, cost, costNote: costNote.trim() || undefined, conflict, conflictWith: conflictWith.trim() || undefined, conflictNote: conflictNote.trim() || undefined, decision, departments, remarks: remarks.trim() || undefined })
-    toast()(decision === 'Go' ? `${idea.id} cleared the team feasibility check — sent for ${nextStep}${skipEval ? ' (forecast below ₹ 5 L, evaluation skipped)' : ''}` : `${idea.id} not feasible — dropped for good`, decision === 'Go' ? 'success' : 'warning')
+    toast()(decision === 'Go' ? `${idea.id} is technically feasible — close the event to go ahead` : `${idea.id} not feasible — dropped for good`, decision === 'Go' ? 'success' : 'warning')
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} size="xl" icon="UsersRound" title="Team feasibility check" subtitle={`${idea.id} · ${idea.title}`}
+    <Modal open={open} onClose={onClose} size="xl" icon="ClipboardCheck" title="Technical feasibility check" subtitle={`${idea.id} · ${idea.title}`}
       footer={<>
         <span className="mr-auto text-[11.5px] text-muted hidden sm:inline">Recorded by {me?.name} · {me?.department}</span>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant={decision === 'Go' ? 'success' : 'danger'} icon={decision === 'Go' ? 'CircleCheck' : 'CircleX'} disabled={!valid} onClick={submit}>
-          {decision === 'Go' ? `Go — send for ${nextStep}` : 'No-go — drop idea'}
+          {decision === 'Go' ? 'Go — save' : 'No-go — drop idea'}
         </Button>
       </>}>
       {skipEval && (
         <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2.5 text-[12.5px] text-sky-900 flex items-start gap-2">
           <Icon name="SkipForward" size={15} className="shrink-0 mt-px" />
-          <span>Forecast <b className="num">{inrShort(ideaAnnualised(idea))}</b> a year is below <b className="num">{inrShort(EVALUATION_MIN)}</b> — on Go the idea skips the {stageLabel(idea, STAGE.evaluation)} and goes straight to the {stageLabel(idea, STAGE.approval)}.</span>
+          <span>Opportunity cost <b className="num">{inrShort(ideaAnnualised(idea))}</b> a year is below <b className="num">{inrShort(EVALUATION_MIN)}</b> — no commercial evaluation is needed; the workshop goes ahead on this form.</span>
         </div>
       )}
       <div className="grid gap-3 lg:grid-cols-2">
@@ -107,7 +105,7 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
                 </tbody>
               </table>
             </div>
-          ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12px] text-muted mb-2">Open idea — estimate {inrShort(ideaAnnualised(idea))} a year, no part prices to check.</div>}
+          ) : <div className="rounded-lg bg-slate-50 border border-line px-3 py-2 text-[12px] text-muted mb-2">Estimate {inrShort(ideaAnnualised(idea))} a year, no part prices to check.</div>}
           {flags.length > 0 ? (
             <ul className="mb-2 space-y-1">{flags.map((f) => <li key={f} className="flex items-start gap-1.5 text-[12px] text-amber-800"><Icon name="TriangleAlert" size={13} className="shrink-0 mt-px" />{f}</li>)}</ul>
           ) : <div className="mb-2 flex items-center gap-1.5 text-[12px] text-emerald-700"><Icon name="CircleCheck" size={13} />Baseline matches the part master and the saving is realistic.</div>}
@@ -154,7 +152,7 @@ export function FeasibilityCheckModal({ idea, open, onClose }: { idea: Idea; ope
   )
 }
 
-// Stage 3 — <dept> evaluation lives in EvaluationModal.tsx (cost-benefit with editable inputs, risk, supplier check, decision)
+// Stage 2 — the commercial evaluation lives in EvaluationModal.tsx (cost-benefit with editable inputs, risk, supplier check, decision)
 
 export function SupplierResponseCard({ idea }: { idea: Idea }) {
   const sc = idea.evaluation?.supplier
@@ -224,9 +222,9 @@ export function SignaturePad({ onChange, height = 120 }: { onChange: (dataUrl: s
   )
 }
 
-// Stage 4 — <dept> approval lives in ApprovalModal.tsx (detailed commercial assessment, supplier alignment, lock, sign)
+// Stage 3 — management approval lives in ApprovalModal.tsx (detailed commercial assessment, supplier alignment, KPI, sign-off)
 
-// ─── Stage 6 — Verification: business side confirms the target was achieved ──
+// ─── Stage 5 — Verification: business side confirms the target was achieved ──
 export function VerificationModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const ledger = useStore((s) => s.ledger)
   const last = useStore((s) => s.settings.lastRealisationMonth)

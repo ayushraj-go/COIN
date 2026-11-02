@@ -5,6 +5,7 @@ import { Badge, Button, Chip, Icon, InfoTip, Stagger, Money, Count, cn } from '.
 import { useSummary } from '../../lib/hooks'
 import { ideaAnnualised, ideaCommitted, stageAgeDays, STRUCTURAL_LEVERS, type Summary } from '../../lib/calc'
 import { KPIS, STRUCTURAL_NOTE } from '../../lib/scope'
+import { STAGE } from '../../lib/masters'
 import { type Space, SPACE_ORDER, SPACE_META, KPI_INTRO_BY_SPACE, kpisOf, CO_STAGES } from './space'
 import { inrShort, pct, num, monthLabel, daysBetween } from '../../lib/format'
 import { exportExcel, exportPdf } from '../../lib/export'
@@ -102,7 +103,7 @@ const DEFS: KDef[] = [
   },
   { id: 'A9', head: (ctx, sm) => ({ v: sm.carryOver, kind: 'money', color: 'var(--color-indigo-600)', sub: <>beyond {ctx.fy} close (31 March)</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => groupSum(ctx, p.ideas).carryOver, money) },
   {
-    id: 'B1', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', sub: <>{inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} forecast</> }),
+    id: 'B1', head: (ctx) => ({ v: ctx.ideas.length, kind: 'count', sub: <>{inrShort(ctx.ideas.reduce((a, i) => a + ideaAnnualised(i), 0))} opportunity cost</> }),
     rows: (ctx) => {
       const m = new Map<string, Idea[]>()
       ctx.ideas.forEach((i) => m.set(i.stage, [...(m.get(i.stage) ?? []), i]))
@@ -144,7 +145,7 @@ const DEFS: KDef[] = [
   { id: 'C1', head: (ctx) => ({ v: c1(ctx.ideas), kind: 'days', color: 'var(--color-violet-600)', sub: <>{ctx.ideas.filter((i) => i.approvedAt).length} approved ideas</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c1(p.ideas), days).filter((r) => !isNaN(r.value)) },
   { id: 'C2', head: (ctx) => ({ v: c2(ctx.ideas), kind: 'days', color: 'var(--color-violet-600)', sub: <>{ctx.ideas.filter((i) => i.bucket === 'Implemented').length} ideas Done</> }), rows: (ctx, dim) => byParts(ctx, dim, (p) => c2(p.ideas), days).filter((r) => !isNaN(r.value)) },
   {
-    id: 'C3', head: (ctx, _sm, _n, space) => { const s = stagesOf(ctx, space).filter((x) => x.stage !== 'Team feasibility check' || space === 'CO'); const top = [...s].sort((a, b) => b.avg - a.avg)[0]; return { v: top?.avg ?? NaN, kind: 'days', color: 'var(--color-rose-600)', sub: <>slowest: {top?.stage ?? '—'} · {space === 'CO' ? 'Execution started (NPD sample, PAP, go-live)' : 'R&D and sourcing approval'}</> } },
+    id: 'C3', head: (ctx, _sm, _n, space) => { const s = stagesOf(ctx, space).filter((x) => x.stage !== STAGE.feasibility || space === 'CO'); const top = [...s].sort((a, b) => b.avg - a.avg)[0]; return { v: top?.avg ?? NaN, kind: 'days', color: 'var(--color-rose-600)', sub: <>slowest: {top?.stage ?? '—'} · {space === 'CO' ? 'Execution started (NPD sample, PAP, go-live)' : 'R&D and sourcing approval'}</> } },
     rows: (ctx, _dim, _sm, _n, space) => stagesOf(ctx, space).map((s) => ({ key: s.stage, label: s.stage, value: s.avg, display: `${num(s.avg, 1)} d · ${s.n}`, drill: { stage: s.stage }, color: /R&D|NPD|PAP/.test(s.stage) ? 'var(--color-rose-600)' : 'var(--color-violet-600)' })),
   },
   { id: 'D1', head: (ctx) => { const o = onTime(ctx.ideas); return { v: o.pct, kind: 'pct', color: 'var(--color-emerald-600)', sub: <>{o.ok} of {o.done} Done by original due date</> } }, rows: (ctx, dim) => byParts(ctx, dim, (p) => onTime(p.ideas).pct, (v, p) => { const o = onTime(p.ideas); return `${pct(v, 0)} · ${o.ok}/${o.done}` }).filter((r) => !isNaN(r.value)), max: () => 100 },
@@ -248,13 +249,13 @@ export default function KpiLibrary({ ctx, filterText, space }: { ctx: Ctx; filte
     }))
     const name = `COIN_KPI_library_${space ?? 'all'}_${ctx.fy}`
     if (kind === 'excel') exportExcel(name, [{ name: 'KPI library', rows: rows.map((r) => ({ Workspace: SPACE_META[r.space].name, ID: r.id, Group: r.group, KPI: r.kpi, Value: r.value, 'Raw value': isFinite(r.raw) ? +r.raw.toFixed(4) : '', 'Formula / definition': r.formula, 'Cut by': r.cut })) }, { name: 'Filters', rows: [{ 'Active filters': filterText }] }])
-    else exportPdf({ filename: name, title: `KPI library - ${space ? SPACE_META[space].name : 'all workspaces'}`, subtitle: pdfText(space ? KPI_INTRO_BY_SPACE[space] : 'Cost Optimisation and Innovation Network KPIs'), filters: pdfText(filterText), sections: spaces.flatMap((sp) => [...new Set(kpisOf(sp).map((k) => k.group))].map((g) => ({ title: pdfText(`${sp} · ${g}`), head: ['ID', 'KPI', 'Value', 'Formula / definition', 'Cut by'], body: rows.filter((r) => r.space === sp && r.group === g).map((r) => [r.id, r.kpi, r.value, r.formula, r.cut].map(pdfText)) }))) })
+    else exportPdf({ filename: name, title: `KPI library - ${space ? SPACE_META[space].name : 'all workspaces'}`, subtitle: pdfText(space ? KPI_INTRO_BY_SPACE[space] : 'Cost Optimisation and Cost Innovation KPIs'), filters: pdfText(filterText), sections: spaces.flatMap((sp) => [...new Set(kpisOf(sp).map((k) => k.group))].map((g) => ({ title: pdfText(`${sp} · ${g}`), head: ['ID', 'KPI', 'Value', 'Formula / definition', 'Cut by'], body: rows.filter((r) => r.space === sp && r.group === g).map((r) => [r.id, r.kpi, r.value, r.formula, r.cut].map(pdfText)) }))) })
   }
   return (
     <div className="grid gap-3">
       <div className="card p-3 flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[280px]">
-          <div className="text-[13px] font-semibold text-ink">{space ? KPI_INTRO_BY_SPACE[space] : `${total} KPIs across both workspaces. Cost Optimisation KPIs measure execution and realisation; Innovation Network KPIs measure the idea network.`}</div>
+          <div className="text-[13px] font-semibold text-ink">{space ? KPI_INTRO_BY_SPACE[space] : `${total} KPIs across both workspaces. Cost Optimisation KPIs measure execution and realisation; Cost Innovation KPIs measure the idea network.`}</div>
           <div className="text-[11.5px] text-muted mt-1">Every value is computed live for the filters above; click a row to open the ideas behind it.</div>
         </div>
         <Button size="sm" icon="FileSpreadsheet" onClick={() => doExport('excel')}>Excel</Button>

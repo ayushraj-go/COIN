@@ -1,7 +1,6 @@
 // Top of the signed-in user's queue, shown first on their dashboard
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
-import { stageLabel } from '../../lib/workflow'
 import { ideaAnnualised } from '../../lib/calc'
 import { inrShort } from '../../lib/format'
 import { Button, Icon, cn } from '../../components/ui'
@@ -34,7 +33,7 @@ export function QueuePeek({ className }: { className?: string }) {
           <button key={r.idea.id} onClick={() => openIdea(r.idea.id)}
             className={cn('text-left px-5 py-3.5 hover:bg-brand-50/60 transition-colors border-line', k > 0 && 'md:border-l', k > 1 && 'border-t md:border-t-0', k === 2 && 'md:border-l-0 xl:border-l', k > 1 && 'xl:border-t-0')}>
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-brand-700"><Icon name={ACTION_META[r.action].icon} size={13} />{stageLabel(r.idea, r.idea.stage)}</span>
+              <span className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-brand-700"><Icon name={ACTION_META[r.action].icon} size={13} />{r.idea.stage}</span>
               <span className={cn('text-[11px] font-semibold num', r.sla === 'breach' ? 'text-red-700' : r.sla === 'due' ? 'text-amber-700' : 'text-muted')}>{waitingText(r.waitingHours)}</span>
             </div>
             <div className="mt-1 text-[12.5px] font-medium text-ink line-clamp-2 leading-snug">{r.idea.title}</div>

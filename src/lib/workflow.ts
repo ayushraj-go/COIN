@@ -1,46 +1,42 @@
-// COIN six-stage workflow — pure rules (no store, no React), unit-tested in workflow.test.ts.
-// Idea submitted → Team feasibility check → <dept> evaluation → <dept> approval → Execution started → Verification
-import type { Idea, Part, RiskItem, RiskLevel, RoleKey, Supplier, User } from './types'
+// COIN five-stage workflow — pure rules (no store, no React), unit-tested in workflow.test.ts.
+// Idea submitted → Workshop / event creation → Management approval & KPI allocation → Execution started → Verification
+import type { Idea, Part, RiskItem, RiskLevel, Supplier, User } from './types'
 import { addMonthsYm, ymOf } from './format'
 import { STAGE } from './masters'
 
-/** Below this forecast saving the supplier capability check is skipped */
+/** Below this opportunity cost the supplier capability check is skipped */
 export const SUPPLIER_CHECK_MIN = 5_00_000
-/** Below this forecast saving the whole department evaluation (stage 3) is skipped: team feasibility → department approval */
+/** Below this opportunity cost the commercial evaluation is not needed: the workshop goes ahead on the technical feasibility form */
 export const EVALUATION_MIN = 5_00_000
 export const needsEvaluation = (annual: number) => annual >= EVALUATION_MIN
 /** Stands in for the secure supplier-form link until the request is sent */
 export const SUPPLIER_LINK_PLACEHOLDER = '[secure form link]'
-/** Departments that run their own evaluation; every other department (Sourcing, Supplier, Management…) maps to Sourcing */
+/** Departments that run their own workshop; every other department (Sourcing, Supplier, Management…) maps to Sourcing */
 export const EVAL_DEPTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'HR'] as const
-/** The 8 departments with the five-role ladder (Employee, Team lead, Department lead, Department head, Execution owner) */
+/** The 8 departments, each with one sign-in ID */
 export const DEPARTMENTS = ['R&D', 'DQA', 'Quality', 'Process', 'Production', 'Finance', 'Sourcing', 'HR'] as const
 
-export interface Ladder { dept: string; teamLead?: string; deptLead?: string; deptHead?: string; execOwner?: string; verifier?: string }
-/** Who holds each ladder role for a department — an employee's idea goes to the ladder of their own department.
- *  The team lead and the execution owner follow the idea's commodity: in Sourcing each commodity has its own team lead
- *  (the commodity's SPOC) and its own commodity buyer. Departments whose team leads carry no commodities have one team lead. */
-export function ladderOf(dept: string, commodity: string, users: User[]): Ladder {
-  const holders = (role: RoleKey) => users.filter((u) => u.active !== false && u.department === dept && u.roles.includes(role))
-  const first = (role: RoleKey) => holders(role)[0]?.id
-  const byCommodity = (role: RoleKey) => { const h = holders(role); return (h.find((u) => u.commodities.includes(commodity)) ?? h[0])?.id }
-  return { dept, teamLead: byCommodity('teamlead'), deptLead: first('deptlead'), deptHead: first('depthead'), execOwner: byCommodity('execowner'), verifier: users.find((u) => u.active !== false && u.roles.includes('finance'))?.id }
+export interface Ladder { dept: string; departmentId?: string; central?: string; verifier?: string }
+/** Who acts on an idea: the department's one ID, the Central ID at management approval, and the Finance ID at verification */
+export function ladderOf(dept: string, users: User[]): Ladder {
+  const active = users.filter((u) => u.active !== false)
+  return { dept, departmentId: active.find((u) => u.department === dept && u.roles.includes('teamlead'))?.id, central: active.find((u) => u.roles.includes('admin'))?.id, verifier: active.find((u) => u.roles.includes('finance'))?.id }
 }
-/** Stage 2 — who does the team feasibility check: the team lead (in Sourcing, the team lead of the idea's commodity).
- *  An idea raised by a team lead — any team lead of that department, whatever the commodity — goes to the department lead. */
-export function feasibilityOwner(l: Ladder, submitterId: string | undefined, users: User[]): string | undefined {
-  const byTeamLead = !!submitterId && users.some((u) => u.id === submitterId && u.department === l.dept && u.roles.includes('teamlead'))
-  return l.teamLead && !byTeamLead && l.teamLead !== submitterId ? l.teamLead : l.deptLead
+/** The ID a person's work and messages go to: people stay on record, but only the IDs sign in (suppliers use their campaign link) */
+export function signInId(userId: string | undefined, users: User[]): string | undefined {
+  const u = users.find((x) => x.id === userId)
+  if (!u || u.active !== false || u.roles.includes('supplier')) return userId
+  const l = ladderOf(evalDeptOf(u.department), users)
+  return (u.roles.some((r) => r === 'admin' || r === 'mgmt' || r === 'head') ? l.central : l.departmentId) ?? userId
 }
-/** The department whose ladder runs this idea: the evaluation's department once set, else the submitter's (mapped) */
+/** The department whose ID runs this idea: the evaluation's department once set, else the submitter's (mapped) */
 export const ideaDept = (idea: Pick<Idea, 'department'> & { evaluation?: { dept: string } }) => idea.evaluation?.dept ?? evalDeptOf(idea.department)
-/** The person expected to act at `stage` — used by permissions, "waiting on", queues, notifications and the seed */
+/** The ID expected to act at `stage` — used by permissions, "waiting on", queues, notifications and the seed */
 export function stageAssignee(idea: Idea, stage: string, users: User[]): string | undefined {
-  const l = ladderOf(ideaDept(idea), idea.commodity, users)
-  if (stage === STAGE.feasibility) return feasibilityOwner(l, idea.submitterId, users)
-  if (stage === STAGE.evaluation) return l.deptLead
-  if (stage === STAGE.approval) return l.deptHead
-  if (stage === STAGE.execution) return idea.ownerId ?? l.execOwner
+  const l = ladderOf(ideaDept(idea), users)
+  if (stage === STAGE.feasibility) return l.departmentId
+  if (stage === STAGE.approval) return l.central
+  if (stage === STAGE.execution) return signInId(idea.ownerId, users) ?? l.departmentId
   if (stage === STAGE.verification) return l.verifier
   return undefined
 }
@@ -49,10 +45,13 @@ export function evalDeptOf(department?: string): string {
   return department && (EVAL_DEPTS as readonly string[]).includes(department) ? department : 'Sourcing'
 }
 
-/** Display name of a stage for one idea: "Evaluation" becomes "<dept> evaluation" */
-export function stageLabel(idea: { department?: string; evaluation?: { dept?: string } }, stage: string): string {
-  if (stage !== 'Evaluation' && stage !== 'Approval') return stage
-  return `${idea.evaluation?.dept ?? evalDeptOf(idea.department)} ${stage === 'Approval' ? 'approval' : 'evaluation'}`
+/** What stage 2 still needs before Go ahead: an open event, the technical feasibility form and (from ₹ 5 L) the commercial evaluation */
+export function workshopGaps(idea: Pick<Idea, 'workshop' | 'feasibilityCheck' | 'evaluation'>, annual: number): string[] {
+  const gaps: string[] = []
+  if (!idea.workshop?.events.some((e) => e.status === 'Scheduled')) gaps.push('Workshop event')
+  if (idea.feasibilityCheck?.decision !== 'Go') gaps.push('Technical feasibility check')
+  if (needsEvaluation(annual) && idea.evaluation?.decision !== 'Recommend') gaps.push('Commercial evaluation')
+  return gaps
 }
 
 /** Generic specification text for supplier capability requests — never Amber prices, volumes or part codes */
@@ -65,7 +64,7 @@ export const SUPPLIER_SPEC_BY_GROUP: Record<string, string> = {
 }
 export const needsSupplierCheck = (annual: number) => annual >= SUPPLIER_CHECK_MIN
 
-/** Team feasibility check — reasons the entered cost may not be valid */
+/** Technical feasibility check — reasons the entered cost may not be valid */
 export function costFlags(idea: Pick<Idea, 'scope' | 'parts' | 'openEstimateLakh'>, parts: Pick<Part, 'code' | 'lbp' | 'poPrice'>[]): string[] {
   const flags: string[] = []
   if (idea.scope === 'Open' || !idea.parts?.length) {
@@ -99,17 +98,12 @@ export function monthsBetween(start: string, end: string): number {
   return months > 0 ? Math.round(months * 10) / 10 : 0
 }
 
-export type SendBackTo = 'submitter' | 'Team feasibility check' | 'Evaluation'
-/** Where an idea can be sent back from its current stage: the submitter (rework and resubmit), the team feasibility
- *  check, or the department evaluation — never to an evaluation the idea skipped (forecast below ₹ 5 L) */
-export function sendBackTargets(idea: Pick<Idea, 'stage' | 'department' | 'evaluation' | 'parts' | 'scope' | 'openEstimateLakh'> & { stage: string }, annual?: number): { to: SendBackTo; label: string; hint: string }[] {
-  const order = [STAGE.feasibility, STAGE.evaluation, STAGE.approval] as string[]
-  const at = order.indexOf(idea.stage)
-  if (at < 0) return []
-  const skipped = idea.evaluation?.skipped || (annual != null && !needsEvaluation(annual))
-  const out: { to: SendBackTo; label: string; hint: string }[] = [{ to: 'submitter', label: 'Submitter — rework the idea', hint: 'The submitter updates the idea; the team feasibility check runs again' }]
-  if (at >= 1) out.push({ to: STAGE.feasibility, label: 'Team feasibility check', hint: 'The team lead checks feasibility, cost and duplicates again' })
-  if (at >= 2 && !skipped) out.push({ to: STAGE.evaluation, label: stageLabel(idea, STAGE.evaluation), hint: 'Cost-benefit, risk and supplier check again; the feasibility check stands' })
+export type SendBackTo = 'submitter' | typeof STAGE.feasibility
+/** Where an idea can be sent back from its current stage: the submitter (rework and resubmit) or, from management approval, the workshop */
+export function sendBackTargets(idea: Pick<Idea, 'stage'>): { to: SendBackTo; label: string; hint: string }[] {
+  if (idea.stage !== STAGE.feasibility && idea.stage !== STAGE.approval) return []
+  const out: { to: SendBackTo; label: string; hint: string }[] = [{ to: 'submitter', label: 'Submitter — rework the idea', hint: 'The submitter updates the idea; the workshop runs again' }]
+  if (idea.stage === STAGE.approval) out.push({ to: STAGE.feasibility, label: STAGE.feasibility, hint: 'The workshop runs again: a new event, the feasibility check and the evaluation' })
   return out
 }
 
@@ -287,7 +281,7 @@ export function sourceBreakdown(ideas: Idea[], suppliers: Pick<Supplier, 'code' 
       count: internal.length, value: internal.reduce((a, i) => a + value(i), 0),
       byCommodity: group(internal, (i) => i.commodity, (i) => i.commodity, value),
       byDepartment: group(internal, (i) => i.department, (i) => i.department, value),
-      byIndividual: group(internal, (i) => i.submitterId, (i) => i.submitterName, value),
+      byIndividual: group(internal, (i) => i.employeeId || i.submitterId, (i) => i.submitterName, value),
     },
     external: {
       count: external.length, value: external.reduce((a, i) => a + value(i), 0),
@@ -314,22 +308,4 @@ export function milestoneSchedule(execStart: string, savingsStart: string, end: 
     r++
     return iso(s0 + Math.round(((s1 - s0) * r) / (route.length + 1) / 86400000) * 86400000)
   })
-}
-
-/** Stages 2–4 for an idea from `dept`, with the person at each — shown on Submit Idea */
-export function approvalRoute(dept: string, commodity: string, users: User[], submitterId?: string): { label: string; userId?: string; role: string }[] {
-  const l = ladderOf(dept, commodity, users)
-  const feas = feasibilityOwner(l, submitterId, users)
-  return [
-    { label: 'Team feasibility check', userId: feas, role: feas && feas === l.deptLead ? 'department lead' : 'team lead' },
-    { label: `${dept} evaluation`, userId: l.deptLead, role: 'department lead' },
-    { label: `${dept} approval`, userId: l.deptHead, role: 'department head' },
-  ]
-}
-
-/** The demo account for a ladder role in a department (login picker and persona switcher) */
-export function personaFor(dept: string, role: 'submitter' | 'teamlead' | 'deptlead' | 'depthead' | 'execowner', users: User[]): string | undefined {
-  if (role === 'submitter') return users.find((u) => u.active !== false && u.department === dept && u.roles.length === 1 && u.roles[0] === 'submitter')?.id
-  const l = ladderOf(dept, '', users)
-  return { teamlead: l.teamLead, deptlead: l.deptLead, depthead: l.deptHead, execowner: l.execOwner }[role]
 }

@@ -1,15 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { evalDeptOf, stageLabel, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, savingsTrack, monthVerdict, sourceBreakdown, costFlags, milestoneSchedule, inLockWindow } from './workflow'
+import { evalDeptOf, needsSupplierCheck, overallRisk, riskTotal, lockTarget, addMonthsIso, supplierCapabilityEmail, amberDataLeaks, planVsActual, savingsTrack, monthVerdict, sourceBreakdown, costFlags, milestoneSchedule, inLockWindow } from './workflow'
 
 describe('evaluation department', () => {
   it('uses the submitter department', () => {
     expect(evalDeptOf('Quality')).toBe('Quality')
-    expect(stageLabel({ department: 'R&D' }, 'Evaluation')).toBe('R&D evaluation')
   })
   it('maps sourcing-side departments to Sourcing', () => {
     for (const d of ['Sourcing', 'Sourcing Excellence', 'Supplier', 'Management', undefined]) expect(evalDeptOf(d)).toBe('Sourcing')
   })
-  it('leaves other stage names alone', () => expect(stageLabel({ department: 'R&D' }, 'Sourcing approval')).toBe('Sourcing approval'))
 })
 
 describe('thresholds and lock', () => {

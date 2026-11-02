@@ -76,8 +76,7 @@ export function TrendCard({ d, className, height = 262 }: { d: HomeData; classNa
 // ─── Funnel by stage (count + ₹) ──────────────────────────────────────────────
 interface Step { key: string; label: string; stages: string[]; bucket: Exclude<Bucket, 'Draft'>; icon: string }
 const STEPS: Step[] = [
-  { key: 'feasibility', label: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'UsersRound' },
-  { key: 'evaluation', label: 'Evaluation', stages: [STAGE.evaluation], bucket: 'Pipeline', icon: 'FlaskConical' },
+  { key: 'feasibility', label: STAGE.feasibility, stages: [STAGE.feasibility], bucket: 'Pipeline', icon: 'Presentation' },
   { key: 'approval', label: STAGE.approval, stages: [STAGE.approval], bucket: 'Pipeline', icon: 'Stamp' },
   { key: 'execution', label: STAGE.execution, stages: [STAGE.execution], bucket: 'In Execution', icon: 'Rocket' },
   { key: 'implemented', label: STAGE.verification, stages: [STAGE.verification], bucket: 'Implemented', icon: 'CircleCheckBig' },
@@ -153,8 +152,8 @@ export function LeverMixCard({ d, sel, onClear, className }: { d: HomeData; sel:
   const h = hover != null ? data[hover] : null
   return (
     <Card className={cn('h-full', className)} icon="ChartPie"
-      title={<span className="flex items-center gap-2">Category mix<InfoTip title="Category mix">Share of forecast impact by category group. All categories roll up to Total Productivity in reports. Click a slice to see its ideas.</InfoTip><BucketFilterChip bucket={sel} onClear={onClear} /></span>}
-      subtitle={`${sel ?? 'Active ideas'} · forecast impact by group`}>
+      title={<span className="flex items-center gap-2">Category mix<InfoTip title="Category mix">Share of opportunity cost by category group. All categories roll up to Total Productivity in reports. Click a slice to see its ideas.</InfoTip><BucketFilterChip bucket={sel} onClear={onClear} /></span>}
+      subtitle={`${sel ?? 'Active ideas'} · opportunity cost by group`}>
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative h-[176px] w-[176px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -198,6 +197,33 @@ export function LeverMixCard({ d, sel, onClear, className }: { d: HomeData; sel:
 
 // ─── Commodity heat table ─────────────────────────────────────────────────────
 interface ComRow { code: string; name: string; category: string; buyerId: string; realised: number; pipeline: number; conversion: number; ideas: number; implemented: number; leakage: number }
+
+type DeptRow = { dept: string; ideas: number; pipeline: number; execution: number; implemented: number; realised: number }
+
+/** Department-wise — each department's ideas, value at each step and realised savings; a click opens its ideas */
+export function DepartmentCard({ d, className }: { d: HomeData; className?: string }) {
+  const settings = useStore((s) => s.settings)
+  const ledger = useStore((s) => s.ledger)
+  const drill = useDrill()
+  const rows: DeptRow[] = useMemo(() => [...new Set(d.ideas.map((i) => i.department))].map((dept) => {
+    const ideas = d.ideas.filter((i) => i.department === dept)
+    const sm = summarise(ideas, ledger, 0, d.fy, settings.financeValidation, settings.lastRealisationMonth)
+    return { dept, ideas: ideas.filter((i) => i.bucket !== 'Draft').length, pipeline: sm.pipeline, execution: sm.counts['In Execution'], implemented: sm.counts.Implemented, realised: sm.realisedCounting }
+  }).sort((a, b) => b.realised + b.pipeline - (a.realised + a.pipeline)), [d.ideas, d.fy, ledger, settings])
+  const cols: Column<DeptRow>[] = [
+    { key: 'dept', label: 'Department', value: (r) => r.dept, render: (r) => <span className="font-semibold text-ink text-[12.5px]">{r.dept}</span> },
+    { key: 'ideas', label: 'Ideas', align: 'right', value: (r) => r.ideas, render: (r) => <span className="num font-semibold text-ink">{r.ideas}</span> },
+    { key: 'pipeline', label: 'Pipeline', align: 'right', value: (r) => r.pipeline, render: (r) => <span className="num text-blue-700">{inrShort(r.pipeline)}</span> },
+    { key: 'execution', label: 'In execution', align: 'right', value: (r) => r.execution, render: (r) => <span className="num">{r.execution}</span> },
+    { key: 'implemented', label: 'Implemented', align: 'right', value: (r) => r.implemented, render: (r) => <span className="num">{r.implemented}</span> },
+    { key: 'realised', label: settings.financeValidation ? 'Realised (validated)' : 'Realised', align: 'right', value: (r) => r.realised, render: (r) => <span className="num text-green-700 font-semibold">{inrShort(r.realised)}</span> },
+  ]
+  return (
+    <Card className={cn('h-full', className)} icon="Building2" title="Department-wise" subtitle={`${rows.length} department${rows.length === 1 ? '' : 's'} · ideas, pipeline, execution and realised savings`}>
+      <DataTable rows={rows} columns={cols} rowKey={(r) => r.dept} onRowClick={(r) => drill({ dept: r.dept })} exportName={`COIN_Departments_${d.fy}`} />
+    </Card>
+  )
+}
 
 export function CommodityHeatCard({ d, className, limit }: { d: HomeData; className?: string; limit?: number }) {
   const comms = useScopedCommodities()
@@ -248,8 +274,8 @@ export function PortfolioCard({ d, className }: { d: HomeData; className?: strin
   const fmt = (x: { count: number; value: number }) => (mode === 'value' ? inrShort(x.value) : `${x.count}`)
   return (
     <Card className={cn('h-full', className)} icon="ChartPie" bodyClass="flex flex-col"
-      title={<span className="flex items-center gap-1.5">Idea portfolio<InfoTip title="Idea portfolio">Every submitted idea sits in exactly one of four statuses. Switch between forecast value and number of ideas. Click a status to open its ideas.</InfoTip></span>}
-      subtitle={`${totalIdeas} ideas · ${inrShort(totalValue)} forecast impact`}
+      title={<span className="flex items-center gap-1.5">Idea portfolio<InfoTip title="Idea portfolio">Every submitted idea sits in exactly one of four statuses. Switch between opportunity cost value and number of ideas. Click a status to open its ideas.</InfoTip></span>}
+      subtitle={`${totalIdeas} ideas · ${inrShort(totalValue)} opportunity cost`}
       actions={<Segmented size="sm" value={mode} onChange={(k) => setMode(k as 'value' | 'count')} options={[{ key: 'value', label: 'Value' }, { key: 'count', label: 'Ideas' }]} />}>
       <div className="flex-1 flex flex-col sm:flex-row items-center gap-8 min-h-0">
         <div className="relative h-[230px] w-[230px] shrink-0">
@@ -265,7 +291,7 @@ export function PortfolioCard({ d, className }: { d: HomeData; className?: strin
             <div>
               <div className="text-[12px] text-muted">{hover != null ? data[hover].name : 'Total'}</div>
               <div className="text-[24px] font-bold text-ink num leading-tight">{hover != null ? fmt(data[hover]) : mode === 'value' ? inrShort(totalValue) : totalIdeas}</div>
-              <div className="text-[12px] text-muted">{hover != null ? pct(((mode === 'value' ? data[hover].value : data[hover].count) / total) * 100, 0) : mode === 'value' ? 'forecast' : 'ideas'}</div>
+              <div className="text-[12px] text-muted">{hover != null ? pct(((mode === 'value' ? data[hover].value : data[hover].count) / total) * 100, 0) : mode === 'value' ? 'opportunity cost' : 'ideas'}</div>
             </div>
           </div>
         </div>

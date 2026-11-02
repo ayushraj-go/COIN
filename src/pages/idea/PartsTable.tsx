@@ -35,7 +35,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
         <div className="flex items-center gap-2">
           {idea.locked && <Tooltip content="Approved values are locked; changes after approval need a change reason and re-approval above the set %."><span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600"><Icon name="Lock" size={12} />Locked</span></Tooltip>}
           {perms.override && !compact && <span className="hidden md:inline text-[11px] text-muted">Baseline and volume overrides need a reason and are logged</span>}
-          <InfoTip title="Forecast impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Saving per unit = P(baseline) − P(new). Red marks a negative delta.</InfoTip>
+          <InfoTip title="Opportunity cost" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Saving per unit = P(baseline) − P(new). Red marks a negative delta.</InfoTip>
         </div>
       }>
       {idea.parts.length === 0 ? (
@@ -45,7 +45,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
               <div className="text-[12px] text-muted">Estimate for open idea (rough annual impact)</div>
               <div className="text-[20px] font-bold text-ink num">{inrShort(total)} <SourceTag color="var(--color-orange-400)">Estimate</SourceTag></div>
             </div>
-            <div className="text-[12px] text-muted max-w-sm">Part codes, baseline and volume are added by the team at the Team feasibility check; the estimate is replaced by the part-wise calculation.</div>
+            <div className="text-[12px] text-muted max-w-sm">Part codes, last buying price and volume are added by the team at the workshop; the estimate is replaced by the part-wise calculation.</div>
           </div>
         </div>
       ) : (
@@ -98,7 +98,7 @@ export function PartsTable({ idea, compact }: { idea: Idea; compact?: boolean })
                 <th style={{ textAlign: 'right' }}>Annual volume</th>
                 <th style={{ textAlign: 'right' }}>Saving / unit</th>
                 {!compact && <th style={{ textAlign: 'right' }}>%</th>}
-                <th style={{ textAlign: 'right' }}>Forecast</th>
+                <th style={{ textAlign: 'right' }}>Opportunity cost</th>
               </tr>
             </thead>
             <tbody>

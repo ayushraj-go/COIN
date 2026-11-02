@@ -1,19 +1,18 @@
-// My queue — the ideas waiting for one person's action, one row per idea, with how long it has waited.
-// Who a row belongs to comes from stageAssignee (the department ladder) — only that person sees it, and only that
-// person may act on it (ideaPerms uses the same rule). Sourcing Head and Admin also see every open item.
+// My queue — the ideas waiting for one ID's action, one row per idea, with how long it has waited.
+// Who a row belongs to comes from stageAssignee — only that ID sees it, and only that ID may act on it (ideaPerms uses
+// the same rule). The Central ID also sees every open item.
 import type { Idea, SlaRule, User } from '../../lib/types'
 import { SLA_RULES_DEFAULT, STAGE } from '../../lib/masters'
 import { stageAssignee } from '../../lib/workflow'
 import { healthOf, slaStatus } from '../../lib/calc'
 
-export type QueueAction = 'feasibility' | 'evaluate' | 'approve' | 'execute' | 'verify'
+export type QueueAction = 'workshop' | 'approve' | 'execute' | 'verify'
 export type QueueSla = 'ok' | 'due' | 'breach'
 export interface QueueRow { idea: Idea; action: QueueAction; assignee?: string; assignedToMe: boolean; waitingHours: number; sla: QueueSla; slaDays?: number }
 
 export const ACTION_META: Record<QueueAction, { label: string; verb: string; icon: string }> = {
-  feasibility: { label: 'Team feasibility check', verb: 'Check feasibility', icon: 'UsersRound' },
-  evaluate: { label: 'Evaluation', verb: 'Evaluate', icon: 'FlaskConical' },
-  approve: { label: 'Approval', verb: 'Approve & sign', icon: 'Signature' },
+  workshop: { label: 'Workshop / event', verb: 'Run the workshop', icon: 'Presentation' },
+  approve: { label: 'Management approval', verb: 'Approve & allocate KPI', icon: 'Signature' },
   execute: { label: 'Execution', verb: 'Update execution', icon: 'Rocket' },
   verify: { label: 'Verification', verb: 'Verify', icon: 'ShieldCheck' },
 }
@@ -21,8 +20,7 @@ export const ACTION_META: Record<QueueAction, { label: string; verb: string; ico
 /** the action an open idea is waiting for, or null when nothing is pending */
 export function pendingAction(i: Idea): QueueAction | null {
   if (i.bucket === 'Dropped' || i.bucket === 'Draft') return null
-  if (i.stage === STAGE.feasibility) return 'feasibility'
-  if (i.stage === STAGE.evaluation) return 'evaluate'
+  if (i.stage === STAGE.feasibility) return 'workshop'
   if (i.stage === STAGE.approval) return i.approvals.some((a) => !a.decision) || !i.approvals.length ? 'approve' : null
   if (i.stage === STAGE.execution) return i.execution?.status === 'In Execution' ? 'execute' : null
   if (i.stage === STAGE.verification) return i.verification?.verifiedAt ? null : 'verify'
@@ -31,7 +29,7 @@ export function pendingAction(i: Idea): QueueAction | null {
 
 const RANK: Record<QueueSla, number> = { breach: 0, due: 1, ok: 2 }
 
-/** mine = assigned to me; all = mine, or every open item for the Sourcing Head and Admin */
+/** mine = assigned to me; all = mine, or every open item for the Central ID */
 export function queueFor(me: User, ideas: Idea[], users: User[], now = Date.now(), rules: SlaRule[] = SLA_RULES_DEFAULT): { mine: QueueRow[]; all: QueueRow[] } {
   const override = me.roles.includes('head') || me.roles.includes('admin')
   const rows: QueueRow[] = []

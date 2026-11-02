@@ -23,14 +23,14 @@ export const DOC_META = {
 
 export const PURPOSE = [
   "COIN is the single system Amber's Sourcing team uses to capture, value, approve, execute and prove every cost-reduction idea, from submission to realised savings.",
-  'The product is organised as two workspaces. CO (Cost Optimisation) holds execution, everything after approval: implementation through NPD, PAP or internal change, due dates, realised savings from actual MRN, Finance validation, price leakage and the monthly report. IN (Innovation Network) is the idea network: suppliers, Sourcing, R&D, DQA, Quality, Process and Production raise ideas, Sourcing validates and approves them, and supplier campaigns feed the portfolio.',
+  'The product is organised as two workspaces. CO (Cost Optimisation) holds execution, everything after approval: implementation through NPD, PAP or internal change, due dates, realised savings from actual MRN, Finance validation, price leakage and the monthly report. IN (Cost Innovation) is the idea network: every department raises ideas on its ID, each idea goes through a workshop, the Central ID approves it, and supplier campaigns feed the portfolio.',
   'The portal covers both direct buying (BOM materials and components) and indirect buying.',
 ]
 
 /** The two workspaces chosen after login (Purpose and Modules sections) */
 export const WORKSPACES: { code: 'CO' | 'IN'; name: string; covers: string; pages: string; icon: string; color: string }[] = [
   { code: 'CO', name: 'Cost Optimisation', covers: 'Execution, after approval', pages: 'Dashboard · Execution Hub (execution, monthly MRN tracking, savings proof, verification) · a month-by-month MRN vs target graph on every request in execution or verification · realised savings, Finance validation and price leakage', icon: 'Calculator', color: 'var(--color-teal-600)' },
-  { code: 'IN', name: 'Innovation Network', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Submit Idea · Feasibility Requests and Workshops (suppliers) · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
+  { code: 'IN', name: 'Cost Innovation', covers: 'The idea network, up to approval', pages: 'Idea Register · My Ideas · Capture My Idea · Campaigns · Admin & Masters', icon: 'Network', color: 'var(--color-brand-600)' },
 ]
 export const WORKSPACE_NOTE =
   'After login every user sees the four status cards (Pipeline, In Execution, Implemented, Dropped) and chooses a workspace. The sidebar shows only that workspace\'s pages: Scope & Methodology and MIS are pinned at the bottom, and the workspace badge in the sidebar header switches between CO and IN.'
@@ -58,33 +58,26 @@ export const PROBLEMS: { problem: string; impact: string; solution: string }[] =
 ]
 
 export const ROLES_INTRO =
-  'Every department (R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR) runs the same five-role ladder — Employee, Team lead, Department lead, Department head, Execution owner — and Finance verifies. Sourcing Head and Admin can act at every stage.'
+  'Each department (R&D, DQA, Quality, Process, Production, Finance, Sourcing, HR) signs in with one ID. Whoever is behind the ID types their name and employee ID on the form, on the workshop event and at sign-off. The Central ID gives management approval and can act at every stage; Finance verifies. Suppliers do not sign in: they reach COIN through the unique link of a campaign.'
 
 export const ROLES: { key: string; role: string; who: string; job: string; visibility: string }[] = [
-  { key: 'submitter', role: 'Employee', who: 'Any employee in the eight departments', job: 'Stage 1 — submits ideas, tracks own ideas, answers queries', visibility: 'Own ideas' },
-  { key: 'teamlead', role: 'Team lead', who: 'One per department (Sourcing: one per commodity — the idea goes to the team lead of its commodity)', job: 'Stage 2 — team feasibility check: technical, cost, duplicate / conflict, go or no-go', visibility: 'Own department' },
-  { key: 'deptlead', role: 'Department lead', who: 'One per department', job: 'Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability check — only for ideas forecast at ₹ 5 L and above; smaller ideas skip stage 3', visibility: 'Own department' },
-  { key: 'depthead', role: 'Department head', who: 'Head of each department (Sourcing: Head of Sourcing)', job: 'Stage 4 — <dept> approval: commercial assessment, supplier confirmation, budget + timeline lock, signature', visibility: 'Own department' },
-  { key: 'execowner', role: 'Execution owner', who: 'One per department (Sourcing: the commodity buyers)', job: 'Stage 5 — execution: milestones and NPD / PAP until the locked deadline; MRN tracked monthly, verification starts by itself on the deadline', visibility: 'Own department' },
-  { key: 'finance', role: 'Finance verifier', who: 'Finance Controller', job: 'Stage 6 — verifies the locked target from MRN; validates realised savings', visibility: 'All' },
-  { key: 'head', role: 'Sourcing Head', who: 'Head of Sourcing', job: 'Acts at every stage (override); Sourcing department head', visibility: 'All' },
-  { key: 'admin', role: 'Admin', who: 'Sourcing Excellence / IT', job: 'Acts at every stage (override); masters, users, rules, demo data', visibility: 'All' },
-  { key: 'supplier', role: 'Supplier', who: 'Registered vendor user from the vendor master', job: 'Submits ideas with gain-share, answers workshop invites and capability checks', visibility: 'Own ideas' },
-  { key: 'mgmt', role: 'Management', who: 'CXO, Plant Head, BU Head', job: 'Dashboards and monthly report', visibility: 'All (read only)' },
+  { key: 'deptlead', role: 'Department ID', who: 'One ID per department', job: 'Stage 1 — captures ideas · Stage 2 — creates the workshop event, technical feasibility and commercial evaluation · Stage 4 — execution', visibility: 'Own department' },
+  { key: 'finance', role: 'Finance ID', who: 'The Finance department ID', job: 'Works as a department ID, and at stage 5 verifies the target from MRN and validates realised savings', visibility: 'All' },
+  { key: 'admin', role: 'Central ID', who: 'Management / Sourcing Excellence', job: 'Stage 3 — management approval, KPI allocation and sign-off; acts at every stage; masters, users, rules, demo data', visibility: 'All' },
+  { key: 'supplier', role: 'Supplier', who: 'Vendors invited to a campaign', job: 'No sign-in: submits ideas through the unique campaign link, answers capability checks', visibility: 'Own replies' },
 ]
 
 // Permission matrix (✓ = allowed, — = not allowed) — mirrors ideaPerms / PERMS
-export const PERM_COLS = ['Employee', 'Team lead', 'Dept lead', 'Dept head', 'Exec owner', 'Finance', 'Sourcing Head', 'Admin', 'Supplier', 'Mgmt']
+export const PERM_COLS = ['Department ID', 'Finance ID', 'Central ID', 'Supplier']
 export const PERMISSION_MATRIX: { action: string; key: string; cells: string[] }[] = [
-  { action: 'Submit idea', key: 'submit', cells: ['✓', '✓', '✓', '✓', '✓', '—', '✓', '—', '✓', '—'] },
-  { action: 'Team feasibility check (own department, not own idea)', key: 'feasibility', cells: ['—', '✓', '—', '—', '—', '—', '✓', '✓', '—', '—'] },
-  { action: 'Evaluation — cost-benefit, risk, supplier check', key: 'techeval', cells: ['—', '—', '✓', '—', '—', '—', '✓', '✓', '—', '—'] },
-  { action: 'Approval + budget and timeline lock', key: 'approve', cells: ['—', '—', '—', '✓', '—', '—', '✓', '✓', '—', '—'] },
-  { action: 'Execution — milestones, notes, drop', key: 'execute', cells: ['—', '—', '—', '—', '✓', '—', '✓', '✓', '—', '—'] },
-  { action: 'Verification of the locked target', key: 'verify', cells: ['—', '—', '—', '—', '—', '✓', '✓', '✓', '—', '—'] },
-  { action: 'Run campaigns / workshops', key: 'campaign', cells: ['—', 'Sourcing', '—', 'Sourcing', 'Sourcing', '—', '✓', '✓', '—', '—'] },
-  { action: 'View dashboards and MIS', key: 'view', cells: ['Own', 'Department', 'Department', 'Department', 'Department', 'All', 'All', 'All', 'Own', 'All'] },
-  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '—', '—', '—', '—', '—', '✓', '—', '—'] },
+  { action: 'Capture idea', key: 'submit', cells: ['✓', '✓', '—', 'Campaign link'] },
+  { action: 'Workshop event, technical feasibility, commercial evaluation', key: 'feasibility', cells: ['Own department', 'Own department', '✓', '—'] },
+  { action: 'Management approval, KPI allocation and sign-off', key: 'approve', cells: ['—', '—', '✓', '—'] },
+  { action: 'Execution — milestones, notes, drop', key: 'execute', cells: ['Own department', 'Own department', '✓', '—'] },
+  { action: 'Verification of the target', key: 'verify', cells: ['—', '✓', '✓', '—'] },
+  { action: 'Run campaigns', key: 'campaign', cells: ['Sourcing', '—', '✓', '—'] },
+  { action: 'View dashboards and MIS', key: 'view', cells: ['Department', 'All', 'All', '—'] },
+  { action: 'Manage masters, users', key: 'masters', cells: ['—', '—', '✓', '—'] },
 ]
 
 export const METHOD_INTRO =
@@ -92,31 +85,30 @@ export const METHOD_INTRO =
 
 export const DEFINITIONS: [string, string][] = [
   ['Idea', 'A proposal that reduces the landed cost of a part, commodity, supplier relationship or process'],
-  ['Open idea', 'Tagged to a commodity only, no part code (e.g. "move Cu tube sourcing to a regional mill")'],
-  ['Part-specific idea', 'Linked to one or more part codes (e.g. "reduce gauge on a condenser bracket")'],
-  ['Supplier idea', 'Raised for one supplier; part codes are optional, otherwise it is valued by an estimate'],
+  ['Part-specific idea', 'Linked to one or more part codes from the ERP (e.g. "reduce gauge on a condenser bracket")'],
+  ['Supplier idea', "Raised for one supplier; its parts are picked from a list, with Select all"],
   ['Category', 'The idea type chosen from the idea category master; it decides the route'],
   ['Commodity group', 'The grouping of commodities (Metals, Electricals, Plastics, Packing, Logistics…); set automatically from the commodity'],
   ['Baseline price', 'Last buying price (LBP) of the part; if none, current PO price; for a new part, the quoted price (same rule as the Price Approval Portal)'],
   ['New price', 'Estimated at submission; replaced by the approved revised price at implementation'],
   ['Annual volume', 'Quantity received in the last full FY, from MRN; if no history, a forecast volume entered by the buyer and flagged'],
-  ['Forecast impact', 'Full-year saving at the new price and annual volume'],
+  ['Opportunity cost', 'Full-year saving at the new price and annual volume'],
   ['Committed saving', 'Saving expected inside the current FY, phased by quarter from the implementation date'],
   ['Realised saving', 'Saving actually earned: price delta × MRN quantity received after the effective date'],
-  ['Carry-over', 'Part of the forecast impact that falls in the next FY'],
+  ['Carry-over', 'Part of the opportunity cost that falls in the next FY'],
 ]
 
 export const FORMULAS: { name: string; expr: string }[] = [
   { name: 'Saving per unit', expr: 'P(baseline) − P(new)' },
-  { name: 'Forecast impact', expr: '(P(baseline) − P(new)) × Q(last FY MRN)' },
-  { name: 'Committed in FY', expr: 'Forecast impact × months live in FY ÷ 12' },
+  { name: 'Opportunity cost', expr: '(P(baseline) − P(new)) × Q(last FY MRN)' },
+  { name: 'Committed in FY', expr: 'Opportunity cost × months live in FY ÷ 12' },
   { name: 'Realised (FY to date)', expr: 'Σ counted MRN receipts: (P(baseline) − P(billed)) × Q(received)' },
-  { name: 'Monthly forecast', expr: 'Forecast ÷ 12 × season index of the month (last-FY MRN pattern)' },
+  { name: 'Monthly opportunity cost', expr: 'Opportunity cost ÷ 12 × season index of the month (last-FY MRN pattern)' },
   { name: 'Locked target', expr: 'Σ monthly forecasts over the locked window' },
 ]
 
 export const WORKED_EXAMPLE =
-  'Worked example: a fastener idea cuts the price from ₹ 4.20 to ₹ 3.85 on 24,00,000 units received last FY. Saving per unit is ₹ 0.35 and forecast impact is ₹ 8.40 lakh. If it goes live on 1 October, the FY commits about ₹ 4.20 lakh (six months) and ₹ 4.20 lakh carries over to next FY.'
+  'Worked example: a fastener idea cuts the price from ₹ 4.20 to ₹ 3.85 on 24,00,000 units received last FY. Saving per unit is ₹ 0.35 and opportunity cost is ₹ 8.40 lakh. If it goes live on 1 October, the FY commits about ₹ 4.20 lakh (six months) and ₹ 4.20 lakh carries over to next FY.'
 
 export const SAVINGS_CLASS_NOTE =
   'Each idea takes its classification from the default of its category; it is not entered on the form.'
@@ -136,58 +128,58 @@ export const CREDIBILITY_RULES = [
 export const LEVER_INTRO =
   "The category chosen on the form decides the idea's route: commercial ideas skip R&D and sampling, while technical ideas must pass R&D evaluation and an NPD sample before the price can change."
 export const LEVER_FOOTNOTE =
-  'All categories roll up to Total Productivity in reports. The idea category master is admin-configurable: a new category, its group, route, evaluator and NPD sample rule can be added without code changes.'
+  'All categories roll up to Total Productivity in reports. The idea category master is admin-configurable: a new category, its group, route and NPD sample rule can be added without code changes.'
 export const LEVER_SPLIT_NOTE =
-  'Alternate material substitution (technical route) and Alternate supplier (supplier-change route) are separate categories because they follow different routes and evaluators.'
+  'Alternate material substitution (technical route) and Alternate supplier (supplier-change route) are separate categories because they follow different routes.'
 
 export const ROUTES_TABLE: { route: string; stages: string }[] = [
-  { route: 'Commercial', stages: 'Buyer validation → Supplier confirmation → Approval → Price revision in PAP → Implemented' },
-  { route: 'Supplier change', stages: 'Buyer validation → New supplier feasibility → DQA qualification → Approval → NPD sample → Price / source change in PAP → Implemented' },
-  { route: 'Technical', stages: 'Buyer validation → Supplier feasibility → R&D evaluation (+DQA/Quality) → Approval → NPD ECN up to sample approval → Price revision in PAP → Implemented' },
-  { route: 'Internal', stages: 'Buyer validation → Owning department evaluation → Approval → Execution → Implemented' },
+  { route: 'Commercial', stages: 'Workshop → Supplier confirmation → Management approval → Price revision in PAP → Verification' },
+  { route: 'Supplier change', stages: 'Workshop → New supplier feasibility → DQA qualification → Management approval → NPD sample → Price / source change in PAP → Verification' },
+  { route: 'Technical', stages: 'Workshop → Supplier feasibility → R&D evaluation (+DQA/Quality) → Management approval → NPD ECN up to sample approval → Price revision in PAP → Verification' },
+  { route: 'Internal', stages: 'Workshop → Owning department evaluation → Management approval → Execution → Verification' },
 ]
 
-// ─── the Submit Idea form, as built ────────────────────────────────
+// ─── the Capture My Idea form, as built ────────────────────────────
 export const FORM_INTRO =
-  'The form has 26 numbered fields, but a submitter types only about 8 of them: the rest are auto-filled from login, part master, LBP and MRN, or shown only when relevant.'
+  'The form has 26 numbered fields, but a submitter types only about 10 of them: the rest are auto-filled from login, part master, LBP and MRN, or shown only when relevant.'
 export const FORM_LAYOUT =
   'Layout: collapsible steps A–E on the left and a fixed savings summary panel on the right that recalculates as the user types. Only step A is open at first; step E appears only for supplier logins. The draft saves automatically.'
 
 export const FORM_FIELDS: { n: number; card: string; field: string; type: string; req: string; source: string }[] = [
-  { n: 1, card: 'A. Classification', field: 'Submitter name, employee ID', type: 'Auto', req: 'Yes', source: 'From login (vendor code for a supplier)' },
-  { n: 2, card: 'A. Classification', field: 'Department', type: 'Auto', req: 'Yes', source: 'From login (R&D, DQA, Quality, Process, Production, Sourcing)' },
-  { n: 3, card: 'A. Classification', field: 'Plant / BU', type: 'Dropdown', req: 'Yes', source: "Defaults to the user's plant" },
-  { n: 4, card: 'A. Classification', field: 'Buying type', type: 'Toggle', req: 'Yes', source: 'Direct / Indirect; follows the commodity' },
-  { n: 5, card: 'A. Classification', field: 'Commodity', type: 'Dropdown', req: 'Yes', source: 'Grouped by commodity group; sets the commodity group and buying type automatically' },
-  { n: 6, card: 'A. Classification', field: 'Category', type: 'Dropdown with icons', req: 'Yes', source: 'Idea category master; shows the route, evaluator and NPD sample rule' },
-  { n: 7, card: 'A. Classification', field: 'Idea scope', type: 'Toggle', req: 'Yes', source: 'Open idea / Part-specific / Supplier; Supplier opens a supplier picker filtered to the commodity' },
-  { n: 8, card: 'A. Classification', field: 'Campaign / workshop', type: 'Dropdown', req: 'No', source: 'Live campaigns; auto-set when opened from a campaign link' },
-  { n: 9, card: 'B. Idea details', field: 'Idea name', type: 'Text, 100 chars', req: 'Yes', source: 'Duplicate check runs on idea name + commodity' },
-  { n: 10, card: 'B. Idea details', field: 'Current state', type: 'Text', req: 'Yes', source: 'How it is done / bought today' },
-  { n: 11, card: 'B. Idea details', field: 'Proposed change', type: 'Text', req: 'Yes', source: 'What changes' },
-  { n: 12, card: 'B. Idea details', field: 'Evidence', type: 'Text + tags', req: 'No', source: 'Trial, quote, benchmark, drawing' },
-  { n: 13, card: 'B. Idea details', field: 'Attachments', type: 'Multi-file', req: 'No', source: 'Images, PDF, drawings, quotes; up to 10 files, 10 MB each' },
-  { n: 14, card: 'C. Parts', field: 'Part code(s)', type: 'Multi-select search', req: 'If part-specific', source: 'ERP part master; optional for a supplier idea and limited to that supplier\'s parts' },
-  { n: 15, card: 'C. Parts', field: 'Part description, UoM', type: 'Auto', req: '—', source: 'From part master' },
-  { n: 16, card: 'C. Parts', field: 'Current supplier(s)', type: 'Auto', req: '—', source: 'From last PO / MRN, vendor code + name' },
-  { n: 17, card: 'C. Parts', field: 'Proposed supplier', type: 'Search', req: 'If supplier category', source: 'Shown for supply-base categories; vendor master or a new supplier by name' },
-  { n: 18, card: 'D. Expected impact', field: 'Baseline price / unit (₹)', type: 'Auto, editable', req: 'Yes', source: 'LBP rule (see Definitions); override needs a reason' },
-  { n: 19, card: 'D. Expected impact', field: 'Expected new price / unit (₹)', type: 'Number', req: 'Yes', source: 'Per part code' },
-  { n: 20, card: 'D. Expected impact', field: 'Annual volume', type: 'Auto, editable', req: 'Yes', source: 'Last FY MRN, else forecast (flagged); override needs a reason' },
-  { n: 21, card: 'D. Expected impact', field: 'Saving / unit and %', type: 'Calculated', req: '—', source: 'Live' },
-  { n: 22, card: 'D. Expected impact', field: 'Forecast impact (₹)', type: 'Calculated', req: '—', source: 'Live, per part + total' },
-  { n: 23, card: 'D. Expected impact', field: 'Expected implementation quarter', type: 'Dropdown', req: 'Yes', source: 'Q1–Q4 of current or next FY; past quarters disabled' },
-  { n: 24, card: 'D. Expected impact', field: 'Estimate (₹ lakh)', type: 'Number', req: 'If no part codes', source: 'Open ideas and supplier ideas without parts; marked "Estimate"' },
-  { n: 25, card: 'E. Supplier only', field: 'Gain-share % offered to Amber', type: 'Number', req: 'No', source: 'Shown only for supplier logins' },
-  { n: 26, card: 'E. Supplier only', field: 'Validity of offer', type: 'Date', req: 'No', source: 'Shown only for supplier logins; today or later' },
+  { n: 1, card: 'A. Classification', field: 'Name', type: 'Text', req: 'Yes', source: 'Typed; the ID is shared by the department' },
+  { n: 2, card: 'A. Classification', field: 'Employee ID', type: 'Text', req: 'Yes', source: 'Typed' },
+  { n: 3, card: 'A. Classification', field: 'Email', type: 'Text', req: 'No', source: 'Typed; workshop invitations go here' },
+  { n: 4, card: 'A. Classification', field: 'Department', type: 'Auto', req: 'Yes', source: 'From login' },
+  { n: 5, card: 'A. Classification', field: 'Plant / BU', type: 'Dropdown', req: 'Yes', source: "Defaults to the department's plant" },
+  { n: 6, card: 'A. Classification', field: 'Buying type', type: 'Toggle', req: 'Yes', source: 'Direct / Indirect; follows the commodity' },
+  { n: 7, card: 'A. Classification', field: 'Commodity', type: 'Dropdown', req: 'Yes', source: 'Grouped by commodity group; sets the commodity group and buying type automatically' },
+  { n: 8, card: 'A. Classification', field: 'Category', type: 'Dropdown with icons', req: 'Yes', source: 'Idea category master; shows the route and NPD sample rule' },
+  { n: 9, card: 'A. Classification', field: 'Idea scope', type: 'Toggle', req: 'Yes', source: 'Part-specific / Supplier; Supplier opens a supplier picker filtered to the commodity' },
+  { n: 10, card: 'B. Idea details', field: 'Idea name', type: 'Text', req: 'Yes', source: 'Duplicate check runs on idea name + commodity' },
+  { n: 11, card: 'B. Idea details', field: 'As-Is', type: 'Text', req: 'Yes', source: 'How it is done / bought today' },
+  { n: 12, card: 'B. Idea details', field: 'To-Be', type: 'Text', req: 'Yes', source: 'What changes' },
+  { n: 13, card: 'B. Idea details', field: 'Remarks', type: 'Text + tags', req: 'No', source: 'Free text; proofs go in Attachments' },
+  { n: 14, card: 'B. Idea details', field: 'Attachments', type: 'Upload', req: 'No', source: 'Images, PDF, drawings, quotes; up to 10 files, 10 MB each' },
+  { n: 15, card: 'C. Parts', field: 'Part code(s)', type: 'Multi-select search', req: 'Yes', source: "All of the ERP part master, or the chosen supplier's parts with Select all" },
+  { n: 16, card: 'C. Parts', field: 'Part description, UoM', type: 'Auto', req: '—', source: 'From part master' },
+  { n: 17, card: 'C. Parts', field: 'Current supplier(s)', type: 'Auto', req: '—', source: 'From last PO / MRN, vendor code + name' },
+  { n: 18, card: 'C. Parts', field: 'Proposed supplier', type: 'Search', req: 'If supplier category', source: 'Vendor master, or "new supplier" with name' },
+  { n: 19, card: 'D. Expected impact', field: 'Last buying price / unit (₹)', type: 'Auto (override)', req: 'Yes', source: 'From MRN (LBP rule); override needs a reason' },
+  { n: 20, card: 'D. Expected impact', field: 'Expected new price / unit (₹)', type: 'Number', req: 'Yes', source: 'Per part code' },
+  { n: 21, card: 'D. Expected impact', field: 'Annual volume', type: 'Auto (override)', req: 'Yes', source: 'Last FY MRN; override needs a reason' },
+  { n: 22, card: 'D. Expected impact', field: 'Saving / unit and %', type: 'Calculated', req: '—', source: 'Live' },
+  { n: 23, card: 'D. Expected impact', field: 'Opportunity cost (₹)', type: 'Calculated', req: '—', source: 'Live, per part + total' },
+  { n: 24, card: 'D. Expected impact', field: 'Expected implementation quarter', type: 'Dropdown', req: 'Yes', source: 'Q1–Q4 of current or next FY' },
+  { n: 25, card: 'E. Supplier only', field: 'Gain-share % offered to Amber', type: 'Number', req: 'No', source: 'Shown only for supplier submissions' },
+  { n: 26, card: 'E. Supplier only', field: 'Validity of offer', type: 'Date', req: 'No', source: 'Shown only for supplier submissions' },
 ]
 
 export const FORM_BEHAVIOUR = [
   'Steps fold: only A is open at first; when the open step\'s required fields are complete it closes and the next one opens. A click on a step header toggles it, and "Expand all" opens every step. A closed step shows a one-line summary and its missing-field count.',
-  'Selecting a category shows the route strip (e.g. Buyer → R&D → Approval → NPD sample → PAP) with the evaluator and NPD sample rule.',
+  'Selecting a category shows the route strip (e.g. Buyer → R&D → Approval → NPD sample → PAP) with the NPD sample rule.',
   'Selecting a part code fills description, UoM, supplier, baseline and volume in place, with a "from LBP" / "from MRN FY26" tag.',
   'Similar existing ideas appear inline as the idea name is typed, with a match % and a "view" link.',
-  'The summary panel shows forecast impact, saving %, saving per unit, the per-part split, committed this FY vs carry-over, the approval route and "what happens next". It stays in view and never needs scrolling; on a phone it becomes a bottom bar.',
+  'The summary panel shows opportunity cost, saving %, saving per unit, the per-part split, committed this FY vs carry-over, the approval route and "what happens next". It stays in view and never needs scrolling; on a phone it becomes a bottom bar.',
   'Actions: Save draft (also Ctrl + S), Submit for validation, Cancel (keep or discard the draft). After submit, the user lands on the idea page showing its ID (COIN-FY27-FAS-0012) and a live status tracker.',
 ]
 
@@ -201,25 +193,21 @@ export const MODULES: { id: string; name: string; tag: DocSpace; space: string; 
   { id: 'NPD', name: 'NPD development master', tag: 'CO', space: 'CO (also listed in IN)', screens: 'Read-only master', scope: 'Commodity codes, development SPOC per plant / product line, DQA SPOC, performance and reliability testing days, vendor groups and payment methods — synced from VMS', path: '/npd' },
   { id: 'M2', name: 'Idea Register / My Ideas', tag: 'IN', space: 'IN (Implemented ideas view in CO)', screens: 'Table + Kanban', scope: 'Filter bar, saved views, quick filters as chips, Kanban by stage with drag to move (permission-checked), Excel export, ageing badge on each row', path: '/ideas' },
   { id: 'M3', name: 'Submit Idea', tag: 'IN', space: 'IN', screens: 'Collapsible form', scope: 'Collapsible steps A–E, fixed summary panel, duplicate check, route preview, campaign pre-fill, auto-saved draft', path: '/submit' },
-  { id: 'M6', name: 'Supplier workspace', tag: 'IN', space: 'IN', screens: 'Supplier home, Feasibility Requests, Workshops', scope: 'Submit ideas with gain-share; answer feasibility with offered price, lead time and MOQ through a 7-day secure link; accept or decline workshop invites', path: '/feasibility' },
+  { id: 'M6', name: 'Supplier access', tag: 'IN', space: 'IN', screens: 'Campaign link page, supplier capability form', scope: 'Suppliers do not sign in. They submit ideas through the unique link of a campaign, and answer capability requests through a secure link', path: '/campaigns' },
   { id: 'M7', name: 'Campaigns', tag: 'IN', space: 'IN', screens: 'Dashboard, Workshops & drives, Supplier responses, Email templates', scope: 'Supplier email campaigns through a four-step wizard; replies from the Supplier Portal converted into ideas; workshops with attendance and auto-invites; template add / edit', path: '/campaigns' },
   { id: 'M12', name: 'Admin & Masters', tag: 'IN', space: 'IN', screens: 'Settings', scope: 'Commodity group, commodity, idea category, route, department, plant, user–role–commodity mapping, vendor and part masters, approval matrix, drop reasons, SLA and reminder rules, email templates, FY calendar, settings, audit trail, data backup and reset', path: '/admin' },
 ]
 
 export const NAV_BY_ROLE: { role: string; coNav: string; inNav: string }[] = [
-  { role: 'Submitter', coNav: '—', inNav: 'My Ideas · Submit Idea' },
-  { role: 'Supplier', coNav: '—', inNav: 'My Ideas · Submit Idea · Feasibility Requests · Workshops' },
-  { role: 'Technical Evaluator', coNav: '—', inNav: 'My Ideas · Submit Idea' },
-  { role: 'Buyer / Commodity Lead / Sourcing Head', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Submit Idea · Campaigns · MIS' },
-  { role: 'Finance / Management', coNav: 'Execution Hub · MIS', inNav: 'MIS' },
-  { role: 'Admin', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
+  { role: 'Department ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Capture My Idea · MIS (Sourcing also Campaigns)' },
+  { role: 'Finance ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Capture My Idea · MIS' },
+  { role: 'Central ID', coNav: 'Execution Hub · MIS', inNav: 'Idea Register · Campaigns · Admin & Masters · MIS' },
 ]
 export const NAV_NOTE = 'Every role also has the Dashboard at the top and Scope & Methodology just above MIS at the bottom of both workspaces. The NPD master opens from Scope & Methodology.'
 
-export const APPROVAL_NOTE = 'The ₹ X threshold is to be confirmed by Amber.'
+export const APPROVAL_NOTE = 'Every idea goes to management approval through the Central ID.'
 export const APPROVAL_MATRIX_DOC: [string, string][] = [
-  ['Up to ₹ X lakh', 'Commodity Lead'],
-  ['Above ₹ X lakh', 'Commodity Lead → Sourcing Head'],
+  ['Every idea', 'Central ID (management approval, KPI allocation and sign-off)'],
 ]
 
 // ─── Supplier campaigns (IN) ────────────────────────────────────────
@@ -227,7 +215,7 @@ export const CAMPAIGN_FLOW: { step: string; detail: string; icon: string }[] = [
   { step: 'Auto-email', detail: "Template email to a commodity's vendors", icon: 'Send' },
   { step: 'Improvement workshop', detail: 'Optional workshop with Amber', icon: 'Presentation' },
   { step: 'Commodity-wise', detail: 'One drive per commodity code', icon: 'Boxes' },
-  { step: 'Submit ideas', detail: 'Open or specific parts, via the Supplier Portal', icon: 'Lightbulb' },
+  { step: 'Submit ideas', detail: 'Through the unique link of the campaign', icon: 'Lightbulb' },
   { step: 'Approval', detail: 'Normal route and approval matrix', icon: 'Stamp' },
   { step: 'NPD till sample stage', detail: 'Technical ideas go to NPD up to sample approval', icon: 'TestTubes' },
 ]
@@ -237,7 +225,7 @@ export const CAMPAIGN_POINTS = [
   'New campaign wizard in four steps: Details (name, type — supplier idea drive, improvement workshop or reminder — workshop date, reply-by date), Recipients (commodity codes, then vendors), Email (template with live preview), Review & send.',
   'Email templates: a gallery with add, edit and duplicate; placeholders such as {{supplierName}}, {{commodity}}, {{workshopDate}}, {{portalLink}} and {{replyBy}} are filled per vendor.',
   'Workshops & drives: campaigns and workshops with commodity, dates, venue, invited suppliers and internal invitees; launching sends the invites, and attendance, idea yield and conversion are tracked.',
-  'A reply of type idea can be converted with one click: the Submit Idea form opens pre-filled and the reply is marked "Converted to idea".',
+  'A reply of type idea can be converted with one click: the Capture My Idea form opens pre-filled and the reply is marked "Converted to idea".',
 ]
 
 // ─── NPD development master (CO) ──────────────────────────────────────────────
@@ -262,11 +250,11 @@ export const NPD_USE = [
 
 // ─── Execution and realisation (CO) ─────────────────────────────────────
 export const EXECUTION_INTRO =
-  'Every approved idea enters the Execution Hub with an owner and the deadline signed in its budget + timeline lock at department approval. MRN is read from the ERP every month and compared with the monthly forecast; on the deadline COIN moves the idea to verification by itself — nobody hands over by hand. An idea leaves earlier only when dropped with a reason.'
+  'Every approved idea enters the Execution Hub with an owner and the deadline signed with its KPI at management approval. MRN is read from the ERP every month and compared with the monthly forecast; on the deadline COIN moves the idea to verification by itself — nobody hands over by hand. An idea leaves earlier only when dropped with a reason.'
 export const EXECUTION_RECORD: [string, string][] = [
-  ['Idea owner', 'Commodity Buyer by default; reassignable by Commodity Lead'],
+  ['Idea owner', 'The KPI owner named at approval, working through the department ID'],
   ['Start date', 'Auto = approval date'],
-  ['Deadline', 'The savings end signed in the lock at department approval; it does not move during execution'],
+  ['Deadline', 'The savings end signed with the KPI at management approval; it does not move during execution'],
   ['MRN tracking', 'Each completed month: the monthly forecast signed with the lock vs the saving in the MRN receipts that pass the claim rules; no MRN, no saving'],
   ['Claim rules', 'A receipt counts only from the approved supplier, on or after the savings start and billed below the baseline; each receipt counts once — the PO it was received against decides between two ideas on the same part, then the price billed'],
   ['Saving', '(baseline − price billed) × quantity received; billing above the approved price is price leakage and lowers the saving'],
@@ -280,14 +268,14 @@ export const EXECUTION_SCREEN = [
   'Tabs: Execution · Monthly MRN tracking · Savings proof · Verification. Top strip: ideas in execution (count, ₹ committed), deadline this month, no MRN yet, behind plan / at risk, moved to verification this month, dropped this month.',
   'Main view toggles between a table and a quarter timeline (each idea as a bar from start to due date, milestones as dots); the table shows each idea’s month-by-month MRN bars against its monthly target and the next reminder date. Opening a row shows the full graph.',
   'Every request in execution or verification carries the graph on its idea page, in the Execution Hub row, in Monthly MRN tracking and in the Verify dialog: month by month (bars against the monthly target) or cumulative (MRN against the target path), with the verdict and the saving the remaining months need.',
-  'Row actions: Update progress, Add milestone note, Drop, Reassign (department head). No manual hand-over and no change of the deadline.',
+  'Row actions: Update progress, Add milestone note, Drop. No manual hand-over and no change of the deadline.',
   'On the deadline COIN moves the idea to verification with the locked target and the MRN actual for the locked window; Finance verifies (MRN at the approved price, Finance validation, target achieved from MRN).',
   'Drop needs a reason code and remarks; the committed value is removed from committed savings and the drop is counted in its month.',
   'Side cards list ideas recently moved to verification or dropped, and the locked deadlines of the next 60 days.',
 ]
 /** Month-by-month savings graph: how each month and the idea as a whole are graded */
 export const MONTHLY_TRACK: [string, string][] = [
-  ['Monthly target', 'Forecast ÷ 12 × the month’s season index (AC season: heavier Jan–May, lighter Jul–Sep; flat for indirect buying), signed with the lock; the locked target is their sum'],
+  ['Monthly target', 'Opportunity cost ÷ 12 × the month’s season index (AC season: heavier Jan–May, lighter Jul–Sep; flat for indirect buying), signed with the lock; the locked target is their sum'],
   ['Month met (green)', 'MRN saving of the month is at or above the monthly target'],
   ['Within 10 % (amber)', 'MRN saving is 90–100 % of the monthly target'],
   ['Short (red)', 'MRN saving is below 90 % of the monthly target'],
@@ -333,10 +321,10 @@ export const LEAKAGE_NOTE =
 // ─── KPIs (ids are referenced by dashboards and reports) ──────────
 export const KPIS: { id: string; group: string; kpi: string; formula: string; cut: string }[] = [
   { id: 'A2', group: 'A. Savings', kpi: 'Savings % of spend', formula: 'Realised savings ÷ addressable spend', cut: 'Commodity, commodity group' },
-  { id: 'A3', group: 'A. Savings', kpi: 'Pipeline value', formula: 'Σ forecast impact of ideas in Pipeline', cut: 'Commodity, category' },
+  { id: 'A3', group: 'A. Savings', kpi: 'Pipeline value', formula: 'Σ opportunity cost of ideas in Pipeline', cut: 'Commodity, category' },
   { id: 'A4', group: 'A. Savings', kpi: 'Committed value', formula: 'Σ FY-phased saving of ideas In Execution', cut: 'Quarter, commodity' },
   { id: 'A5', group: 'A. Savings', kpi: 'Realised value', formula: 'Σ MRN-based saving (FY to date)', cut: 'Month, commodity, supplier' },
-  { id: 'A9', group: 'A. Savings', kpi: 'Carry-over', formula: 'Forecast impact falling beyond 31 March', cut: 'Commodity' },
+  { id: 'A9', group: 'A. Savings', kpi: 'Carry-over', formula: 'Opportunity cost falling beyond 31 March', cut: 'Commodity' },
   { id: 'B1', group: 'B. Funnel', kpi: 'Ideas by stage', formula: 'Count and ₹ per stage', cut: 'All' },
   { id: 'B2', group: 'B. Funnel', kpi: 'Conversion rate', formula: 'Implemented ÷ submitted (and each stage-to-stage step)', cut: 'Category, commodity' },
   { id: 'B3', group: 'B. Funnel', kpi: 'Drop rate and reasons', formula: 'Dropped ÷ submitted; top reasons, month-wise', cut: 'Reason, stage, commodity' },
@@ -361,32 +349,27 @@ export const STRUCTURAL_NOTE =
 
 // ─── dashboards, MIS and the monthly mailer ───────────────────────
 export const DASHBOARDS_INTRO =
-  'Each workspace opens on a Dashboard that fits one screen, with an "Advanced analytics" pill for depth. Submitter, Supplier and Technical Evaluator get their own home in IN. Dashboards have no filter bar: they show the user\'s own scope, and every card drills down to the ideas behind it.'
+  'Each workspace opens on one Dashboard: the first screen holds the headline numbers, with the analytics below it. Dashboards have no filter bar: they show the user\'s own scope, and every card drills down to the ideas behind it.'
 export const DASHBOARDS: { space: string; view: string; who: string; contents: string }[] = [
   { space: 'Entry', view: 'After login', who: 'All roles', contents: 'Four status cards (Pipeline, In Execution, Implemented, Dropped — count and ₹) and the choice of CO or IN, each with its headline numbers' },
-  { space: 'CO', view: 'Dashboard', who: 'All roles', contents: 'Implementation KPIs (In Execution ₹ committed, Implemented ₹ forecast, Realised FY to date with validated / pending, Overdue / at risk); implementation pipeline (NPD sample → PAP price / source → internal execution → implemented) with realised savings by month; execution health with the next due and overdue list' },
-  { space: 'CO', view: 'Advanced analytics', who: 'All roles', contents: 'Savings trend by month; realisation; quarter phasing; implementation by category; top implemented ideas; commodity overview with realised savings and price leakage' },
-  { space: 'IN', view: 'Dashboard', who: 'Buyer, Commodity Lead, Sourcing Head, Admin, Finance, Management', contents: 'Four status cards; Idea portfolio donut with a Value / Ideas toggle; SLA watch by review stage (Finance sees Savings to validate instead). Management also gets a Monthly report button' },
-  { space: 'IN', view: 'Advanced analytics', who: 'Same roles', contents: 'Savings trend by month; funnel by stage; top 5 ideas by value; category mix; commodity overview (top 6); contributor leaderboard, or the realisation card for Finance or when the leaderboard is hidden' },
-  { space: 'IN', view: 'Submitter home', who: 'Submitter', contents: 'My ideas by status (count and ₹); submit-idea banner; my recent ideas with live stage tracker, conversion and realised to date; My actions; open campaigns' },
-  { space: 'IN', view: 'Supplier home', who: 'Supplier', contents: 'Workshop invites, feasibility requests, my ideas and average gain-share offered; my ideas with status; workshop invites (accept, decline, submit an idea); pending feasibility requests' },
-  { space: 'IN', view: 'Evaluator home', who: 'Technical Evaluator', contents: 'Awaiting evaluation, beyond SLA, evaluated by me, go rate and average turnaround; ideas routed to my department sorted by SLA; my evaluated ideas; ideas I submitted' },
+  { space: 'CO', view: 'Dashboard', who: 'All IDs', contents: 'One page. First screen: implementation KPIs, internal vs external ideas from MRN, KPI target vs MRN actual. Below it: implementation pipeline, execution health, department-wise table, realised savings by month, phasing, category mix, ageing, delivery, leakage' },
+  { space: 'IN', view: 'Dashboard', who: 'All IDs', contents: 'One page. First screen: headline KPIs and internal vs external ideas. Below it: idea portfolio, SLA watch (Finance sees Savings to validate), department-wise table, savings trend, funnel by stage, top ideas, category mix, commodity overview, leaderboard or realisation' },
 ]
 
 export const REPORTS_INTRO =
   'MIS holds twelve standard reports for every audience, a KPI library, the monthly mailer and the scheduled-email list; the Monthly Cost Optimisation Report goes to management automatically, with no manual MIS.'
 export const REPORTS: { n: number; key: string; name: string; audience: string; visuals: string; frequency: string }[] = [
   { n: 1, key: 'home', name: 'Sourcing summary', audience: 'Sourcing team', visuals: 'Savings summary, funnel, monthly savings trend', frequency: 'Live' },
-  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Sourcing Head, Management', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
-  { n: 3, key: 'commodity', name: 'Commodity scorecard', audience: 'Commodity Leads', visuals: 'Realised, committed, pipeline, conversion per commodity', frequency: 'Live' },
-  { n: 4, key: 'buyer', name: 'Buyer scorecard', audience: 'Sourcing Head', visuals: 'Realised, committed, on-time %, overdue ₹, ageing per buyer', frequency: 'Live / monthly' },
+  { n: 2, key: 'bridge', name: 'Savings bridge', audience: 'Central ID, Management', visuals: 'Waterfall: realised → committed → pipeline → total tracked', frequency: 'Live / monthly' },
+  { n: 3, key: 'commodity', name: 'Commodity scorecard', audience: 'Sourcing ID', visuals: 'Realised, committed, pipeline, conversion per commodity', frequency: 'Live' },
+  { n: 4, key: 'buyer', name: 'Buyer scorecard', audience: 'Central ID', visuals: 'Realised, committed, on-time %, overdue ₹, ageing per buyer', frequency: 'Live / monthly' },
   { n: 5, key: 'supplier', name: 'Supplier innovation scorecard', audience: 'Sourcing, supplier reviews', visuals: 'Ideas, value, conversion, gain-share, leakage per supplier', frequency: 'Quarterly' },
-  { n: 6, key: 'lever', name: 'Category mix', audience: 'Sourcing Head', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
+  { n: 6, key: 'lever', name: 'Category mix', audience: 'Central ID', visuals: 'Realised savings by category; structural share trend', frequency: 'Monthly' },
   { n: 7, key: 'execution', name: 'Execution Hub dashboard', audience: 'Owners, Leads', visuals: 'Timeline, health badges, due / overdue', frequency: 'Live' },
-  { n: 8, key: 'drops', name: 'Drop analysis', audience: 'Sourcing Head', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
-  { n: 9, key: 'ageing', name: 'Ageing & SLA breach', audience: 'Commodity Leads', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
+  { n: 8, key: 'drops', name: 'Drop analysis', audience: 'Central ID', visuals: 'Month-wise drops by reason and stage', frequency: 'Monthly' },
+  { n: 9, key: 'ageing', name: 'Ageing & SLA breach', audience: 'Sourcing ID', visuals: 'Ideas beyond SLA by stage and owner', frequency: 'Weekly' },
   { n: 10, key: 'campaign', name: 'Campaign effectiveness', audience: 'Sourcing Excellence', visuals: 'Yield, value, conversion per campaign / workshop', frequency: 'Per campaign' },
-  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance, Sourcing Head', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
+  { n: 11, key: 'leakage', name: 'Realisation & leakage', audience: 'Finance, Central ID', visuals: 'Committed vs realised, Finance validation status, price leakage by supplier', frequency: 'Monthly' },
   { n: 12, key: 'closure', name: 'FY closure & carry-over', audience: 'Management, Finance', visuals: 'FY realised and committed savings, carry-over into next FY', frequency: 'Annual' },
 ]
 export const REPORTS_NOTE = 'Every chart is clickable through to the idea list behind it, and every report exports to Excel and PDF with the active filters from the MIS filter bar.'
@@ -415,10 +398,8 @@ export const REMINDERS_ON_SCREEN: { text: string; space: DocSpace }[] = [
   { text: 'SLA watch (IN Dashboard) and My actions show each idea in a review stage as Within SLA, Reminder due, Breached or Escalated, from the stage SLA rules below.', space: 'IN' },
 ]
 export const SLA_DEFAULTS: { stage: string; slaDays: number; reminderDay: number; escalateTo: string; escalateDay: number }[] = [
-  { stage: 'Buyer validation', slaDays: 5, reminderDay: 4, escalateTo: 'Commodity Lead', escalateDay: 6 },
-  { stage: 'Supplier feasibility', slaDays: 7, reminderDay: 5, escalateTo: 'Buyer', escalateDay: 8 },
-  { stage: 'Technical evaluation', slaDays: 10, reminderDay: 8, escalateTo: "Evaluator's HOD + Commodity Lead", escalateDay: 11 },
-  { stage: 'Approval', slaDays: 3, reminderDay: 2, escalateTo: 'Sourcing Head', escalateDay: 4 },
+  { stage: 'Workshop / event creation', slaDays: 15, reminderDay: 12, escalateTo: 'Central ID', escalateDay: 16 },
+  { stage: 'Management approval', slaDays: 3, reminderDay: 2, escalateTo: 'Central ID', escalateDay: 4 },
   { stage: 'Finance validation', slaDays: 5, reminderDay: 4, escalateTo: 'Finance Head', escalateDay: 6 },
 ]
 export const NOTIF_FOOTNOTE =
@@ -439,7 +420,7 @@ export const INTEGRATIONS: { system: string; data: string; direction: string; us
   { system: 'NPD Platform', data: 'Sample status (submitted, approved, failed)', direction: 'Into COIN', use: 'Execution milestones', space: 'CO' },
   { system: 'Supplier Portal (external)', data: 'Supplier replies: ideas, problems, complaints', direction: 'Into COIN', use: 'Campaign responses shown "via Supplier Portal"; Sync now', space: 'IN' },
   { system: 'Email (SMTP)', data: 'Monthly report, idea and feasibility emails, campaign emails, invitations', direction: 'Out of COIN', use: 'Communication', space: 'Both' },
-  { system: 'Single sign-on / AD', data: 'Employee identity, department, plant', direction: 'Into COIN', use: 'Login and auto-fill', space: 'Both' },
+  { system: 'Single sign-on / AD', data: 'Department IDs and plant', direction: 'Into COIN', use: 'Login', space: 'Both' },
 ]
 export const INTEGRATION_FALLBACK =
   'If an interface is not ready at go-live, COIN accepts a monthly Excel upload for MRN and LBP in the same format, so realisation is never blocked.'
@@ -473,7 +454,7 @@ export const UI_INTERACTIVITY = [
   'Every chart segment drills down to the ideas behind it.',
   'Kanban board with drag-and-drop stage moves (permission-checked).',
   'Side-panel review: open an idea from any list without losing your place.',
-  'Execution Hub row actions for progress, milestone notes, owner (department head) and drop; the deadline is locked at department approval.',
+  'Execution Hub row actions for progress, milestone notes and drop; the deadline is locked at management approval.',
   'Live stage tracker on each idea (stepper with dates and who acted).',
   'Global search (Ctrl + K) across ideas, parts, suppliers, campaigns and pages.',
   'Toasts for every action, with undo on non-final actions.',
@@ -522,10 +503,10 @@ export const DECISIONS: { n: number; decision: string; proposed: string }[] = [
   { n: 1, decision: 'Meaning and route of the "Strategic masking" category', proposed: 'To be defined by Sourcing' },
   { n: 2, decision: 'Finance validation before realised savings are reported', proposed: 'Yes' },
   { n: 3, decision: 'Baseline rule for parts with no LBP and new parts', proposed: 'Current PO price; quoted price for new parts' },
-  { n: 4, decision: 'Approval threshold ₹ X (above it the Sourcing Head also approves)', proposed: 'To be set by Sourcing Head' },
+  { n: 4, decision: 'Who signs behind the Central ID, and on what basis', proposed: 'Open point: workshop minutes and the KPI are the basis today' },
   { n: 5, decision: 'Cost avoidance counted in realised savings', proposed: 'No, reported separately' },
-  { n: 6, decision: 'Supplier access route', proposed: 'Campaign replies through the Supplier Portal; time-bound secure links for feasibility' },
-  { n: 7, decision: 'Who can submit ideas', proposed: 'All employees + registered suppliers' },
+  { n: 6, decision: 'Supplier access route', proposed: 'The unique link of a campaign; no sign-in and no VMS access' },
+  { n: 7, decision: 'Who can submit ideas', proposed: 'Departments through their ID; suppliers through a campaign link' },
   { n: 8, decision: 'Plant / BU split for reports', proposed: 'Yes' },
   { n: 9, decision: 'Leaderboard visible to all users', proposed: 'Yes, top 10 contributors per quarter' },
   { n: 10, decision: 'Stage SLAs (Emails, reminders and escalations)', proposed: 'As proposed' },

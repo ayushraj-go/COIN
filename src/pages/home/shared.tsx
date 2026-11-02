@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import { useStore, useMe } from '../../store/useStore'
 import type { Bucket, Filters, Idea, SlaRule } from '../../lib/types'
 import { TRACKER_STAGES } from '../../lib/masters'
-import { stageLabel } from '../../lib/workflow'
 import { BUCKET_STYLE, bucketFor, ideaAnnualised } from '../../lib/calc'
 import { fmtDate, fyOf, inrShort, quarterOf, QUARTER_MONTHS, sum, todayIso, workingDaysBetween } from '../../lib/format'
 import { ROLE_LABEL, primaryRole } from '../../lib/nav'
@@ -116,29 +115,13 @@ export function HomeHeader({ title, subtitle, actions, badge }: { title?: React.
   )
 }
 
-/** Dashboard / Advanced analytics switch — gradient pill on a white track */
-export function ViewPills({ value, onChange }: { value: 'dashboard' | 'advanced'; onChange: (v: 'dashboard' | 'advanced') => void }) {
-  const opts = [{ key: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' }, { key: 'advanced', label: 'Advanced analytics', icon: 'ChartColumnBig' }] as const
-  return (
-    <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-white border border-brand-100 shadow-[0_4px_14px_-8px_rgb(36_89_224/.35)]">
-      {opts.map((o) => (
-        <button key={o.key} type="button" onClick={() => onChange(o.key)}
-          className={cn('relative h-8 px-3.5 rounded-full text-[12.5px] font-semibold flex items-center gap-1.5 transition-colors', value === o.key ? 'text-white' : 'text-ink-2 hover:text-brand-700')}>
-          {value === o.key && <motion.span layoutId="view-pill" className="absolute inset-0 rounded-full bg-brand-grad shadow-[0_6px_14px_-6px_rgb(36_89_224/.7)]" transition={{ type: 'spring', bounce: 0.18, duration: 0.4 }} />}
-          <span className="relative flex items-center gap-1.5"><Icon name={o.icon} size={14} />{o.label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-// ─── Mini stage tracker (the six workflow stages as segments) ────────────────
+// ─── Mini stage tracker (the five workflow stages as segments) ───────────────
 export function StageTrackerMini({ idea, className }: { idea: Idea; className?: string }) {
   const stages = TRACKER_STAGES
   const dropped = idea.bucket === 'Dropped'
   const ref = dropped ? idea.dropStage ?? stages[1] : idea.stage
   const cur = idea.stage === 'Draft' ? -1 : stages.indexOf(ref)
-  const label = idea.stage === 'Draft' ? 'Draft — not yet submitted' : dropped ? `${idea.stage} at ${stageLabel(idea, ref)}` : `${stageLabel(idea, idea.stage)} · step ${cur + 1} of ${stages.length}`
+  const label = idea.stage === 'Draft' ? 'Draft — not yet submitted' : dropped ? `${idea.stage} at ${ref}` : `${idea.stage} · step ${cur + 1} of ${stages.length}`
   return (
     <div className={cn('flex items-center gap-[3px]', className)} title={label}>
       {stages.map((s, k) => {
@@ -164,7 +147,7 @@ export function slaFrom(startIso: string, rule?: SlaRule | null) {
 export const SLA_RANK: Record<string, number> = { escalated: 4, breach: 3, due: 2, ok: 1, none: 0 }
 
 // ─── Drill modal: list the ideas behind a chart segment ───────────────────────
-export function DrillModal({ open, onClose, title, subtitle, ideas, valueFn, valueLabel = 'Forecast', links }: {
+export function DrillModal({ open, onClose, title, subtitle, ideas, valueFn, valueLabel = 'Opportunity cost', links }: {
   open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; ideas: Idea[]; valueFn?: (i: Idea) => number; valueLabel?: string; links?: { label: string; url: string }[]
 }) {
   const openIdea = useStore((s) => s.openIdea)

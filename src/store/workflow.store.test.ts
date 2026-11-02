@@ -3,7 +3,7 @@ import { useStore } from './useStore'
 import { ideaPerms, kanbanMove } from '../pages/idea/model'
 import { canSeeIdea, ideaAnnualised } from '../lib/calc'
 import { STAGE } from '../lib/masters'
-import { lockTarget } from '../lib/workflow'
+import { ideaDept, ladderOf, lockTarget } from '../lib/workflow'
 
 const st = () => useStore.getState()
 const idea = (id: string) => st().ideas.find((i) => i.id === id)!
@@ -14,10 +14,10 @@ const signValidLock = (id: string) => {
   st().signLock(id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: lockTarget(ideaAnnualised(i), 6), signatureName: 'Girish Saluja' })
 }
 
-beforeEach(() => { st().resetDemo(); st().loginAs('u-head') })
+beforeEach(() => { st().resetDemo(); st().loginAs('id-central') })
 
 describe('send back clears the stage records (review #1)', () => {
-  it('a sent-back idea must pass feasibility, evaluation and lock again', () => {
+  it('a sent-back idea must pass the workshop and the lock again', () => {
     const id = show(3).id
     signValidLock(id)
     st().sendBack(id, 'Rework the baseline')
@@ -27,24 +27,23 @@ describe('send back clears the stage records (review #1)', () => {
     expect(i.evaluation?.decision).toBeUndefined()
     expect(i.lock).toBeUndefined()
     expect(i.approvals.every((a) => !a.decision)).toBe(true)
-    expect(kanbanMove(user('u-head'), i, 'approval').ok).toBe(false)
+    expect(kanbanMove(user('id-central'), i, 'approval').ok).toBe(false)
   })
   it('approve refuses a lock whose target no longer matches the idea', () => {
     const id = show(3).id
-    const i = idea(id)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: 999, signatureName: 'x' })
     expect(st().approve(id)).toBe(false)
     expect(idea(id).stage).toBe(STAGE.approval)
-    void i
   })
 })
 
 describe('verification (review #2, #3)', () => {
-  it('only the business side may verify — not the buyer who executed it', () => {
+  it('only Finance and the Central ID may verify — not the department that executed it', () => {
     const s5 = show(5)
-    expect(ideaPerms(user(s5.buyerId), s5).verify).toBe(false)
-    expect(ideaPerms(user('u-head'), s5).verify).toBe(true)
-    expect(ideaPerms(user('u-fin'), s5).verify).toBe(true)
+    expect(ideaDept(s5)).not.toBe('Finance')
+    expect(ideaPerms(user(ladderOf(ideaDept(s5), st().users).departmentId!), s5).verify).toBe(false)
+    expect(ideaPerms(user('id-central'), s5).verify).toBe(true)
+    expect(ideaPerms(user('id-finance'), s5).verify).toBe(true)
   })
   it('verifying with a failed check is logged as an exception, never as "target achieved"', () => {
     const id = show(5).id
@@ -56,19 +55,14 @@ describe('verification (review #2, #3)', () => {
   })
 })
 
-describe('feasibility team (review #4)', () => {
-  it('a submitter cannot clear the feasibility check of their own idea', () => {
-    const s1 = show(1)
-    expect(s1.submitterId).toBe('u-sub1')
-    expect(ideaPerms(user('u-sub1'), s1).feasibilityCheck).toBe(false)
-    expect(ideaPerms(user('u-head'), s1).feasibilityCheck).toBe(true)
-  })
-  it("the team lead of the submitter's department does the check; other departments neither see nor act", () => {
+describe('the workshop (review #4)', () => {
+  it('the department\'s own ID runs it; other departments neither see nor act', () => {
     const s1 = show(1) // R&D idea
-    expect(canSeeIdea(user('u-rd-tl'), s1)).toBe(true)
-    expect(ideaPerms(user('u-rd-tl'), s1).feasibilityCheck).toBe(true)
-    expect(canSeeIdea(user('u-sub3'), s1)).toBe(false)
-    expect(ideaPerms(user('u-sub3'), s1).feasibilityCheck).toBe(false)
+    expect(canSeeIdea(user('id-rd'), s1)).toBe(true)
+    expect(ideaPerms(user('id-rd'), s1).workshop).toBe(true)
+    expect(ideaPerms(user('id-central'), s1).workshop).toBe(true)
+    expect(canSeeIdea(user('id-hr'), s1)).toBe(false)
+    expect(ideaPerms(user('id-hr'), s1).workshop).toBe(false)
   })
 })
 
@@ -97,25 +91,25 @@ describe('verification uses MRN inside the lock window (review minor #10, regrad
   })
 })
 
-describe('department approval and execution owner (department ladder)', () => {
-  it('a recommended idea waits on its own department head, who approves; execution goes to the department execution owner', () => {
+describe('management approval and the execution owner', () => {
+  it('after Go ahead the idea waits on the Central ID, who approves; execution goes to the department ID', () => {
     const s2 = show(2)
     const dept = s2.evaluation!.dept
     expect(dept).not.toBe('Sourcing')
-    const head = st().users.find((u) => u.department === dept && u.roles.includes('depthead'))!
-    const exec = st().users.find((u) => u.department === dept && u.roles.includes('execowner'))!
+    const owner = ladderOf(dept, st().users).departmentId!
     st().recordEvaluation(s2.id, 'Recommend', 'ok')
+    const ev = idea(s2.id).workshop!.events.find((e) => e.status === 'Scheduled')!
+    expect(st().closeWorkshopEvent(s2.id, ev.id, { notes: 'ok', closedBy: 'Test SPOC', outcome: 'Go ahead' })).toBe(true)
     const a = idea(s2.id)
     expect(a.stage).toBe(STAGE.approval)
-    expect(a.approvals).toEqual([{ level: `${dept} head`, approverId: head.id }])
-    expect(st().notifications.some((n) => n.userId === head.id && n.ideaId === s2.id)).toBe(true)
-    st().loginAs(head.id)
+    expect(a.approvals).toEqual([{ level: 'Management', approverId: 'id-central' }])
+    expect(st().notifications.some((n) => n.userId === 'id-central' && n.ideaId === s2.id)).toBe(true)
     signValidLock(s2.id)
     expect(st().approve(s2.id)).toBe(true)
     const b = idea(s2.id)
     expect(b.stage).toBe(STAGE.execution)
-    expect(b.approvals[0]).toMatchObject({ decision: 'Approved', approverId: head.id })
-    expect(b.ownerId).toBe(exec.id)
-    expect(b.execution?.ownerId).toBe(exec.id)
+    expect(b.approvals[0]).toMatchObject({ decision: 'Approved', approverId: 'id-central' })
+    expect(b.ownerId).toBe(owner)
+    expect(b.execution?.ownerId).toBe(owner)
   })
 })

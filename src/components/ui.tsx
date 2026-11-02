@@ -5,9 +5,8 @@ import * as Icons from 'lucide-react'
 import NumberFlow from '@number-flow/react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { Bucket, Health, Idea } from '../lib/types'
-import { stageLabel } from '../lib/workflow'
 import { BUCKET_STYLE, HEALTH_STYLE } from '../lib/calc'
-import { LEVER_GROUP_STYLE } from '../lib/masters'
+import { LEVER_GROUP_STYLE, STAGE_SHORT } from '../lib/masters'
 import { useStore } from '../store/useStore'
 import { initials } from '../lib/format'
 import { exportExcel } from '../lib/export'
@@ -140,7 +139,7 @@ export const HealthBadge = ({ health }: { health: Health }) => { const s = HEALT
 /** Stage dot + name; pass the idea to show "<dept> evaluation" and "Verified" */
 export function StageBadge({ stage, bucket, idea }: { stage: string; bucket: Bucket; idea?: Pick<Idea, 'department' | 'evaluation' | 'verification'> }) {
   const s = BUCKET_STYLE[bucket]
-  const label = idea ? (stage === 'Verification' && idea.verification?.verifiedAt ? 'Verified' : stageLabel(idea, stage)) : stage
+  const label = idea ? (stage === 'Verification' && idea.verification?.verifiedAt ? 'Verified' : STAGE_SHORT[stage] ?? stage) : STAGE_SHORT[stage] ?? stage
   return <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-2"><span className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />{label}</span>
 }
 export function LeverChip({ leverId, compact }: { leverId: string; compact?: boolean }) {

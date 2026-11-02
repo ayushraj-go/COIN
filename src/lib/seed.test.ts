@@ -1,24 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import { buildSeed } from './seed'
 import { STAGE, WORKFLOW_STAGES } from './masters'
-import { ladderOf, savingsTrack } from './workflow'
+import { EVALUATION_MIN, ladderOf, savingsTrack } from './workflow'
 import { ideaPlan } from './mrn'
+import { ideaAnnualised } from './calc'
 import { USERS_DEFAULT } from './masters'
 
 const seed = buildSeed()
 const show = (n: number) => seed.ideas.find((i) => i.showcase === n)!
 
-describe('demo seed — six-stage walkthrough', () => {
+describe('demo seed — five-stage walkthrough', () => {
   it('has one showcase idea at each stage', () => {
-    expect([1, 2, 3, 4, 5, 6].map((n) => show(n)?.stage)).toEqual([STAGE.feasibility, STAGE.evaluation, STAGE.approval, STAGE.execution, STAGE.verification, STAGE.verification])
+    expect([1, 2, 3, 4, 5, 6].map((n) => show(n)?.stage)).toEqual([STAGE.feasibility, STAGE.feasibility, STAGE.approval, STAGE.execution, STAGE.verification, STAGE.verification])
     expect(show(5).verification?.verifiedAt).toBeUndefined()
     expect(show(6).verification?.verifiedAt).toBeTruthy()
   })
   it('fills every form up to the idea’s stage', () => {
     expect(show(1).feasibilityCheck).toBeUndefined()
+    expect(show(1).workshop?.events ?? []).toHaveLength(0)
     expect(show(2).feasibilityCheck?.decision).toBe('Go')
-    // ₹ 5 L and above — waiting at the department evaluation with the supplier check still to send (smaller ideas skip stage 3)
-    expect(show(2).stage).toBe('Evaluation')
+    // ₹ 5 L and above — an event is open and the commercial evaluation is still to do, supplier check not sent
+    expect(show(2).workshop?.events.some((e) => e.status === 'Scheduled')).toBe(true)
     expect(show(2).evaluation?.skipped).toBeFalsy()
     expect(show(2).evaluation?.supplier?.status).toBe('Not sent')
     expect(show(3).evaluation?.decision).toBe('Recommend')
@@ -62,7 +64,7 @@ describe('demo seed — six-stage walkthrough', () => {
     expect(ver.filter((t) => t.verdict === 'Target met').length).toBeGreaterThanOrEqual(ver.length * 0.5)
     expect(ver.filter((t) => t.verdict === 'Shortfall').length).toBeGreaterThanOrEqual(4)
   })
-  it('uses only the six-stage names', () => {
+  it('uses only the five-stage names', () => {
     const allowed = new Set(['Draft', 'Dropped', 'Rejected', ...WORKFLOW_STAGES])
     expect(seed.ideas.filter((i) => !allowed.has(i.stage)).map((i) => i.stage)).toEqual([])
   })
@@ -88,24 +90,27 @@ describe('reset restores the same demo data', () => {
   })
 })
 
-describe('department ladder authors every stage', () => {
+describe('the IDs author every stage', () => {
   const name = (id?: string) => USERS_DEFAULT.find((u) => u.id === id)?.name
-  it('feasibility by the team lead (department lead on their own idea), evaluation by the department lead', () => {
+  it('the department ID fills the workshop forms; ideas below ₹ 5 L have no evaluation decision', () => {
     for (const i of seed.ideas.filter((x) => x.feasibilityCheck && x.evaluation)) {
-      const l = ladderOf(i.evaluation!.dept, i.commodity, USERS_DEFAULT)
-      expect(i.feasibilityCheck!.by, i.id).toBe(name(l.teamLead === i.submitterId ? l.deptLead : l.teamLead))
-      if (i.evaluation!.decision === 'Recommend') expect(i.evaluation!.by, i.id).toBe(name(l.deptLead))
+      const l = ladderOf(i.evaluation!.dept, USERS_DEFAULT)
+      expect(i.feasibilityCheck!.by, i.id).toBe(name(l.departmentId))
+      if (i.evaluation!.decision === 'Recommend') {
+        expect(i.evaluation!.by, i.id).toBe(name(l.departmentId))
+        expect(ideaAnnualised(i), i.id).toBeGreaterThanOrEqual(EVALUATION_MIN)
+      }
     }
   })
-  it('the department head approves and signs; the department execution owner runs execution; Finance verifies', () => {
+  it('the Central ID approves and signs; the department ID runs execution; Finance verifies', () => {
     const locked = seed.ideas.filter((x) => x.lock)
     expect(locked.length).toBeGreaterThan(20)
     for (const i of locked) {
-      const l = ladderOf(i.evaluation!.dept, i.commodity, USERS_DEFAULT)
-      expect(i.approvals.map((a) => a.level), i.id).toEqual([`${i.evaluation!.dept} head`])
-      expect(i.lock!.signedBy, i.id).toBe(name(l.deptHead))
-      if (i.execution) expect(i.ownerId, i.id).toBe(l.execOwner)
-      if (i.verification?.verifiedAt) expect(i.verification.verifiedBy, i.id).toBe('Meera Iyer')
+      const l = ladderOf(i.evaluation!.dept, USERS_DEFAULT)
+      expect(i.approvals.map((a) => [a.level, a.approverId]), i.id).toEqual([['Management', 'id-central']])
+      expect(i.lock!.signedBy, i.id).toBe(name(l.central))
+      if (i.execution) expect(i.ownerId, i.id).toBe(l.departmentId)
+      if (i.verification?.verifiedAt) expect(i.verification.verifiedBy, i.id).toBe(name(l.verifier))
     }
   })
   it('ideas come from all 8 departments, and the walkthrough spans at least three', () => {

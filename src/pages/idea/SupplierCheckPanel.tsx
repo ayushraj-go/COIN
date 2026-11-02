@@ -1,4 +1,4 @@
-// Stage 3 — supplier capability check, used inside the evaluation sheet and on /ideas/:id/supplier-check.
+// Stage 2 — supplier capability check, used inside the evaluation sheet and on /ideas/:id/supplier-check.
 // Pick a supplier, write the email (a ready-made template, every word editable — no Amber data), send it, and see the
 // supplier's answer from the secure form (/supplier-form/:token). A sent request can be edited and sent again; the
 // new email carries a new link and the earlier link stops answering.
@@ -7,7 +7,7 @@ import type { Idea } from '../../lib/types'
 import { useMe, useStore } from '../../store/useStore'
 import { ideaAnnualised } from '../../lib/calc'
 import { addDays, fmtDateTime, inrShort, todayIso } from '../../lib/format'
-import { amberDataLeaks, needsSupplierCheck, stageLabel, supplierCapabilityEmail, SUPPLIER_CHECK_MIN, SUPPLIER_LINK_PLACEHOLDER, SUPPLIER_SPEC_BY_GROUP } from '../../lib/workflow'
+import { amberDataLeaks, needsSupplierCheck, supplierCapabilityEmail, SUPPLIER_CHECK_MIN, SUPPLIER_LINK_PLACEHOLDER, SUPPLIER_SPEC_BY_GROUP } from '../../lib/workflow'
 import { STAGE } from '../../lib/masters'
 import { Badge, Button, Icon, LinkText, cn } from '../../components/ui'
 import { SupplierResponseCard } from './StageForms'
@@ -64,7 +64,7 @@ export function SupplierCheckPanel({ idea, embedded }: { idea: Idea; embedded?: 
 
   const annual = ideaAnnualised(idea)
   const mayEvaluate = !!me && ideaPerms(me, idea).evaluate
-  const inEvaluation = idea.stage === STAGE.evaluation
+  const inEvaluation = idea.stage === STAGE.feasibility
   const leaks = amberDataLeaks(`${subject}\n${body}\n${item}\n${spec}`, idea, suppliers, sup ? { code: sup.code, name: sup.name } : undefined)
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim())
   const hasLink = body.includes(SUPPLIER_LINK_PLACEHOLDER)
@@ -84,7 +84,7 @@ export function SupplierCheckPanel({ idea, embedded }: { idea: Idea; embedded?: 
     return (
       <div className="rounded-xl border border-line px-4 py-4 flex items-center gap-3 bg-white">
         <span className="h-10 w-10 rounded-xl grid place-items-center bg-slate-100 text-slate-500"><Icon name="SkipForward" size={18} /></span>
-        <div><div className="text-[14px] font-semibold text-ink">Skipped — below the minimum saving threshold</div><div className="text-[12.5px] text-muted">Forecast {inrShort(annual)} is below {inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to approval without a supplier capability check.</div></div>
+        <div><div className="text-[14px] font-semibold text-ink">Skipped — below the minimum saving threshold</div><div className="text-[12.5px] text-muted">Opportunity cost {inrShort(annual)} is below {inrShort(SUPPLIER_CHECK_MIN)}; this idea goes to approval without a supplier capability check.</div></div>
       </div>
     )
   }
@@ -167,8 +167,8 @@ export function SupplierCheckPanel({ idea, embedded }: { idea: Idea; embedded?: 
         <textarea className={cn('input font-[inherit] text-[12.5px] leading-relaxed', embedded && 'flex-1 min-h-[140px] resize-none')} rows={embedded ? undefined : 16} aria-label="Email body" value={body} onChange={(e) => { setBody(e.target.value); setTouched(true) }} />
         {!hasLink && <div className="text-[11.5px] text-red-700 flex items-center gap-1"><Icon name="Link2Off" size={12} />Keep <code className="font-mono">{SUPPLIER_LINK_PLACEHOLDER}</code> in the email — COIN puts the supplier's secure form link there.</div>}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {!inEvaluation && <span className="text-[11.5px] text-muted mr-auto">Requests can be sent while the idea is in evaluation.</span>}
-          {inEvaluation && !mayEvaluate && <span className="text-[11.5px] text-muted mr-auto">Only the {stageLabel(idea, STAGE.evaluation)} team or the Sourcing Head can send this request.</span>}
+          {!inEvaluation && <span className="text-[11.5px] text-muted mr-auto">Requests can be sent while the idea is at its workshop.</span>}
+          {inEvaluation && !mayEvaluate && <span className="text-[11.5px] text-muted mr-auto">Only the department ID or the Central ID can send this request.</span>}
           {editing && <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>}
           <Button variant="primary" icon="Send" disabled={!canSend} onClick={send}>{editing ? 'Send updated request' : 'Send capability request'}</Button>
         </div>

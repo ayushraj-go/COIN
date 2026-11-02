@@ -105,35 +105,43 @@ function Chip({ icon, label, className, delay = 0 }: { icon: string; label: stri
 }
 
 const STEPS = [
-  { icon: 'Lightbulb', label: 'Capture &\nvalue' },
-  { icon: 'ShieldCheck', label: 'Team\nfeasibility' },
-  { icon: 'BadgeCheck', label: 'Department\napproval' },
-  { icon: 'Rocket', label: 'Execute &\ntrack' },
-  { icon: 'BadgeIndianRupee', label: 'Realise &\nprove' },
+  { icon: 'Lightbulb', label: 'Idea\nsubmitted' },
+  { icon: 'Presentation', label: 'Workshop /\nevent' },
+  { icon: 'BadgeCheck', label: 'Management\napproval' },
+  { icon: 'Rocket', label: 'Execution\nstarted' },
+  { icon: 'BadgeIndianRupee', label: 'Verification' },
 ]
 
+// CO / IN is chosen here, before sign-in; the ID then lands on that workspace's dashboard
+const SPACES = [
+  { k: 'IN', t: 'Cost Innovation', d: 'Ideas, workshops and approval', c: 'text-accent-600', b: 'bg-accent-50 ring-accent-100' },
+  { k: 'CO', t: 'Cost Optimisation', d: 'Execution, MRN and verification', c: 'text-brand-600', b: 'bg-brand-50 ring-brand-100' },
+] as const
 
 export default function Login() {
-  const { login, loginAs, users, toast, ideas, suppliers } = useStore()
+  const { login, loginAs, toast, ideas, suppliers } = useStore()
   const nav = useNavigate()
   const loc = useLocation() as any
+  const [space, setSpace] = useState<'IN' | 'CO' | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [show, setShow] = useState(false)
   const [keep, setKeep] = useState(true)
   const [forgot, setForgot] = useState(false)
-  const go = () => nav(loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/', { replace: true })
+  const go = () => { useStore.getState().setSpace(space); nav(loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/', { replace: true }) }
+  const NO_SPACE = 'Choose Cost Innovation or Cost Optimisation first.'
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim() || !password) { setErr('Enter your work email / employee ID and password.'); return }
+    if (!space) { setErr(NO_SPACE); return }
+    if (!email.trim() || !password) { setErr('Enter your department ID and password.'); return }
     if (login(email, password)) { toast('Welcome to COIN · Cost Innovation Hub'); go() }
-    else setErr('Invalid credentials. For this demo every persona uses the password coin@2026.')
+    else setErr('Invalid credentials. For this demo every department ID uses the password coin@2026.')
   }
   const stats: [string, string, string][] = [
     ['CircleCheckBig', 'Ideas implemented', String(ideas.filter((i) => i.bucket === 'Implemented').length)],
     ['Lightbulb', 'Ideas in the network', String(ideas.filter((i) => i.stage !== 'Draft').length)],
-    ['Factory', 'Suppliers in VMS', String(suppliers.length)],
+    ['Factory', 'Suppliers', String(suppliers.length)],
     ['LayoutGrid', 'Modules · 25 KPIs', '12'],
   ]
 
@@ -169,21 +177,6 @@ export default function Login() {
                   The single system Amber's Sourcing team uses to capture, value, approve, execute and prove every cost-reduction idea.
                 </motion.p>
 
-                {/* CO / IN */}
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-[clamp(10px,2vh,20px)] grid grid-cols-2 gap-3 max-w-[560px]">
-                  {[
-                    { k: 'CO', t: 'Cost Optimisation', d: 'Implementation, execution and realised savings after approval.', c: 'text-brand-600', b: 'bg-brand-50 ring-brand-100' },
-                    { k: 'IN', t: 'Innovation Network', d: 'Ideas, suppliers, campaigns, validation and approval: the overall idea network.', c: 'text-accent-600', b: 'bg-accent-50 ring-accent-100' },
-                  ].map((x) => (
-                    <div key={x.k} className="rounded-xl bg-white/75 backdrop-blur border border-black/[.06] px-3.5 py-[clamp(8px,1.4vh,12px)] shadow-[0_1px_2px_rgb(15_27_51/.04)]">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('h-6 px-1.5 min-w-7 rounded-md ring-1 grid place-items-center text-[11px] font-extrabold tracking-wide', x.b, x.c)}>{x.k}</span>
-                        <span className="text-[13px] font-semibold text-ink tracking-tight">{x.t}</span>
-                      </div>
-                      <p className="mt-1.5 text-[12px] leading-snug text-muted">{x.d}</p>
-                    </div>
-                  ))}
-                </motion.div>
               </div>
 
               {/* globe cluster */}
@@ -233,15 +226,28 @@ export default function Login() {
               <div>
                 <div className="text-[11.5px] font-semibold tracking-[.16em] uppercase text-accent-600">Welcome back</div>
                 <h2 className="text-[clamp(19px,2.6vh,23px)] font-bold tracking-[-0.025em] text-ink mt-1">Sign in to Cost Innovation Hub</h2>
-                <p className={cn('text-[12.5px] text-muted mt-1', '[@media(max-height:780px)]:hidden')}>Use your work email or employee ID and password.</p>
+                <p className={cn('text-[12.5px] text-muted mt-1', '[@media(max-height:780px)]:hidden')}>Choose the workspace, then use your department ID.</p>
               </div>
 
-              <form onSubmit={submit} className="mt-[clamp(12px,2.2vh,22px)] space-y-[clamp(8px,1.4vh,14px)]">
+              <div className="mt-[clamp(10px,1.8vh,16px)] grid grid-cols-2 gap-2" role="radiogroup" aria-label="Workspace">
+                {SPACES.map((x) => (
+                  <button key={x.k} type="button" role="radio" aria-checked={space === x.k} onClick={() => { setSpace(x.k); setErr('') }}
+                    className={cn('rounded-xl border px-3 py-2 text-left transition-all min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-brand-300', space === x.k ? 'bg-brand-50 border-brand-400 shadow-[0_0_0_1px_var(--color-brand-400)]' : 'bg-white border-black/[.08] hover:border-brand-300')}>
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn('h-5 px-1 min-w-6 rounded ring-1 grid place-items-center text-[10px] font-extrabold tracking-wide', x.b, x.c)}>{x.k}</span>
+                      <span className="text-[12.5px] leading-tight font-semibold text-ink tracking-tight">{x.t}</span>
+                    </span>
+                    <span className="block mt-1 text-[11px] leading-snug text-muted">{x.d}</span>
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={submit} className="mt-[clamp(10px,1.8vh,16px)] space-y-[clamp(8px,1.4vh,14px)]">
                 <div>
-                  <label className="label !text-[12px] !text-ink-2 !font-semibold">Email / Employee ID</label>
+                  <label className="label !text-[12px] !text-ink-2 !font-semibold">Department ID</label>
                   <div className="relative">
                     <Icon name="Mail" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                    <input className="input !h-[clamp(38px,5vh,44px)] !pl-10 !rounded-xl !bg-[var(--color-gray-100)] !border-black/[.07] focus:!bg-white" placeholder="you@ambergroupindia.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} autoComplete="username" />
+                    <input className="input !h-[clamp(38px,5vh,44px)] !pl-10 !rounded-xl !bg-[var(--color-gray-100)] !border-black/[.07] focus:!bg-white" placeholder="sourcing@ambergroupindia.com" value={email} onChange={(e) => { setEmail(e.target.value); setErr('') }} autoComplete="username" />
                   </div>
                 </div>
                 <div>
@@ -265,7 +271,7 @@ export default function Login() {
               </form>
 
               <div className="flex items-center gap-3 my-[clamp(10px,2vh,18px)] text-[10px] font-semibold uppercase tracking-[.2em] text-muted"><span className="h-px flex-1 bg-black/[.07]" />Quick demo access<span className="h-px flex-1 bg-black/[.07]" /></div>
-              <PersonaPicker onPick={(id, label) => { loginAs(id); toast(`Signed in as ${label}`); go() }} />
+              <PersonaPicker onPick={(id, label) => { if (!space) { setErr(NO_SPACE); return } loginAs(id); toast(`Signed in as ${label}`); go() }} />
 
             </div>
             <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />Front-end demo · data stays in this browser · password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></p>
@@ -278,12 +284,12 @@ export default function Login() {
         </footer>
       </div>
 
-      <Modal open={forgot} onClose={() => setForgot(false)} title="Reset your password" subtitle="Single sign-on / AD manages employee credentials" icon="KeyRound" size="sm"
+      <Modal open={forgot} onClose={() => setForgot(false)} title="Reset your password" subtitle="IT manages the department IDs" icon="KeyRound" size="sm"
         footer={<Button variant="primary" onClick={() => setForgot(false)}>Got it</Button>}>
         <div className="text-[13px] text-ink-2 space-y-2">
-          <p>Employee passwords are managed by Amber's Active Directory. Use the standard IT self-service reset, or contact <b>Sourcing Excellence / IT</b> (COIN Admin).</p>
-          <p>Suppliers access COIN through time-bound secure links sent with each feasibility request or workshop invitation.</p>
-          <p className="text-muted">Demo: every persona's password is <code className="font-mono text-ink">coin@2026</code>.</p>
+          <p>Each department shares one ID. To reset its password, contact <b>Sourcing Excellence / IT</b> (the Central ID).</p>
+          <p>Suppliers do not sign in. They reach COIN through the unique link of a campaign.</p>
+          <p className="text-muted">Demo: every ID's password is <code className="font-mono text-ink">coin@2026</code>.</p>
         </div>
       </Modal>
     </div>

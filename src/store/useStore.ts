@@ -2,16 +2,16 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type {
   ApprovalLock, ApprovalRule, Attachment, Campaign, Category, Commodity, EmailLog, EmailPrefs, EmailTemplate, Evaluation, FeasibilityCheck, Filters, Idea, LedgerEntry, Lever, MrnLine, MrnRead, SupplierCheck,
-  Notification, Part, Plant, RoleKey, SavedView, Settings, SlaRule, Supplier, User,
+  Notification, Part, Plant, RoleKey, SavedView, Settings, SlaRule, Supplier, User, WorkshopEvent,
 } from '../lib/types'
 import {
   APPROVAL_RULES_DEFAULT, CATEGORIES_DEFAULT, COMMODITIES_DEFAULT, DEPARTMENTS, DROP_REASONS, EMAIL_TEMPLATES_DEFAULT, LEVERS_DEFAULT,
-  MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, EVALUATION_STAGES, STAGE,
+  MILESTONE_TEMPLATES, PARTS_DEFAULT, PLANTS_DEFAULT, ROUTE_STAGES, SLA_RULES_DEFAULT, SUPPLIERS_DEFAULT, USERS_DEFAULT, LAKH, STAGE,
 } from '../lib/masters'
 import { buildSeed } from '../lib/seed'
 import { mergePersisted, persistedPart, readSession, writeSession } from './session'
 import { claimMrn, ledgerForMonth, liveForMrn, lockPlan, seasonProfile, simulateMrnMonth, windowTarget } from '../lib/mrn'
-import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, sendBackTargets, stageAssignee, stageLabel, SUPPLIER_LINK_PLACEHOLDER, type SendBackTo } from '../lib/workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, sendBackTargets, signInId, stageAssignee, SUPPLIER_LINK_PLACEHOLDER, workshopGaps, type SendBackTo } from '../lib/workflow'
 import { addDays, fyEnd, monthLong, nowIso, todayIso, uid, addMonthsYm, fyOf, inrShort, ymOf } from '../lib/format'
 import { approvalLevels, bucketFor, ideaAnnualised, ideaRealised, phaseByQuarter, summarise } from '../lib/calc'
 import type { OutreachBatch, OutreachKind, SupplierEmailTemplate, SupplierResponse, SupplierResponseStatus, SupplierResponseType } from '../lib/types'
@@ -68,7 +68,7 @@ interface State {
   // ui
   filters: Filters
   navCollapsed: boolean
-  /** Workspace chosen on the entry screen after login: null = chooser, 'IN' = Innovation Network (ideas), 'CO' = Cost Optimisation (implementation) */
+  /** Workspace chosen on the entry screen after login: null = chooser, 'IN' = Cost Innovation (ideas), 'CO' = Cost Optimisation (implementation) */
   space: 'IN' | 'CO' | null
   drawerIdeaId: string | null
   searchOpen: boolean
@@ -96,23 +96,28 @@ interface Actions {
   updateIdea: (id: string, patch: Partial<Idea>, action?: string, remarks?: string) => void
   deleteDraft: (id: string) => void
   advance: (id: string, action: string, remarks?: string) => void
-  /** Stage 2 — four checks; Go → evaluation, No-go → dropped */
+  /** Stage 2 — the workshop event: discussion points, attendees and the SPOC; returns the event id */
+  createWorkshopEvent: (id: string, e: Pick<WorkshopEvent, 'date' | 'time' | 'venue' | 'points' | 'attendees' | 'spoc'>) => string
+  /** Stage 2 — close an event: Follow-up schedules the next one, Go ahead sends the idea to management approval.
+   *  false without a name (the ID is shared), or when Go ahead still has gaps (see workshopGaps) */
+  closeWorkshopEvent: (id: string, eventId: string, c: { notes: string; closedBy: string; outcome: NonNullable<WorkshopEvent['outcome']>; followUp?: Pick<WorkshopEvent, 'date' | 'time' | 'venue' | 'points' | 'spoc'> }) => boolean
+  /** Stage 2 — four checks; Go stands until the event closes, No-go → dropped */
   recordFeasibility: (id: string, c: Omit<FeasibilityCheck, 'by' | 'byDept' | 'at'>) => void
-  /** Stage 3 — save part of the evaluation (cost-benefit, risk) without deciding */
+  /** Stage 2 — save part of the evaluation (cost-benefit, risk) without deciding */
   saveEvaluation: (id: string, patch: Partial<Omit<Evaluation, 'dept'>>) => void
-  /** Stage 3 — supplier capability email; returns the secure form token */
+  /** Stage 2 — supplier capability email; returns the secure form token */
   sendSupplierCheck: (id: string, s: { supplierCode?: string; supplierName: string; contactName: string; email: string; item: string; spec: string; requiredBy: string; subject: string; body: string }) => string
   /** Public supplier form — false when the token is unknown or already answered */
   respondSupplierCheck: (token: string, r: NonNullable<SupplierCheck['response']>) => boolean
   skipSupplierCheck: (id: string) => void
-  /** Stage 3 — Recommend → department approval, Reject → dropped */
+  /** Stage 2 — Recommend stands until the event closes, Reject → dropped */
   recordEvaluation: (id: string, decision: 'Recommend' | 'Reject', remarks?: string) => void
-  /** Stage 4 — budget + timeline lock, signed */
+  /** Stage 3 — budget + timeline lock and KPI, signed */
   signLock: (id: string, lock: Omit<ApprovalLock, 'signedAt' | 'signedBy'>) => void
-  /** Stage 4 — the department head approves (Sourcing Head / Admin as override); needs a signed, current lock */
+  /** Stage 3 — the Central ID approves; needs a signed, current lock */
   approve: (id: string, remarks?: string) => boolean
   reject: (id: string, remarks: string) => void
-  /** back to the Team feasibility check by default; the department head picks the stage (see sendBackTargets) */
+  /** back to the workshop by default, or to the submitter (see sendBackTargets) */
   sendBack: (id: string, remarks: string, to?: SendBackTo) => void
   requestInfo: (id: string, remarks: string) => void
   reassign: (id: string, userId: string, remarks: string) => void
@@ -124,12 +129,12 @@ interface Actions {
   updateExecution: (id: string, patch: Partial<NonNullable<Idea['execution']>>, reason?: string) => void
   toggleMilestone: (id: string, milestoneId: string, note?: string) => void
   addExecutionNote: (id: string, text: string) => void
-  /** Stage 5 → 6 — effective date (first MRN) + approved price per part; the idea moves to Verification */
+  /** Stage 4 → 5 — effective date (first MRN) + approved price per part; the idea moves to Verification */
   handOverForVerification: (id: string, effectiveDate: string, approvedPrices: Record<string, number>) => void
-  /** Stage 6 — business side confirms the target was achieved */
+  /** Stage 5 — business side confirms the target was achieved */
   /** false while the final month of the locked window has no MRN yet */
   verifyIdea: (id: string, v: { mrnAtApproved: boolean; financeValidated: boolean; targetAchieved: boolean; remarks?: string; targetAtVerification: number }) => boolean
-  /** Stage 6 → 5 — verification not passed */
+  /** Stage 5 → 4 — verification not passed */
   returnToExecution: (id: string, reason: string) => void
   dropIdea: (id: string, reason: string, remarks: string) => void
   syncNpdPap: (id: string, patch: Partial<Pick<Idea, 'npdStatus' | 'papStatus'>>) => void
@@ -227,7 +232,7 @@ const tabStorage = (() => { try { return typeof sessionStorage === 'undefined' ?
 const sharedStorage = (() => { try { return typeof localStorage === 'undefined' ? null : localStorage } catch { return null } })()
 const startSession = readSession(tabStorage, sharedStorage)
 // Earlier builds stored data under older keys; clear them so the demo always starts from the current data model
-try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8', 'coin-cost-innovation-hub-v9', 'coin-cost-innovation-hub-v10'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
+try { ['coin-cost-innovation-hub-v1', 'coin-cost-innovation-hub-v2', 'coin-cost-innovation-hub-v3', 'coin-cost-innovation-hub-v4', 'coin-cost-innovation-hub-v5', 'coin-cost-innovation-hub-v6', 'coin-cost-innovation-hub-v7', 'coin-cost-innovation-hub-v8', 'coin-cost-innovation-hub-v9', 'coin-cost-innovation-hub-v10', 'coin-cost-innovation-hub-v11', 'coin-cost-innovation-hub-v12'].forEach((k) => localStorage.removeItem(k)) } catch { /* ignore */ }
 
 export const useStore = create<Store>()(
   persist(
@@ -242,30 +247,31 @@ export const useStore = create<Store>()(
       const getIdea = (id: string) => get().ideas.find((i) => i.id === id)!
       const commodityOf = (code: string) => get().commodities.find((c) => c.code === code)
       const leverOf = (id: string) => get().levers.find((l) => l.id === id)!
-      const push = (n: Omit<Notification, 'id' | 'at' | 'read'>) => get().notify(n)
+      // people stay on record but only the IDs sign in: a message for a person reaches their department's ID
+      const push = (n: Omit<Notification, 'id' | 'at' | 'read'>) => get().notify({ ...n, userId: signInId(n.userId, get().users) ?? n.userId })
       const email = (to: string[], subject: string, body: string, template: string, attachments?: string[]) =>
         set((s) => ({ emails: [{ id: uid('e'), at: now(), to, subject, body, template, attachments }, ...s.emails] }))
       const userEmail = (id: string) => get().users.find((u) => u.id === id)?.email ?? id
 
-      /** Who evaluates at stage 3: the department lead of the idea's department */
-      const evaluatorIds = (idea: Idea, dept: string) => [ladderOf(dept, idea.commodity, get().users).deptLead].filter(Boolean) as string[]
+      /** The commercial evaluation opens with the workshop; below ₹ 5 L it is recorded as not needed */
+      const openEvaluation = (idea: Idea): Idea => {
+        const dept = evalDeptOf(idea.department)
+        const annual = ideaAnnualised(idea)
+        if (!needsEvaluation(annual)) return { ...idea, evaluation: { dept, skipped: true, skippedReason: `Opportunity cost ${inrShort(annual)} is below ₹ 5 L — no commercial evaluation needed`, supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — opportunity cost below ₹ 5 L' } } }
+        const keep = idea.evaluation?.supplier?.status === 'Responded' ? idea.evaluation.supplier : undefined
+        const supplier: SupplierCheck = keep ?? (needsSupplierCheck(annual) ? { status: 'Not sent' } : { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' })
+        return { ...idea, evaluation: { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false, cbaInputs: idea.evaluation?.cbaInputs } }
+      }
 
       /** entry side-effects when an idea lands on a stage */
       const onEnterStage = (idea: Idea, stage: string): Idea => {
         let next = { ...idea }
-        if (EVALUATION_STAGES.includes(stage)) {
-          const dept = evalDeptOf(idea.department)
-          const keep = idea.evaluation?.supplier?.status === 'Responded' ? idea.evaluation.supplier : undefined
-          const supplier: SupplierCheck = keep ?? (needsSupplierCheck(ideaAnnualised(idea)) ? { status: 'Not sent' } : { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' })
-          next.evaluation = { dept, supplier, risks: idea.evaluation?.risks, cbaVerified: false, cbaInputs: idea.evaluation?.cbaInputs }
-          for (const uidv of evaluatorIds(idea, dept)) push({ userId: uidv, title: `${dept} evaluation requested`, body: `${idea.id} · ${idea.title}`, trigger: 'Technical evaluation requested', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'info' })
-        }
+        if (stage === STAGE.feasibility) next = openEvaluation(next)
         if (stage === STAGE.approval) {
-          // one approval level: the head of the idea's department (Sourcing Head / Admin can still act as override)
-          const dept = next.evaluation?.dept ?? evalDeptOf(idea.department)
-          const headId = ladderOf(dept, idea.commodity, get().users).deptHead
-          next.approvals = [{ level: `${dept} head`, approverId: headId }]
-          if (headId) push({ userId: headId, title: `Pending ${dept} approval`, body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
+          // one approval level: management, on the Central ID
+          const central = ladderOf(next.evaluation?.dept ?? evalDeptOf(idea.department), get().users).central
+          next.approvals = [{ level: 'Management', approverId: central }]
+          if (central) push({ userId: central, title: 'Pending management approval', body: `${idea.id} · ${idea.title} · ${inrShort(ideaAnnualised(idea))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: idea.id, link: `/ideas/${idea.id}`, severity: 'warning' })
         }
         return next
       }
@@ -315,20 +321,17 @@ export const useStore = create<Store>()(
         return next
       }
 
-      /** Going back inside IN (send back, board move) re-opens every stage form from the target onwards — a stage
-       *  is never passed on an old decision or an old signed lock */
+      /** Going back to the workshop (send back, board move) re-opens its forms and the Go ahead — a stage is never passed on an
+       *  old decision or an old signed lock. Events already held stay on record; the workshop needs a new one. */
       const resetForRework = (idea: Idea, from: string, to: string): Idea => {
-        const order = [STAGE.feasibility, STAGE.evaluation, STAGE.approval] as string[]
-        const fi = order.indexOf(from), ti = order.indexOf(to)
-        if (ti < 0 || fi < 0 || ti >= fi) return idea
-        const next = { ...idea }
-        if (ti <= 0) next.feasibilityCheck = undefined
-        if (ti <= 1 && next.evaluation) {
+        if (from !== STAGE.approval || to !== STAGE.feasibility) return idea
+        const next = { ...idea, feasibilityCheck: undefined, lock: undefined }
+        if (next.evaluation) {
           const responded = next.evaluation.supplier?.status === 'Responded' ? next.evaluation.supplier : undefined
           // the evaluation runs again; the supplier's answer and the cost-benefit inputs are kept as the starting point
           next.evaluation = { dept: next.evaluation.dept, supplier: responded, cbaInputs: next.evaluation.cbaInputs }
         }
-        next.lock = undefined
+        if (next.workshop) next.workshop = { events: next.workshop.events }
         next.approvals = next.approvals.map((a) => ({ level: a.level, approverId: a.approverId }))
         return next
       }
@@ -392,17 +395,6 @@ export const useStore = create<Store>()(
           if (verifier) push({ userId: verifier, title: 'Final MRN read — ready to verify', body: `${i.id} · target ${inrShort(lock.targetSaving)} · MRN actual ${inrShort(actual)}`, trigger: 'Implemented', channel: 'In-app + email', ideaId: i.id, link: `/ideas/${i.id}`, severity: actual >= lock.targetSaving * 0.95 ? 'success' : 'warning' })
         }
       }
-      /** Forecast below ₹ 5 L: the evaluation stage is recorded as skipped and the idea goes straight to department approval */
-      const skipEvaluation = (idea: Idea, action: string, remarks?: string): Idea => {
-        const dept = evalDeptOf(idea.department)
-        const reason = `Forecast ${inrShort(ideaAnnualised(idea))} is below ₹ 5 L — no ${dept} evaluation needed`
-        const withEval: Idea = { ...idea, evaluation: { dept, skipped: true, skippedReason: reason, supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — forecast below ₹ 5 L' } } }
-        const n = moveTo(withEval, STAGE.approval, action, remarks)
-        const t = n.stageEnteredAt
-        const history = [...n.stageHistory]
-        history.splice(history.length - 1, 0, { stage: STAGE.evaluation, enteredAt: t, exitedAt: t, by: 'COIN', action: `Skipped — ${reason}` })
-        return { ...n, stageHistory: history, activity: [...n.activity, logEntry(`${dept} evaluation skipped — forecast below ₹ 5 L`, { remarks: reason })] }
-      }
       /** A signed lock is valid only while its target still equals forecast × months ÷ 12 */
       // the lock is current while the forecast it was signed on still holds (older locks: the flat target)
       const lockIsCurrent = (idea: Idea) => {
@@ -465,7 +457,7 @@ export const useStore = create<Store>()(
             submitterId: u.id, submitterName: u.name, employeeId: u.employeeId, department: u.department, plant: u.plant, buyingType: 'Direct', categoryId: 'MET', commodity: 'BN',
             leverId: lever.id, scope: 'Part-specific', parts: [], savingsType: lever.defaultSavingsType, oneTimeInvestment: 0, expectedQuarter: `Q3 ${get().settings.currentFy}`,
             isSupplierSubmission: u.roles.includes('supplier'), supplierCode: u.supplierCode, route: lever.route, stage: 'Draft', bucket: 'Draft',
-            stageEnteredAt: now(), createdAt: now(), buyerId: 'u-buyer1', approvals: [], stageHistory: [{ stage: 'Draft', enteredAt: now() }],
+            stageEnteredAt: now(), createdAt: now(), buyerId: 'id-sourcing', approvals: [], stageHistory: [{ stage: 'Draft', enteredAt: now() }],
             activity: [logEntry('Created idea (draft)')], comments: [], ...draft,
           } as Idea
           set((s) => ({ ideas: [idea, ...s.ideas] }))
@@ -487,7 +479,8 @@ export const useStore = create<Store>()(
             attachments: [], evidenceTags: [], comments: [], approvals: [], parts: [],
             ...draft,
             id, seq, fy, route: lever.route, buyerId: commodity.buyerId,
-            submitterId: base.submitterId ?? u.id, submitterName: base.submitterName ?? u.name, employeeId: base.employeeId ?? u.employeeId, department: base.department ?? u.department,
+            // the ID is shared: the name, employee ID and email are the ones typed on the form
+            submitterId: base.submitterId ?? u.id, submitterName: draft.submitterName ?? base.submitterName ?? u.name, employeeId: draft.employeeId ?? base.employeeId ?? u.employeeId, department: base.department ?? u.department,
             isSupplierSubmission: u.roles.includes('supplier'), supplierCode: u.supplierCode ?? draft.supplierCode,
             stage: STAGE.feasibility, bucket: 'Pipeline', stageEnteredAt: t, createdAt: base.createdAt ?? t, submittedAt: t,
             stageHistory: [{ stage: 'Draft', enteredAt: base.createdAt ?? t, exitedAt: t, by: u.name, action: 'Idea submitted' }, { stage: STAGE.feasibility, enteredAt: t }],
@@ -499,9 +492,10 @@ export const useStore = create<Store>()(
               if (p.volumeOverrideReason) idea.activity.push(logEntry('Volume override', { field: `volume ${p.partCode}`, newValue: String(p.annualVolume), remarks: p.volumeOverrideReason }))
             })
           }
+          idea = openEvaluation(idea)
           set((st) => ({ ideas: [idea, ...st.ideas.filter((i) => i.id !== existingId)] }))
-          const teamLead = stageAssignee({ ...idea, id, submitterId: idea.submitterId ?? me().id } as Idea, STAGE.feasibility, get().users)
-          if (teamLead) push({ userId: teamLead, title: 'Team feasibility check requested', body: `${id} · ${idea.title}`, trigger: 'Idea submitted in my commodity', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
+          const owner = stageAssignee(idea, STAGE.feasibility, get().users)
+          if (owner) push({ userId: owner, title: 'Workshop to run', body: `${id} · ${idea.title}`, trigger: 'Idea submitted in my commodity', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'info' })
           email([userEmail(commodity.buyerId)], `COIN · New idea ${id} in ${commodity.name}`, idea.title, 'Idea submitted')
           if (idea.campaignId) idea = { ...idea }
           return id
@@ -519,22 +513,47 @@ export const useStore = create<Store>()(
           const idx = stages.indexOf(i.stage)
           if (idx < 0 || idx >= stages.length - 1) return
           const nextStage = stages[idx + 1]
-          const annual = ideaAnnualised(i)
-          // below ₹ 5 L the department evaluation is skipped: the team feasibility check hands straight to the department head
-          if (nextStage === STAGE.evaluation && !needsEvaluation(annual)) { patchIdea(id, (x) => skipEvaluation(x, action, remarks)); return }
           patchIdea(id, (x) => {
             let n = moveTo(x, nextStage, action, remarks)
             if (x.stage === STAGE.approval) n = createExecution(n)
             return n
           })
         },
+        createWorkshopEvent: (id, e) => {
+          const u = me()
+          const i = getIdea(id)
+          const events = i.workshop?.events ?? []
+          const event: WorkshopEvent = { ...e, id: uid('ev'), no: events.length + 1, createdBy: u.name, createdAt: now(), status: 'Scheduled' }
+          patchIdea(id, (x) => ({ ...x, workshop: { ...x.workshop, events: [...(x.workshop?.events ?? []), event] }, activity: [...x.activity, logEntry('Workshop event created', { remarks: `${e.date} · ${e.venue} · SPOC ${e.spoc.name}` })] }))
+          email([e.spoc.email], `COIN · Workshop on ${e.date}: ${i.title}`, [`${i.id} · ${e.venue}`, 'Points to discuss:', ...e.points.map((x) => `· ${x}`)].join('\n'), 'Workshop invitation')
+          return event.id
+        },
+        closeWorkshopEvent: (id, eventId, c) => {
+          const i = getIdea(id)
+          const ev = i.workshop?.events.find((e) => e.id === eventId)
+          if (!ev || ev.status !== 'Scheduled' || !c.closedBy.trim()) return false
+          if (c.outcome === 'Go ahead' && workshopGaps(i, ideaAnnualised(i)).length) return false
+          if (c.outcome === 'Follow-up' && !c.followUp) return false
+          const t = now()
+          const by = c.closedBy.trim()
+          patchIdea(id, (x) => ({
+            ...x,
+            workshop: {
+              ...x.workshop, events: x.workshop!.events.map((e) => (e.id === eventId ? { ...e, status: 'Held' as const, notes: c.notes, outcome: c.outcome, closedBy: by, closedAt: t } : e)),
+              ...(c.outcome === 'Go ahead' ? { goAheadAt: t, goAheadBy: by } : {}),
+            },
+            activity: [...x.activity, logEntry(`Workshop event ${ev.no} held — ${c.outcome}`, { remarks: `${by}${c.notes ? ' · ' + c.notes : ''}` })],
+          }))
+          if (c.outcome === 'Follow-up') get().createWorkshopEvent(id, { ...c.followUp!, attendees: ev.attendees })
+          else get().advance(id, 'Workshop — go ahead', c.notes)
+          return true
+        },
         recordFeasibility: (id, c) => {
           const u = me()
           const check: FeasibilityCheck = { ...c, by: u.name, byDept: u.department, at: now() }
           const summary = `Technically ${c.technical === 'Yes' ? 'feasible' : 'not feasible'} · cost ${c.cost.toLowerCase()} · ${c.conflict === 'None' ? 'no duplicate / conflict' : `${c.conflict.toLowerCase()}${c.conflictWith ? ` with ${c.conflictWith}` : ''}`}`
-          patchIdea(id, (i) => ({ ...i, feasibilityCheck: check, activity: [...i.activity, logEntry(`Team feasibility check — ${c.decision}`, { remarks: `${summary}${c.remarks ? ' · ' + c.remarks : ''}` })] }))
-          if (c.decision === 'Go') get().advance(id, 'Team feasibility check — Go', c.remarks)
-          else get().dropIdea(id, 'Not feasible', c.remarks || summary)
+          patchIdea(id, (i) => ({ ...i, feasibilityCheck: check, activity: [...i.activity, logEntry(`Technical feasibility check — ${c.decision}`, { remarks: `${summary}${c.remarks ? ' · ' + c.remarks : ''}` })] }))
+          if (c.decision === 'No-go') get().dropIdea(id, 'Not feasible', c.remarks || summary)
         },
         saveEvaluation: (id, patch) => {
           const what = [patch.cbaVerified != null && 'cost-benefit analysis', patch.risks && 'risk assessment'].filter(Boolean).join(' and ')
@@ -566,7 +585,8 @@ export const useStore = create<Store>()(
             evaluation: { ...x.evaluation!, supplier: { ...sc, status: 'Responded', response: r } },
             activity: [...x.activity, { id: uid('a'), at: now(), userId: 'supplier', userName: `${r.contactName} (${sc.supplierName})`, action: `Supplier capability response — can supply: ${r.canSupply}`, remarks: `Meets spec: ${r.meetsSpec}${r.leadTimeDays ? ` · lead time ${r.leadTimeDays} d` : ''}${r.capacityPerMonth ? ` · capacity ${r.capacityPerMonth}` : ''}` }],
           }))
-          for (const uidv of evaluatorIds(i, i.evaluation!.dept)) push({ userId: uidv, title: 'Supplier capability response received', body: `${i.id} · ${sc.supplierName} — can supply: ${r.canSupply}`, trigger: 'Supplier response', channel: 'In-app', ideaId: i.id, link: `/ideas/${i.id}`, severity: r.canSupply === 'No' ? 'warning' : 'success' })
+          const owner = ladderOf(i.evaluation!.dept, get().users).departmentId
+          if (owner) push({ userId: owner, title: 'Supplier capability response received', body: `${i.id} · ${sc.supplierName} — can supply: ${r.canSupply}`, trigger: 'Supplier response', channel: 'In-app', ideaId: i.id, link: `/ideas/${i.id}`, severity: r.canSupply === 'No' ? 'warning' : 'success' })
           return true
         },
         skipSupplierCheck: (id) => {
@@ -576,13 +596,12 @@ export const useStore = create<Store>()(
         },
         recordEvaluation: (id, decision, remarks) => {
           const u = me()
-          patchIdea(id, (i) => ({ ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), decision, remarks, by: u.name, at: now() }, activity: [...i.activity, logEntry(`Evaluation — ${decision === 'Recommend' ? 'recommended for sourcing approval' : 'rejected'}`, { remarks })] }))
-          if (decision === 'Recommend') get().advance(id, `${getIdea(id).evaluation?.dept ?? 'Department'} evaluation — recommended`, remarks)
-          else get().reject(id, remarks || 'Rejected at evaluation')
+          patchIdea(id, (i) => ({ ...i, evaluation: { ...(i.evaluation ?? { dept: evalDeptOf(i.department) }), decision, remarks, by: u.name, at: now() }, activity: [...i.activity, logEntry(`Commercial evaluation — ${decision === 'Recommend' ? 'recommended' : 'rejected'}`, { remarks })] }))
+          if (decision === 'Reject') get().reject(id, remarks || 'Rejected at the commercial evaluation')
         },
         signLock: (id, lock) => {
           const u = me()
-          patchIdea(id, (i) => ({ ...i, lock: { ...lock, forecastAtLock: lock.forecastAtLock ?? ideaAnnualised(i), monthlyPlan: lock.monthlyPlan ?? lockPlan({ buyingType: i.buyingType, lock: { ...lock, signedAt: '', signedBy: '' } }), signedAt: now(), signedBy: u.name }, activity: [...i.activity, logEntry('Budget & timeline lock signed', { remarks: `${lock.timelineMonths} months · target ${inrShort(lock.targetSaving)} · budget ${inrShort(lock.budget)}` })] }))
+          patchIdea(id, (i) => ({ ...i, lock: { ...lock, forecastAtLock: lock.forecastAtLock ?? ideaAnnualised(i), monthlyPlan: lock.monthlyPlan ?? lockPlan({ buyingType: i.buyingType, lock: { ...lock, signedAt: '', signedBy: '' } }), signedAt: now(), signedBy: u.name }, activity: [...i.activity, logEntry('KPI allocated — budget & timeline lock signed', { remarks: `${lock.timelineMonths} months · target ${inrShort(lock.targetSaving)} · budget ${inrShort(lock.budget)}${lock.kpi ? ` · KPI owner ${lock.kpi.owner}` : ''}` })] }))
         },
         approve: (id, remarks) => {
           const u = me()
@@ -598,12 +617,12 @@ export const useStore = create<Store>()(
           approvals.forEach((a, k) => { if (!a.decision && (head || k === first)) approvals[k] = { ...a, approverId: u.id, decision: 'Approved', at: now(), remarks } })
           const pending = approvals.find((a) => !a.decision)
           const levels = approvals.filter((a) => a.approverId === u.id && a.at && a.decision === 'Approved').map((a) => a.level).join(' + ')
-          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`${stageLabel(i, STAGE.approval)} (${levels || 'Approver'})${head && u.id !== i.approvals[0]?.approverId ? ' — acting as override' : ''}`, { remarks })] }))
+          patchIdea(id, (x) => ({ ...x, approvals, activity: [...x.activity, logEntry(`Management approval (${levels || 'Approver'})${head && u.id !== i.approvals[0]?.approverId ? ' — acting as override' : ''}`, { remarks })] }))
           if (pending) {
-            if (pending.approverId) push({ userId: pending.approverId, title: `Pending ${stageLabel(i, STAGE.approval)}`, body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
+            if (pending.approverId) push({ userId: pending.approverId, title: 'Pending management approval', body: `${id} · ${i.title} · ${inrShort(ideaAnnualised(i))}`, trigger: 'Pending approval', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
           } else {
-            get().advance(id, `${stageLabel(i, STAGE.approval)} — approved`, remarks)
-            ;[...new Set([i.submitterId, getIdea(id).ownerId ?? i.buyerId])].forEach((uidv) => push({ userId: uidv, title: 'Idea approved — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+            get().advance(id, 'Management approval — approved', remarks)
+            ;[...new Set([i.submitterId, getIdea(id).ownerId ?? i.buyerId])].forEach((uidv) => push({ userId: uidv, title: 'KPI signed off — execution started', body: `${id} · ${i.title} moved to Cost Optimisation`, trigger: 'Approved / rejected', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           }
           return true
         },
@@ -617,20 +636,17 @@ export const useStore = create<Store>()(
         },
         sendBack: (id, remarks, to = STAGE.feasibility) => {
           const i = getIdea(id)
-          // only to a stage before this one (and never to an evaluation the idea skipped)
-          if (!sendBackTargets(i, ideaAnnualised(i)).some((t) => t.to === to)) return
+          // only to a stage before this one
+          if (!sendBackTargets(i).some((t) => t.to === to)) return
           const atStart = i.stage === STAGE.feasibility
-          const where = to === 'submitter' ? 'the submitter' : stageLabel(i, to)
+          const where = to === 'submitter' ? 'the submitter' : to
           patchIdea(id, (x) => {
             if (atStart) return { ...x, infoRequested: true, activity: [...x.activity, logEntry('Sent back to submitter', { remarks })] }
-            const n = moveTo(x, to === 'submitter' ? STAGE.feasibility : to, `Sent back to ${where}`, remarks)
+            const n = moveTo(x, STAGE.feasibility, `Sent back to ${where}`, remarks)
             return { ...n, infoRequested: to === 'submitter' }
           })
           const back = (userId: string | undefined, title: string) => userId && push({ userId, title, body: `${id} · ${remarks}`, trigger: 'Idea sent back / more info requested', channel: 'In-app + email', ideaId: id, link: `/ideas/${id}`, severity: 'warning' })
           back(i.submitterId, to === 'submitter' ? 'Idea sent back to you for rework' : `Idea sent back to ${where}`)
-          // the person who owns the stage it lands on gets the remarks too
-          if (to === STAGE.feasibility) back(stageAssignee(getIdea(id), STAGE.feasibility, get().users), `Idea sent back to ${where}`)
-          if (to === STAGE.evaluation) for (const u of evaluatorIds(i, getIdea(id).evaluation?.dept ?? evalDeptOf(i.department))) back(u, `Idea sent back to ${where}`)
         },
         requestInfo: (id, remarks) => {
           const i = getIdea(id)
@@ -652,11 +668,6 @@ export const useStore = create<Store>()(
         moveToStage: (id, stage, remarks) => {
           const i = getIdea(id)
           if (stage === STAGE.verification) { get().handOverForVerification(id, i.execution?.effectiveDate ?? todayIso(), Object.fromEntries(i.parts.map((p) => [p.partCode, p.approvedPrice ?? p.newPrice]))); return }
-          // below ₹ 5 L there is no evaluation stage to land on; from the feasibility check the idea goes to approval
-          if (!needsEvaluation(ideaAnnualised(i))) {
-            if (stage === STAGE.evaluation) return
-            if (i.stage === STAGE.feasibility && stage === STAGE.approval) { patchIdea(id, (x) => skipEvaluation(x, `Moved on board to ${stage}`, remarks)); return }
-          }
           patchIdea(id, (x) => {
             let n = moveTo(x, stage, `Moved on board to ${stage}`, remarks)
             if (bucketFor(x.route, x.stage) === 'Pipeline' && n.bucket === 'In Execution' && !x.execution) n = createExecution(n)
@@ -722,7 +733,7 @@ export const useStore = create<Store>()(
             return n
           })
           const i = getIdea(id)
-          ;[...new Set([i.submitterId, i.ownerId ?? i.buyerId, stageAssignee(i, STAGE.verification, get().users) ?? 'u-fin'])].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
+          ;[...new Set([i.submitterId, i.ownerId ?? i.buyerId, stageAssignee(i, STAGE.verification, get().users)].filter(Boolean) as string[])].forEach((uidv) => push({ userId: uidv, title: 'Implemented — handed for verification', body: `${id} · ${i.title}`, trigger: 'Implemented', channel: 'In-app', ideaId: id, link: `/ideas/${id}`, severity: 'success' }))
           set((s) => ({ celebrate: s.celebrate + 1 }))
         },
         verifyIdea: (id, v) => {
@@ -792,7 +803,7 @@ export const useStore = create<Store>()(
           finaliseVerifications()
           const fresh = get().ledger.filter((l) => l.month === m)
           const leakage = fresh.reduce((a, r) => a + r.leakage, 0)
-          push({ userId: 'u-fin', title: 'Savings to validate', body: `${monthLong(m)} MRN read — ${lines.length} receipts, ${fresh.length} saving lines awaiting validation`, trigger: 'Savings to validate', channel: 'In-app + email', link: '/execution?tab=mrn', severity: 'warning' })
+          push({ userId: 'id-finance', title: 'Savings to validate', body: `${monthLong(m)} MRN read — ${lines.length} receipts, ${fresh.length} saving lines awaiting validation`, trigger: 'Savings to validate', channel: 'In-app + email', link: '/execution?tab=mrn', severity: 'warning' })
           if (leakage > 0) {
             const affected = new Set(fresh.filter((r) => r.leakage > 0).map((r) => s.ideas.find((i) => i.id === r.ideaId)))
             affected.forEach((i) => {
@@ -880,7 +891,7 @@ export const useStore = create<Store>()(
           email(s.settings.mailerRecipients, `COIN — Cost Optimisation Report, ${monthLong(month)}`, body, 'Monthly Cost Optimisation Report', [`COIN_Report_${month}.pdf`, `COIN_Detail_${month}.xlsx`])
           const leads = [...new Set(s.commodities.map((c) => c.leadId))]
           leads.forEach((l) => email([userEmail(l)], `COIN — Cost Optimisation Report, ${monthLong(month)} (commodity cut)`, body, 'Monthly Cost Optimisation Report'))
-          ;['u-mgmt', 'u-head'].forEach((uidv) => push({ userId: uidv, title: 'Monthly Cost Optimisation Report', body: `COIN — Cost Optimisation Report, ${monthLong(month)} ${manual ? 'sent manually by Sourcing Head' : 'emailed after realisation run'}`, trigger: 'Monthly Cost Optimisation Report', channel: 'Email + attachments', link: '/reports', severity: 'success' }))
+          ;['id-central'].forEach((uidv) => push({ userId: uidv, title: 'Monthly Cost Optimisation Report', body: `COIN — Cost Optimisation Report, ${monthLong(month)} ${manual ? 'sent manually' : 'emailed after realisation run'}`, trigger: 'Monthly Cost Optimisation Report', channel: 'Email + attachments', link: '/reports', severity: 'success' }))
         },
         // Section 9 step 6 — at FY close open ideas roll into the next FY with a new target date and carry-over is booked
         bookFyClosure: (fy) => {
@@ -898,7 +909,7 @@ export const useStore = create<Store>()(
               }
             }),
           }))
-          ;['u-head', 'u-fin', 'u-mgmt'].forEach((u) => push({ userId: u, title: `${fy} closure booked`, body: `Open ideas rolled into ${nfy} with due date ${newTarget}; carry-over booked`, trigger: 'FY closure', channel: 'In-app + email', link: '/execution', severity: 'info' }))
+          ;['id-central', 'id-finance'].forEach((u) => push({ userId: u, title: `${fy} closure booked`, body: `Open ideas rolled into ${nfy} with due date ${newTarget}; carry-over booked`, trigger: 'FY closure', channel: 'In-app + email', link: '/execution', severity: 'info' }))
         },
 
         // ─── Campaigns ────────────────────────────────────────────────────────
@@ -994,7 +1005,7 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'coin-cost-innovation-hub-v12',
+      name: 'coin-cost-innovation-hub-v13',
       version: 7,
       storage: createJSONStorage(() => safeStorage),
       // Saved data from an older build may miss newer fields: start from the fresh seed and overlay what was saved,
@@ -1042,7 +1053,7 @@ export function renderSupplierTemplate(text: string, vars: Record<string, string
 
 // Keep several open tabs in step: when another tab saves, reload the saved state here instead of overwriting it later
 if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v12') void useStore.persist.rehydrate() })
+  window.addEventListener('storage', (e) => { if (e.key === 'coin-cost-innovation-hub-v13') void useStore.persist.rehydrate() })
   // keep this tab's sign-in in this tab (and as the default for a new tab)
   useStore.subscribe((st, prev) => {
     if (st.userId !== prev.userId || st.space !== prev.space || st.filters !== prev.filters) writeSession(tabStorage, sharedStorage, { userId: st.userId, space: st.space, filters: st.filters, lastActivity: st.lastActivity })

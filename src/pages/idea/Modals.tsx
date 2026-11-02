@@ -6,27 +6,27 @@ import { Button, Field, Icon, Modal, Money, Segmented, SourceTag, Avatar, cn } f
 import { ideaAnnualised, ideaCommitted, partAnnualised } from '../../lib/calc'
 import { inrPrice, inrShort, monthLong, num, sum, todayIso } from '../../lib/format'
 import { withUndo, BASELINE_TAG, VOLUME_TAG, ownerCandidates } from './model'
-import { sendBackTargets, stageAssignee, stageLabel, type SendBackTo } from '../../lib/workflow'
+import { sendBackTargets, stageAssignee, type SendBackTo } from '../../lib/workflow'
 
 const t = () => useStore.getState().toast
 
-// ─── Send back to a chosen stage (department evaluation / approval) ──────────
+// ─── Send back to a chosen stage (commercial evaluation / approval) ──────────
 export function SendBackModal({ idea, open, onClose }: { idea: Idea; open: boolean; onClose: () => void }) {
   const sendBack = useStore((s) => s.sendBack)
   const users = useStore((s) => s.users)
-  const targets = sendBackTargets(idea, ideaAnnualised(idea))
-  // the person who owns each passed stage — the request goes to that person, not to a list of SPOCs
+  const targets = sendBackTargets(idea)
+  // the ID that owns each passed stage — the request goes to that ID
   const owner = (x: SendBackTo) => (x === 'submitter' ? idea.submitterName : users.find((u) => u.id === stageAssignee(idea, x, users))?.name ?? '—')
   const [to, setTo] = useState<SendBackTo>(targets[targets.length - 1]?.to ?? 'submitter')
   const [remarks, setRemarks] = useState('')
   useEffect(() => { if (open) { setTo(targets[targets.length - 1]?.to ?? 'submitter'); setRemarks('') } }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
-  const where = (x: SendBackTo) => (x === 'submitter' ? idea.submitterName : stageLabel(idea, x))
+  const where = (x: SendBackTo) => (x === 'submitter' ? idea.submitterName : x)
   const submit = () => {
     withUndo(idea.id, () => sendBack(idea.id, remarks.trim(), to), `${idea.id} sent back to ${where(to)}`, { type: 'warning' })
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Send back to a passed stage" subtitle={`${idea.id} · now at ${stageLabel(idea, idea.stage)} — the request goes to the person who owns that stage`} icon="Undo2" size="md"
+    <Modal open={open} onClose={onClose} title="Send back to a passed stage" subtitle={`${idea.id} · now at ${idea.stage} — the request goes to the ID that owns that stage`} icon="Undo2" size="md"
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="danger" icon="Undo2" disabled={!remarks.trim()} onClick={submit}>Send back to {where(to)}</Button></>}>
       <div className="grid gap-2 mb-3" role="radiogroup" aria-label="Send back to">
         {targets.map((x, k) => (
@@ -37,7 +37,6 @@ export function SendBackModal({ idea, open, onClose }: { idea: Idea; open: boole
             <span className="shrink-0 text-right"><span className="block text-[10.5px] text-muted">goes to</span><span className="block text-[12.5px] font-semibold text-ink-2">{owner(x.to)}</span></span>
           </button>
         ))}
-        {idea.evaluation?.skipped && <div className="text-[11.5px] text-muted flex items-center gap-1.5"><Icon name="Info" size={12} />The {stageLabel(idea, 'Evaluation')} was skipped (forecast below ₹ 5 L), so it is not offered.</div>}
       </div>
       <Field label="Remarks" required hint="Sent to the people at that stage and to the submitter"><textarea autoFocus className="input" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="What needs to change?" /></Field>
     </Modal>
@@ -99,7 +98,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
   const approvedAnnual = idea.parts.length ? sum(idea.parts.map((p) => (p.baselinePrice - (parsed[p.partCode] || 0)) * p.annualVolume)) : ideaAnnualised(idea)
   const submit = () => {
     handOver(idea.id, date, parsed)
-    t()(`${idea.id} implemented and handed for verification — ${inrShort(approvedAnnual)} forecast at the approved price`, 'success')
+    t()(`${idea.id} implemented and handed for verification — ${inrShort(approvedAnnual)} opportunity cost at the approved price`, 'success')
     onClose()
   }
   return (
@@ -111,7 +110,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
         </Field>
         <div className="sm:col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Approved forecast impact</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Approved opportunity cost</div>
             <div className="text-[22px] font-bold text-ink leading-tight"><Money value={approvedAnnual} /></div>
           </div>
           <div className="text-right text-[11.5px] text-muted">Estimated<br /><span className="font-semibold text-ink-2 num">{inrShort(ideaAnnualised(idea))}</span></div>
@@ -120,7 +119,7 @@ export function MarkDoneModal({ idea, open, onClose }: { idea: Idea; open: boole
       {idea.parts.length > 0 ? (
         <div className="card overflow-x-auto">
           <table className="tbl">
-            <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>Estimated new</th><th style={{ textAlign: 'right', width: 170 }}>Approved new price</th><th style={{ textAlign: 'right' }}>Forecast</th></tr></thead>
+            <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>Estimated new</th><th style={{ textAlign: 'right', width: 170 }}>Approved new price</th><th style={{ textAlign: 'right' }}>Opportunity cost</th></tr></thead>
             <tbody>
               {idea.parts.map((p) => {
                 const ap = Number(prices[p.partCode]) || 0
@@ -220,7 +219,7 @@ export function OverrideModal({ idea, part, field, open, onClose }: { idea: Idea
           <textarea className="input" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={isPrice ? 'e.g. LBP includes one-off expedite surcharge' : 'e.g. Model phased out; FY27 forecast lower'} />
         </Field>
         <div className="rounded-lg bg-slate-50 border border-line p-2.5 text-[12px] flex items-center justify-between">
-          <span className="text-muted">Forecast impact for this part</span>
+          <span className="text-muted">Opportunity cost for this part</span>
           <span className="num font-semibold">{inrShort(before)} <Icon name="ArrowRight" size={12} className="inline mx-1 text-muted" /> <span className={after < 0 ? 'text-red-600' : 'text-ink'}>{changed ? inrShort(after) : '—'}</span></span>
         </div>
       </div>

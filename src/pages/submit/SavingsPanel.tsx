@@ -1,17 +1,16 @@
 // Section 7 — sticky savings summary panel (recalculates as the user types)
 import { motion, AnimatePresence } from 'motion/react'
 import type { Lever } from '../../lib/types'
-import { Icon, InfoTip, Money, Tooltip, cn } from '../../components/ui'
+import { Icon, InfoTip, Money, cn } from '../../components/ui'
 import { fmtDate, inrPrice, inrShort, QUARTER_MONTHS } from '../../lib/format'
 import { FORMULAS } from '../../lib/scope'
 import { RouteStrip, RouteBadge } from './widgets'
 
 export interface PartCalc { partCode: string; description: string; uom: string; unit: number; pct: number; annual: number; hasNew: boolean }
 export interface SavingsCalc {
-  isOpen: boolean
   rows: PartCalc[]
   annual: number
-  pct: number | null
+  pct: number
   committed: number
   carry: number
   monthsInFy: number
@@ -37,9 +36,7 @@ export function PctBadge({ pct, dark }: { pct: number | null; dark?: boolean }) 
 
 const MAX_ROWS = 3 // keeps the sticky panel short enough to never need its own scrollbar
 
-export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
-  c: SavingsCalc; lever?: Lever; currentFy: string; nextFyLabel: string; route: { label: string; name?: string }[]
-}) {
+export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel }: { c: SavingsCalc; lever?: Lever; currentFy: string; nextFyLabel: string }) {
   const cPct = c.annual ? Math.max(0, Math.min(100, (c.committed / c.annual) * 100)) : 0
   const [q, fy] = c.quarter.split(' ')
   const shown = c.rows.slice(0, MAX_ROWS)
@@ -47,13 +44,12 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
   return (
     <div className="divide-y divide-line">
       {/* per-part breakdown (fields 21–22) */}
-      {!c.isOpen && (
-        <div className="px-4 py-2.5">
+      <div className="px-4 py-2.5">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Per part code</span>
-            <InfoTip title="Saving per unit and forecast impact" formula={`${F('Saving per unit')}  ·  ${F('Forecast impact')}`}>An idea spanning several part codes stores price, volume and saving per part code and rolls them up.</InfoTip>
+            <InfoTip title="Saving per unit and opportunity cost" formula={`${F('Saving per unit')}  ·  ${F('Opportunity cost')}`}>An idea spanning several part codes stores price, volume and saving per part code and rolls them up.</InfoTip>
           </div>
-          {!c.rows.length && <div className="text-[12px] text-muted py-2">Add a part code to see saving / unit, % and forecast impact per part.</div>}
+          {!c.rows.length && <div className="text-[12px] text-muted py-2">Add a part code to see saving / unit, % and opportunity cost per part.</div>}
           <div className="space-y-1">
             <AnimatePresence initial={false}>
               {shown.map((r) => (
@@ -71,18 +67,17 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
           {more > 0 && <div className="text-[11px] text-muted mt-1">+ {more} more part{more === 1 ? '' : 's'} — see card D</div>}
           {c.rows.length > 1 && (
             <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-dashed border-slate-200 text-[12.5px]">
-              <span className="font-semibold text-ink-2">Total forecast impact</span>
+              <span className="font-semibold text-ink-2">Total opportunity cost</span>
               <span className="font-bold num" style={{ color: tone(c.annual) }}>{inrShort(c.annual)}</span>
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* committed this FY vs carry-over (from expected implementation quarter) */}
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Committed vs carry-over
-            <InfoTip title="Committed saving (in-FY)" formula="Forecast impact × months live in FY ÷ 12">Saving expected inside the current FY, phased from the implementation date. Carry-over is the part of the forecast impact that falls in the next FY. {q} {fy} ({QUARTER_MONTHS[q]}): {c.monthsInFy.toFixed(1)} of 12 months fall in {currentFy}.</InfoTip>
+            <InfoTip title="Committed saving (in-FY)" formula="Opportunity cost × months live in FY ÷ 12">Saving expected inside the current FY, phased from the implementation date. Carry-over is the part of the opportunity cost that falls in the next FY. {q} {fy} ({QUARTER_MONTHS[q]}): {c.monthsInFy.toFixed(1)} of 12 months fall in {currentFy}.</InfoTip>
           </span>
           <span className="text-[11px] text-muted">Go-live {fmtDate(c.goLive)}</span>
         </div>
@@ -102,23 +97,10 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
         </div>
       </div>
 
-      {/* workflow route preview — the department ladder of the submitter's department */}
+      {/* every idea goes to a workshop */}
       <div className="px-4 py-2.5">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted">Your idea goes to
-            <InfoTip title="Department ladder">Your department's team lead checks feasibility, the department lead evaluates and the department head approves and signs the budget + timeline lock. Execution is owned by your department; Finance verifies.</InfoTip>
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {route.map((r, k) => (
-            <span key={r.label} className="inline-flex items-center gap-1.5">
-              {k > 0 && <Icon name="ArrowRight" size={12} className="text-slate-400" />}
-              <span className={cn('inline-flex items-center gap-1.5 h-7 px-2 rounded-md border text-[12px]', k === route.length - 1 ? 'bg-brand-50 border-brand-200 text-brand-800' : 'bg-slate-50 border-line')}>
-                <Icon name={k === 0 ? 'UsersRound' : k === 1 ? 'FlaskConical' : 'Signature'} size={13} className="text-brand-600" /><b className="font-semibold">{r.name ?? '—'}</b><span className="text-muted">{r.label}</span>
-              </span>
-            </span>
-          ))}
-        </div>
+        <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted"><Icon name="Presentation" size={13} className="text-brand-600" />Workshop</div>
+        <p className="mt-1 text-[12px] leading-snug text-ink-2">A workshop will be held on this idea, with the team's technical feasibility and commercial feasibility checks.</p>
       </div>
 
       {/* route strip from the lever (shown as "Category" on the form) — dropped on short screens so the panel always fits */}
@@ -130,7 +112,7 @@ export function SavingsPanelBody({ c, lever, currentFy, nextFyLabel, route }: {
         {lever ? (
           <>
             <RouteStrip route={lever.route} compact />
-            <div className="text-[11px] text-muted mt-1.5">Evaluator {lever.evaluator} · NPD sample {lever.npdSample}</div>
+            <div className="text-[11px] text-muted mt-1.5">NPD sample {lever.npdSample}</div>
           </>
         ) : <div className="text-[12px] text-muted">Choose a category to see the route the idea will take.</div>}
       </div>
@@ -148,9 +130,8 @@ export function SavingsHero({ c, singleUnit }: { c: SavingsCalc; singleUnit?: Pa
           <span className="text-[10.5px] text-muted">Recalculates as you type</span>
         </div>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-[12px] text-ink-2 font-medium">Forecast impact</span>
-          {c.isOpen && <Tooltip content="Rough annual impact entered for an open idea — marked Estimate"><span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gold-50 text-gold-700 border border-gold-200">Estimate</span></Tooltip>}
-          <InfoTip title="Forecast impact" formula={F('Forecast impact')}>Full-year saving at the new price and annual volume.</InfoTip>
+          <span className="text-[12px] text-ink-2 font-medium">Opportunity cost</span>
+          <InfoTip title="Opportunity cost" formula={F('Opportunity cost')}>Full-year saving at the new price and annual volume.</InfoTip>
         </div>
         <div className="flex items-end gap-2.5 mt-1">
           <span className="text-[26px] leading-none font-extrabold tracking-tight transition-colors duration-300" style={{ color: col(c.annual) }}><Money value={c.annual} /></span>
@@ -160,12 +141,12 @@ export function SavingsHero({ c, singleUnit }: { c: SavingsCalc; singleUnit?: Pa
           <div className="rounded-lg bg-white border border-line px-2.5 py-1.5">
             <div className="text-[10.5px] uppercase tracking-wide text-muted font-semibold">Saving / unit</div>
             <div className="text-[14px] font-bold num mt-0.5" style={{ color: singleUnit ? col(singleUnit.unit) : 'var(--color-slate-900)' }}>
-              {c.isOpen ? '—' : singleUnit ? `${inrPrice(singleUnit.unit)} / ${singleUnit.uom}` : c.rows.length > 1 ? `${c.rows.length} parts · see below` : '₹ 0.00'}
+              {singleUnit ? `${inrPrice(singleUnit.unit)} / ${singleUnit.uom}` : c.rows.length > 1 ? `${c.rows.length} parts · see below` : '₹ 0.00'}
             </div>
           </div>
           <div className="rounded-lg bg-white border border-line px-2.5 py-1.5">
             <div className="text-[10.5px] uppercase tracking-wide text-muted font-semibold">Saving %</div>
-            <div className="text-[14px] font-bold num mt-0.5" style={{ color: col(c.pct) }}>{c.pct == null ? 'Estimate' : `${c.pct.toFixed(2)}%`}</div>
+            <div className="text-[14px] font-bold num mt-0.5" style={{ color: col(c.pct) }}>{c.pct.toFixed(2)}%</div>
           </div>
         </div>
       </div>

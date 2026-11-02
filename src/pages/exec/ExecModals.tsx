@@ -126,7 +126,7 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
         {idea.parts.length > 0 ? (
           <div className="rounded-lg border border-line overflow-x-auto">
             <table className="tbl">
-              <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>Estimated new</th><th style={{ textAlign: 'right' }}>Approved new price ₹</th><th style={{ textAlign: 'right' }}>Annual volume</th><th style={{ textAlign: 'right' }}>Forecast (approved)</th></tr></thead>
+              <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Baseline</th><th style={{ textAlign: 'right' }}>Estimated new</th><th style={{ textAlign: 'right' }}>Approved new price ₹</th><th style={{ textAlign: 'right' }}>Annual volume</th><th style={{ textAlign: 'right' }}>Opportunity cost (approved)</th></tr></thead>
               <tbody>
                 {approvedParts.map((p) => (
                   <tr key={p.partCode}>
@@ -148,9 +148,9 @@ export function MarkDoneModal({ idea, open, onClose, fy }: { idea: Idea | null; 
           </div>
         ) : <div className="text-[12.5px] text-muted rounded-lg border border-dashed border-line p-3">Open idea — no part codes; the estimate is carried as implemented value.</div>}
         <div className="grid grid-cols-3 gap-2">
-          <Out label="Forecast (approved)" v={inrShort(annual)} tip="(P(baseline) − P(approved)) × Q(last FY MRN)" />
-          <Out label={`Committed ${fy}`} v={inrShort(committed)} tip="Forecast × months live in FY from the effective date ÷ 12" />
-          <Out label="Carry-over" v={inrShort(carry)} tip="Forecast impact falling beyond 31 March" />
+          <Out label="Opportunity cost (approved)" v={inrShort(annual)} tip="(P(baseline) − P(approved)) × Q(last FY MRN)" />
+          <Out label={`Committed ${fy}`} v={inrShort(committed)} tip="Opportunity cost × months live in FY from the effective date ÷ 12" />
+          <Out label="Carry-over" v={inrShort(carry)} tip="Opportunity cost falling beyond 31 March" />
         </div>
       </div>
     </Modal>
@@ -254,7 +254,7 @@ export function PhasingEditor({ idea, fy, onClose, canEdit }: { idea: Idea; fy: 
     <div className="p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[12.5px] font-bold text-ink">Quarter phasing · {fy}</div>
-        <InfoTip title="Quarter phasing" formula="pre-fill = forecast ÷ 12 × months live per quarter">Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and forecast impact.</InfoTip>
+        <InfoTip title="Quarter phasing" formula="pre-fill = opportunity cost ÷ 12 × months live per quarter">Owner enters expected saving per quarter (Q1–Q4); the system pre-fills from due date and opportunity cost.</InfoTip>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {QS.map((q) => (

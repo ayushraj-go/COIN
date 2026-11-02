@@ -1,4 +1,4 @@
-// MIS by workspace. CO (Cost Optimisation) = execution and realisation after approval; IN (Innovation Network) = ideas, pipeline,
+// MIS by workspace. CO (Cost Optimisation) = execution and realisation after approval; IN (Cost Innovation) = ideas, pipeline,
 // funnel, suppliers, campaigns, approvals and SLAs. Every report and every KPI carries the workspace it belongs to.
 import { KPIS } from '../../lib/scope'
 
@@ -7,7 +7,7 @@ export type Space = 'IN' | 'CO'
 export const SPACE_ORDER: Space[] = ['CO', 'IN']
 export const SPACE_META: Record<Space, { name: string; color: string; tagline: string }> = {
   CO: { name: 'Cost Optimisation', color: 'var(--color-emerald-600)', tagline: 'Execution and realisation: implementation, due dates and slippage, realised savings from MRN, Finance validation, price leakage' },
-  IN: { name: 'Innovation Network', color: 'var(--color-brand-600)', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
+  IN: { name: 'Cost Innovation', color: 'var(--color-brand-600)', tagline: 'Ideas, pipeline and funnel, suppliers, campaigns, approvals and SLAs' },
 }
 
 export interface MisReport {
@@ -62,7 +62,7 @@ export const kpisOf = (space: Space) => KPIS.filter((k) => (KPI_SPACES[k.id] ?? 
 
 export const KPI_INTRO_BY_SPACE: Record<Space, string> = {
   CO: 'Cost Optimisation KPIs measure what approved ideas deliver: committed and realised savings, carry-over, on-time implementation, overdue value, realisation rate, price leakage and the category mix of realised savings.',
-  IN: 'Innovation Network KPIs measure the idea network: pipeline value, ideas by stage, conversion, drops, ageing against SLA, review speed and how widely suppliers, campaigns and departments contribute.',
+  IN: 'Cost Innovation KPIs measure the idea network: pipeline value, ideas by stage, conversion, drops, ageing against SLA, review speed and how widely suppliers, campaigns and departments contribute.',
 }
 export const LIB_INTRO_BY_SPACE: Record<Space, string> = {
   CO: 'Execution and realisation reports for everything after approval. The Monthly Cost Optimisation Report goes to management automatically after each realisation run.',

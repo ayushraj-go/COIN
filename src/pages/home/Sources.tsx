@@ -1,7 +1,7 @@
 // Dashboard body for IN and CO — the internal vs external breakup, in one panel:
 // a split bar (internal vs external), then Internal ideas (by commodity / department / individual) beside
 // External (supplier) ideas: count, value and share, campaign-sourced ideas, top contributing suppliers.
-// IN values = forecast impact; CO values = MRN-realised savings (with committed alongside).
+// IN values = opportunity cost; CO values = MRN-realised savings (with committed alongside).
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import type { Idea } from '../../lib/types'
@@ -46,7 +46,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
   const s = useMemo(() => sourceBreakdown(ideas, suppliers, value), [ideas, suppliers, mode, realisedBy]) // eslint-disable-line react-hooks/exhaustive-deps
   const total = s.internal.value + s.external.value
   const intShare = total ? (s.internal.value / total) * 100 : 0
-  const unit = mode === 'IN' ? 'forecast' : 'realised (MRN)'
+  const unit = mode === 'IN' ? 'opportunity cost' : 'realised (MRN)'
   const bucketParam = mode === 'CO' ? { bucket: 'In Execution,Implemented' } : {}
   const segs: Seg[] = tab === 'commodity' ? s.internal.byCommodity : tab === 'department' ? s.internal.byDepartment : s.internal.byIndividual
   const [rowsRef, fitRows] = useRowsFit(34, 8, 3, segs.length, 30)
@@ -93,7 +93,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
             <span className="h-8 w-8 rounded-[10px] grid place-items-center bg-brand-50 text-brand-700 shrink-0"><Icon name="GitFork" size={15} /></span>
             <div className="min-w-0">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-ink">{mode === 'IN' ? 'Internal vs external idea breakup' : 'Internal vs external savings breakup'}
-                <InfoTip title="Internal vs external">Internal = ideas raised inside Amber (by commodity, department and employee). External = ideas from suppliers, including those received through campaigns and workshops. {mode === 'IN' ? 'Values are forecast impact.' : 'Values are MRN-realised savings for ideas in execution or implemented.'}</InfoTip>
+                <InfoTip title="Internal vs external">Internal = ideas raised inside Amber (by commodity, department and employee). External = ideas from suppliers, including those received through campaigns and workshops. {mode === 'IN' ? 'Values are opportunity cost.' : 'Values are MRN-realised savings for ideas in execution or implemented.'}</InfoTip>
               </h3>
               <p className="text-[11.5px] text-muted"><b className="text-ink-2 num">{s.internal.count + s.external.count}</b> ideas · <b className="text-ink-2 num">{money(total)}</b> {unit}</p>
             </div>
@@ -117,7 +117,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
             <Segmented size="sm" value={tab} onChange={(k) => { setTab(k as Tab); setAll(false) }} options={[{ key: 'commodity', label: 'Commodity' }, { key: 'department', label: 'Department' }, { key: 'individual', label: 'Individual' }]} />
           </div>
           <div className="grid grid-cols-[18px_minmax(96px,1fr)_minmax(36px,30%)_80px_28px] items-center gap-x-3 px-2 pb-1 text-[11px] text-muted">
-            <span>#</span><span>{tab === 'commodity' ? 'Commodity' : tab === 'department' ? 'Department' : 'Employee'}</span><span>Share</span><span className="text-right">{mode === 'IN' ? 'Forecast' : 'Realised'}</span><span className="text-right">Ideas</span>
+            <span>#</span><span>{tab === 'commodity' ? 'Commodity' : tab === 'department' ? 'Department' : 'Employee'}</span><span>Share</span><span className="text-right">{mode === 'IN' ? 'Opportunity cost' : 'Realised'}</span><span className="text-right">Ideas</span>
           </div>
           <div ref={rowsRef} className={cn('flex flex-col', fill && 'flex-1 min-h-0 overflow-hidden')}>
             {shown.map(segRow)}
@@ -136,7 +136,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
           {/* summary — count, value and share of the total */}
           <button onClick={() => setModal({ title: 'External (supplier) ideas', ids: [...t1.ids, ...t2.ids] })} className="text-left grid grid-cols-3 gap-2 rounded-xl border border-line px-3.5 py-2.5 [@media(max-height:820px)]:py-2 hover:border-[var(--color-slate-300)] hover:bg-slate-50/60 transition-colors">
             <span className="min-w-0"><span className="block text-[11px] text-muted">Ideas</span><span className="block text-[20px] font-bold text-ink num leading-tight">{s.external.count}</span></span>
-            <span className="min-w-0"><span className="block text-[11px] text-muted">{mode === 'IN' ? 'Forecast value' : 'Realised (MRN)'}</span><span className="block text-[15px] font-bold text-ink num leading-tight mt-0.5">{money(s.external.value)}</span>{mode === 'CO' && <span className="block text-[11px] text-muted num">{money(committed([...t1.ids, ...t2.ids]))} committed</span>}</span>
+            <span className="min-w-0"><span className="block text-[11px] text-muted">{mode === 'IN' ? 'Opportunity cost value' : 'Realised (MRN)'}</span><span className="block text-[15px] font-bold text-ink num leading-tight mt-0.5">{money(s.external.value)}</span>{mode === 'CO' && <span className="block text-[11px] text-muted num">{money(committed([...t1.ids, ...t2.ids]))} committed</span>}</span>
             <span className="min-w-0"><span className="block text-[11px] text-muted">Share of total</span><span className="block text-[15px] font-bold text-ink num leading-tight mt-0.5">{pct(total ? 100 - intShare : 0, 0)}</span></span>
           </button>
 
@@ -168,7 +168,7 @@ export function SourcesCard({ ideas, mode, fy, className, fill }: { ideas: Idea[
       <Modal open={all} onClose={() => setAll(false)} size="lg" icon="GitFork" title={`Internal ideas by ${tab}`} subtitle={`${segs.length} ${tab === 'individual' ? 'employees' : tab === 'department' ? 'departments' : 'commodities'} · ${money(s.internal.value)} ${unit}`}>
         <div className="flex flex-col">{segs.map(segRow)}</div>
       </Modal>
-      <DrillModal open={!!modal} onClose={() => setModal(null)} title={modal?.title ?? ''} ideas={ideas.filter((i) => modal?.ids.includes(i.id))} valueFn={value} valueLabel={mode === 'IN' ? 'Forecast' : 'Realised (MRN)'} />
+      <DrillModal open={!!modal} onClose={() => setModal(null)} title={modal?.title ?? ''} ideas={ideas.filter((i) => modal?.ids.includes(i.id))} valueFn={value} valueLabel={mode === 'IN' ? 'Opportunity cost' : 'Realised (MRN)'} />
     </section>
   )
 }

@@ -1,14 +1,14 @@
-// Stage 4 — <dept> approval, in four steps:
+// Stage 3 — management approval and KPI allocation, in four steps:
 // 1 detailed commercial assessment (part-wise cost, financial case, phasing, how the idea got here, risk register)
 // 2 supplier alignment (exactly what the supplier answered on the capability form, checked against the plan)
-// 3 budget + timeline lock (part-wise budget, calendar start / end, dated milestone plan)
-// 4 sign & approve (signature, name, date, approval levels)
+// 3 KPI allocation (KPI owner, part-wise budget, calendar start / end, dated milestone plan)
+// 4 KPI sign-off (signature, typed name and date)
 import React, { useEffect, useState } from 'react'
 import type { ApprovalLock, Idea } from '../../lib/types'
 import { hasRole, useMe, useStore } from '../../store/useStore'
 import { MILESTONE_TEMPLATES, RISK_FACTORS, STAGE } from '../../lib/masters'
 import { cbaFigures, ideaAnnualised, partAnnualised, paybackMonths, phaseByQuarter, savingPct, savingPerUnit } from '../../lib/calc'
-import { addMonthsIso, lockTarget, milestoneSchedule, monthsBetween, overallRisk, riskTotal, stageLabel } from '../../lib/workflow'
+import { addMonthsIso, lockTarget, milestoneSchedule, monthsBetween, overallRisk, riskTotal } from '../../lib/workflow'
 import { monthlyForecast, seasonProfile, windowTarget } from '../../lib/mrn'
 import { addDays, fmtDate, fmtDateTime, inrPrice, inrShort, monthLabel, quarterStart, sum, todayIso } from '../../lib/format'
 import { Badge, Button, Field, Icon, InfoTip, Modal, Money, cn } from '../../components/ui'
@@ -45,6 +45,8 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   const [end, setEnd] = useState('')
   const [plan, setPlan] = useState<{ name: string; dueDate: string }[]>([])
   const [sigName, setSigName] = useState('')
+  const [kpiOwner, setKpiOwner] = useState('')
+  const [kpiEmail, setKpiEmail] = useState('')
   const [sig, setSig] = useState<string | null>(null)
   const [remarks, setRemarks] = useState('')
   const [rejecting, setRejecting] = useState(false)
@@ -62,7 +64,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
     const e = addMonthsIso(s, 6)
     setTab('commercial'); setCommercialOk(false); setCommercialNote(''); setBudgets(split); setNotes({})
     setStart(s); setEnd(e); replan(s, e)
-    setSigName(me?.name ?? ''); setSig(null); setRemarks(''); setRejecting(false)
+    setSigName(''); setKpiOwner(idea.submitterName); setKpiEmail(idea.submitterEmail ?? ''); setSig(null); setRemarks(''); setRejecting(false)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // a lock signed for a different saving (baseline changed since) must be signed again
@@ -80,10 +82,10 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
   const supplierAligned: ApprovalLock['supplierAligned'] = sc?.status === 'Responded' && sc.response?.canSupply !== 'No' ? 'Confirmed' : sc?.status === 'Skipped' || ev?.skipped ? 'Skipped' : 'Not confirmed'
   const planOk = plan.length > 0 && plan.every((m) => m.dueDate && m.dueDate >= todayIso() && m.dueDate <= end)
   const timelineOk = !!start && !!end && months >= 1 && start >= todayIso()
-  const canSign = commercialOk && timelineOk && planOk && !!sig && !!sigName.trim()
+  const canSign = commercialOk && timelineOk && planOk && !!kpiOwner.trim() && !!sig && !!sigName.trim()
 
   // ─── commercial numbers ──
-  // the department evaluation's cost-benefit figures (with any inputs the evaluator changed)
+  // the commercial evaluation's cost-benefit figures (with any inputs the evaluator changed)
   const cba = cbaFigures(idea, fy)
   const inv = cba.investment
   const goLive = locked?.startDate ?? cba.goLive
@@ -113,25 +115,25 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
       commercialOk, supplierAligned, budget: budgetTotal, timelineMonths: months, startDate: start, endDate: end, targetSaving: target, monthlyPlan: mplan.map((m) => m.amount), forecastAtLock: annual,
       signatureName: sigName.trim(), signatureData: sig ?? undefined, commercialNote: commercialNote.trim() || undefined,
       parts: rows.map((x) => ({ partCode: x.key, budget: Math.max(0, Number(budgets[x.key]) || 0) * 1e5, note: notes[x.key]?.trim() || undefined })),
-      milestones: plan,
+      milestones: plan, kpi: { owner: kpiOwner.trim(), ownerEmail: kpiEmail.trim() || undefined, target },
     })
     const ok = st.approve(idea.id, remarks.trim() || undefined)
-    if (ok) st.toast(finalStep ? `${idea.id} approved — execution started in Cost Optimisation` : `Approved at ${pending[0]?.level} — pending ${pending[1]?.level}`, 'success')
+    if (ok) st.toast(`${idea.id} approved — KPI signed off, execution started in Cost Optimisation`, 'success')
     onClose()
   }
-  const rejectNow = () => { useStore.getState().reject(idea.id, remarks.trim()); useStore.getState().toast(`${idea.id} rejected at ${stageLabel(idea, STAGE.approval)} — dropped for good`, 'warning'); onClose() }
+  const rejectNow = () => { useStore.getState().reject(idea.id, remarks.trim()); useStore.getState().toast(`${idea.id} rejected at ${STAGE.approval} — dropped for good`, 'warning'); onClose() }
 
   const tabs: { key: Tab; label: string; icon: string; done: boolean }[] = [
     { key: 'commercial', label: '1 · Commercial assessment', icon: 'Calculator', done: !!locked || commercialOk },
     { key: 'supplier', label: '2 · Supplier alignment', icon: 'Factory', done: supplierAligned !== 'Not confirmed' },
-    { key: 'lock', label: '3 · Budget & timeline lock', icon: 'CalendarRange', done: !!locked || (timelineOk && planOk) },
-    { key: 'sign', label: '4 · Sign & approve', icon: 'Signature', done: !!locked || !!sig },
+    { key: 'lock', label: '3 · KPI allocation', icon: 'CalendarRange', done: !!locked || (timelineOk && planOk && !!kpiOwner.trim()) },
+    { key: 'sign', label: '4 · KPI sign-off', icon: 'Signature', done: !!locked || !!sig },
   ]
   const order: Tab[] = ['commercial', 'supplier', 'lock', 'sign']
   const next = order[order.indexOf(tab) + 1]
 
   return (
-    <Modal open={open} onClose={onClose} size="2xl" icon="Stamp" title={`${stageLabel(idea, STAGE.approval)} — detailed commercial assessment`} subtitle={`${idea.id} · ${idea.title}`}
+    <Modal open={open} onClose={onClose} size="2xl" icon="Stamp" title={`${STAGE.approval} — detailed commercial assessment`} subtitle={`${idea.id} · ${idea.title}`}
       footer={rejecting ? <>
         <Button onClick={() => setRejecting(false)}>Back</Button>
         <Button variant="danger" icon="CircleX" disabled={!remarks.trim()} onClick={rejectNow}>Reject — drop for good</Button>
@@ -139,7 +141,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
         <Button variant="ghost" icon="CircleX" className="mr-auto" onClick={() => setRejecting(true)}>Reject…</Button>
         <Button onClick={onClose}>Cancel</Button>
         {next && <Button icon="ArrowRight" onClick={() => setTab(next)}>Next</Button>}
-        <Button variant="success" icon="Signature" disabled={!locked && !canSign} onClick={approveNow}>{locked ? 'Approve' : finalStep ? 'Sign lock & approve' : 'Sign lock & approve level'}</Button>
+        <Button variant="success" icon="Signature" disabled={!locked && !canSign} onClick={approveNow}>{locked ? 'Approve' : 'Sign KPI & approve'}</Button>
       </>}>
       {rejecting ? (
         <Field label="Why is this idea rejected?" required hint="The idea is dropped for good; a fresh attempt needs a new idea.">
@@ -149,7 +151,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
         <div className="grid gap-3">
           {/* summary strip — always visible */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
-            <Kpi label="Forecast saving / year" value={<Money value={annual} />} sub={idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
+            <Kpi label="Opportunity cost / year" value={<Money value={annual} />} sub={idea.parts.length ? `${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}` : 'open idea'} />
             <Kpi label="Locked target" value={<Money value={locked?.targetSaving ?? target} />} sub={`${locked?.timelineMonths ?? months} months`} />
             <Kpi label="Budget" value={<Money value={locked?.budget ?? budgetTotal} />} sub={inv ? `investment ${inrShort(inv)}` : 'no investment entered'} />
             <Kpi label="Payback" value={inv || cba.edited.includes('payback') ? `${cba.payback.toFixed(1)} months` : 'Immediate'} sub={cba.edited.length ? 'inputs set at evaluation' : undefined} />
@@ -169,18 +171,18 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
               <Block title="The idea" icon="Lightbulb" hint={`${idea.route} route · ${lever?.name ?? idea.leverId} · ${commodity?.name ?? idea.commodity} · ${idea.department} · raised by ${idea.submitterName}`}>
                 <div className="grid md:grid-cols-3 gap-3 text-[12.5px]">
                   <div><div className="text-[11px] font-medium text-muted mb-0.5">Today</div><div className="text-ink-2 leading-relaxed">{idea.currentState || '—'}</div></div>
-                  <div><div className="text-[11px] font-medium text-muted mb-0.5">Proposed change</div><div className="text-ink-2 leading-relaxed">{idea.proposedChange || '—'}</div></div>
-                  <div><div className="text-[11px] font-medium text-muted mb-0.5">Evidence</div><div className="text-ink-2 leading-relaxed">{idea.evidence || '—'}</div></div>
+                  <div><div className="text-[11px] font-medium text-muted mb-0.5">To-Be</div><div className="text-ink-2 leading-relaxed">{idea.proposedChange || '—'}</div></div>
+                  <div><div className="text-[11px] font-medium text-muted mb-0.5">Remarks</div><div className="text-ink-2 leading-relaxed">{idea.evidence || '—'}</div></div>
                 </div>
               </Block>
 
-              <Block title="Part-wise cost" icon="Table2" hint="Price per unit today and after the change, the annual spend and the forecast saving of every part">
+              <Block title="Part-wise cost" icon="Table2" hint="Price per unit today and after the change, the annual spend and the opportunity cost saving of every part">
                 {idea.parts.length ? (
                   <div className="rounded-lg border border-line overflow-x-auto">
                     <table className="tbl">
                       <thead><tr>
                         <th>Part</th><th>Current supplier</th><th style={{ textAlign: 'right' }}>Annual volume</th><th style={{ textAlign: 'right' }}>Cost today / unit</th><th style={{ textAlign: 'right' }}>New cost / unit</th>
-                        <th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Saving %</th><th style={{ textAlign: 'right' }}>Spend today / yr</th><th style={{ textAlign: 'right' }}>Spend after / yr</th><th style={{ textAlign: 'right' }}>Forecast saving / yr</th><th style={{ textAlign: 'right' }}>Share</th>
+                        <th style={{ textAlign: 'right' }}>Saving / unit</th><th style={{ textAlign: 'right' }}>Saving %</th><th style={{ textAlign: 'right' }}>Spend today / yr</th><th style={{ textAlign: 'right' }}>Spend after / yr</th><th style={{ textAlign: 'right' }}>Opportunity cost saving / yr</th><th style={{ textAlign: 'right' }}>Share</th>
                       </tr></thead>
                       <tbody>
                         {idea.parts.map((p) => (
@@ -213,15 +215,15 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
 
               <Block title="Financial case" icon="ChartNoAxesCombined" hint={`${fy} · savings counted from ${fmtDate(goLive)} (the savings start in the lock)`}>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <Kpi label="Forecast saving / year" value={<Money value={annual} />} tip="(cost today − new cost) × annual volume, summed over the parts" />
-                  <Kpi label="Saving on spend" value={spendToday ? `${((annual / spendToday) * 100).toFixed(2)}%` : '—'} tip="Forecast saving ÷ annual spend today" />
+                  <Kpi label="Opportunity cost / year" value={<Money value={annual} />} tip="(cost today − new cost) × annual volume, summed over the parts" />
+                  <Kpi label="Saving on spend" value={spendToday ? `${((annual / spendToday) * 100).toFixed(2)}%` : '—'} tip="Opportunity cost saving ÷ annual spend today" />
                   <Kpi label="One-time investment" value={<Money value={inv} />} />
                   <Kpi label="Net saving · year 1" value={<Money value={annual - inv} />} tone={annual - inv >= 0 ? 'good' : 'bad'} />
-                  <Kpi label={`Committed in ${fy}`} value={<Money value={committed} />} tip="Forecast × months live in the FY ÷ 12" />
+                  <Kpi label={`Committed in ${fy}`} value={<Money value={committed} />} tip="Opportunity cost × months live in the FY ÷ 12" />
                   <Kpi label="Carry-over to next FY" value={<Money value={cba.carryOver} />} />
                   <Kpi label="3-year saving, net" value={<Money value={annual * 3 - inv} />} />
                   <Kpi label="Benefit / cost (3 yr)" value={inv ? `${((annual * 3) / inv).toFixed(1)}×` : '—'} />
-                  <Kpi label="Risk-adjusted saving" value={<Money value={annual - atRisk} />} tip="Forecast − ₹ at risk from the risk register" />
+                  <Kpi label="Risk-adjusted saving" value={<Money value={annual - atRisk} />} tip="Opportunity cost − ₹ at risk from the risk register" />
                   <Kpi label="₹ at risk" value={<Money value={atRisk} />} tone={atRisk > annual * 0.1 ? 'bad' : undefined} />
                   <Kpi label="Monthly run-rate" value={<Money value={annual / 12} />} />
                   <Kpi label="Expected go-live" value={idea.expectedQuarter || '—'} />
@@ -232,8 +234,12 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
               </Block>
 
               <div className="grid lg:grid-cols-2 gap-3">
-                <Block title="How it got here" icon="Route" hint="Team feasibility check and department evaluation">
-                  <div className="text-[11px] font-semibold text-muted mb-0.5">Team feasibility check</div>
+                <Block title="How it got here" icon="Route" hint="Workshop, technical feasibility and commercial evaluation">
+                  <div className="text-[11px] font-semibold text-muted mb-0.5">Workshop</div>
+                  {idea.workshop?.events.length ? idea.workshop.events.map((e) => (
+                    <Kv key={e.id} k={`Event ${e.no} · ${fmtDate(e.date)}`} v={`${e.outcome ?? e.status} · ${e.closedBy ?? e.spoc.name}${e.notes ? ` — “${e.notes}”` : ''}`} />
+                  )) : <div className="text-[12.5px] text-muted">No event on record.</div>}
+                  <div className="text-[11px] font-semibold text-muted mt-2.5 mb-0.5">Technical feasibility check</div>
                   {f ? <>
                     <Kv k="Technically feasible" v={`${f.technical === 'Yes' ? 'Yes' : 'No'}${f.technicalNote ? ` — ${f.technicalNote}` : ''}`} />
                     <Kv k="Cost" v={`${f.cost}${f.costNote ? ` — ${f.costNote}` : ''}`} />
@@ -241,16 +247,16 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                     <Kv k="Departments consulted" v={f.departments.join(', ')} />
                     <Kv k="Decision" v={`${f.decision} · ${f.by} · ${fmtDate(f.at.slice(0, 10))}${f.remarks ? ` — “${f.remarks}”` : ''}`} />
                   </> : <div className="text-[12.5px] text-muted">No feasibility check on record.</div>}
-                  <div className="text-[11px] font-semibold text-muted mt-2.5 mb-0.5">{stageLabel(idea, STAGE.evaluation)}</div>
+                  <div className="text-[11px] font-semibold text-muted mt-2.5 mb-0.5">Commercial evaluation</div>
                   {ev?.skipped ? (
-                    <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12.5px] text-sky-900 flex items-start gap-2"><Icon name="SkipForward" size={14} className="shrink-0 mt-px" />Skipped — {ev.skippedReason ?? 'forecast below ₹ 5 L'}. Review the part-wise cost and risk here.</div>
+                    <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12.5px] text-sky-900 flex items-start gap-2"><Icon name="SkipForward" size={14} className="shrink-0 mt-px" />Skipped — {ev.skippedReason ?? 'opportunity cost below ₹ 5 L'}. Review the part-wise cost and risk here.</div>
                   ) : ev ? <>
                     <Kv k="Cost-benefit" v={ev.cbaVerified ? `Verified${ev.cbaNote ? ` — ${ev.cbaNote}` : ''}` : 'Not verified'} />
                     <Kv k="Recommendation" v={ev.decision ? `${ev.decision === 'Recommend' ? 'Recommended' : 'Rejected'} · ${ev.by ?? '—'}${ev.at ? ` · ${fmtDate(ev.at.slice(0, 10))}` : ''}` : '—'} />
                     {ev.remarks && <Kv k="Evaluator remarks" v={`“${ev.remarks}”`} />}
                   </> : <div className="text-[12.5px] text-muted">No evaluation on record.</div>}
                 </Block>
-                <Block title="Risk register" icon="ShieldAlert" hint={risks.length ? `Overall ${overallRisk(risks)} · ${inrShort(atRisk)} at risk` : 'From the department evaluation'}>
+                <Block title="Risk register" icon="ShieldAlert" hint={risks.length ? `Overall ${overallRisk(risks)} · ${inrShort(atRisk)} at risk` : 'From the commercial evaluation'}>
                   {risks.length ? (
                     <div className="grid gap-1.5">
                       {RISK_FACTORS.map((rf) => {
@@ -266,7 +272,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                       })}
                       {ev?.riskRemarks && <div className="text-[12px] text-ink-2 mt-1"><b>Mitigation:</b> {ev.riskRemarks}</div>}
                     </div>
-                  ) : <div className="text-[12.5px] text-muted">{ev?.skipped ? 'No risk register — the evaluation was skipped (forecast below ₹ 5 L).' : 'No risk assessment on record.'}</div>}
+                  ) : <div className="text-[12.5px] text-muted">{ev?.skipped ? 'No risk register — the evaluation was skipped (opportunity cost below ₹ 5 L).' : 'No risk assessment on record.'}</div>}
                 </Block>
               </div>
 
@@ -287,7 +293,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
           {tab === 'supplier' && (
             <div className="grid gap-3">
               {ev?.skipped || sc?.status === 'Skipped' ? (
-                <Block title="Supplier alignment — skipped" icon="SkipForward" hint={ev?.skipped ? ev.skippedReason : `Forecast ${inrShort(annual)} is below the ₹ 5 L threshold`}>
+                <Block title="Supplier alignment — skipped" icon="SkipForward" hint={ev?.skipped ? ev.skippedReason : `Opportunity cost ${inrShort(annual)} is below the ₹ 5 L threshold`}>
                   <div className="text-[12.5px] text-muted">No supplier capability request was needed for this idea, so there is no supplier answer to align with. The lock records supplier alignment as <b>Skipped</b>.</div>
                 </Block>
               ) : sc?.status === 'Responded' && r ? (
@@ -321,7 +327,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
               ) : (
                 <Block title="Supplier alignment — no answer yet" icon="MailQuestion" hint={sc?.status === 'Sent' ? `Sent to ${sc.supplierName} · ${sc.email} · ${fmtDateTime(sc.sentAt)}` : 'No capability request was sent'}>
                   <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
-                    <span>{sc?.status === 'Sent' ? 'The supplier has not answered the capability form yet.' : 'The department evaluation did not send a capability request.'} The lock records supplier alignment as <b>Not confirmed</b>.</span>
+                    <span>{sc?.status === 'Sent' ? 'The supplier has not answered the capability form yet.' : 'The commercial evaluation did not send a capability request.'} The lock records supplier alignment as <b>Not confirmed</b>.</span>
                     {sc?.status === 'Sent' && sc.token && <Button size="sm" icon="ExternalLink" onClick={() => window.open(`/supplier-form/${sc.token}`, '_blank')}>Open the supplier form</Button>}
                   </div>
                 </Block>
@@ -329,6 +335,15 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
             </div>
           )}
 
+          {tab === 'lock' && !locked && (
+            <Block title="KPI allocation" icon="Target" hint="The KPI is created here; who carries the saving through Cost Optimisation">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Field label="KPI owner" required><input className="input" value={kpiOwner} onChange={(e) => setKpiOwner(e.target.value)} /></Field>
+                <Field label="Owner email"><input className="input" type="email" value={kpiEmail} onChange={(e) => setKpiEmail(e.target.value)} /></Field>
+                <Field label="KPI target"><div className="input flex items-center bg-slate-50 num font-semibold"><Money value={target} /></div></Field>
+              </div>
+            </Block>
+          )}
           {tab === 'lock' && (
             <div className="grid gap-3">
               {stale && <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-900">The saving changed after the lock was signed ({inrShort(idea.lock!.targetSaving)} locked) — sign it again.</div>}
@@ -339,7 +354,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                   <Block title="Part-wise budget" icon="Wallet" hint="One-time cost per part — tooling, trials, validation, PPAP, freight. Pre-filled from the idea's investment, split by each part's saving.">
                     <div className="rounded-lg border border-line overflow-x-auto">
                       <table className="tbl">
-                        <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Forecast saving / yr</th><th style={{ textAlign: 'right', width: 150 }}>Budget (₹ lakh)</th><th>What the budget covers</th><th style={{ textAlign: 'right' }}>Payback</th></tr></thead>
+                        <thead><tr><th>Part</th><th style={{ textAlign: 'right' }}>Opportunity cost saving / yr</th><th style={{ textAlign: 'right', width: 150 }}>Budget (₹ lakh)</th><th>What the budget covers</th><th style={{ textAlign: 'right' }}>Payback</th></tr></thead>
                         <tbody>
                           {rows.map((x) => {
                             const b = Math.max(0, Number(budgets[x.key]) || 0) * 1e5
@@ -359,7 +374,7 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
                     </div>
                   </Block>
 
-                  <Block title="Timeline" icon="CalendarRange" hint={idea.buyingType === 'Indirect' ? 'Pick the savings start (expected first MRN at the new price) and end on the calendar; target = forecast ÷ 12 for each month' : 'Pick the savings start (expected first MRN at the new price) and end on the calendar; each month’s target follows the AC season (last-FY MRN pattern)'}>
+                  <Block title="Timeline" icon="CalendarRange" hint={idea.buyingType === 'Indirect' ? 'Pick the savings start (expected first MRN at the new price) and end on the calendar; target = opportunity cost ÷ 12 for each month' : 'Pick the savings start (expected first MRN at the new price) and end on the calendar; each month’s target follows the AC season (last-FY MRN pattern)'}>
                     <div className="grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)] gap-3 items-end">
                       <Field label="Savings start (first MRN)" required><input type="date" className="input" min={todayIso()} value={start} onChange={(e) => { const s = e.target.value; setStart(s); if (s && end && end <= s) { const e2 = addMonthsIso(s, 6); setEnd(e2); replan(s, e2) } else if (s && end) replan(s, end) }} /></Field>
                       <Field label="Savings end" required><input type="date" className="input" min={start || todayIso()} value={end} onChange={(e) => { setEnd(e.target.value); if (start && e.target.value) replan(start, e.target.value) }} /></Field>
@@ -405,14 +420,14 @@ export function SourcingApprovalModal({ idea, open, onClose }: { idea: Idea; ope
 
           {tab === 'sign' && (
             <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-              <Block title={locked ? 'Signed' : 'Sign the lock'} icon="Signature" hint={locked ? `${locked.signedBy} · ${fmtDate(locked.signedAt.slice(0, 10))}` : 'Signature, name and date are stored with the approval'}>
+              <Block title={locked ? 'KPI signed off' : 'KPI sign-off'} icon="Signature" hint={locked ? `${locked.signedBy} · ${fmtDate(locked.signedAt.slice(0, 10))}` : 'Signature, name and date are stored with the approval'}>
                 {locked ? (
                   locked.signatureData ? <img src={locked.signatureData} alt={`Signature of ${locked.signatureName}`} className="h-[90px] rounded-lg border border-line bg-white" /> : <div className="font-[cursive] text-[26px] text-brand-800">{locked.signatureName}</div>
                 ) : (
                   <div className="grid gap-2">
                     <SignaturePad onChange={setSig} />
                     <div className="grid grid-cols-2 gap-2">
-                      <Field label="Name"><input className="input" value={sigName} onChange={(e) => setSigName(e.target.value)} /></Field>
+                      <Field label="Your name" required hint="The ID is shared, so the person signing is recorded"><input className="input" value={sigName} onChange={(e) => setSigName(e.target.value)} /></Field>
                       <Field label="Date"><input className="input" value={fmtDate(todayIso())} readOnly /></Field>
                     </div>
                   </div>

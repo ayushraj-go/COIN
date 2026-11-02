@@ -1,9 +1,9 @@
-import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, MrnLine, MrnRead, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User } from './types'
+import type { Campaign, EmailLog, Execution, Idea, IdeaPart, LedgerEntry, MrnLine, MrnRead, Notification, Part, RiskItem, RiskLevel, RouteKey, SupplierCheck, User, WorkshopEvent } from './types'
 import { claimMrn, ledgerForMonth, monthlyForecast, seasonProfile, simulateMrnMonth } from './mrn'
 import { COMMODITIES_DEFAULT, LEVERS_DEFAULT, MILESTONE_TEMPLATES, PARTS_DEFAULT, ROUTE_STAGES, STAGE, SUPPLIERS_DEFAULT, USERS_DEFAULT, DROP_REASONS, LAKH, CATEGORIES_DEFAULT, PLANTS_DEFAULT, RISK_FACTORS } from './masters'
 import { addDays, daysBetween, fyMonths, iso, parse, ymOf, addMonthsYm, today } from './format'
 import { bucketFor, ideaAnnualised, phaseByQuarter, committedInFy } from './calc'
-import { addMonthsIso, evalDeptOf, feasibilityOwner, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
+import { addMonthsIso, evalDeptOf, inLockWindow, ladderOf, lockTarget, milestoneSchedule, needsEvaluation, needsSupplierCheck, signInId, supplierCapabilityEmail, SUPPLIER_SPEC_BY_GROUP } from './workflow'
 
 // deterministic RNG so the demo portfolio is stable
 function mulberry32(a: number) {
@@ -158,10 +158,21 @@ function evaluatorFor(evaluator: string) {
 
 type Target = 'Draft' | 'Pipeline' | 'In Execution' | 'Implemented' | 'Dropped' | 'Rejected'
 
-/** The department ladder for an idea: team lead (department lead on their own idea), department lead, head, execution owner */
-function ladderFor(dept: string, commodity: string, submitterId: string) {
-  const l = ladderOf(dept, commodity, users)
-  return { feas: feasibilityOwner(l, submitterId, users)!, evaluator: l.deptLead!, head: l.deptHead!, exec: l.execOwner!, verifier: l.verifier ?? 'u-fin' }
+/** Who acts on an idea: the department's one ID, Central at management approval, Finance at verification */
+function ladderFor(dept: string) {
+  const l = ladderOf(dept, users)
+  return { feas: l.departmentId!, evaluator: l.departmentId!, head: l.central!, exec: l.departmentId!, verifier: l.verifier! }
+}
+/** The person behind the Central ID who signs for a department on the demo data */
+const signerFor = (dept: string) => users.find((u) => u.department === dept && u.roles.includes('depthead'))!.name
+const DISCUSSION_POINTS = ['Is the change workable on the line without new tooling?', 'Does the new price hold for the full annual volume?', 'Which trials and approvals are needed, and who owns them?', 'What is the supply risk during the change-over?']
+/** One workshop event: scheduled, or held and closed with its outcome */
+function workshopEvent(ideaId: string, no: number, date: string, plant: string, sub: User, by: string, closed?: { outcome?: 'Follow-up' | 'Go ahead'; notes: string }): WorkshopEvent {
+  return {
+    id: `ev-${ideaId}-${no}`, no, date, time: pick(['10:30', '11:00', '14:30', '16:00']), venue: `${PLANTS_DEFAULT.find((x) => x.id === plant)?.name ?? 'Noida'} · conference room`,
+    points: DISCUSSION_POINTS.slice(0, no === 1 ? 3 : 2), attendees: [sub.department, 'Sourcing', 'Finance'], spoc: { name: sub.name, email: sub.email }, createdBy: by, createdAt: dt(addDays(date, -3), 11),
+    status: closed ? 'Held' : 'Scheduled', ...(closed ? { outcome: closed.outcome, notes: closed.notes, closedBy: sub.name, closedAt: dt(date, 17) } : {}),
+  }
 }
 const LEVEL_FRAC: Record<RiskLevel, [number, number]> = { Low: [0, 0.015], Medium: [0.015, 0.05], High: [0.05, 0.1] }
 function makeRisks(annual: number, levels?: RiskLevel[]): RiskItem[] {
@@ -187,8 +198,7 @@ function buildIdea(opts: {
   const route: RouteKey = lever.route
   const routeStages = ROUTE_STAGES[route]
   const parts = PARTS_DEFAULT.filter((p) => p.commodity === c.code)
-  const isOpen = !opts.partsOverride && opts.target !== 'Implemented' && opts.target !== 'In Execution' && (lever.id === 'L08' || lever.id === 'L17' || (chance(0.12) && lever.id !== 'L05'))
-  const nParts = isOpen ? 0 : Math.min(parts.length, chance(0.25) ? 2 : 1)
+  const nParts = Math.min(parts.length, chance(0.25) ? 2 : 1)
   const chosen = [...parts].sort(() => rnd() - 0.5).slice(0, nParts)
   const share = +r(0.6, 1).toFixed(2)
   const ideaParts = opts.partsOverride ?? chosen.map((p) => mkPart(p, lever.id, share, LEVER_PCT[lever.id]))
@@ -217,8 +227,6 @@ function buildIdea(opts: {
 
   const seq = opts.seq ?? nextSeq(c.code)
   const id = `COIN-${FY}-${c.code}-${String(seq).padStart(4, '0')}`
-  const annualPreview = ideaAnnualised({ parts: ideaParts, scope: isOpen ? 'Open' : 'Part-specific', openEstimateLakh: 0 })
-  const openEstimate = isOpen ? +(c.addressableSpend * r(0.002, 0.009) / LAKH).toFixed(1) : undefined
 
   let savingsType = lever.defaultSavingsType
   if (lever.savingsType.includes('Avoidance') && chance(0.35)) savingsType = 'Cost avoidance'
@@ -229,21 +237,20 @@ function buildIdea(opts: {
     evidence: pick(['Supplier quote received and benchmarked against 2 peers.', 'Trial on 200 units completed at Rajpura; no field issue.', 'Benchmark with competitor teardown attached.', 'Drawing mark-up shared with R&D.', 'Quote and cost break-up attached.']),
     evidenceTags: [pick(['Quote', 'Trial', 'Benchmark', 'Drawing'])].concat(chance(0.4) ? [pick(['Quote', 'Drawing'])] : []).filter((v, i, a) => a.indexOf(v) === i),
     attachments: chance(0.6) ? [{ id: `att-${id}-1`, name: pick(['supplier_quote.pdf', 'drawing_rev_C.pdf', 'benchmark.xlsx', 'trial_report.pdf']), size: ri(80, 2400) * 1024, type: 'application/pdf', uploadedAt: dt(createdAt), by: sub.name }] : [],
-    submitterId, submitterName: sub.name, employeeId: sub.employeeId, department: sub.department, plant,
+    // the ID it was raised from, and the person who typed their name on the form
+    submitterId: signInId(submitterId, users)!, submitterName: sub.name, employeeId: sub.employeeId, submitterEmail: sub.email, department: sub.department, plant,
     buyingType: cat.buyingType, categoryId: c.categoryId, commodity: c.code, leverId: lever.id,
-    scope: isOpen ? 'Open' : 'Part-specific', campaignId: opts.campaignId,
+    scope: 'Part-specific', campaignId: opts.campaignId,
     parts: ideaParts,
     proposedSupplier: lever.route === 'Supplier change' || lever.id === 'L06' ? { code: altSup?.code, name: altName, isNew: !altSup } : undefined,
     savingsType, oneTimeInvestment: ['L06', 'L09', 'L10', 'L11', 'L15', 'L18', 'L16'].includes(lever.id) ? Math.round(r(1, 38)) * LAKH : chance(0.2) ? Math.round(r(0.5, 4)) * LAKH : 0,
     expectedQuarter: `${pick(['Q2', 'Q3', 'Q3', 'Q4'])} ${FY}`,
-    openEstimateLakh: openEstimate,
     gainSharePct: supplierSub ? pick([20, 25, 30, 40]) : undefined,
     offerValidity: supplierSub ? addDays(createdAt, 120) : undefined,
     isSupplierSubmission: !!supplierSub, supplierCode: supplierSub?.supplierCode ?? chosen[0]?.supplierCode,
     route, stage: STAGE.feasibility, bucket: 'Pipeline', stageEnteredAt: dt(createdAt), createdAt: dt(createdAt, 9, 30), submittedAt: t === 'Draft' ? undefined : dt(createdAt, 9, 45),
     buyerId: c.buyerId, approvals: [], stageHistory: [], activity: [], comments: [],
   }
-  void annualPreview
 
   const log = (at: string, userId: string, action: string, extra: Partial<Idea['activity'][0]> = {}) =>
     idea.activity.push({ id: `a-${idea.activity.length}-${id}`, at, userId, userName: userById(userId)?.name ?? 'System', action, ...extra })
@@ -252,18 +259,18 @@ function buildIdea(opts: {
   if (t === 'Draft') { idea.stage = 'Draft'; idea.bucket = 'Draft'; idea.stageHistory = [{ stage: 'Draft', enteredAt: dt(createdAt) }]; return idea }
   log(dt(createdAt, 9, 45), submitterId, 'Idea submitted', { field: 'stage', oldValue: 'Draft', newValue: STAGE.feasibility })
 
-  // decide final stage index — 0 Team feasibility check · 1 Evaluation · 2 Approval · 3 Execution started · 4 Verification
+  // decide final stage index — 0 Workshop / event creation · 1 Management approval · 2 Execution started · 3 Verification
   const ai = routeStages.indexOf(STAGE.approval)
   let finalIdx: number
   if (opts.stageOverride) finalIdx = routeStages.indexOf(opts.stageOverride)
-  else if (t === 'Pipeline') finalIdx = ri(0, ai)
+  else if (t === 'Pipeline') finalIdx = ri(0, 2) === 2 ? ai : 0 // two in three are still at their workshop
   else if (t === 'In Execution') finalIdx = ai + 1
   else if (t === 'Implemented') finalIdx = routeStages.length - 1
-  else if (t === 'Rejected') finalIdx = ri(1, ai)
+  else if (t === 'Rejected') finalIdx = ri(0, ai)
   else finalIdx = ri(0, routeStages.length - 2)
 
   const evalDept = evalDeptOf(sub.department)
-  const lad = ladderFor(evalDept, c.code, submitterId)
+  const lad = ladderFor(evalDept)
   const evaluatorId = lad.evaluator
   let cursor = createdAt
   const lead = c.leadId
@@ -271,17 +278,17 @@ function buildIdea(opts: {
     const stage = routeStages[s]
     const enteredAt = dt(cursor, 10 + (s % 6), 15)
     const isLast = s === finalIdx
-    const dur = t === 'Pipeline' && isLast ? 0 : stage === STAGE.approval ? ri(1, 4) : stage === STAGE.evaluation ? ri(3, 10) : stage === STAGE.execution ? ri(20, 60) : ri(2, 7)
-    const who = stage === STAGE.approval ? lad.head : stage === STAGE.evaluation ? evaluatorId : stage === STAGE.feasibility ? lad.feas : lad.exec
+    const dur = t === 'Pipeline' && isLast ? 0 : stage === STAGE.approval ? ri(1, 4) : stage === STAGE.execution ? ri(20, 60) : ri(5, 15)
+    const who = stage === STAGE.approval ? lad.head : stage === STAGE.feasibility ? lad.feas : lad.exec
     idea.stageHistory.push({ stage, enteredAt })
     if (!isLast) {
       const exit = addDays(cursor, dur)
       const h = idea.stageHistory[idea.stageHistory.length - 1]
       h.exitedAt = dt(exit, 16)
       h.by = userById(who).name
-      h.action = stage === STAGE.approval ? 'Approved · lock signed' : stage === STAGE.evaluation ? 'Recommended' : stage === STAGE.feasibility ? 'Go' : stage === STAGE.execution ? 'Handed for verification' : 'Completed'
+      h.action = stage === STAGE.approval ? 'Approved · KPI signed off' : stage === STAGE.feasibility ? 'Go ahead' : stage === STAGE.execution ? 'Handed for verification' : 'Completed'
       // the Execution started → Verification step is logged as the hand-over with its own date below
-      if (stage !== STAGE.execution) log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Team feasibility check — Go' : stage === STAGE.evaluation ? `${evalDept} evaluation — recommended` : `${evalDept} approval — approved`, { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
+      if (stage !== STAGE.execution) log(dt(exit, 16), who, stage === STAGE.feasibility ? 'Workshop — go ahead' : 'Management approval — approved', { field: 'stage', oldValue: stage, newValue: routeStages[s + 1] })
       if (stage === STAGE.approval) idea.approvedAt = dt(exit, 16)
       cursor = exit
     }
@@ -305,27 +312,40 @@ function buildIdea(opts: {
   const annual = ideaAnnualised(idea)
   const terminal = t === 'Dropped' || t === 'Rejected'
 
-  // Stage 2 — team feasibility check (four checks)
-  if (finalIdx >= 1 || (terminal && finalIdx === 0)) {
-    const passed = finalIdx >= 1
+  // Stage 2 — the workshop: event, technical feasibility form and commercial evaluation form
+  const passed = finalIdx >= 1
+  const entered = idea.stageHistory[0].enteredAt.slice(0, 10)
+  const heldOn = (idea.stageHistory[0].exitedAt ?? dt(cursor, 15)).slice(0, 10)
+  // an idea still at its workshop may have its event set and its forms part-way
+  const open = !passed && !terminal
+  const eventSet = passed || terminal || chance(0.7)
+  const feasibilityDone = passed || (finalIdx === 0 && terminal) || (eventSet && chance(0.6))
+  if (eventSet) {
+    const follow = chance(0.25)
+    const first = follow ? addDays(entered, 2) : passed || terminal ? heldOn : addDays(TODAY, ri(2, 12))
+    const events = [workshopEvent(id, 1, first, plant, sub, lad.feas, passed || terminal || follow ? { outcome: follow ? 'Follow-up' : passed ? 'Go ahead' : undefined, notes: follow ? 'Vendor quote needed before a decision; follow-up discussion scheduled.' : passed ? 'Feasible on both counts; go ahead agreed.' : 'Closed without a go ahead.' } : undefined)]
+    if (follow) events.push(workshopEvent(id, 2, passed || terminal ? heldOn : addDays(TODAY, ri(2, 12)), plant, sub, lad.feas, passed || terminal ? { outcome: passed ? 'Go ahead' : undefined, notes: passed ? 'Quote reviewed; go ahead agreed.' : 'Closed without a go ahead.' } : undefined))
+    idea.workshop = { events, goAheadAt: passed ? idea.stageHistory[0].exitedAt : undefined, goAheadBy: passed ? sub.name : undefined }
+  }
+  if (feasibilityDone) {
+    const go = passed || open || t === 'Rejected'
     const extra = ['R&D', 'Quality', 'DQA', 'Production', 'Finance'].filter(() => chance(0.35))
     idea.feasibilityCheck = {
-      technical: passed || chance(0.5) ? 'Yes' : 'No', cost: passed ? 'Valid' : 'Not valid', costNote: passed ? 'Baseline matches LBP; new price within the quote' : 'Baseline above latest LBP; quote to be refreshed',
-      conflict: 'None', decision: passed ? 'Go' : 'No-go', departments: ['Sourcing', ...(extra.length ? extra : ['R&D'])],
-      remarks: passed ? 'Feasible; baseline and volume confirmed.' : 'Not feasible at the quoted cost.',
+      technical: go || chance(0.5) ? 'Yes' : 'No', cost: go ? 'Valid' : 'Not valid', costNote: go ? 'Baseline matches LBP; new price within the quote' : 'Baseline above latest LBP; quote to be refreshed',
+      conflict: 'None', decision: go ? 'Go' : 'No-go', departments: ['Sourcing', ...(extra.length ? extra : ['R&D'])],
+      remarks: go ? 'Feasible; baseline and volume confirmed.' : 'Not feasible at the quoted cost.',
       by: userById(lad.feas).name, byDept: evalDept, at: idea.stageHistory[0].exitedAt ?? dt(cursor, 15),
     }
   }
 
-  // Stage 3 — <dept> evaluation: cost-benefit, risk, supplier capability, decision
-  if (finalIdx >= 1) {
-    const done = finalIdx > 1
+  // Stage 2 — commercial evaluation: cost-benefit, risk, supplier capability, decision
+  {
+    const done = passed
     const alt = SUPPLIERS_DEFAULT.find((x) => x.code === idea.proposedSupplier?.code) ?? SUPPLIERS_DEFAULT.find((x) => x.commodities.includes(c.code) && x.code !== chosen[0]?.supplierCode) ?? SUPPLIERS_DEFAULT.find((x) => x.commodities.includes(c.code))
     let supplier: SupplierCheck
     if (!needsSupplierCheck(annual)) supplier = { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' }
     else {
       const state = done ? 'Responded' : pick(['Not sent', 'Sent', 'Responded'] as const)
-      const entered = idea.stageHistory[1].enteredAt.slice(0, 10)
       const sentDay = addDays(entered, 1) < TODAY ? addDays(entered, 1) : addDays(TODAY, -1)
       if (state === 'Not sent' || !alt) supplier = { status: 'Not sent' }
       else {
@@ -338,47 +358,38 @@ function buildIdea(opts: {
       dept: evalDept, cbaVerified: done || chance(0.5), cbaNote: done ? 'Part-wise saving, payback and phasing verified against LBP and MRN FY26.' : undefined,
       risks: risky ? makeRisks(annual) : undefined, riskRemarks: risky ? 'Risks acceptable with sample validation and a phased cut-over.' : undefined,
       supplier, decision: done ? 'Recommend' : undefined, remarks: done ? 'Recommended — cost-benefit verified, risks acceptable.' : undefined,
-      by: done ? userById(evaluatorId).name : undefined, at: done ? idea.stageHistory[1].exitedAt : undefined,
+      by: done ? userById(evaluatorId).name : undefined, at: done ? idea.stageHistory[0].exitedAt : undefined,
     }
   }
 
-  // forecast below ₹ 5 L: the department evaluation was skipped — team feasibility check straight to department approval
-  if (finalIdx >= 1 && !needsEvaluation(annual)) {
-    const reason = `Forecast ₹ ${(annual / 1e5).toFixed(2)} L is below ₹ 5 L — no ${evalDept} evaluation needed`
-    idea.evaluation = { dept: evalDept, skipped: true, skippedReason: reason, supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — forecast below ₹ 5 L' } }
-    const h = idea.stageHistory
-    const ev = h.findIndex((x) => x.stage === STAGE.evaluation)
-    const at = h[ev - 1]?.exitedAt ?? h[ev].enteredAt
-    Object.assign(h[ev], { enteredAt: at, exitedAt: at, by: 'COIN', action: `Skipped — ${reason}` })
-    if (h[ev + 1]) h[ev + 1].enteredAt = at
-    else { h.push({ stage: STAGE.approval, enteredAt: at }); cur = STAGE.approval; idea.stage = cur; idea.stageEnteredAt = at }
-    idea.activity = idea.activity
-      .filter((a) => !a.action.startsWith('Evaluation —'))
-      .map((a) => (a.action === `${evalDept} evaluation — recommended` ? { ...a, action: `${evalDept} evaluation skipped — forecast below ₹ 5 L`, remarks: reason } : a))
+  // opportunity cost below ₹ 5 L: no commercial evaluation is needed — the workshop goes ahead on the feasibility form
+  if (!needsEvaluation(annual)) {
+    const reason = `Opportunity cost ₹ ${(annual / 1e5).toFixed(2)} L is below ₹ 5 L — no commercial evaluation needed`
+    idea.evaluation = { dept: evalDept, skipped: true, skippedReason: reason, supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — opportunity cost below ₹ 5 L' } }
   }
 
   // approvals
-  // stage 4 — one approval level: the head of the idea's department
-  idea.approvals = [{ level: `${evalDept} head`, approverId: lad.head }]
-  if (idea.approvedAt) idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: idea.approvedAt, remarks: 'Approved — lock signed.' }))
+  // stage 3 — one approval level: management, on the Central ID
+  idea.approvals = [{ level: 'Management', approverId: lad.head }]
+  if (idea.approvedAt) idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: idea.approvedAt, remarks: 'Approved — KPI signed off.' }))
 
   idea.bucket = bucketFor(route, cur)
 
-  // Stage 4 — budget + timeline lock (savings start = expected first MRN at the new price)
+  // Stage 3 — budget + timeline lock and KPI (savings start = expected first MRN at the new price)
   if (idea.approvedAt) {
     const approvedDay = idea.approvedAt.slice(0, 10)
     const months = pick([3, 6, 6, 6, 9, 12])
     const leadMonths = route === 'Technical' || route === 'Supplier change' ? 2 : 1
     const startDate = firstOfMonth(addMonthsIso(approvedDay, leadMonths))
-    const signer = lad.head
     idea.lock = {
       commercialOk: true, supplierAligned: idea.evaluation?.supplier?.status === 'Responded' ? 'Confirmed' : idea.evaluation?.supplier?.status === 'Skipped' ? 'Skipped' : 'Not confirmed',
       budget: idea.oneTimeInvestment || Math.round((annual * 0.02) / 1000) * 1000, timelineMonths: months, startDate, endDate: addMonthsIso(startDate, months),
-      targetSaving: lockTarget(annual, months), signatureName: userById(signer).name, signedAt: idea.approvedAt, signedBy: userById(signer).name,
+      targetSaving: lockTarget(annual, months), signatureName: signerFor(evalDept), signedAt: idea.approvedAt, signedBy: userById(lad.head).name,
+      kpi: { owner: sub.name, ownerEmail: sub.email, target: lockTarget(annual, months) },
     }
   }
 
-  // Stage 5 — execution record from the lock
+  // Stage 4 — execution record from the lock
   if (idea.approvedAt && idea.lock) {
     const approvedDay = idea.approvedAt.slice(0, 10)
     const L = idea.lock
@@ -462,7 +473,7 @@ function buildIdea(opts: {
         idea.verification = { ...idea.verification, verifiedAt: dt(verifiedOn, 12), verifiedBy: userById(lad.verifier).name, mrnAtApproved: true, financeValidated: true, targetAchieved: true, remarks: 'MRN at the approved price; savings on plan for the period.' }
         const vH = idea.stageHistory.find((h) => h.stage === STAGE.verification)
         if (vH) Object.assign(vH, { exitedAt: dt(verifiedOn, 12), by: userById(lad.verifier).name, action: 'Verified' })
-        log(dt(verifiedOn, 12), 'u-head', 'Verified — target achieved')
+        log(dt(verifiedOn, 12), lad.verifier, 'Verified — target achieved')
       }
     }
   }
@@ -474,8 +485,8 @@ function buildIdea(opts: {
     idea.bucket = 'Dropped'
     idea.droppedAt = dt(at, 14)
     idea.dropReason = t === 'Rejected' ? 'Price not agreed' : finalIdx === 0 ? 'Not feasible' : pick(DROP_REASONS.slice(0, 8))
-    if (t === 'Rejected' && idea.evaluation && cur === STAGE.evaluation) idea.evaluation = { ...idea.evaluation, decision: 'Reject', remarks: 'Saving not commensurate with qualification risk.', by: userById(evaluatorId).name, at: dt(at, 14) }
-    idea.dropRemarks = t === 'Rejected' ? `Rejected at ${cur === STAGE.evaluation ? `${evalDept} evaluation` : `${evalDept} approval`} — saving not commensurate with qualification risk.` : pick(['Supplier withdrew after RM increase.', 'Sample failed salt-spray at 96 h.', 'OEM customer did not approve the change.', 'Volume moved to new platform.', 'Superseded by consolidated negotiation idea.'])
+    if (t === 'Rejected' && idea.evaluation && !idea.evaluation.skipped && cur === STAGE.feasibility) idea.evaluation = { ...idea.evaluation, decision: 'Reject', remarks: 'Saving not commensurate with qualification risk.', by: userById(evaluatorId).name, at: dt(at, 14) }
+    idea.dropRemarks = t === 'Rejected' ? `Rejected at ${cur === STAGE.feasibility ? 'the commercial evaluation' : 'management approval'} — saving not commensurate with qualification risk.` : pick(['Supplier withdrew after RM increase.', 'Sample failed salt-spray at 96 h.', 'OEM customer did not approve the change.', 'Volume moved to new platform.', 'Superseded by consolidated negotiation idea.'])
     idea.stageHistory.push({ stage: idea.stage, enteredAt: idea.droppedAt, by: userById(c.buyerId).name, action: t, remarks: idea.dropRemarks })
     idea.stageEnteredAt = idea.droppedAt
     if (idea.execution) idea.execution.status = 'Dropped'
@@ -563,7 +574,7 @@ export function seedIdeas(): Idea[] {
   return ideas
 }
 
-// ─── Six-stage walkthrough: one idea per stage, every form filled up to that stage ─────────────────
+// ─── Walkthrough: one idea per stage (two at the workshop, one verified), every form filled up to that point ───
 interface ShowSpec {
   n: number; commodity: string; leverId: string; submitterId: string; title: string; current: string; proposed: string; evidence: string
   partCode: string; newPrice: number; volume: number; investment: number; months: number; alt?: string; risks: RiskLevel[]
@@ -627,12 +638,13 @@ function buildShowcase(): Idea[] {
     idea.currentState = sp.current; idea.proposedChange = sp.proposed; idea.evidence = sp.evidence; idea.evidenceTags = ['Trial', 'Quote']
     idea.oneTimeInvestment = sp.investment; idea.campaignId = undefined; idea.plant = part.plant; idea.supplierCode = part.supplierCode
     idea.isSupplierSubmission = false; idea.gainSharePct = undefined; idea.offerValidity = undefined
+    idea.workshop = undefined; idea.feasibilityCheck = undefined
     idea.attachments = [{ id: `att-${id}-1`, name: sp.n % 2 ? 'trial_report.pdf' : 'supplier_quote.pdf', size: 860 * 1024, type: 'application/pdf', uploadedAt: dt(D.submitted), by: idea.submitterName }]
     const altSup = sp.alt ? SUPPLIERS_DEFAULT.find((x) => x.code === sp.alt) : undefined
     idea.proposedSupplier = lever.route === 'Supplier change' && altSup ? { code: altSup.code, name: altSup.name, isNew: false } : undefined
     const annual = ideaAnnualised(idea)
     const evalDept = evalDeptOf(idea.department)
-    const lad = ladderFor(evalDept, c.code, sp.submitterId)
+    const lad = ladderFor(evalDept)
     const evaluatorId = lad.evaluator
     const name = (u: string) => (u === 'system' ? 'COIN' : userById(u).name)
     const act: Idea['activity'] = []
@@ -642,15 +654,21 @@ function buildShowcase(): Idea[] {
     const hist: Idea['stageHistory'] = [{ stage: STAGE.feasibility, enteredAt: dt(D.submitted, 9, 45) }]
     const close = (at: string, by: string, action: string, next: string) => { Object.assign(hist[hist.length - 1], { exitedAt: at, by: name(by), action }); hist.push({ stage: next, enteredAt: at }) }
 
-    // Stage 2 — team feasibility check
+    const person = userById(sp.submitterId)
+    const needsEval = needsEvaluation(annual)
+    const skipped = !needsSupplierCheck(annual)
+    idea.evaluation = needsEval ? { dept: evalDept, cbaVerified: false, supplier: skipped ? { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' } : { status: 'Not sent' } }
+      : { dept: evalDept, skipped: true, skippedReason: 'Opportunity cost below ₹ 5 L — no commercial evaluation needed', supplier: { status: 'Skipped', skippedReason: 'Evaluation skipped — opportunity cost below ₹ 5 L' } }
+    // Stage 2 — workshop event and technical feasibility form; the first idea has just been raised
     if (sp.n >= 2) {
-      idea.feasibilityCheck = { technical: 'Yes', technicalNote: 'Fits the current process; no new tooling beyond what the idea lists.', cost: 'Valid', costNote: `Baseline matches LBP; ${((1 - sp.newPrice / baseline) * 100).toFixed(1)} % saving is within the quote.`, conflict: 'None', decision: 'Go', departments: ['Sourcing', evalDept === 'Sourcing' ? 'Finance' : evalDept, 'Production'], remarks: 'Feasible — send for evaluation.', by: name(lad.feas), byDept: evalDept, at: dt(D.feas, 16) }
-      log(dt(D.feas, 16), lad.feas, 'Team feasibility check — Go', { remarks: 'Technically feasible · cost valid · no duplicate / conflict' })
-      close(dt(D.feas, 16), lad.feas, 'Go', STAGE.evaluation)
-      const skipped = !needsSupplierCheck(annual)
-      idea.evaluation = { dept: evalDept, cbaVerified: false, supplier: skipped ? { status: 'Skipped', skippedReason: 'Below minimum saving threshold (₹ 5 L)' } : { status: 'Not sent' } }
+      const held = sp.n >= 3
+      const ev = workshopEvent(id, 1, held ? D.eval : addDays(TODAY, 4), idea.plant, person, lad.feas, held ? { outcome: 'Go ahead', notes: 'Feasible on both counts; go ahead agreed.' } : undefined)
+      idea.workshop = { events: [ev], goAheadAt: held ? dt(D.eval, 16) : undefined, goAheadBy: held ? person.name : undefined }
+      log(dt(D.feas, 11), lad.feas, 'Workshop event created', { remarks: `${ev.date} · ${ev.venue} · SPOC ${ev.spoc.name}` })
+      idea.feasibilityCheck = { technical: 'Yes', technicalNote: 'Fits the current process; no new tooling beyond what the idea lists.', cost: 'Valid', costNote: `Baseline matches LBP; ${((1 - sp.newPrice / baseline) * 100).toFixed(1)} % saving is within the quote.`, conflict: 'None', decision: 'Go', departments: ['Sourcing', evalDept === 'Sourcing' ? 'Finance' : evalDept, 'Production'], remarks: 'Technically feasible.', by: name(lad.feas), byDept: evalDept, at: dt(D.feas, 16) }
+      log(dt(D.feas, 16), lad.feas, 'Technical feasibility check — Go', { remarks: 'Technically feasible · cost valid · no duplicate / conflict' })
     }
-    // Stage 3 — evaluation completed
+    // Stage 2 — commercial evaluation completed; Go ahead sends the idea to management
     if (sp.n >= 3 && altSup && sp.response) {
       const sentDay = addDays(D.feas, 3), respDay = addDays(D.feas, 6)
       const req = capabilityRequest(id, idea.seq, altSup, part.description, SUPPLIER_SPEC_BY_GROUP[lever.group], addMonthsIso(D.eval, 3), dt(sentDay, 11), name(evaluatorId))
@@ -664,20 +682,21 @@ function buildShowcase(): Idea[] {
       log(dt(sentDay, 11), evaluatorId, `Supplier capability request sent to ${altSup.name}`, { remarks: altSup.contactEmail })
       log(dt(respDay, 15), 'supplier', `Supplier capability response — can supply: ${r.canSupply}`, { remarks: `Meets spec: ${r.meetsSpec} · lead time ${r.lead} d · capacity ${r.capacity}` })
       log(dt(D.eval, 15), evaluatorId, 'Evaluation — cost-benefit analysis and risk assessment saved')
-      log(dt(D.eval, 16), evaluatorId, `${evalDept} evaluation — recommended`, { field: 'stage', oldValue: STAGE.evaluation, newValue: STAGE.approval })
-      close(dt(D.eval, 16), evaluatorId, 'Recommended', STAGE.approval)
+      log(dt(D.eval, 15), evaluatorId, 'Commercial evaluation — recommended')
+      log(dt(D.eval, 16), lad.feas, 'Workshop — go ahead', { field: 'stage', oldValue: STAGE.feasibility, newValue: STAGE.approval })
+      close(dt(D.eval, 16), lad.feas, 'Go ahead', STAGE.approval)
     }
-    // Stage 4 — <dept> approval by the department head + signed lock
-    idea.approvals = [{ level: `${evalDept} head`, approverId: lad.head }]
+    // Stage 3 — management approval on the Central ID, with the signed lock and the KPI
+    idea.approvals = [{ level: 'Management', approverId: lad.head }]
     if (sp.n >= 4) {
       const signer = lad.head
-      idea.lock = { commercialOk: true, supplierAligned: idea.evaluation?.supplier?.status === 'Responded' ? 'Confirmed' : 'Skipped', budget: sp.investment || 50_000, timelineMonths: sp.months, startDate: D.start, endDate: addMonthsIso(D.start, sp.months), targetSaving: lockTarget(annual, sp.months), signatureName: name(signer), signedAt: dt(D.approved, 15), signedBy: name(signer) }
+      idea.lock = { commercialOk: true, supplierAligned: idea.evaluation?.supplier?.status === 'Responded' ? 'Confirmed' : 'Skipped', budget: sp.investment || 50_000, timelineMonths: sp.months, startDate: D.start, endDate: addMonthsIso(D.start, sp.months), targetSaving: lockTarget(annual, sp.months), signatureName: signerFor(evalDept), signedAt: dt(D.approved, 15), signedBy: name(signer), kpi: { owner: person.name, ownerEmail: person.email, target: lockTarget(annual, sp.months) } }
       idea.approvals = idea.approvals.map((a) => ({ ...a, decision: 'Approved' as const, at: dt(D.approved, 16), remarks: 'Approved — budget and timeline locked.' }))
       idea.approvedAt = dt(D.approved, 16)
       log(dt(D.approved, 15), signer, 'Budget & timeline lock signed', { remarks: `${sp.months} months · target ${(idea.lock.targetSaving / LAKH).toFixed(1)} L` })
-      log(dt(D.approved, 16), signer, `${evalDept} approval — approved`, { field: 'stage', oldValue: STAGE.approval, newValue: STAGE.execution })
-      close(dt(D.approved, 16), signer, 'Approved · lock signed', STAGE.execution)
-      // Stage 5 — execution started
+      log(dt(D.approved, 16), signer, 'Management approval — approved', { field: 'stage', oldValue: STAGE.approval, newValue: STAGE.execution })
+      close(dt(D.approved, 16), signer, 'Approved · KPI signed off', STAGE.execution)
+      // Stage 4 — execution started
       const L = idea.lock
       const tpl = MILESTONE_TEMPLATES[lever.route]
       const due = milestoneSchedule(D.approved, L.startDate, L.endDate, tpl)
@@ -698,7 +717,7 @@ function buildShowcase(): Idea[] {
       if (tpl.some((m) => m.includes('NPD'))) { idea.npdRequestId = `NPD-ECN-${26500 + sp.n}`; idea.npdStatus = sp.n >= 5 ? 'Sample approved' : 'ECN raised' }
       if (tpl.some((m) => m.includes('PAP'))) { idea.papRequestId = `PAP-${45100 + sp.n}`; idea.papStatus = sp.n >= 5 ? 'Price approved' : 'Raised' }
     }
-    // Stage 6 — verification
+    // Stage 5 — verification
     if (sp.n >= 5) {
       idea.implementedAt = dt(D.handed, 15)
       idea.verification = { handedAt: `${D.handed}T00:00:00.000Z`, handedBy: 'COIN — locked timeline ended', forecastAtClose: idea.lock!.targetSaving }
@@ -729,6 +748,7 @@ function signedPlans(ideas: Idea[]) {
     const annual = ideaAnnualised(i)
     const plan = monthlyForecast(annual, i.lock.startDate, i.lock.timelineMonths, seasonProfile(i)).map((m) => m.amount)
     Object.assign(i.lock, { forecastAtLock: annual, monthlyPlan: plan, targetSaving: plan.reduce((a, x) => a + x, 0) })
+    if (i.lock.kpi) i.lock.kpi.target = i.lock.targetSaving
   }
 }
 
@@ -758,12 +778,11 @@ export function seedMrn(ideas: Idea[]): { mrn: MrnLine[]; ledger: LedgerEntry[];
 export function seedNotifications(ideas: Idea[]): Notification[] {
   const n: Notification[] = []
   let k = 0
-  const push = (userId: string, title: string, body: string, trigger: string, severity: Notification['severity'], ideaId?: string, hoursAgo = 2, read = false) =>
-    n.push({ id: `n-${k++}`, userId, at: new Date(Date.now() - hoursAgo * 3600000).toISOString(), title, body, trigger, channel: 'In-app + email', ideaId, link: ideaId ? `/ideas/${ideaId}` : undefined, read, severity })
+  const push = (person: string, title: string, body: string, trigger: string, severity: Notification['severity'], ideaId?: string, hoursAgo = 2, read = false) =>
+    n.push({ id: `n-${k++}`, userId: signInId(person, users)!, at: new Date(Date.now() - hoursAgo * 3600000).toISOString(), title, body, trigger, channel: 'In-app + email', ideaId, link: ideaId ? `/ideas/${ideaId}` : undefined, read, severity })
   const pipe = ideas.filter((i) => i.stage === STAGE.feasibility)
-  for (const i of pipe.slice(0, 12)) push(i.buyerId, `New idea in ${i.commodity}`, `${i.id} · ${i.title}`, 'Idea submitted in my commodity', 'info', i.id, ri(1, 70))
+  for (const i of pipe.slice(0, 12)) push(ladderOf(i.evaluation?.dept ?? 'Sourcing', users).departmentId!, 'Workshop to run', `${i.id} · ${i.title}`, 'Idea submitted in my commodity', 'info', i.id, ri(1, 70))
   for (const i of ideas.filter((x) => x.stage === STAGE.approval).slice(0, 10)) i.approvals.forEach((a) => a.approverId && push(a.approverId, 'Pending approval', `${i.id} · ${i.title}`, 'Pending approval', 'warning', i.id, ri(1, 40)))
-  for (const i of ideas.filter((x) => x.stage === STAGE.evaluation).slice(0, 10)) push(ladderOf(i.evaluation?.dept ?? 'Sourcing', i.commodity, users).deptLead ?? 'u-head', `${i.evaluation?.dept ?? 'Department'} evaluation requested`, `${i.id} · ${i.title}`, 'Technical evaluation requested', 'info', i.id, ri(2, 90))
   push('u-sup1', 'Workshop invitation', 'Fasteners supplier improvement workshop · 08 Oct 2026, Rajpura', 'Workshop invitation', 'info', undefined, 330)
   push('u-fin', 'Savings to validate', 'August 2026 realisation posted — entries awaiting Finance validation', 'Savings to validate', 'warning', undefined, 20)
   push('u-lead1', 'Price leakage detected', 'MRN price above approved new price on 2 parts in Metals (Aug 2026)', 'Price leakage detected', 'danger', undefined, 26)
@@ -772,7 +791,7 @@ export function seedNotifications(ideas: Idea[]): Notification[] {
   push('u-mgmt', 'Monthly Cost Optimisation Report', 'COIN — Cost Optimisation Report, August 2026 is ready', 'Monthly Cost Optimisation Report', 'success', undefined, 620)
   for (const i of ideas.filter((x) => x.execution?.status === 'In Execution' && x.execution.targetDate < TODAY).slice(0, 6)) push(i.ownerId!, 'Target date passed', `${i.id} · target ${i.execution!.targetDate}`, 'Target date passed', 'danger', i.id, ri(10, 200))
   for (const i of ideas.filter((x) => x.execution?.status === 'In Execution').slice(0, 6)) push(i.ownerId!, 'Implementation reminder', `${i.id} · update progress in Execution Hub`, 'Implementation reminder', 'info', i.id, ri(20, 300), chance(0.5))
-  for (const i of ideas.filter((x) => x.submitterId === 'u-sub1').slice(0, 3)) push('u-sub1', 'Idea status update', `${i.id} moved to ${i.stage}`, 'Approved / rejected', 'success', i.id, ri(5, 100))
+  for (const i of ideas.filter((x) => x.submitterId === 'id-rd').slice(0, 3)) push('id-rd', 'Idea status update', `${i.id} moved to ${i.stage}`, 'Approved / rejected', 'success', i.id, ri(5, 100))
   return n.sort((a, b) => (a.at < b.at ? 1 : -1))
 }
 

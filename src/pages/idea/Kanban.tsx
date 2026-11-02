@@ -107,7 +107,7 @@ export function KanbanBoard({ rows, draftCount = 0 }: { rows: IdeaRow[]; draftCo
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-[12px] text-muted">
         <span className="flex items-center gap-1.5">
           <Icon name={canDrag ? 'GripVertical' : 'Eye'} size={13} />
-          {canDrag ? 'Drag a card to move it — each move is permission-checked and confirmed; click a card for the side panel' : 'Read-only board — stage moves need Buyer, Commodity Lead or Sourcing Head rights'}
+          {canDrag ? 'Drag a card to move it — each move is permission-checked and confirmed; click a card for the side panel' : 'Read-only board — only the ID that owns the idea can move it'}
         </span>
         {draftCount > 0 && <span className="flex items-center gap-1"><Icon name="PencilLine" size={12} />{draftCount} draft{draftCount === 1 ? '' : 's'} not shown on the board</span>}
       </div>

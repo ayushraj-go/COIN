@@ -1,8 +1,8 @@
 // Section 7 — submission form model: typed inputs are kept as strings so partial entry never breaks the live maths.
 import type { Attachment, BuyingType, Idea, IdeaPart, IdeaScope, Lever, Part, Supplier, User } from '../../lib/types'
 
-/** Form-level scope. "Supplier" is persisted as `scopeSupplierCode` + scope 'Part-specific' (with parts) or 'Open' (estimate only). */
-export type FormScope = IdeaScope | 'Supplier'
+/** Form-level scope: part codes picked from the whole ERP, or one supplier and its parts. "Supplier" is persisted as `scopeSupplierCode`. */
+export type FormScope = 'Part-specific' | 'Supplier'
 
 export interface FormPart {
   partCode: string
@@ -22,6 +22,10 @@ export interface FormPart {
 }
 
 export interface FormState {
+  /** the ID is shared, so the person is typed on every idea */
+  submitterName: string
+  employeeId: string
+  submitterEmail: string
   plant: string
   buyingType: BuyingType
   categoryId: string
@@ -40,7 +44,6 @@ export interface FormState {
   parts: FormPart[]
   proposedSupplier: { code?: string; name: string; isNew: boolean } | null
   expectedQuarter: string
-  openEstimateLakh: string
   gainSharePct: string
   offerValidity: string
 }
@@ -87,9 +90,10 @@ export function toIdeaPart(p: FormPart, live = false): IdeaPart {
 
 export function blankForm(me: User, currentFy: string): FormState {
   return {
+    submitterName: '', employeeId: '', submitterEmail: '',
     plant: me.plant, buyingType: 'Direct', categoryId: '', commodity: '', leverId: '', scope: 'Part-specific', scopeSupplierCode: '', campaignId: '',
     title: '', currentState: '', proposedChange: '', evidence: '', evidenceTags: [], attachments: [], parts: [], proposedSupplier: null,
-    expectedQuarter: `Q3 ${currentFy}`, openEstimateLakh: '', gainSharePct: '', offerValidity: '',
+    expectedQuarter: `Q3 ${currentFy}`, gainSharePct: '', offerValidity: '',
   }
 }
 
@@ -97,8 +101,9 @@ export function blankForm(me: User, currentFy: string): FormState {
 export function fromIdea(i: Idea, partsMaster: Part[], suppliers: Supplier[]): FormState {
   const unset: string[] = (i as any).draftUnset ?? []
   return {
+    submitterName: unset.includes('submitterName') ? '' : i.submitterName, employeeId: unset.includes('employeeId') ? '' : i.employeeId, submitterEmail: i.submitterEmail ?? '',
     plant: i.plant, buyingType: i.buyingType, categoryId: unset.includes('categoryId') ? '' : i.categoryId ?? '', commodity: unset.includes('commodity') ? '' : i.commodity ?? '',
-    leverId: unset.includes('leverId') ? '' : i.leverId ?? '', scope: i.scopeSupplierCode ? 'Supplier' : i.scope, scopeSupplierCode: i.scopeSupplierCode ?? '',
+    leverId: unset.includes('leverId') ? '' : i.leverId ?? '', scope: i.scopeSupplierCode ? 'Supplier' : 'Part-specific', scopeSupplierCode: i.scopeSupplierCode ?? '',
     campaignId: i.campaignId ?? '', title: i.title ?? '', currentState: i.currentState ?? '', proposedChange: i.proposedChange ?? '', evidence: i.evidence ?? '',
     evidenceTags: i.evidenceTags ?? [], attachments: i.attachments ?? [],
     parts: (i.parts ?? []).map((ip) => {
@@ -114,7 +119,7 @@ export function fromIdea(i: Idea, partsMaster: Part[], suppliers: Supplier[]): F
       }
     }),
     proposedSupplier: i.proposedSupplier ?? null,
-    expectedQuarter: i.expectedQuarter, openEstimateLakh: i.openEstimateLakh != null ? String(i.openEstimateLakh) : '',
+    expectedQuarter: i.expectedQuarter,
     gainSharePct: i.gainSharePct != null ? String(i.gainSharePct) : '', offerValidity: i.offerValidity ?? '',
   }
 }
@@ -122,26 +127,20 @@ export function fromIdea(i: Idea, partsMaster: Part[], suppliers: Supplier[]): F
 export const isSupplierLever = (l?: Lever | null) => !!l && (l.route === 'Supplier change' || /locali[sz]ation/i.test(l.name))
 export const showsProposedSupplier = (l?: Lever | null) => !!l && (isSupplierLever(l) || l.group === 'Supply base')
 
-/** Open ideas, and supplier ideas without part codes, are valued by the rough ₹ lakh estimate */
-export const isEstimateScope = (f: Pick<FormState, 'scope' | 'parts'>) => f.scope === 'Open' || (f.scope === 'Supplier' && f.parts.length === 0)
-/** Part rows are entered for part-specific and supplier ideas */
-export const takesParts = (f: Pick<FormState, 'scope'>) => f.scope !== 'Open'
-
 /** Payload for store.saveDraft / store.submitIdea */
 export function toPayload(f: FormState, me: User, lever: Lever | undefined, buyerId: string | undefined): Partial<Idea> {
   const isSupplier = me.roles.includes('supplier')
-  const estimate = isEstimateScope(f)
-  const parts = estimate ? [] : f.parts.map((p) => toIdeaPart(p))
+  const parts = f.parts.map((p) => toIdeaPart(p))
   const scopeSupplier = f.scope === 'Supplier' && f.scopeSupplierCode ? f.scopeSupplierCode : undefined
   const payload: Partial<Idea> = {
+    submitterName: f.submitterName.trim() || undefined, employeeId: f.employeeId.trim() || undefined, submitterEmail: f.submitterEmail.trim() || undefined,
     plant: f.plant, buyingType: f.buyingType, categoryId: f.categoryId || undefined, commodity: f.commodity || undefined, leverId: f.leverId || undefined,
-    route: lever?.route, scope: (estimate ? 'Open' : 'Part-specific') as IdeaScope, scopeSupplierCode: scopeSupplier, campaignId: f.campaignId || undefined,
+    route: lever?.route, scope: 'Part-specific' as IdeaScope, scopeSupplierCode: scopeSupplier, campaignId: f.campaignId || undefined,
     title: f.title.slice(0, 100), currentState: f.currentState, proposedChange: f.proposedChange, evidence: f.evidence, evidenceTags: f.evidenceTags,
     attachments: f.attachments, parts,
     proposedSupplier: showsProposedSupplier(lever) && f.proposedSupplier ? f.proposedSupplier : undefined,
     // savings type is no longer asked — it always follows the lever default; one-time investment is no longer captured
     savingsType: lever?.defaultSavingsType ?? 'Hard', oneTimeInvestment: 0, expectedQuarter: f.expectedQuarter,
-    openEstimateLakh: estimate && hasText(f.openEstimateLakh) ? toNum(f.openEstimateLakh) : undefined,
     gainSharePct: isSupplier && hasText(f.gainSharePct) ? toNum(f.gainSharePct) : undefined,
     offerValidity: isSupplier && f.offerValidity ? f.offerValidity : undefined,
     isSupplierSubmission: isSupplier,
@@ -150,8 +149,8 @@ export function toPayload(f: FormState, me: User, lever: Lever | undefined, buye
   }
   // identity keys must never be blanked out on an existing record; the store fills placeholders for a new
   // draft, so remember which ones the submitter has not chosen yet (restored as empty on resume)
-  for (const k of ['categoryId', 'commodity', 'leverId', 'route', 'buyerId'] as const) if (payload[k] === undefined) delete payload[k]
-  ;(payload as any).draftUnset = [!f.categoryId && 'categoryId', !f.commodity && 'commodity', !f.leverId && 'leverId'].filter(Boolean)
+  for (const k of ['categoryId', 'commodity', 'leverId', 'route', 'buyerId', 'submitterName', 'employeeId'] as const) if (payload[k] === undefined) delete payload[k]
+  ;(payload as any).draftUnset = [!f.categoryId && 'categoryId', !f.commodity && 'commodity', !f.leverId && 'leverId', !hasText(f.submitterName) && 'submitterName', !hasText(f.employeeId) && 'employeeId'].filter(Boolean)
   return payload
 }
 

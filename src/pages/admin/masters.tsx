@@ -183,8 +183,8 @@ export function RouteAdmin() {
   const ideas = useStore((s) => s.ideas)
   return (
     <div className="grid gap-3">
-      <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same six-stage workflow; the submitter's department runs the evaluation (stage 3), and the route decides which milestones Execution started carries.</SectionIntro>
-      <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — six stages for every idea" subtitle="Idea submitted → Team feasibility check → R&D approval → <dept> approval → Execution started → Implemented"
+      <SectionIntro icon="Route">{LEVER_INTRO} Every idea, on every route, runs the same five-stage workflow; the submitter's department runs the workshop (stage 2), and the route decides which milestones Execution started carries.</SectionIntro>
+      <Card className="rounded-2xl" icon="Workflow" title="COIN workflow — five stages for every idea" subtitle="Idea submitted → Workshop / event creation → Management approval & KPI allocation → Execution started → Verification"
         actions={<span className="text-[11.5px] text-muted">{ideas.filter((i) => i.bucket === 'Pipeline' || i.bucket === 'In Execution').length} open ideas</span>}>
         <div className="overflow-x-auto pb-1">
           <div className="flex items-stretch min-w-max">
@@ -296,7 +296,9 @@ export function UserAdmin() {
   const toast = useStore((s) => s.toast)
   const ro = useRO()
   const [roleF, setRoleF] = useState<string>('All')
-  const rows = roleF === 'All' ? users : users.filter((u) => u.roles.includes(roleF as RoleKey))
+  // people and suppliers stay on record for old ideas and the commodity masters; only the IDs that can sign in are listed
+  const active = users.filter((u) => u.active !== false)
+  const rows = roleF === 'All' ? active : active.filter((u) => u.roles.includes(roleF as RoleKey))
   const depts = [...new Set([...departments, ...ALL_DEPTS])]
   const fields: FieldSpec<User>[] = [
     { key: 'name', label: 'Full name', type: 'text', required: true },
@@ -321,7 +323,7 @@ export function UserAdmin() {
     <div className="grid gap-3">
       <div className="grid grid-cols-2 md:grid-cols-5 xl:grid-cols-9 gap-2">
         {ROLES.map((r) => {
-          const n = users.filter((u) => u.roles.includes(r.key as RoleKey)).length
+          const n = active.filter((u) => u.roles.includes(r.key as RoleKey)).length
           return (
             <button key={r.key} onClick={() => setRoleF(roleF === r.key ? 'All' : r.key)} className={cn('rounded-xl border px-2.5 py-2 text-left transition', roleF === r.key ? 'border-brand-300 bg-brand-50 shadow-sm' : 'border-line bg-white hover:border-brand-200')} title={`${r.who} · ${r.visibility}`}>
               <div className="text-[18px] font-bold num text-ink leading-none">{n}</div>
@@ -332,7 +334,7 @@ export function UserAdmin() {
         })}
       </div>
       {unmapped.length > 0 && <SectionIntro icon="TriangleAlert">No active buyer is mapped to {unmapped.map((c) => c.name).join(', ')} — new ideas there will have no validator.</SectionIntro>}
-      <CrudSection<User> title="Users — user–role–commodity mapping" subtitle={roleF === 'All' ? `${users.length} users · identity from single sign-on / AD` : `Filtered: ${ROLE_LABEL[roleF as RoleKey]}`} icon="UserCog" entity="User" storeKey="users" rows={rows}
+      <CrudSection<User> title="Users — user–role–commodity mapping" subtitle={roleF === 'All' ? `${active.length} IDs · one per department and the Central ID` : `Filtered: ${ROLE_LABEL[roleF as RoleKey]}`} icon="UserCog" entity="User" storeKey="users" rows={rows}
         makeNew={() => ({ id: `u-${Date.now().toString(36)}`, name: '', employeeId: '', email: '', password: 'coin@2026', roles: ['submitter'], department: 'Sourcing', plant: plants[0]?.id ?? 'RJP', designation: '', commodities: [], avatarColor: AVATAR[users.length % AVATAR.length], active: true })}
         fields={fields} searchKeys={(u) => `${u.name} ${u.employeeId} ${u.email} ${u.designation} ${u.department}`}
         validate={(d, isNew) => {

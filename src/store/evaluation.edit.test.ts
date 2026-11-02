@@ -1,5 +1,5 @@
-// Stage 3 evaluation sheet — every cost-benefit figure can be changed by the evaluator, the corrected forecast carries
-// into the department approval, and the supplier email can be edited and sent again.
+// Stage 2 commercial evaluation — every cost-benefit figure can be changed by the evaluator, the corrected forecast carries
+// into management approval, and the supplier email can be edited and sent again.
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore } from './useStore'
 import { cbaFigures, ideaAnnualised } from '../lib/calc'
@@ -12,12 +12,12 @@ const idea = (id: string) => st().ideas.find((i) => i.id === id)!
 // (110 − 96) × 240 000 = ₹ 33.6 L a year
 const meals: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals per day', uom: 'Nos', currentSupplier: 'Local caterer', baselinePrice: 110, baselineSource: 'LBP', newPrice: 96, annualVolume: 240000, volumeSource: 'MRN FY26' }
 
-/** An HR idea of ₹ 33.6 L waiting at the HR evaluation */
+/** An HR idea of ₹ 33.6 L in its workshop: the event is open and feasibility is cleared */
 function inEvaluation() {
-  st().loginAs('u-hr-emp')
+  st().loginAs('id-hr')
   const id = st().submitIdea({ title: 'Canteen per-meal rate', commodity: 'CA', leverId: 'L01', parts: [meals], currentState: 'Fixed fee', proposedChange: 'Per meal', oneTimeInvestment: 100000, expectedQuarter: 'Q3 FY27' })
-  st().loginAs('u-hr-tl'); st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
-  st().loginAs('u-hr-lead')
+  st().createWorkshopEvent(id, { date: '2026-11-10', time: '11:00', venue: 'Noida', points: ['Workable?'], attendees: ['HR'], spoc: { name: 'Test SPOC', email: 'spoc@ambergroupindia.com' } })
+  st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'] })
   return id
 }
 
@@ -63,11 +63,12 @@ describe('every cost-benefit figure is editable', () => {
     expect(f.phasing).toEqual(phasing)
     expect(f.edited).toEqual(expect.arrayContaining(['netYear1', 'net3yr', 'phasing']))
   })
-  it('the department head locks and approves on the corrected forecast', () => {
+  it('management locks and approves on the corrected forecast', () => {
     const id = inEvaluation()
     st().saveEvaluation(id, { cbaVerified: true, cbaInputs: { annual: 2400000 }, risks: [{ key: 'quality', label: 'Quality', level: 'Low', costAtRisk: 0 }] })
     st().recordEvaluation(id, 'Recommend', 'ok')
-    st().loginAs('u-hr-head')
+    expect(st().closeWorkshopEvent(id, idea(id).workshop!.events[0].id, { notes: 'ok', closedBy: 'Test SPOC', outcome: 'Go ahead' })).toBe(true)
+    st().loginAs('id-central')
     st().signLock(id, { commercialOk: true, supplierAligned: 'Confirmed', budget: 0, timelineMonths: 6, startDate: '2026-12-01', endDate: '2027-06-01', targetSaving: lockTarget(2400000, 6), signatureName: 'Lata Krishnan' })
     expect(st().approve(id)).toBe(true)
     expect(idea(id).lock!.targetSaving).toBe(1200000)

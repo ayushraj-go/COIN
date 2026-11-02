@@ -56,9 +56,9 @@ function RegisterSummary({ rows, activeBucket, onBucket, slaActive, onSla }: { r
         <div className="text-[11px] text-muted mt-1">{pipe.length} in pipeline</div>
       </div>
       <div className="lg:col-span-2 min-w-0">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Live value <InfoTip title="Live value" formula="Σ forecast impact · Pipeline + In Execution + Implemented">Dropped ideas are excluded. Cost avoidance and one-time savings are included here but reported separately from hard savings.</InfoTip></div>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Live value <InfoTip title="Live value" formula="Σ opportunity cost · Pipeline + In Execution + Implemented">Dropped ideas are excluded. Cost avoidance and one-time savings are included here but reported separately from hard savings.</InfoTip></div>
         <div className="text-[22px] font-bold tracking-tight text-ink leading-none mt-1"><Money value={live} /></div>
-        <div className="text-[11px] text-muted mt-1">forecast</div>
+        <div className="text-[11px] text-muted mt-1">opportunity cost</div>
       </div>
       <div className="col-span-2 lg:col-span-5 min-w-0">
         <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-100">
@@ -248,13 +248,13 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
       { key: 'route', label: 'Route', hidden: true, value: (r) => r.idea.route, render: (r) => <span className="inline-flex items-center gap-1 text-[12px] text-ink-2"><Icon name={ROUTE_ICON[r.idea.route]} size={12} className="text-muted" />{r.idea.route}</span> },
       { key: 'stage', label: 'Stage', value: (r) => r.idea.stage, render: (r) => <StageBadge stage={r.idea.stage} bucket={r.idea.bucket} idea={r.idea} /> },
       { key: 'bucket', label: 'Bucket', hidden: true, value: (r) => r.idea.bucket, render: (r) => <BucketBadge bucket={r.idea.bucket} /> },
-      { key: 'annual', label: 'Forecast impact', exportLabel: 'Forecast impact (₹)', align: 'right', value: (r) => Math.round(r.annual),
+      { key: 'annual', label: 'Opportunity cost', exportLabel: 'Opportunity cost (₹)', align: 'right', value: (r) => Math.round(r.annual),
         render: (r) => <span className={cn('num font-semibold', r.annual < 0 ? 'text-red-600' : 'text-ink')}>{inrShort(r.annual)}{r.idea.scope === 'Open' && <span className="ml-1 text-[9.5px] font-bold text-amber-600">EST.</span>}</span> },
       { key: 'savingsType', label: 'Savings type', hidden: true, value: (r) => r.idea.savingsType, render: (r) => <SavingsTypeBadge type={r.idea.savingsType} /> },
       { key: 'submitter', label: 'Submitter', value: (r) => r.idea.submitterName,
         render: (r) => r.idea.isSupplierSubmission
           ? <span className="inline-flex items-center gap-1.5 text-[12.5px]"><span className="h-5 w-5 rounded-full bg-teal-50 text-teal-700 grid place-items-center"><Icon name="Factory" size={11} /></span>{r.idea.submitterName}</span>
-          : <UserChip userId={r.idea.submitterId} size={20} /> },
+          : <span className="text-[12.5px] font-medium text-ink truncate">{r.idea.submitterName}</span> },
       { key: 'owner', label: 'Buyer / owner', value: (r) => r.ownerName, render: (r) => <UserChip userId={r.ownerId} size={20} /> },
       { key: 'plant', label: 'Plant', hidden: true, value: (r) => r.idea.plant, render: (r) => <Tooltip content={plantName(r.idea.plant)}><span className="text-[12px] font-semibold text-ink-2">{r.idea.plant}</span></Tooltip> },
       { key: 'submitted', label: 'Submitted', hidden: true, value: (r) => r.submitted, render: (r) => r.idea.stage === 'Draft' ? <span className="text-[12px] text-muted">Draft</span> : <span className="text-[12px] num text-ink-2">{fmtDate(r.submitted)}</span> },
@@ -419,7 +419,7 @@ export default function IdeaRegister({ mode }: { mode: 'all' | 'mine' }) {
                 </div>
               ) : (
                 <span className="text-[12px] text-muted flex items-center gap-1.5">
-                  <span className="num font-semibold text-ink-2">{inrShort(filteredValue)}</span> forecast in view
+                  <span className="num font-semibold text-ink-2">{inrShort(filteredValue)}</span> opportunity cost in view
                   <span className="hidden md:inline">· click a row for the side panel, the ID for the full page</span>
                 </span>
               )}

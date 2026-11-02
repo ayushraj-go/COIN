@@ -1,5 +1,5 @@
-// One HR idea through all six stages, each step taken by the person the department ladder names —
-// and refused for people from another department or another stage.
+// One HR idea through all five stages, each step taken by the ID that owns it —
+// and refused for another department's ID.
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore } from './useStore'
 import { ideaPerms } from '../pages/idea/model'
@@ -18,53 +18,41 @@ const part: IdeaPart = { partCode: 'FAC-CANTEEN-01', description: 'Canteen meals
 
 beforeEach(() => { st().resetDemo() })
 
-describe('an HR idea runs the whole department ladder', () => {
-  it('employee → team lead → department lead → department head → execution owner → Finance', () => {
-    st().loginAs('u-hr-emp')
-    const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate' })
+describe('an HR idea runs the five stages', () => {
+  it('department ID → workshop → Central ID → department ID → Finance', () => {
+    // 1 · idea submitted on the HR ID, by a person who types their name
+    st().loginAs('id-hr')
+    const id = st().submitIdea({ title: 'Re-bid the Noida canteen contract on a per-meal rate', commodity: 'CA', leverId: 'L01', parts: [part], currentState: 'Fixed monthly fee', proposedChange: 'Per-meal rate', submitterName: 'Simran Kaur', employeeId: 'AEL-20932' })
     expect(idea(id).department).toBe('HR')
     expect(idea(id).stage).toBe(STAGE.feasibility)
 
-    // 2 · team feasibility check — HR team lead only
-    expect(inQueue('u-hr-tl', id)).toBe(true)
-    expect(st().notifications.some((n) => n.userId === 'u-hr-tl' && n.ideaId === id)).toBe(true)
-    expect(can('u-hr-emp', id).feasibilityCheck).toBe(false)
-    expect(can('u-rd-tl', id).feasibilityCheck).toBe(false)
-    st().loginAs('u-hr-tl')
-    expect(can('u-hr-tl', id).feasibilityCheck).toBe(true)
+    // 2 · workshop — the HR ID creates the event, fills both forms, and closes it with Go ahead
+    expect(inQueue('id-hr', id)).toBe(true)
+    expect(can('id-rd', id).workshop).toBe(false)
+    const ev = st().createWorkshopEvent(id, { date: '2026-11-10', time: '11:00', venue: 'Noida', points: ['Is the per-meal rate workable?'], attendees: ['HR', 'Sourcing'], spoc: { name: 'Simran Kaur', email: 'simran.kaur@ambergroupindia.com' } })
     st().recordFeasibility(id, { technical: 'Yes', cost: 'Valid', conflict: 'None', decision: 'Go', departments: ['HR'], remarks: 'Feasible' })
-    expect(idea(id).stage).toBe(STAGE.evaluation)
-    expect(idea(id).feasibilityCheck?.by).toBe('Varun Malhotra')
-
-    // 3 · HR evaluation — HR department lead
-    expect(idea(id).evaluation?.dept).toBe('HR')
-    expect(inQueue('u-hr-lead', id)).toBe(true)
-    expect(can('u-hr-tl', id).evaluate).toBe(false)
-    expect(can('u-eval1', id).evaluate).toBe(false)
-    st().loginAs('u-hr-lead')
-    expect(can('u-hr-lead', id).evaluate).toBe(true)
     st().recordEvaluation(id, 'Recommend', 'CBA verified')
+    expect(idea(id).evaluation?.dept).toBe('HR')
+    expect(st().closeWorkshopEvent(id, ev, { notes: 'Agreed', closedBy: 'Simran Kaur', outcome: 'Go ahead' })).toBe(true)
     expect(idea(id).stage).toBe(STAGE.approval)
 
-    // 4 · HR approval — HR department head signs the lock and approves
-    expect(idea(id).approvals).toEqual([{ level: 'HR head', approverId: 'u-hr-head' }])
-    expect(inQueue('u-hr-head', id)).toBe(true)
-    expect(can('u-hr-lead', id).approve).toBe(false)
-    expect(can('u-qa-head', id).approve).toBe(false)
-    st().loginAs('u-hr-head')
-    expect(can('u-hr-head', id).approve).toBe(true)
+    // 3 · management approval — the Central ID signs the lock and the KPI, and approves
+    expect(idea(id).approvals).toEqual([{ level: 'Management', approverId: 'id-central' }])
+    expect(inQueue('id-central', id)).toBe(true)
+    expect(can('id-hr', id).approve).toBe(false)
+    st().loginAs('id-central')
+    expect(can('id-central', id).approve).toBe(true)
     st().signLock(id, { commercialOk: true, supplierAligned: 'Skipped', budget: 0, timelineMonths: 6, startDate: '2026-11-01', endDate: '2027-05-01', targetSaving: lockTarget(ideaAnnualised(idea(id)), 6), signatureName: 'Lata Krishnan' })
     expect(st().approve(id)).toBe(true)
     expect(idea(id).stage).toBe(STAGE.execution)
-    expect(idea(id).ownerId).toBe('u-hr-exec')
+    expect(idea(id).ownerId).toBe('id-hr')
 
-    // 5 · execution — HR execution owner keeps the record; MRN is counted month by month from the savings start;
+    // 4 · execution — the HR ID keeps the record; MRN is counted month by month from the savings start;
     //     when the locked timeline ends COIN moves the idea to verification by itself
-    expect(inQueue('u-hr-exec', id)).toBe(true)
-    expect(can('u-hr-head', id).execute).toBe(false)
-    expect(can('u-pr-exec', id).execute).toBe(false)
-    expect(can('u-hr-exec', id).execute).toBe(true)
-    expect(can('u-hr-exec', id).handOver).toBe(false)
+    expect(inQueue('id-hr', id)).toBe(true)
+    expect(can('id-rd', id).execute).toBe(false)
+    expect(can('id-hr', id).execute).toBe(true)
+    expect(can('id-hr', id).handOver).toBe(false)
     st().uploadMrn([{ ideaId: id, partCode: part.partCode, month: '2026-11', mrnQty: 20000, mrnPrice: 96 }])
     expect(idea(id).execution?.effectiveDate).toBe('2026-11-01')
     st().closeEndedExecutions('2027-04-30')
@@ -72,19 +60,19 @@ describe('an HR idea runs the whole department ladder', () => {
     st().closeEndedExecutions('2027-05-01')
     expect(idea(id).stage).toBe(STAGE.verification)
 
-    // 6 · verification — Finance
-    expect(st().notifications.some((n) => n.userId === 'u-fin' && n.ideaId === id)).toBe(true)
-    expect(inQueue('u-fin', id)).toBe(true)
-    expect(can('u-hr-head', id).verify).toBe(false)
-    st().loginAs('u-fin')
-    expect(can('u-fin', id).verify).toBe(true)
+    // 5 · verification — Finance
+    expect(st().notifications.some((n) => n.userId === 'id-finance' && n.ideaId === id)).toBe(true)
+    expect(inQueue('id-finance', id)).toBe(true)
+    expect(can('id-hr', id).verify).toBe(false)
+    st().loginAs('id-finance')
+    expect(can('id-finance', id).verify).toBe(true)
     // the locked window runs to April 2027 — Finance verifies once April's MRN is read
     expect(idea(id).verification?.finalMrnMonth).toBe('2027-04')
     expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: idea(id).lock!.targetSaving })).toBe(false)
     st().syncMrn('2027-05-06')
     expect(idea(id).verification?.actualAtClose).toBeTypeOf('number')
     expect(st().verifyIdea(id, { mrnAtApproved: true, financeValidated: true, targetAchieved: true, targetAtVerification: idea(id).lock!.targetSaving })).toBe(true)
-    expect(idea(id).verification?.verifiedBy).toBe('Meera Iyer')
-    expect(inQueue('u-fin', id)).toBe(false)
+    expect(idea(id).verification?.verifiedBy).toBe(user('id-finance').name)
+    expect(inQueue('id-finance', id)).toBe(false)
   })
 })

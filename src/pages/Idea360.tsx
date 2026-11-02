@@ -54,14 +54,14 @@ function HeaderCard({ idea }: { idea: Idea }) {
           <h1 className="mt-2 text-[19px] md:text-[22px] font-bold tracking-tight text-ink leading-snug">{idea.title || <span className="text-muted">Untitled draft</span>}</h1>
           <IdeaMetaChips idea={idea} className="mt-2.5" />
           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] text-muted">
-            <span className="inline-flex items-center gap-1.5 min-w-0">Submitted by {idea.isSupplierSubmission ? <span className="font-semibold text-ink-2">{idea.submitterName}</span> : <UserChip userId={idea.submitterId} size={20} />}<span>· {idea.department} · {fmtDate((idea.submittedAt ?? idea.createdAt)?.slice(0, 10))}</span></span>
+            <span className="inline-flex items-center gap-1.5 min-w-0">Submitted by <span className="font-semibold text-ink-2">{idea.submitterName}</span><span>· {idea.department} · {fmtDate((idea.submittedAt ?? idea.createdAt)?.slice(0, 10))}</span></span>
             <span className="inline-flex items-center gap-1.5">Buyer <UserChip userId={idea.buyerId} size={20} /></span>
             {idea.ownerId && idea.ownerId !== idea.buyerId && <span className="inline-flex items-center gap-1.5">Owner <UserChip userId={idea.ownerId} size={20} /></span>}
             <span className="inline-flex items-center gap-1"><Icon name="Route" size={12} />{stagesOf(idea).length + 1} stages · {idea.route} route</span>
           </div>
         </div>
         <div className="lg:w-[280px] shrink-0 rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-gold-50 p-3.5">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Forecast impact <InfoTip title="Forecast impact" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Full-year saving at the new price and annual volume.</InfoTip></div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted flex items-center gap-1">Opportunity cost <InfoTip title="Opportunity cost" formula="(P(baseline) − P(new)) × Q(last FY MRN)">Full-year saving at the new price and annual volume.</InfoTip></div>
           <div className={annual < 0 ? 'text-red-600' : 'text-ink'}><span className="text-[28px] font-extrabold tracking-tight leading-tight"><Money value={annual} /></span></div>
           <div className="text-[12px] text-muted">
             {idea.scope === 'Open' ? 'Estimate for open idea' : `${pct.toFixed(1)}% saving on baseline spend · ${idea.parts.length} part${idea.parts.length === 1 ? '' : 's'}`}
@@ -125,7 +125,7 @@ export default function Idea360() {
   if (!me || !canSeeIdea(me, idea)) {
     return (
       <Card>
-        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Visibility follows your role and commodity mapping: submitters see their own ideas, buyers and leads their mapped commodities, suppliers their own ideas and feasibility requests."
+        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Each department ID sees its own department's ideas. The Sourcing ID sees every commodity; Finance and the Central ID see all."
           action={<Button variant="primary" onClick={() => nav(listPath)}>Back to ideas</Button>} />
       </Card>
     )
@@ -164,7 +164,7 @@ export default function Idea360() {
 
       <HeaderCard idea={idea} />
 
-      <Card title="Stage tracker" icon="Route" subtitle={`Six stages · ${idea.route} route · stages 1–4 in Innovation Network, 5–6 in Cost Optimisation`} actions={<CurrentStageSla idea={idea} />}>
+      <Card title="Stage tracker" icon="Route" subtitle={`Five stages · ${idea.route} route · stages 1–3 in Cost Innovation, 4–5 in Cost Optimisation`} actions={<CurrentStageSla idea={idea} />}>
         <StageTracker idea={idea} />
       </Card>
 

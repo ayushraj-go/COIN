@@ -45,7 +45,7 @@ export default function Reports() {
   const { key } = useParams()
   const me = useMe()
   if (!canOpenReports(me)) {
-    return <div className="card rounded-2xl"><EmptyState icon="Lock" title="MIS is not part of your role" desc="MIS is available to Buyers, Commodity Leads, the Sourcing Head, Finance, Management and Admin. Your home page shows your own ideas." /></div>
+    return <div className="card rounded-2xl"><EmptyState icon="Lock" title="MIS is not part of this ID" desc="MIS is available to the department IDs, Finance and the Central ID. Your home page shows your own ideas." /></div>
   }
   return key ? <ReportDetail rkey={key} /> : <ReportsHome />
 }
@@ -71,7 +71,7 @@ function ReportsHome() {
       <PageHeader icon="ChartColumnBig"
         title={<span className="flex items-center gap-2">MIS <span className="text-muted font-medium">·</span> <span>{space ? SPACE_META[space].name : 'All workspaces'}</span></span>}
         badge={<span className="flex items-center gap-1">{spaces.map((s) => <SpaceChip key={s} space={s} />)}</span>}
-        subtitle={space ? SPACE_META[space].tagline : 'No workspace chosen yet: Cost Optimisation reports first, then Innovation Network'}
+        subtitle={space ? SPACE_META[space].tagline : 'No workspace chosen yet: Cost Optimisation reports first, then Cost Innovation'}
         actions={<>
           {space !== 'IN' && <span className="hidden md:inline-flex items-center gap-1.5 text-[12px] text-muted"><Icon name="RefreshCw" size={13} />Last realisation run: <b className="text-ink">{monthLong(settings.lastRealisationMonth)}</b></span>}
           {space !== 'IN' && lastSent && <span className="hidden lg:inline-flex items-center gap-1.5 text-[12px] text-muted"><Icon name="MailCheck" size={13} className="text-emerald-600" />Mailer sent {fmtDate(lastSent.at.slice(0, 10))}</span>}

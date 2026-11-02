@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Card, Badge, Button, Icon, Toggle, Segmented, Modal, DataTable, Field, Avatar, KV, Stat, cn, type Column } from '../../components/ui'
 import { useStore } from '../../store/useStore'
 import { approvalLevels, ideaAnnualised } from '../../lib/calc'
-import { LAKH } from '../../lib/masters'
+import { LAKH, STAGE } from '../../lib/masters'
 import { DEPARTMENTS, ladderOf } from '../../lib/workflow'
 import { APPROVAL_NOTE, APPROVAL_MATRIX_DOC, NOTIF_TRIGGERS, NOTIF_FOOTNOTE, NOTIF_INTRO, NFRS, DECISIONS, REALISATION_CYCLE } from '../../lib/scope'
 import { fmtDateTime, fmtDate, fyMonths, fyLabel, monthLabel, monthLong, thirdWorkingDay, addMonthsYm, inrShort, fyEnd, fyStart, ymOf, todayIso } from '../../lib/format'
@@ -12,28 +12,27 @@ import { SectionIntro, useRO } from './common'
 
 const nowUndo = (msg: string, undo: () => void) => useStore.getState().toast(msg, 'success', undo)
 
-/** Stages 2–5 run on each department's ladder; Finance verifies (stage 6); Sourcing Head and Admin can act anywhere */
+/** Each department works its own ideas on its one ID; the Central ID approves, Finance verifies (stage 5) */
 function LadderCard() {
   const users = useStore((s) => s.users)
   const name = (id?: string) => users.find((u) => u.id === id)?.name ?? '—'
   const fin = users.find((u) => u.roles.includes('finance'))
   return (
-    <Card className="rounded-2xl" title="Department role ladder — who acts at each stage" icon="GitBranch" pad={false}
-      subtitle="Stage 4 is approved by the head of the idea's department (one level). Every idea goes to the ladder of its own department; in Sourcing the team lead of the idea's commodity does the feasibility check and the commodity buyer executes.">
+    <Card className="rounded-2xl" title="Who acts at each stage" icon="GitBranch" pad={false}
+      subtitle="Each department signs in with one ID. The person behind the ID types their name on the form, on the workshop event and at sign-off.">
       <div className="overflow-x-auto">
         <table className="tbl">
-          <thead><tr><th>Department</th><th>2 · Team feasibility check</th><th>3 · Evaluation</th><th>4 · Approval + lock</th><th>5 · Execution</th></tr></thead>
+          <thead><tr><th>Department</th><th>1 · Capture idea</th><th>2 · Workshop / event</th><th>3 · Management approval</th><th>4 · Execution</th></tr></thead>
           <tbody>
             {DEPARTMENTS.map((d) => {
-              const l = ladderOf(d, '', users)
-              const many = (role: string) => users.filter((u) => u.department === d && u.roles.includes(role as never)).map((u) => u.name)
+              const l = ladderOf(d, users)
               return (
                 <tr key={d}>
                   <td className="font-semibold text-ink">{d}</td>
-                  <td>{d === 'Sourcing' ? many('teamlead').join(', ') : name(l.teamLead)}</td>
-                  <td>{name(l.deptLead)}</td>
-                  <td className="font-medium text-ink">{name(l.deptHead)}</td>
-                  <td>{d === 'Sourcing' ? `${many('execowner').length} commodity buyers` : name(l.execOwner)}</td>
+                  <td>{name(l.departmentId)}</td>
+                  <td>{name(l.departmentId)}</td>
+                  <td className="font-medium text-ink">{name(l.central)}</td>
+                  <td>{name(l.departmentId)}</td>
                 </tr>
               )
             })}
@@ -41,9 +40,8 @@ function LadderCard() {
         </table>
       </div>
       <div className="px-5 py-3 border-t border-line text-[12px] text-ink-2 flex flex-wrap gap-x-5 gap-y-1">
-        <span><b className="text-ink">6 · Verification:</b> {fin?.name ?? 'Finance'} (Finance verifier)</span>
-        <span><b className="text-ink">Override:</b> Sourcing Head and Admin can act at every stage</span>
-        <span><b className="text-ink">Own idea:</b> a team lead never clears their own idea — the department lead does</span>
+        <span><b className="text-ink">5 · Verification:</b> {fin?.name ?? 'Finance'}</span>
+        <span><b className="text-ink">Override:</b> the Central ID can act at every stage</span>
       </div>
     </Card>
   )
@@ -66,7 +64,7 @@ export function ApprovalAdmin() {
   const [edit, setEdit] = useState<ApprovalRule | null>(null)
   const dirty = x !== settings.xThresholdLakh || y !== settings.yThresholdLakh || re !== settings.reapprovalPct
   const valid = x > 0 && y > 0 && re >= 0 && re <= 100
-  const atApproval = ideas.filter((i) => i.stage === 'Approval')
+  const atApproval = ideas.filter((i) => i.stage === STAGE.approval)
   const needHead = (xx: number, yy: number) => atApproval.filter((i) => approvalLevels(ideaAnnualised(i), i.oneTimeInvestment, xx, yy).includes('Sourcing Head')).length
   const save = () => {
     const prevS = { ...useStore.getState().settings }, prevR = useStore.getState().approvalRules
@@ -85,7 +83,7 @@ export function ApprovalAdmin() {
           <div className="grid gap-3">
             <Field label="Condition" hint="Use ₹ X lakh / ₹ Y lakh — replaced by the thresholds above"><input className="input" value={edit.condition} onChange={(e) => setEdit({ ...edit, condition: e.target.value })} /></Field>
             <Field label="Approver chain" hint="Use → between levels; prefix + for an added approver"><input className="input" value={edit.approver} onChange={(e) => setEdit({ ...edit, approver: e.target.value })} /></Field>
-            <Field label="Threshold type"><select className="input" value={edit.kind} onChange={(e) => setEdit({ ...edit, kind: e.target.value as ApprovalRule['kind'] })}><option value="value">Forecast value (₹ X)</option><option value="investment">One-time investment (₹ Y)</option></select></Field>
+            <Field label="Threshold type"><select className="input" value={edit.kind} onChange={(e) => setEdit({ ...edit, kind: e.target.value as ApprovalRule['kind'] })}><option value="value">Opportunity cost value (₹ X)</option><option value="investment">One-time investment (₹ Y)</option></select></Field>
           </div>
         )}
       </Modal>

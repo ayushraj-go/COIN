@@ -7,7 +7,7 @@ import {
   summarise, ideaAnnualised, ideaApprovedAnnualised, ideaCommitted, healthOf, slaStatus, stageAgeDays, monthlyTrend, STRUCTURAL_LEVERS,
   phaseByQuarter, goLiveOf, type Summary,
 } from '../../lib/calc'
-import { FEASIBILITY_STAGES, EVALUATION_STAGES, ROUTE_STAGES, STAGE, WORKFLOW_STAGES } from '../../lib/masters'
+import { FEASIBILITY_STAGES, ROUTE_STAGES, STAGE, WORKFLOW_STAGES } from '../../lib/masters'
 import { daysBetween, fyMonths, fyEnd, monthLabel, parse, sum, todayIso, ymOf, workingDaysBetween, nextFy, quarterOf } from '../../lib/format'
 import type {
   Campaign, Category, Commodity, Filters, Health, Idea, LedgerEntry, Lever, Plant, Settings, SlaRule, Supplier, User,
@@ -165,11 +165,7 @@ export function quarterPhasing(ctx: Ctx, i: Idea) {
 /** Who owns the idea's current stage (for ageing by owner) */
 export function stageOwner(ctx: Ctx, i: Idea): { key: string; label: string } {
   const st = i.stage
-  if (FEASIBILITY_STAGES.includes(st)) return { key: i.buyerId, label: `${nameOf(ctx, i.buyerId)} (team feasibility)` }
-  if (EVALUATION_STAGES.includes(st)) {
-    const d = i.evaluation?.dept ?? 'Sourcing'
-    return { key: `dept:${d}`, label: `${d} (evaluation)` }
-  }
+  if (FEASIBILITY_STAGES.includes(st)) return { key: `dept:${i.department}`, label: `${i.department} (workshop)` }
   if (st === STAGE.approval) {
     const a = i.approvals.find((x) => !x.decision)
     return { key: a?.approverId ?? 'approver', label: a?.approverId ? `${nameOf(ctx, a.approverId)} (${a.level})` : a?.level ?? 'Approver' }
@@ -185,15 +181,15 @@ export function reachedIdx(i: Idea) {
 }
 export function funnelSteps(ideas: Idea[]) {
   const sub = ideas.filter(nonDraft)
-  // six-stage flow: reachedIdx 1 = past Team feasibility check, 2 = past the department evaluation
+  // five-stage flow: reachedIdx 1 = reached the workshop, 2 = went ahead to management approval
   const validated = sub.filter((i) => reachedIdx(i) >= 1)
   const rnd = sub.filter((i) => reachedIdx(i) >= 2)
   const approved = sub.filter((i) => !!i.approvedAt || i.bucket === 'In Execution' || i.bucket === 'Implemented')
   const impl = sub.filter((i) => i.bucket === 'Implemented')
   return [
     { step: 'Idea submitted', ideas: sub, n: sub.length },
-    { step: 'Feasibility cleared', ideas: validated, n: validated.length },
-    { step: 'Evaluation recommended', ideas: rnd, n: rnd.length },
+    { step: 'Workshop / event', ideas: validated, n: validated.length },
+    { step: 'Management approval', ideas: rnd, n: rnd.length },
     { step: 'Execution started', ideas: approved, n: approved.length },
     { step: 'Implemented', ideas: impl, n: impl.length },
   ]
