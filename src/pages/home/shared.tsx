@@ -8,6 +8,7 @@ import { TRACKER_STAGES } from '../../lib/masters'
 import { BUCKET_STYLE, bucketFor, ideaAnnualised } from '../../lib/calc'
 import { fmtDate, fyOf, inrShort, quarterOf, QUARTER_MONTHS, sum, todayIso, workingDaysBetween } from '../../lib/format'
 import { ROLE_LABEL, primaryRole } from '../../lib/nav'
+import { greetName } from './headline'
 import { Button, Icon, LeverChip, Modal, Skeleton, StageBadge, cn } from '../../components/ui'
 
 // ─── Motion: staggered entrance that keeps 12-col spans on the grid items ─────
@@ -98,7 +99,7 @@ export function todayLine() {
 export function HomeHeader({ title, subtitle, actions, badge }: { title?: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; badge?: React.ReactNode }) {
   const me = useMe()
   if (!me) return null
-  const first = me.name.replace(/^Dr\.\s*/, '').split(' ')[0]
+  const first = greetName(me.name)
   return (
     <div className="mb-3.5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
       <div className="min-w-0">

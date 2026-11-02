@@ -2,7 +2,7 @@
 // only where a tile leads depends on the pages the role can open.
 import { describe, it, expect } from 'vitest'
 import { USERS_DEFAULT } from '../../lib/masters'
-import { headlineScope, kpiLinks, overdueExecutions } from './headline'
+import { greetName, headlineScope, kpiLinks, overdueExecutions } from './headline'
 import type { Idea } from '../../lib/types'
 
 const user = (id: string) => USERS_DEFAULT.find((u) => u.id === id)!
@@ -51,5 +51,20 @@ describe('headlineScope', () => {
   })
   it('register users keep every idea they can see', () => {
     expect(headlineScope(user('u-head'), list)).toHaveLength(3)
+  })
+  it('the Execution Manager ID counts every idea too: its tiles open the Execution Hub, not My Ideas', () => {
+    expect(headlineScope(user('id-execution'), list)).toHaveLength(3)
+    expect(kpiLinks(user('id-execution')).execution.base).toBe('/execution')
+    expect(kpiLinks(user('id-execution')).pipeline.base).toBe('/ideas')
+  })
+})
+
+describe('the dashboard greeting', () => {
+  it('greets the ID by what it is, and a person by first name', () => {
+    expect(greetName('Execution Manager ID')).toBe('Execution Manager')
+    expect(greetName('Management ID')).toBe('Management')
+    expect(greetName('HR department')).toBe('HR')
+    expect(greetName('R&D department')).toBe('R&D')
+    expect(greetName('Dr. Priya Nair')).toBe('Priya')
   })
 })
