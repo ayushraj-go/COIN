@@ -125,7 +125,7 @@ export default function Idea360() {
   if (!me || !canSeeIdea(me, idea)) {
     return (
       <Card>
-        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Each department ID sees its own department's ideas. The Sourcing ID sees every commodity; Finance and the Management ID see all."
+        <EmptyState icon="ShieldX" title="You don't have access to this idea" desc="Each department ID sees its own department's ideas. The Sourcing ID sees every commodity; Finance, the Management ID and the Execution Manager ID see all."
           action={<Button variant="primary" onClick={() => nav(listPath)}>Back to ideas</Button>} />
       </Card>
     )

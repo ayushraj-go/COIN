@@ -45,7 +45,7 @@ export default function Reports() {
   const { key } = useParams()
   const me = useMe()
   if (!canOpenReports(me)) {
-    return <div className="card rounded-2xl"><EmptyState icon="Lock" title="MIS is not part of this ID" desc="MIS is available to the department IDs, Finance and the Management ID. Your home page shows your own ideas." /></div>
+    return <div className="card rounded-2xl"><EmptyState icon="Lock" title="MIS is not part of this ID" desc="MIS is available to the department IDs, Finance, the Management ID and the Execution Manager ID. Your home page shows your own ideas." /></div>
   }
   return key ? <ReportDetail rkey={key} /> : <ReportsHome />
 }
