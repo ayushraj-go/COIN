@@ -205,7 +205,7 @@ export const NAV_BY_ROLE: { role: string; coNav: string; inNav: string }[] = [
   { role: 'Department ID', coNav: 'Execution Hub (read only) · MIS', inNav: 'My queue · Idea Register · Workshops · Capture My Idea · MIS (Sourcing also Campaigns)' },
   { role: 'Finance ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · Idea Register · Workshops · Capture My Idea · MIS' },
   { role: 'Management ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · Idea Register · Workshops · Campaigns · Admin & Masters · MIS' },
-  { role: 'Execution Manager ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · MIS' },
+  { role: 'Execution Manager ID', coNav: 'My queue · Execution Hub · MIS', inNav: 'My queue · Idea Register · MIS' },
 ]
 export const NAV_NOTE = 'Every role also has the Dashboard at the top and Scope & Methodology just above MIS at the bottom of both workspaces. The NPD master opens from Scope & Methodology.'
 

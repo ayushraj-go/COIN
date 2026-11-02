@@ -25,6 +25,9 @@ export function kpiLinks(me: User | null | undefined): Record<KpiKey, KpiLink> {
 /** My Ideas' rule: ideas I submitted, and for a supplier every idea submitted under its supplier code */
 export const ownsIdea = (me: User, i: Idea) => i.submitterId === me.id || (me.roles.includes('supplier') && !!i.isSupplierSubmission && !!me.supplierCode && i.supplierCode === me.supplierCode)
 
+/** The dashboard greets an ID by what it is (HR, Management, Execution Manager) and a person by first name */
+export const greetName = (name: string) => (/ (department|ID)$/.test(name) ? name.replace(/ (department|ID)$/, '') : name.replace(/^Dr\.\s*/, '').split(' ')[0])
+
 /** The ideas the headline row counts: people whose tiles open My Ideas count exactly that list; everyone else every idea they can see */
 export function headlineScope(me: User | null | undefined, ideas: Idea[]): Idea[] {
   if (!me) return []

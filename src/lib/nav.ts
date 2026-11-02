@@ -25,7 +25,7 @@ export const NAV: NavItem[] = [
   { key: 'home', label: 'Dashboard', path: '/', icon: 'LayoutDashboard', roles: ALL, module: 'M1', section: 'Overview' },
   { key: 'queue', label: 'My queue', path: '/queue', icon: 'Inbox', roles: ['teamlead', 'deptlead', 'depthead', 'execowner', 'finance', 'head', 'admin'], section: 'Overview' },
   // IN — Innovation Network: ideas up to approval
-  { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin', ...LADDER], module: 'M2', section: 'Ideas', spaces: ['IN'] },
+  { key: 'register', label: 'Idea Register', path: '/ideas', icon: 'Table2', roles: ['buyer', 'lead', 'head', 'admin', 'execowner', ...LADDER], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'workshops', label: 'Workshops', path: '/workshops', icon: 'CalendarCheck', roles: ['admin', ...LADDER], module: 'M5', section: 'Ideas', spaces: ['IN'] },
   { key: 'myideas', label: 'My Ideas', path: '/my-ideas', icon: 'Lightbulb', roles: ['submitter', 'supplier'], module: 'M2', section: 'Ideas', spaces: ['IN'] },
   { key: 'submit', label: 'Capture My Idea', path: '/submit', icon: 'CirclePlus', roles: ['submitter', 'supplier', 'buyer', 'lead', 'head', ...LADDER], module: 'M3', section: 'Ideas', spaces: ['IN'] },
