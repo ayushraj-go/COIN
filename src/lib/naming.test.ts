@@ -32,3 +32,15 @@ describe('workspace names', () => {
     expect(WORKSPACES.find((w) => w.code === 'IN')?.name).toBe('Innovation Network')
   })
 })
+
+describe('login page', () => {
+  const login = sources[Object.keys(sources).find((k) => k.endsWith('pages/Login.tsx'))!]
+  it('shows the five stages with Workshops & Management approval as 03', () => {
+    const strip = login.slice(login.indexOf('const STEPS = ['), login.indexOf(']', login.indexOf('const STEPS = [')))
+    const labels = [...strip.matchAll(/label: '([^']*)'/g)].map((m) => m[1])
+    expect(labels).toEqual(['Idea\\nsubmitted', 'Workshop /\\nevent', 'Workshops &\\nManagement approval', 'Execution\\nstarted', 'Verification'])
+  })
+  it('has no globe illustration', () => {
+    expect(login).not.toMatch(/function Globe|<Globe|REALISATION|globe cluster/)
+  })
+})
