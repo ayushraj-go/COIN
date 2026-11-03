@@ -43,4 +43,7 @@ describe('login page', () => {
   it('has no globe illustration', () => {
     expect(login).not.toMatch(/function Globe|<Globe|REALISATION|globe cluster/)
   })
+  it('signs people in with their ID and password only: no quick demo access, no password printed on the page', () => {
+    expect(login).not.toMatch(/PersonaPicker|Quick demo access|StageGuideModal|coin@2026/)
+  })
 })
