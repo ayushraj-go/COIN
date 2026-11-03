@@ -119,16 +119,11 @@ h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0
 .bg-soft-blue { background: linear-gradient(180deg, var(--color-brand-50) 0%, #ffffff 100%); }
 .bg-soft-teal { background: linear-gradient(180deg, var(--color-accent-50) 0%, #ffffff 100%); }
 .text-brand-grad { background: linear-gradient(100deg, var(--color-brand-900), var(--color-brand-700) 45%, var(--color-accent-500)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-@keyframes float-y { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
-@keyframes orbit-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-@keyframes pulse-ring { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(2.4); opacity: 0 } }
-@keyframes dash-flow { to { stroke-dashoffset: -40 } }
 @keyframes coin-spin { 0%, 80%, 100% { transform: rotateY(0deg) } 90% { transform: rotateY(180deg) } }
 .coin-spin { animation: coin-spin 9s ease-in-out infinite; transform-style: preserve-3d; }
 @keyframes aurora { 0%, 100% { transform: translate3d(0, 0, 0) scale(1) } 50% { transform: translate3d(3%, -4%, 0) scale(1.08) } }
-.float-y { animation: float-y 6s ease-in-out infinite; }
 .aurora { animation: aurora 16s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .float-y, .aurora, .coin-spin, .animate-\[spin_6s_linear_infinite\] { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .aurora, .coin-spin, .animate-\[spin_6s_linear_infinite\] { animation: none !important; } }
 
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 

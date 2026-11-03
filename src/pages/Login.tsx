@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useStore } from '../store/useStore'
@@ -42,73 +42,10 @@ function Backdrop() {
   )
 }
 
-// ─── Globe: quiet slate sphere with a teal/blue idea network ─────────────────────────
-function Globe() {
-  const r = 150
-  const dots = useMemo(() => {
-    const out: [number, number][] = []
-    for (let y = -r; y <= r; y += 9) for (let x = -r; x <= r; x += 9) {
-      if (x * x + y * y > (r - 8) ** 2) continue
-      const n = Math.sin(x * 0.045 + 1.3) + Math.cos(y * 0.06 - 0.4) + Math.sin((x + y) * 0.028) + Math.cos((x - y) * 0.05)
-      if (n > 1.35) out.push([x, y])
-    }
-    return out
-  }, [])
-  const nodes: [number, number][] = [[-70, -60], [40, -95], [95, -20], [60, 55], [-20, 20], [-95, 40], [10, 110], [-40, -110]]
-  const arcs: [number, number][] = [[0, 1], [1, 2], [2, 3], [3, 6], [4, 0], [4, 3], [5, 4], [7, 1], [5, 6], [4, 2]]
-  return (
-    <svg viewBox="-215 -215 430 430" className="w-full h-full overflow-visible">
-      <defs>
-        <radialGradient id="lg-sphere" cx="34%" cy="28%" r="80%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="var(--color-slate-100)" />
-          <stop offset="100%" stopColor="var(--color-brand-100)" />
-        </radialGradient>
-        <linearGradient id="lg-arc" x1="0" x2="1"><stop offset="0%" stopColor="var(--color-emerald-500)" /><stop offset="100%" stopColor="var(--color-brand-500)" /></linearGradient>
-        <clipPath id="lg-clip"><circle r={r} /></clipPath>
-      </defs>
-      <g style={{ transformOrigin: '0 0', animation: 'orbit-spin 80s linear infinite' }}>
-        <circle r={r + 52} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".12" strokeDasharray="2 8" />
-        <circle cx={r + 52} cy={0} r={3.5} fill="var(--color-brand-500)" opacity=".8" />
-        <circle cx={-(r + 52)} cy={0} r={3} fill="var(--color-emerald-500)" />
-      </g>
-      <ellipse rx={r + 28} ry={(r + 28) * 0.3} transform="rotate(-18)" fill="none" stroke="var(--color-slate-900)" strokeOpacity=".08" />
-      <circle r={r} fill="url(#lg-sphere)" stroke="var(--color-slate-300)" />
-      <g clipPath="url(#lg-clip)">
-        {[r, r * 0.74, r * 0.42].map((rx, i) => <ellipse key={i} rx={rx} ry={r} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".06" />)}
-        {[-0.6, 0, 0.6].map((k, i) => { const y = k * r; const rx = Math.sqrt(r * r - y * y); return <ellipse key={i} cy={y} rx={rx} ry={rx * 0.16} fill="none" stroke="var(--color-slate-900)" strokeOpacity=".06" /> })}
-        {dots.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.3} fill="var(--color-slate-500)" opacity={0.45 + ((i * 7) % 5) * 0.06} />)}
-        {arcs.map(([a, b], i) => {
-          const [x1, y1] = nodes[a], [x2, y2] = nodes[b]
-          const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 34
-          return <path key={i} d={`M${x1},${y1} Q${mx},${my} ${x2},${y2}`} fill="none" stroke="url(#lg-arc)" strokeOpacity=".8" strokeWidth="1.4" strokeDasharray="3 6" style={{ animation: `dash-flow ${2.4 + (i % 3)}s linear infinite` }} />
-        })}
-      </g>
-      {nodes.map(([x, y], i) => (
-        <g key={i} transform={`translate(${x},${y})`}>
-          <circle r={8} fill={i % 2 ? 'var(--color-brand-500)' : 'var(--color-emerald-500)'} opacity=".25" style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: `pulse-ring 3s ${i * 0.35}s ease-out infinite` }} />
-          <circle r={3.4} fill="#ffffff" stroke={i % 2 ? 'var(--color-brand-600)' : 'var(--color-emerald-600)'} strokeWidth="1.5" />
-        </g>
-      ))}
-    </svg>
-  )
-}
-
-function Chip({ icon, label, className, delay = 0 }: { icon: string; label: string; className?: string; delay?: number }) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + delay, duration: 0.5 }} className={cn('absolute', className)}>
-      <div className="float-y flex items-center gap-1.5 h-7 pl-1 pr-2.5 rounded-full bg-white/90 backdrop-blur border border-black/[.06] shadow-[0_6px_16px_-8px_rgb(15_27_51/.18)]" style={{ animationDelay: `${delay * 3}s` }}>
-        <span className="h-5 w-5 rounded-full bg-slate-100 grid place-items-center text-ink-2"><Icon name={icon} size={11} /></span>
-        <span className="text-[10px] font-semibold tracking-[.08em] text-ink-2">{label}</span>
-      </div>
-    </motion.div>
-  )
-}
-
 const STEPS = [
   { icon: 'Lightbulb', label: 'Idea\nsubmitted' },
   { icon: 'Presentation', label: 'Workshop /\nevent' },
-  { icon: 'BadgeCheck', label: 'Management\napproval' },
+  { icon: 'BadgeCheck', label: 'Workshops &\nManagement approval' },
   { icon: 'Rocket', label: 'Execution\nstarted' },
   { icon: 'BadgeIndianRupee', label: 'Verification' },
 ]
@@ -167,32 +104,16 @@ export default function Login() {
         <main className="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_clamp(400px,30vw,470px)] gap-[clamp(28px,4vw,72px)] items-center py-[clamp(12px,2.4vh,28px)]">
           {/* Left — story */}
           <section className="relative min-w-0 hidden lg:flex flex-col justify-center gap-[clamp(14px,3vh,34px)]">
-            <div className="grid xl:grid-cols-[minmax(0,560px)_minmax(0,1fr)] items-center gap-6">
-              <div className="min-w-0">
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/80 border border-black/[.06] text-[11.5px] font-medium text-ink-2 shadow-[0_1px_2px_rgb(15_27_51/.04)]">
-                  Ideas <Icon name="ChevronRight" size={11} className="text-muted" /> Value <Icon name="ChevronRight" size={11} className="text-muted" /> Approve <Icon name="ChevronRight" size={11} className="text-muted" /> Execute <Icon name="ChevronRight" size={11} className="text-muted" /> Prove
-                </motion.div>
-                <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6 }} className="mt-[clamp(10px,2vh,20px)] text-[clamp(32px,5.2vh,54px)] leading-[1.04] font-bold tracking-[-0.04em] text-ink">
-                  Every idea valued.<br />Every rupee <span className="text-brand-grad">proven.</span>
-                </motion.h1>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-[clamp(8px,1.6vh,16px)] text-[clamp(13px,1.6vh,15px)] leading-relaxed text-ink-2/90 max-w-[520px]">
-                  The single system Amber's Sourcing team uses to capture, value, approve, execute and prove every cost-reduction idea.
-                </motion.p>
-
-              </div>
-
-              {/* globe cluster */}
-              <div className="relative hidden xl:block justify-self-center w-[clamp(250px,48vh,480px)] aspect-square">
-                <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.9, ease: [0.16, 1, 0.3, 1] }} className="absolute inset-[6%]">
-                  <Globe />
-                </motion.div>
-                <Chip icon="Users" label="SUPPLIERS" className="left-[2%] top-[4%]" delay={0} />
-                <Chip icon="Lightbulb" label="IDEAS" className="right-[2%] top-[12%]" delay={0.1} />
-                <Chip icon="BadgeCheck" label="APPROVALS" className="-left-[4%] top-[46%]" delay={0.2} />
-                <Chip icon="ChartColumnIncreasing" label="ANALYTICS" className="-right-[2%] top-[56%]" delay={0.3} />
-                <Chip icon="Rocket" label="EXECUTION" className="left-[4%] bottom-[4%]" delay={0.4} />
-                <Chip icon="BadgeIndianRupee" label="REALISATION" className="right-[2%] bottom-[0%]" delay={0.5} />
-              </div>
+            <div className="max-w-[640px]">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/80 border border-black/[.06] text-[11.5px] font-medium text-ink-2 shadow-[0_1px_2px_rgb(15_27_51/.04)]">
+                Ideas <Icon name="ChevronRight" size={11} className="text-muted" /> Value <Icon name="ChevronRight" size={11} className="text-muted" /> Approve <Icon name="ChevronRight" size={11} className="text-muted" /> Execute <Icon name="ChevronRight" size={11} className="text-muted" /> Prove
+              </motion.div>
+              <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6 }} className="mt-[clamp(10px,2vh,20px)] text-[clamp(32px,5.2vh,54px)] leading-[1.04] font-bold tracking-[-0.04em] text-ink">
+                Every idea valued.<br />Every rupee <span className="text-brand-grad">proven.</span>
+              </motion.h1>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-[clamp(8px,1.6vh,16px)] text-[clamp(13px,1.6vh,15px)] leading-relaxed text-ink-2/90 max-w-[520px]">
+                The single system Amber's Sourcing team uses to capture, value, approve, execute and prove every cost-reduction idea.
+              </motion.p>
             </div>
 
             {/* process timeline */}
