@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useStore } from '../store/useStore'
-import { PersonaPicker } from '../components/PersonaPicker'
-import { Avatar, Icon, Modal, Button, cn } from '../components/ui'
-import { StageGuideModal } from './workshops/StageGuide'
+import { Icon, Modal, Button, cn } from '../components/ui'
 import { AmberWordmark } from '../components/Logo'
 
 // Film grain as an inline SVG (fractal noise), tiled at very low opacity.
@@ -88,7 +86,7 @@ function WorkspacePicker({ onPick }: { onPick: (k: SpaceKey) => void }) {
 }
 
 export default function Login() {
-  const { login, loginAs, toast, ideas, suppliers } = useStore()
+  const { login, toast, ideas, suppliers } = useStore()
   const nav = useNavigate()
   const loc = useLocation() as any
   const [space, setSpace] = useState<SpaceKey | null>(null)
@@ -99,13 +97,12 @@ export default function Login() {
   const [show, setShow] = useState(false)
   const [keep, setKeep] = useState(true)
   const [forgot, setForgot] = useState(false)
-  const [guide, setGuide] = useState(false)
   const go = () => { useStore.getState().setSpace(space); nav(loc.state?.from && loc.state.from !== '/login' ? loc.state.from : '/', { replace: true }) }
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !password) { setErr('Enter your ID and password.'); return }
     if (login(email, password)) { toast('Welcome to COIN'); go() }
-    else setErr('Invalid credentials. For this demo every ID uses the password coin@2026.')
+    else setErr('Invalid ID or password.')
   }
   const stats: [string, string, string][] = [
     ['CircleCheckBig', 'Ideas implemented', String(ideas.filter((i) => i.bucket === 'Implemented').length)],
@@ -218,13 +215,10 @@ export default function Login() {
                 </button>
               </form>
 
-              <div className="flex items-center gap-3 my-[clamp(10px,2vh,18px)] text-[10px] font-semibold uppercase tracking-[.2em] text-muted"><span className="h-px flex-1 bg-black/[.07]" />Quick demo access<span className="h-px flex-1 bg-black/[.07]" /></div>
-              <PersonaPicker onPick={(id, label) => { loginAs(id); toast(`Signed in as ${label}`); go() }} />
             </>}
-              <button type="button" onClick={() => setGuide(true)} className="mt-[clamp(10px,2vh,16px)] w-full inline-flex items-center justify-center gap-1.5 text-[11.5px] font-semibold text-brand-600 hover:text-brand-800"><Icon name="Route" size={13} />Who does what at each stage</button>
             </motion.div>
             </AnimatePresence>
-            <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />Front-end demo · data stays in this browser · password <code className="font-mono font-semibold text-ink bg-black/[.04] px-1 rounded">coin@2026</code></p>
+            <p className="text-[11px] text-muted mt-[clamp(8px,1.4vh,12px)] text-center flex items-center justify-center gap-1.5 flex-wrap"><Icon name="ShieldCheck" size={13} className="text-accent-600" />Front-end demo · data stays in this browser</p>
           </motion.div>
         </main>
 
@@ -234,13 +228,11 @@ export default function Login() {
         </footer>
       </div>
 
-      <StageGuideModal open={guide} onClose={() => setGuide(false)} />
       <Modal open={forgot} onClose={() => setForgot(false)} title="Reset your password" subtitle="IT manages the sign-in IDs" icon="KeyRound" size="sm"
         footer={<Button variant="primary" onClick={() => setForgot(false)}>Got it</Button>}>
         <div className="text-[13px] text-ink-2 space-y-2">
           <p>Each team shares one ID. To reset its password, contact <b>Sourcing Excellence / IT</b> (the Management ID).</p>
           <p>Suppliers do not sign in. They reach COIN through the unique link of a campaign.</p>
-          <p className="text-muted">Demo: every ID's password is <code className="font-mono text-ink">coin@2026</code>.</p>
         </div>
       </Modal>
     </div>

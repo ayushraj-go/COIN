@@ -47,8 +47,8 @@ Innovation Network (IN), stages 4 and 5 in Cost Optimisation (CO).
 
 **My queue** (`/queue`) lists what is waiting for the signed-in ID, with how long each has waited and its SLA state. A
 workshop row shows its step, for example `2/4 Technical feasibility`, and the button is named after that step. The Management
-ID also sees every open item. **Workshops** (`/workshops`) lists stage 2, and **Who does what** on that page and on the
-sign-in card maps each stage to its role and opens it.
+ID also sees every open item. **Workshops** (`/workshops`) lists stage 2, and **Who does what** on that page maps each
+stage to its role and opens it.
 
 A dropped or rejected idea stays dropped; a fresh attempt is a new idea.
 
