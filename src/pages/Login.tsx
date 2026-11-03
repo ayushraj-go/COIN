@@ -103,8 +103,8 @@ export default function Login() {
 
         <main className="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_clamp(400px,30vw,470px)] gap-[clamp(28px,4vw,72px)] items-center py-[clamp(12px,2.4vh,28px)]">
           {/* Left — story */}
-          <section className="relative min-w-0 hidden lg:flex flex-col justify-center gap-[clamp(14px,3vh,34px)]">
-            <div className="max-w-[640px]">
+          <section className="relative min-w-0 w-full max-w-[720px] hidden lg:flex flex-col justify-center gap-[clamp(14px,3vh,34px)]">
+            <div>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white/80 border border-black/[.06] text-[11.5px] font-medium text-ink-2 shadow-[0_1px_2px_rgb(15_27_51/.04)]">
                 Ideas <Icon name="ChevronRight" size={11} className="text-muted" /> Value <Icon name="ChevronRight" size={11} className="text-muted" /> Approve <Icon name="ChevronRight" size={11} className="text-muted" /> Execute <Icon name="ChevronRight" size={11} className="text-muted" /> Prove
               </motion.div>
@@ -117,7 +117,7 @@ export default function Login() {
             </div>
 
             {/* process timeline */}
-            <div className="relative max-w-[640px]">
+            <div className="relative">
               <div className="absolute left-[10%] right-[10%] top-[clamp(16px,2.2vh,20px)] border-t border-dashed border-black/15" />
               <div className="relative grid grid-cols-5 gap-2">
                 {STEPS.map((s, i) => (
@@ -135,7 +135,7 @@ export default function Login() {
             {/* stats strip */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75 }} className="grid grid-cols-4 rounded-2xl bg-white/75 backdrop-blur border border-black/[.06] shadow-[0_1px_2px_rgb(15_27_51/.04)] divide-x divide-black/[.06]">
               {stats.map(([icon, label, v]) => (
-                <div key={label} className="flex items-center gap-3 px-4 py-[clamp(9px,1.5vh,14px)] min-w-0">
+                <div key={label} className="flex items-center gap-2.5 px-3 py-[clamp(9px,1.5vh,14px)] min-w-0">
                   <span className="h-8 w-8 rounded-lg bg-slate-100/80 grid place-items-center text-ink-2 shrink-0"><Icon name={icon} size={15} /></span>
                   <div className="min-w-0"><div className="text-[clamp(16px,2.2vh,20px)] font-bold text-ink tracking-tight num leading-none">{v}</div><div className="text-[11px] text-muted mt-1 truncate">{label}</div></div>
                 </div>
