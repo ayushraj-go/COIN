@@ -17,7 +17,9 @@ To serve a production build: `npm run build`, then `npm run preview` (also on po
 
 ## Demo logins
 
-There are ten sign-in IDs and every one uses the password **`coin@2026`**. People do not sign in: whoever is behind an ID
+There are ten sign-in IDs and every one uses the password **`coin@2026`**. The login page asks for the workspace first —
+**Innovation Network** (ideas, workshops, approval) or **Cost Optimisation** (execution, MRN, verification) — and shows the
+sign-in form only after one of the two cards is picked; **Change** goes back. People do not sign in: whoever is behind an ID
 types their name and employee ID on the form, on the workshop event and at sign-off. Suppliers do not sign in either: they
 reach COIN through a campaign's unique link.
 
